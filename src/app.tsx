@@ -19,6 +19,21 @@ import '@ant-design/v5-patch-for-react-19';
 const isDev = process.env.NODE_ENV === 'development';
 const loginPath = '/user/login';
 
+// 动态获取 API 基础 URL
+const getBaseURL = (): string => {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    
+    // 本地开发环境
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168')) {
+      return 'http://localhost:8000'; // 本地后端地址
+    }
+  }
+  
+  // 远程生产环境
+  return 'https://bb.app.cc';
+};
+
 /**
  * @see https://umijs.org/docs/api/runtime-config#getinitialstate
  * */
@@ -150,6 +165,6 @@ export const layout: RunTimeLayoutConfig = ({
  * @doc https://umijs.org/docs/max/request#配置
  */
 export const request: RequestConfig = {
-  baseURL: 'https://proapi.azurewebsites.net',
+  baseURL: getBaseURL(),
   ...errorConfig,
 };
