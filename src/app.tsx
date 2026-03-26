@@ -19,18 +19,29 @@ import '@ant-design/v5-patch-for-react-19';
 const isDev = process.env.NODE_ENV === 'development';
 const loginPath = '/user/login';
 
-// 动态获取 API 基础 URL
+/**
+ * 动态获取 API 基础 URL
+ * 本地开发: http://localhost:8000
+ * 远程生产: https://bb.app.cc
+ */
 const getBaseURL = (): string => {
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    
-    // 本地开发环境
-    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168')) {
-      return 'http://localhost:8000'; // 本地后端地址
-    }
+  // 服务端渲染时直接返回远程地址
+  if (typeof window === 'undefined') {
+    return 'https://bb.app.cc';
   }
-  
-  // 远程生产环境
+
+  const hostname = window.location.hostname;
+
+  // 本地开发环境
+  if (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname.startsWith('192.168.')
+  ) {
+    return 'http://localhost:8000';
+  }
+
+  // 默认远程生产环境
   return 'https://bb.app.cc';
 };
 

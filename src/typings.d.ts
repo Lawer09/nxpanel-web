@@ -18,6 +18,29 @@ declare module 'react-fittext';
 declare const REACT_APP_ENV: 'test' | 'dev' | 'pre' | false;
 
 declare namespace API {
+    // 认证响应
+  interface AuthResponse {
+    token: string;
+    auth_data: string; // "Bearer xxxxxxx"
+    is_admin: boolean;
+  }
+
+  // 当前用户
+  interface CurrentUser {
+    email?: string;
+    name?: string;
+    avatar?: string;
+    access?: 'admin' | 'user';
+    is_admin?: boolean;
+  }
+
+  // 基础响应
+  interface Response<T> {
+    code: number;
+    msg: string;
+    data: T;
+  }
+  
   interface Machine {
     id?: number;
     name: string;

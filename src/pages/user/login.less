@@ -1,0 +1,131 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+
+  .box {
+    width: 100%;
+    max-width: 400px;
+    padding: 48px 32px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    animation: slideUp 0.5s ease-out;
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+
+      h1 {
+        font-size: 32px;
+        font-weight: 700;
+        color: #333;
+        margin: 0 0 8px 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      p {
+        font-size: 14px;
+        color: #999;
+        margin: 0;
+      }
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 14px;
+      color: #666;
+
+      a {
+        color: #667eea;
+        text-decoration: none;
+        margin-left: 8px;
+        font-weight: 500;
+
+        &:hover {
+          color: #764ba2;
+          text-decoration: underline;
+        }
+      }
+    }
+
+    :global {
+      .ant-form-item {
+        margin-bottom: 24px;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+
+      .ant-form-item-label > label {
+        font-weight: 500;
+        color: #333;
+
+        &:after {
+          content: none;
+        }
+      }
+
+      .ant-input,
+      .ant-input-password {
+        border-radius: 6px;
+        border: 1px solid #e8e8e8;
+        font-size: 14px;
+        transition: all 0.3s;
+
+        &:hover {
+          border-color: #667eea;
+        }
+
+        &:focus {
+          border-color: #667eea;
+          box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+
+        input {
+          &::placeholder {
+            color: #bfbfbf;
+          }
+        }
+      }
+
+      .ant-btn {
+        font-weight: 600;
+        height: 40px;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: all 0.3s;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+      }
+
+      .ant-checkbox-wrapper {
+        color: #666;
+        font-size: 14px;
+      }
+    }
+  }
+}
