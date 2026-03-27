@@ -30,7 +30,7 @@ const MachineList: React.FC = () => {
 
   const [messageApi, contextHolder] = message.useMessage();
 
-  const { run: delRun, loading: deleteLoading } = useRequest(deleteMachine, {
+  const { run: delRun } = useRequest(deleteMachine, {
     manual: true,
     onSuccess: () => {
       setSelectedRows([]);
@@ -59,11 +59,12 @@ const MachineList: React.FC = () => {
 
   const { run: testConnRun } = useRequest(testMachineConnection, {
     manual: true,
-    onSuccess: (res) => {
-      if (res.code === 0) {
+    formatResult: (res: any) => res,
+    onSuccess: (res: any) => {
+      if (res?.code === 0) {
         messageApi.success('Connection test successful');
       } else {
-        messageApi.error(res.msg || 'Connection test failed');
+        messageApi.error(res?.msg || 'Connection test failed');
       }
     },
     onError: () => {
@@ -158,7 +159,11 @@ const MachineList: React.FC = () => {
         <Tooltip key="test" title="Test Connection">
           <LinkOutlined
             onClick={() => {
-              testConnRun({ id: record.id! });
+              if (record.id) {
+                testConnRun({ id: record.id });
+              } else {
+                messageApi.error('Invalid machine id');
+              }
             }}
             style={{ cursor: 'pointer', color: '#1890ff' }}
           />
@@ -166,7 +171,11 @@ const MachineList: React.FC = () => {
         <Tooltip key="delete" title="Delete">
           <DeleteOutlined
             onClick={() => {
-              delRun({ id: record.id! });
+              if (record.id) {
+                delRun({ id: record.id });
+              } else {
+                messageApi.error('Invalid machine id');
+              }
             }}
             style={{ cursor: 'pointer', color: '#ff4d4f' }}
           />
@@ -182,7 +191,7 @@ const MachineList: React.FC = () => {
         return;
       }
       await batchDelRun({
-        ids: selectedRows.map((row) => row.id!),
+        ids: selectedRows.map((row) => row.id).filter((id): id is number => typeof id === 'number'),
       });
     },
     [batchDelRun, messageApi],

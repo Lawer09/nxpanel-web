@@ -28,7 +28,7 @@ const UpdateForm: React.FC<UpdateFormProps> = ({ trigger, onOk, values }) => {
       formRef={formRef}
       autoFocusFirstInput
       modalProps={{
-        destroyOnClose: true,
+        destroyOnHidden: true,
       }}
       initialValues={values}
       submitTimeout={2000}
@@ -47,7 +47,7 @@ const UpdateForm: React.FC<UpdateFormProps> = ({ trigger, onOk, values }) => {
             message.error(res.msg || 'Failed to update machine');
             return false;
           }
-        } catch (error) {
+        } catch (_error) {
           message.error('Update failed');
           return false;
         }

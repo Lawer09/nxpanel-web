@@ -9,46 +9,43 @@ import {
   ProFormDigit,
   ProFormCheckbox,
 } from '@ant-design/pro-components';
-import { message } from 'antd';
-import { updateMachine } from '@/services/swagger/machine';
+import { Button, message } from 'antd';
+import { createMachine } from '@/services/swagger/machine';
 
-interface UpdateFormProps {
-  trigger: React.ReactNode;
-  onOk?: () => void;
-  values: API.Machine;
+interface CreateFormProps {
+  reload?: (resetPageIndex?: boolean) => Promise<void>;
 }
 
-const UpdateForm: React.FC<UpdateFormProps> = ({ trigger, onOk, values }) => {
+const CreateForm: React.FC<CreateFormProps> = ({ reload }) => {
   const formRef = useRef<ProFormInstance>(null);
 
   return (
-    <ModalForm<Partial<API.Machine>>
-      title="Update Machine"
-      trigger={trigger}
+    <ModalForm<API.Machine>
+      title="Create Machine"
+      trigger={
+        <Button type="primary">
+          New
+        </Button>
+      }
       formRef={formRef}
       autoFocusFirstInput
       modalProps={{
-        destroyOnClose: true,
+        destroyOnHidden: true,
       }}
-      initialValues={values}
       submitTimeout={2000}
       onFinish={async (formValues) => {
         try {
-          const data = {
-            id: values.id,
-            ...formValues,
-          };
-          const res = await updateMachine(data);
+          const res = await createMachine(formValues);
           if (res.code === 0) {
-            message.success('Machine updated successfully');
-            onOk?.();
+            message.success('Machine created successfully');
+            await reload?.();
             return true;
           } else {
-            message.error(res.msg || 'Failed to update machine');
+            message.error(res.msg || 'Failed to create machine');
             return false;
           }
-        } catch (error) {
-          message.error('Update failed');
+        } catch (_error) {
+          message.error('Create failed');
           return false;
         }
       }}
@@ -126,4 +123,4 @@ const UpdateForm: React.FC<UpdateFormProps> = ({ trigger, onOk, values }) => {
   );
 };
 
-export default UpdateForm;
+export default CreateForm;

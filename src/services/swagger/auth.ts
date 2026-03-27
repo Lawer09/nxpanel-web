@@ -16,20 +16,23 @@ export async function register(
   options?: { [key: string]: any },
 ) {
   return request<{
-    code: number;
-    msg: string;
+    status: 'success' | 'fail';
+    message: string;
     data: {
       token: string;
-      auth_data: string; // "Bearer xxxxxxx"
+      auth_data: string;
       is_admin: boolean;
-    };
+      secure_path?: string;
+    } | null;
+    error: null;
   }>('/api/v1/passport/auth/register', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     data: body,
-    skipErrorHandler: false,
+    // 关键：不使用全局错误处理，让错误通过
+    skipErrorHandler: true,
     ...(options || {}),
   });
 }
@@ -46,20 +49,23 @@ export async function login(
   options?: { [key: string]: any },
 ) {
   return request<{
-    code: number;
-    msg: string;
+    status: 'success' | 'fail';
+    message: string;
     data: {
       token: string;
-      auth_data: string; // "Bearer xxxxxxx"
+      auth_data: string;
       is_admin: boolean;
-    };
+      secure_path?: string;
+    } | null;
+    error: null;
   }>('/api/v1/passport/auth/login', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     data: body,
-    skipErrorHandler: false,
+    // 关键：不使用全局错误处理，让错误通过
+    skipErrorHandler: true,
     ...(options || {}),
   });
 }
@@ -70,15 +76,17 @@ export async function login(
  */
 export async function getCurrentUser(options?: { [key: string]: any }) {
   return request<{
-    code: number;
-    msg: string;
+    status: 'success' | 'fail';
+    message: string;
     data: {
       email: string;
       is_admin: boolean;
       token: string;
-    };
+    } | null;
+    error: null;
   }>('/api/v1/passport/auth/me', {
     method: 'GET',
+    skipErrorHandler: true,
     ...(options || {}),
   });
 }
@@ -89,10 +97,13 @@ export async function getCurrentUser(options?: { [key: string]: any }) {
  */
 export async function logout(options?: { [key: string]: any }) {
   return request<{
-    code: number;
-    msg: string;
+    status: 'success' | 'fail';
+    message: string;
+    data: null;
+    error: null;
   }>('/api/v1/passport/auth/logout', {
     method: 'POST',
+    skipErrorHandler: true,
     ...(options || {}),
   });
 }

@@ -11,7 +11,6 @@ import {
   Question,
   SelectLang,
 } from '@/components';
-import { currentUser as queryCurrentUser } from '@/services/ant-design-pro/api';
 import defaultSettings from '../config/defaultSettings';
 import { errorConfig } from './requestErrorConfig';
 import '@ant-design/v5-patch-for-react-19';
@@ -54,16 +53,29 @@ export async function getInitialState(): Promise<{
   loading?: boolean;
   fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
 }> {
-  const fetchUserInfo = async () => {
+  const getCachedUser = (): API.CurrentUser | undefined => {
+    if (typeof window === 'undefined') return undefined;
+    const userInfoStr = localStorage.getItem('user_info');
+    if (!userInfoStr) return undefined;
     try {
-      const msg = await queryCurrentUser({
-        skipErrorHandler: true,
-      });
-      return msg.data;
+      const info = JSON.parse(userInfoStr) as {
+        email?: string;
+        is_admin?: boolean;
+      };
+      if (typeof info !== 'object' || !info) return undefined;
+      return {
+        email: info.email,
+        name: info.email,
+        access: info.is_admin ? ('admin' as const) : ('user' as const),
+        is_admin: info.is_admin,
+      };
     } catch (_error) {
-      history.push(loginPath);
+      return undefined;
     }
-    return undefined;
+  };
+
+  const fetchUserInfo = async () => {
+    return getCachedUser();
   };
   // 如果不是登录页面，执行
   const { location } = history;

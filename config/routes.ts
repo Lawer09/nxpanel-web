@@ -53,10 +53,25 @@ export default [
     ],
   },
   {
-    name: 'list.table-list',
-    icon: 'table',
-    path: '/list',
-    component: './table-list',
+    path: '/resource',
+    name: 'resource',
+    icon: 'appstore',
+    routes: [
+      {
+        path: '/resource',
+        redirect: '/resource/server',
+      },
+      {
+        path: '/resource/server',
+        name: 'server',
+        component: './server',
+      },
+      {
+        path: '/resource/machine',
+        name: 'machine',
+        component: './machine',
+      },
+    ],
   },
   {
     path: '/',

@@ -1,17 +1,35 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { LockOutlined, MailOutlined } from '@ant-design/icons';
-import { Button, Form, Input, message } from 'antd';
+import { Button, Form, Input, message, Modal } from 'antd';
 import { history, useRequest } from '@umijs/max';
 import { register } from '@/services/swagger/auth';
 import styles from './login.less';
 
 const RegisterPage: React.FC = () => {
   const [form] = Form.useForm();
+  const [errorModal, setErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const getErrorMessage = (error: any) => {
+    const data = error?.data ?? error?.response?.data;
+    const backendMessage = data?.message;
+    if (typeof backendMessage === 'string' && backendMessage.trim()) {
+      return backendMessage;
+    }
+    const fallbackMessage = error?.message;
+    if (typeof fallbackMessage === 'string' && fallbackMessage.trim()) {
+      return fallbackMessage;
+    }
+    return '网络错误，请稍后重试';
+  };
 
   const { run: handleRegister, loading } = useRequest(register, {
     manual: true,
-    onSuccess: (res) => {
-      if (res.code === 0) {
+    formatResult: (res: any) => res,
+    onSuccess: (res: any) => {
+      // 检查响应状态
+      if (res.status === 'success' && res.data) {
+        // 注册成功
         const { token, auth_data, is_admin } = res.data;
 
         // 存储 token 和用户信息
@@ -20,21 +38,24 @@ const RegisterPage: React.FC = () => {
         localStorage.setItem('user_info', JSON.stringify({
           is_admin,
           token,
+          email: form.getFieldValue('email'),
         }));
 
-        message.success('注册成功，正在跳转...');
+        message.success(res.message || '注册成功！');
 
-        // 延迟跳转，让用户看到成功消息
+        // 延迟跳转到注册结果页面
         setTimeout(() => {
-          history.push('/');
-        }, 1000);
+          history.push('/user/register-result');
+        }, 800);
       } else {
-        message.error(res.msg || '注册失败');
+        // 注册失败
+        setErrorMessage(res.message || '注册失败，请稍后重试');
+        setErrorModal(true);
       }
     },
     onError: (error: any) => {
-      console.error('Register error:', error);
-      message.error(error?.message || '注册出错，请稍后重试');
+      setErrorMessage(getErrorMessage(error));
+      setErrorModal(true);
     },
   });
 
@@ -77,6 +98,7 @@ const RegisterPage: React.FC = () => {
               size="large"
               placeholder="请输入邮箱地址"
               prefix={<MailOutlined />}
+              autoComplete="email"
             />
           </Form.Item>
 
@@ -96,6 +118,7 @@ const RegisterPage: React.FC = () => {
               size="large"
               placeholder="请设置密码（最少 8 位，需包含字母和数字）"
               prefix={<LockOutlined />}
+              autoComplete="new-password"
             />
           </Form.Item>
 
@@ -108,6 +131,7 @@ const RegisterPage: React.FC = () => {
               size="large"
               placeholder="请再次输入密码"
               prefix={<LockOutlined />}
+              autoComplete="new-password"
             />
           </Form.Item>
 
@@ -139,6 +163,18 @@ const RegisterPage: React.FC = () => {
           <a href="/user/login">立即登录</a>
         </div>
       </div>
+
+      {/* 错误提示弹窗 */}
+      <Modal
+        title="注册失败"
+        open={errorModal}
+        onOk={() => setErrorModal(false)}
+        onCancel={() => setErrorModal(false)}
+        okText="确定"
+        cancelButtonProps={{ style: { display: 'none' } }}
+      >
+        <p>{errorMessage}</p>
+      </Modal>
     </div>
   );
 };

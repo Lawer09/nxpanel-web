@@ -3,19 +3,22 @@
 const errorConfig = {
   // 错误处理
   errorHandler: (error: any) => {
-    const { response, message: msg } = error;
+    const { response } = error;
 
-    // 处理 401 未授权
+    // 只处理网络层错误，不处理业务逻辑错误
+    // 业务逻辑错误（如 status: "fail"）已经在响应中返回了
+
     if (response?.status === 401) {
       // 清除 token
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_token');
       localStorage.removeItem('user_info');
+      localStorage.removeItem('secure_path');
       // 跳转登录页
       history.push('/user/login');
       return;
     }
 
-    // 处理其他错误
     if (response?.status === 403) {
       history.push('/exception/403');
       return;
@@ -31,6 +34,7 @@ const errorConfig = {
       return;
     }
 
+    // 其他 HTTP 错误不拦截，让原始错误通过
     throw error;
   },
 
@@ -44,14 +48,25 @@ const errorConfig = {
         // 直接使用 token（后端返回的已经是 "Bearer xxx" 格式）
         config.headers.Authorization = token;
       }
+
+      const securePath = localStorage.getItem('secure_path');
+      if (
+        securePath &&
+        typeof config?.url === 'string' &&
+        config.url.startsWith('/') &&
+        !config.url.startsWith('/api/')
+      ) {
+        config.url = `/api/v2/${securePath}${config.url}`;
+      }
       return config;
     },
   ],
 
-  // 响应拦截器 - 处理统一响应格式
+  // 响应拦截器
   responseInterceptors: [
     (response: any) => {
-      // 如果响应状态码是 2xx，直接返回 data
+      // 即使是 4xx 错误（如 400），如果响应体中有有效数据，也直接返回
+      // 让业务层处理 status: "fail" 的情况
       return response;
     },
   ],
