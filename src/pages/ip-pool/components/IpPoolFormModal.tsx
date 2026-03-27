@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
+import type { ProFormInstance } from '@ant-design/pro-components';
 import {
   ModalForm,
   ProFormDigit,
   ProFormSelect,
   ProFormText,
 } from '@ant-design/pro-components';
-import { message } from 'antd';
-import { saveIpPool } from '@/services/swagger/ipPool';
+import { Button, Form, Input, Space, message } from 'antd';
+import { getIpInfo, saveIpPool } from '@/services/swagger/ipPool';
 
 type IpPoolFormModalProps = {
   open: boolean;
@@ -21,13 +22,55 @@ const IpPoolFormModal: React.FC<IpPoolFormModalProps> = ({
   onOpenChange,
   onSuccess,
 }) => {
+  const formRef = useRef<ProFormInstance<API.IpPoolSaveParams>>(null);
+  const [fetchingIpInfo, setFetchingIpInfo] = useState(false);
+
+  const fetchIpDetail = async () => {
+    const ip = formRef.current?.getFieldValue('ip');
+    if (!ip) {
+      message.warning('请先输入 IP 地址');
+      return;
+    }
+    const ipv4Pattern =
+      /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/;
+    if (!ipv4Pattern.test(ip)) {
+      message.warning('IP 地址格式错误');
+      return;
+    }
+    setFetchingIpInfo(true);
+    try {
+      const res = await getIpInfo({ ip });
+      if (res.code !== 0 || !res.data) {
+        message.error(res.msg || '获取 IP 信息失败');
+        return;
+      }
+      formRef.current?.setFieldsValue({
+        hostname: res.data.hostname,
+        city: res.data.city,
+        region: res.data.region,
+        country: res.data.country,
+        loc: res.data.loc,
+        org: res.data.org,
+        postal: res.data.postal,
+        timezone: res.data.timezone,
+        readme_url: res.data.readme,
+      });
+      message.success('IP 信息已填充');
+    } catch (_error) {
+      message.error('获取 IP 信息失败');
+    } finally {
+      setFetchingIpInfo(false);
+    }
+  };
+
   return (
     <ModalForm<API.IpPoolSaveParams>
       title={current ? '编辑 IP' : '新增 IP'}
       open={open}
       initialValues={current}
+      formRef={formRef}
       modalProps={{
-        destroyOnClose: true,
+        destroyOnHidden: true,
       }}
       onOpenChange={onOpenChange}
       onFinish={async (values) => {
@@ -58,23 +101,37 @@ const IpPoolFormModal: React.FC<IpPoolFormModalProps> = ({
         return true;
       }}
     >
-      <ProFormText
-        name="ip"
+      <Form.Item
         label="IP 地址"
-        disabled={Boolean(current?.id)}
-        rules={
-          current?.id
-            ? []
-            : [
-                { required: true, message: '请输入 IP 地址' },
-                {
-                  pattern:
-                    /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/,
-                  message: 'IP 地址格式错误',
-                },
-              ]
-        }
-      />
+        required={!current?.id}
+        style={{ marginBottom: 24 }}
+      >
+        <Space.Compact block>
+          <Form.Item
+            name="ip"
+            noStyle
+            rules={
+              current?.id
+                ? []
+                : [
+                    { required: true, message: '请输入 IP 地址' },
+                    {
+                      pattern:
+                        /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/,
+                      message: 'IP 地址格式错误',
+                    },
+                  ]
+            }
+          >
+            <Input disabled={Boolean(current?.id)} />
+          </Form.Item>
+          {!current?.id && (
+            <Button loading={fetchingIpInfo} onClick={fetchIpDetail}>
+              获取IP信息
+            </Button>
+          )}
+        </Space.Compact>
+      </Form.Item>
       <ProFormText name="hostname" label="主机名" />
       <ProFormText name="city" label="城市" />
       <ProFormText name="region" label="地区/州" />

@@ -22,7 +22,7 @@ const GroupFormModal: React.FC<GroupFormModalProps> = ({
       open={open}
       initialValues={group || { name: '' }}
       modalProps={{
-        destroyOnClose: true,
+        destroyOnHidden: true,
       }}
       onOpenChange={onOpenChange}
       onFinish={async (values) => {

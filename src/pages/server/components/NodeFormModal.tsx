@@ -93,7 +93,7 @@ const NodeFormModal: React.FC<NodeFormModalProps> = ({
       open={open}
       initialValues={getInitialValues(node)}
       modalProps={{
-        destroyOnClose: true,
+        destroyOnHidden: true,
       }}
       onOpenChange={onOpenChange}
       onFinish={async (values) => {

@@ -1,6 +1,6 @@
 declare namespace API {
 
-    // 基础响应
+  // 基础响应
   interface ApiResponse<T> {
     code: number;
     msg: string;
@@ -224,6 +224,19 @@ declare namespace API {
     max_load?: number;
     status?: IpPoolStatus;
     risk_level?: number;
+  }
+
+  interface IpInfoData {
+    ip: string;
+    hostname?: string;
+    city?: string;
+    region?: string;
+    country?: string;
+    loc?: string;
+    org?: string;
+    postal?: string;
+    timezone?: string;
+    readme?: string;
   }
 
   interface IpPoolStatsCountryItem {

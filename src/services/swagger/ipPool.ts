@@ -101,3 +101,14 @@ export async function getIpPoolStats(options?: { [key: string]: any }) {
     ...(options || {}),
   });
 }
+
+export async function getIpInfo(
+  params: { ip: string },
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.IpInfoData>>('/ip-pool/get-ipinfo', {
+    method: 'GET',
+    params,
+    ...(options || {}),
+  });
+}

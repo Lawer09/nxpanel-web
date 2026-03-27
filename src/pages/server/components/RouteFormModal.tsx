@@ -36,7 +36,7 @@ const RouteFormModal: React.FC<RouteFormModalProps> = ({
             }
       }
       modalProps={{
-        destroyOnClose: true,
+        destroyOnHidden: true,
       }}
       onOpenChange={onOpenChange}
       onFinish={async (values) => {

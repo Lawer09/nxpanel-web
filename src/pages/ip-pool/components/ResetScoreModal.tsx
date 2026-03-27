@@ -22,7 +22,7 @@ const ResetScoreModal: React.FC<ResetScoreModalProps> = ({
       open={open}
       initialValues={{ score: current?.score || 0 }}
       modalProps={{
-        destroyOnClose: true,
+        destroyOnHidden: true,
       }}
       onOpenChange={onOpenChange}
       onFinish={async (values) => {
