@@ -1,112 +1,244 @@
 declare namespace API {
-  type ApiResponse = {
-    code?: number;
-    type?: string;
-    message?: string;
-  };
 
-  type Category = {
-    id?: number;
-    name?: string;
-  };
+    // 基础响应
+  interface ApiResponse<T> {
+    code: number;
+    msg: string;
+    data: T;
+  }
 
-  type deleteOrderParams = {
-    /** ID of the order that needs to be deleted */
-    orderId: number;
-  };
+  interface PageData<T> {
+    page: number;
+    pageSize: number;
+    total: number;
+    data: T[];
+  }
 
-  type deletePetParams = {
-    api_key?: string;
-    /** Pet id to delete */
-    petId: number;
-  };
+  // 认证响应
+  interface AuthResponse {
+    token: string;
+    auth_data: string; // "Bearer xxxxxxx"
+    is_admin: boolean;
+    secure_path?: string;
+  }
 
-  type deleteUserParams = {
-    /** The name that needs to be deleted */
-    username: string;
-  };
-
-  type findPetsByStatusParams = {
-    /** Status values that need to be considered for filter */
-    status: ('available' | 'pending' | 'sold')[];
-  };
-
-  type findPetsByTagsParams = {
-    /** Tags to filter by */
-    tags: string[];
-  };
-
-  type getOrderByIdParams = {
-    /** ID of pet that needs to be fetched */
-    orderId: number;
-  };
-
-  type getPetByIdParams = {
-    /** ID of pet to return */
-    petId: number;
-  };
-
-  type getUserByNameParams = {
-    /** The name that needs to be fetched. Use user1 for testing.  */
-    username: string;
-  };
-
-  type loginUserParams = {
-    /** The user name for login */
-    username: string;
-    /** The password for login in clear text */
-    password: string;
-  };
-
-  type Order = {
-    id?: number;
-    petId?: number;
-    quantity?: number;
-    shipDate?: string;
-    /** Order Status */
-    status?: 'placed' | 'approved' | 'delivered';
-    complete?: boolean;
-  };
-
-  type Pet = {
-    id?: number;
-    category?: Category;
-    name: string;
-    photoUrls: string[];
-    tags?: Tag[];
-    /** pet status in the store */
-    status?: 'available' | 'pending' | 'sold';
-  };
-
-  type Tag = {
-    id?: number;
-    name?: string;
-  };
-
-  type updatePetWithFormParams = {
-    /** ID of pet that needs to be updated */
-    petId: number;
-  };
-
-  type updateUserParams = {
-    /** name that need to be updated */
-    username: string;
-  };
-
-  type uploadFileParams = {
-    /** ID of pet to update */
-    petId: number;
-  };
-
-  type User = {
-    id?: number;
-    username?: string;
-    firstName?: string;
-    lastName?: string;
+  // 当前用户
+  interface CurrentUser {
     email?: string;
+    name?: string;
+    avatar?: string;
+    access?: 'admin' | 'user';
+    is_admin?: boolean;
+  }
+
+  interface Machine {
+    id?: number;
+    name: string;
+    hostname: string;
+    ip_address: string;
+    port: number;
+    username: string;
     password?: string;
-    phone?: string;
-    /** User Status */
-    userStatus?: number;
-  };
+    private_key?: string;
+    status?: 'online' | 'offline' | 'error' | 'maintenance';
+    os_type?: string;
+    cpu_cores?: string;
+    memory?: string;
+    disk?: string;
+    gpu_info?: string;
+    bandwidth?: number;
+    provider?: string;
+    price?: number;
+    pay_mode?: 'hourly' | 'daily' | 'monthly' | 'quarterly' | 'yearly' | 'once';
+    tags?: string;
+    description?: string;
+    is_active?: 0 | 1;
+    last_check_at?: string;
+    created_at?: string;
+    updated_at?: string;
+  }
+
+  type ServerProtocolType =
+    | 'hysteria'
+    | 'vless'
+    | 'trojan'
+    | 'vmess'
+    | 'tuic'
+    | 'shadowsocks'
+    | 'anytls'
+    | 'socks'
+    | 'naive'
+    | 'http'
+    | 'mieru';
+
+  interface ServerNodeGroupLite {
+    id: number;
+    name: string;
+  }
+
+  interface ServerNodeSortItem {
+    id: number;
+    order: number;
+  }
+
+  interface ServerNodeRateTimeRange {
+    start: string;
+    end: string;
+    rate: number;
+  }
+
+  interface ServerNode {
+    id: number;
+    name: string;
+    type: ServerProtocolType | string;
+    host: string;
+    port: string | number;
+    server_port: number;
+    group_ids?: number[];
+    route_ids?: number[];
+    tags?: string[];
+    show?: boolean;
+    rate: number;
+    rate_time_enable?: boolean;
+    rate_time_ranges?: ServerNodeRateTimeRange[];
+    parent_id?: number | null;
+    sort?: number;
+    code?: string | null;
+    protocol_settings?: Record<string, any>;
+    last_check_at?: number | null;
+    last_push_at?: number | null;
+    online?: number;
+    is_online?: number;
+    available_status?: number;
+    load_status?: Record<string, any> | null;
+    groups?: ServerNodeGroupLite[];
+    parent?: ServerNode | null;
+  }
+
+  interface ServerNodeSaveParams {
+    id?: number;
+    type: ServerProtocolType | string;
+    name: string;
+    host: string;
+    port: string;
+    server_port: number;
+    rate: number;
+    group_ids?: number[];
+    route_ids?: number[];
+    parent_id?: number;
+    code?: string;
+    tags?: string[];
+    excludes?: string[];
+    ips?: string[];
+    show?: boolean;
+    rate_time_enable?: boolean;
+    rate_time_ranges?: ServerNodeRateTimeRange[];
+    protocol_settings?: Record<string, any>;
+  }
+
+  interface ServerNodeUpdateParams {
+    id: number;
+    show?: number;
+  }
+
+  interface ServerGroup {
+    id: number;
+    name: string;
+    users_count?: number;
+    server_count?: number;
+  }
+
+  interface ServerGroupSaveParams {
+    id?: number;
+    name: string;
+  }
+
+  interface ServerRoute {
+    id: number;
+    remarks: string;
+    match: string[];
+    action: 'block' | 'dns';
+    action_value?: string | null;
+  }
+
+  interface ServerRouteSaveParams {
+    id?: number;
+    remarks: string;
+    match: string[];
+    action: 'block' | 'dns';
+    action_value?: string;
+  }
+
+  type IpPoolStatus = 'active' | 'cooldown';
+
+  interface IpPoolItem {
+    id: number;
+    ip: string;
+    hostname?: string;
+    city?: string;
+    region?: string;
+    country?: string;
+    loc?: string;
+    org?: string;
+    postal?: string;
+    timezone?: string;
+    readme_url?: string;
+    score?: number;
+    load?: number;
+    max_load?: number;
+    success_rate?: number;
+    status?: IpPoolStatus;
+    risk_level?: number;
+    total_requests?: number;
+    successful_requests?: number;
+    last_used_at?: number;
+    created_at?: number;
+    updated_at?: number;
+  }
+
+  interface IpPoolFetchParams {
+    current: number;
+    pageSize: number;
+    search_ip?: string;
+    country?: string;
+    status?: IpPoolStatus;
+    risk_level?: 'high' | 'medium' | 'low';
+    min_success_rate?: number;
+    sort_by?: 'created_at' | 'score' | 'load';
+    sort_order?: 'asc' | 'desc';
+  }
+
+  interface IpPoolSaveParams {
+    id?: number;
+    ip?: string;
+    hostname?: string;
+    city?: string;
+    region?: string;
+    country?: string;
+    loc?: string;
+    org?: string;
+    postal?: string;
+    timezone?: string;
+    readme_url?: string;
+    score?: number;
+    max_load?: number;
+    status?: IpPoolStatus;
+    risk_level?: number;
+  }
+
+  interface IpPoolStatsCountryItem {
+    country: string;
+    count: number;
+  }
+
+  interface IpPoolStats {
+    total: number;
+    active: number;
+    cooldown: number;
+    avg_score: number;
+    avg_success_rate: number;
+    high_risk_count: number;
+    by_country: IpPoolStatsCountryItem[];
+  }
+  
 }

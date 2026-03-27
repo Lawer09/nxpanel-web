@@ -20,7 +20,7 @@ const loginPath = '/user/login';
 
 /**
  * 动态获取 API 基础 URL
- * 本地开发: http://localhost:8000
+ * 本地开发: http://localhost:8001
  * 远程生产: https://bb.app.cc
  */
 const getBaseURL = (): string => {
@@ -37,7 +37,7 @@ const getBaseURL = (): string => {
     hostname === '127.0.0.1' ||
     hostname.startsWith('192.168.')
   ) {
-    return 'http://localhost:8000';
+    return 'http://localhost:8001';
   }
 
   // 默认远程生产环境

@@ -30,6 +30,7 @@ export default {
   'menu.list.search-list.applications': 'Search List(applications)',
   'menu.resource': 'Resources',
   'menu.resource.server': 'Server Manage',
+  'menu.resource.ip-pool': 'IP Pool',
   'menu.resource.machine': 'Machine Manage',
   'menu.profile': 'Profile',
   'menu.profile.basic': 'Basic Profile',

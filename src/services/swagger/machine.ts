@@ -13,16 +13,7 @@ export async function getMachineList(
   },
   options?: { [key: string]: any },
 ) {
-  return request<{
-    code: number;
-    msg: string;
-    data: {
-      data: API.Machine[];
-      total: number;
-      pageSize: number;
-      page: number;
-    };
-  }>('/machine/fetch', {
+  return request<API.ApiResponse<API.PageData<API.Machine>>>('/machine/fetch', {
     method: 'GET',
     params: {
       ...params,
@@ -33,11 +24,7 @@ export async function getMachineList(
 
 /** Create machine POST /machine/save */
 export async function createMachine(body: API.Machine, options?: { [key: string]: any }) {
-  return request<{
-    code: number;
-    msg: string;
-    data: API.Machine;
-  }>('/machine/save', {
+  return request<API.ApiResponse<API.Machine>>('/machine/save', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -49,11 +36,7 @@ export async function createMachine(body: API.Machine, options?: { [key: string]
 
 /** Update machine POST /machine/update */
 export async function updateMachine(body: Partial<API.Machine>, options?: { [key: string]: any }) {
-  return request<{
-    code: number;
-    msg: string;
-    data: API.Machine;
-  }>('/machine/update', {
+  return request<API.ApiResponse<API.Machine>>('/machine/update', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -65,11 +48,7 @@ export async function updateMachine(body: Partial<API.Machine>, options?: { [key
 
 /** Get machine detail POST /machine/detail */
 export async function getMachineDetail(params: { id: number }, options?: { [key: string]: any }) {
-  return request<{
-    code: number;
-    msg: string;
-    data: API.Machine;
-  }>('/machine/detail', {
+  return request<API.ApiResponse<API.Machine>>('/machine/detail', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -81,10 +60,7 @@ export async function getMachineDetail(params: { id: number }, options?: { [key:
 
 /** Delete machine POST /machine/drop */
 export async function deleteMachine(params: { id: number }, options?: { [key: string]: any }) {
-  return request<{
-    code: number;
-    msg: string;
-  }>('/machine/drop', {
+  return request<API.ApiResponse<API.Machine>>('/machine/drop', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -96,10 +72,7 @@ export async function deleteMachine(params: { id: number }, options?: { [key: st
 
 /** Batch delete machines POST /machine/batchDrop */
 export async function batchDeleteMachines(params: { ids: number[] }, options?: { [key: string]: any }) {
-  return request<{
-    code: number;
-    msg: string;
-  }>('/machine/batchDrop', {
+  return request<API.ApiResponse<API.Machine>>('/machine/batchDrop', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -111,13 +84,9 @@ export async function batchDeleteMachines(params: { ids: number[] }, options?: {
 
 /** Test connection POST /machine/testConnection */
 export async function testMachineConnection(params: { id: number }, options?: { [key: string]: any }) {
-  return request<{
-    code: number;
-    msg: string;
-    data?: {
-      status: string;
-    };
-  }>('/machine/testConnection', {
+  return request<API.ApiResponse<{
+    status: string;
+  }>>('/machine/testConnection', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

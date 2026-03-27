@@ -30,6 +30,7 @@ export default {
   'menu.list.search-list.applications': '搜索列表（应用）',
   'menu.resource': '资源管理',
   'menu.resource.server': '节点管理',
+  'menu.resource.ip-pool': 'IP 池管理',
   'menu.resource.machine': '机器管理',
   'menu.profile': '详情页',
   'menu.profile.basic': '基础详情页',

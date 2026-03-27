@@ -67,6 +67,11 @@ export default [
         component: './server',
       },
       {
+        path: '/resource/ip-pool',
+        name: 'ip-pool',
+        component: './ip-pool',
+      },
+      {
         path: '/resource/machine',
         name: 'machine',
         component: './machine',
