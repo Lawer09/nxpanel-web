@@ -58,7 +58,7 @@ const IpPoolPage: React.FC = () => {
     loading: statsLoading,
     run: refreshStats,
   } = useRequest(getIpPoolStats, {
-    onSuccess: (res) => {
+    onSuccess: (_res) => {
       actionRef.current?.reloadAndRest?.();
     },
   });

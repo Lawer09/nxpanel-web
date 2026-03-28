@@ -67,6 +67,16 @@ export default [
         component: './server',
       },
       {
+        path: '/resource/asn',
+        name: 'asn',
+        component: './asn',
+      },
+      {
+        path: '/resource/provider',
+        name: 'provider',
+        component: './provider',
+      },
+      {
         path: '/resource/ip-pool',
         name: 'ip-pool',
         component: './ip-pool',

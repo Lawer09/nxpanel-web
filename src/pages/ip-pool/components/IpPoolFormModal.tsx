@@ -22,26 +22,27 @@ const IpPoolFormModal: React.FC<IpPoolFormModalProps> = ({
   onOpenChange,
   onSuccess,
 }) => {
+  const [messageApi, contextHolder] = message.useMessage();
   const formRef = useRef<ProFormInstance<API.IpPoolSaveParams>>(null);
   const [fetchingIpInfo, setFetchingIpInfo] = useState(false);
 
   const fetchIpDetail = async () => {
     const ip = formRef.current?.getFieldValue('ip');
     if (!ip) {
-      message.warning('请先输入 IP 地址');
+      messageApi.warning('请先输入 IP 地址');
       return;
     }
     const ipv4Pattern =
       /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/;
     if (!ipv4Pattern.test(ip)) {
-      message.warning('IP 地址格式错误');
+      messageApi.warning('IP 地址格式错误');
       return;
     }
     setFetchingIpInfo(true);
     try {
       const res = await getIpInfo({ ip });
       if (res.code !== 0 || !res.data) {
-        message.error(res.msg || '获取 IP 信息失败');
+        messageApi.error(res.msg || '获取 IP 信息失败');
         return;
       }
       formRef.current?.setFieldsValue({
@@ -55,9 +56,9 @@ const IpPoolFormModal: React.FC<IpPoolFormModalProps> = ({
         timezone: res.data.timezone,
         readme_url: res.data.readme,
       });
-      message.success('IP 信息已填充');
+      messageApi.success('IP 信息已填充');
     } catch (_error) {
-      message.error('获取 IP 信息失败');
+      messageApi.error('获取 IP 信息失败');
     } finally {
       setFetchingIpInfo(false);
     }
@@ -93,14 +94,15 @@ const IpPoolFormModal: React.FC<IpPoolFormModalProps> = ({
         };
         const res = await saveIpPool(payload);
         if (res.code !== 0) {
-          message.error(res.msg || '保存失败');
+          messageApi.error(res.msg || '保存失败');
           return false;
         }
-        message.success(current ? 'IP 已更新' : 'IP 已创建');
+        messageApi.success(current ? 'IP 已更新' : 'IP 已创建');
         onSuccess();
         return true;
       }}
     >
+      {contextHolder}
       <Form.Item
         label="IP 地址"
         required={!current?.id}
