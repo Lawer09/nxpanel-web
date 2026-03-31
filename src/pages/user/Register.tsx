@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
 import { LockOutlined, MailOutlined } from '@ant-design/icons';
-import { Button, Form, Input, message, Modal } from 'antd';
 import { history, useRequest } from '@umijs/max';
+import { Button, Form, Input, Modal, message } from 'antd';
+import React, { useState } from 'react';
 import { register } from '@/services/swagger/auth';
 import styles from './login.less';
 
@@ -35,11 +35,14 @@ const RegisterPage: React.FC = () => {
         // 存储 token 和用户信息
         localStorage.setItem('auth_token', auth_data);
         localStorage.setItem('user_token', token);
-        localStorage.setItem('user_info', JSON.stringify({
-          is_admin,
-          token,
-          email: form.getFieldValue('email'),
-        }));
+        localStorage.setItem(
+          'user_info',
+          JSON.stringify({
+            is_admin,
+            token,
+            email: form.getFieldValue('email'),
+          }),
+        );
 
         message.success(res.message || '注册成功！');
 
@@ -135,14 +138,8 @@ const RegisterPage: React.FC = () => {
             />
           </Form.Item>
 
-          <Form.Item
-            name="invite_code"
-            label="邀请码（可选）"
-          >
-            <Input
-              size="large"
-              placeholder="输入邀请码（非必填）"
-            />
+          <Form.Item name="invite_code" label="邀请码（可选）">
+            <Input size="large" placeholder="输入邀请码（非必填）" />
           </Form.Item>
 
           <Form.Item>

@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { Result, Button, Card } from 'antd';
 import { CheckCircleOutlined, MailOutlined } from '@ant-design/icons';
 import { history } from '@umijs/max';
+import { Button, Card, Result } from 'antd';
+import React, { useEffect, useState } from 'react';
 import styles from './result.less';
 
 interface UserInfo {
@@ -61,19 +61,15 @@ const RegisterResultPage: React.FC = () => {
           title="注册成功！"
           subTitle="感谢您的注册，您的账户已成功创建。"
           extra={[
-            <Button 
-              type="primary" 
-              key="home" 
+            <Button
+              type="primary"
+              key="home"
               size="large"
               onClick={handleGoHome}
             >
               进入首页
             </Button>,
-            <Button 
-              key="login" 
-              size="large"
-              onClick={handleGoLogin}
-            >
+            <Button key="login" size="large" onClick={handleGoLogin}>
               返回登录
             </Button>,
           ]}
@@ -101,7 +97,10 @@ const RegisterResultPage: React.FC = () => {
             </div>
 
             <div className={styles.countdownInfo}>
-              <p>系统将在 <span className={styles.countdown}>{countdown}</span> 秒后自动跳转到首页</p>
+              <p>
+                系统将在 <span className={styles.countdown}>{countdown}</span>{' '}
+                秒后自动跳转到首页
+              </p>
             </div>
           </Card>
         )}

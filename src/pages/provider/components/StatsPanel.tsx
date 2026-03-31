@@ -1,5 +1,5 @@
-import React from 'react';
 import { Card, Col, Row, Space, Statistic, Tag } from 'antd';
+import React from 'react';
 
 type StatsPanelProps = {
   stats?: API.ProviderStats;
@@ -17,7 +17,10 @@ const StatsPanel: React.FC<StatsPanelProps> = ({ stats, loading }) => {
           <Statistic title="活跃数量" value={stats?.active_count || 0} />
         </Col>
         <Col span={6}>
-          <Statistic title="高可靠(≥80)" value={stats?.high_reliability_count || 0} />
+          <Statistic
+            title="高可靠(≥80)"
+            value={stats?.high_reliability_count || 0}
+          />
         </Col>
         <Col span={6}>
           <Statistic title="平均可靠性" value={stats?.avg_reliability || 0} />

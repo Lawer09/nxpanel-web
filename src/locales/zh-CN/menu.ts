@@ -32,6 +32,9 @@ export default {
   'menu.resource.server': '节点管理',
   'menu.resource.ip-pool': 'IP 池管理',
   'menu.resource.machine': '机器管理',
+  'menu.resource.deploy-template': '部署模板',
+  'menu.resource.server-template': '节点模板',
+  'menu.dns': '域名解析',
   'menu.profile': '详情页',
   'menu.profile.basic': '基础详情页',
   'menu.profile.advanced': '高级详情页',
@@ -56,4 +59,7 @@ export default {
   'menu.resource.provider': '供应商管理',
   'menu.report': '数据报表',
   'menu.report.performance': '用户节点报告',
+  'menu.user-manage': '用户管理',
+  'menu.plan': '套餐管理',
+  'menu.order': '订单管理',
 };

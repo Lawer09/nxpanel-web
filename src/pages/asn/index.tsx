@@ -63,7 +63,10 @@ const AsnPage: React.FC = () => {
             return '无';
           }
           return record.providers
-            .map((provider) => `${provider.name}${provider.asn_id ? `(${provider.asn_id})` : ''}`)
+            .map(
+              (provider) =>
+                `${provider.name}${provider.asn_id ? `(${provider.asn_id})` : ''}`,
+            )
             .join('，');
         },
       },
@@ -213,7 +216,8 @@ const AsnPage: React.FC = () => {
             is_datacenter:
               params.is_datacenter === true || params.is_datacenter === 'true'
                 ? true
-                : params.is_datacenter === false || params.is_datacenter === 'false'
+                : params.is_datacenter === false ||
+                    params.is_datacenter === 'false'
                   ? false
                   : undefined,
             min_reliability: params.min_reliability
@@ -268,7 +272,8 @@ const AsnPage: React.FC = () => {
             onClick={() => {
               Modal.confirm({
                 title: `确认删除选中的 ${selectedRows.length} 条 ASN 记录？`,
-                content: '删除后关联的 Provider 将失去 ASN 关联(asn_id 将被置空)',
+                content:
+                  '删除后关联的 Provider 将失去 ASN 关联(asn_id 将被置空)',
                 onOk: async () => {
                   const ids = selectedRows.map((item) => item.id);
                   const res = await deleteAsn({ ids });

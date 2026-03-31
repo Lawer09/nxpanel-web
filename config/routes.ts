@@ -86,6 +86,16 @@ export default [
         name: 'machine',
         component: './machine',
       },
+      {
+        path: '/resource/deploy-template',
+        name: 'deploy-template',
+        component: './deploy-template',
+      },
+      {
+        path: '/resource/server-template',
+        name: 'server-template',
+        component: './server-template',
+      },
     ],
   },
   {
@@ -103,6 +113,30 @@ export default [
         component: './report/performance',
       },
     ],
+  },
+  {
+    path: '/user-manage',
+    name: 'user-manage',
+    icon: 'user',
+    component: './user-manage',
+  },
+  {
+    path: '/plan',
+    name: 'plan',
+    icon: 'appstoreAdd',
+    component: './plan',
+  },
+  {
+    path: '/order',
+    name: 'order',
+    icon: 'shoppingCart',
+    component: './order',
+  },
+  {
+    path: '/dns',
+    name: 'dns',
+    icon: 'globalOutlined',
+    component: './dns',
   },
   {
     path: '/',

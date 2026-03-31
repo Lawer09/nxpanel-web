@@ -97,17 +97,45 @@ export async function testMachineConnection(params: { id: number }, options?: { 
   });
 }
 
-/** Deploy node POST /machine/deployNode */
-export async function deployNode(params: { id: number }, options?: { [key: string]: any }) {
-  return request<API.ApiResponse<{
-    output: string;
-    exit_code: number;
-  }>>('/machine/deployNode', {
+/** Deploy node POST /machine/deployNode (async) */
+export async function deployNode(
+  params: { id: number; template_id?: number; deploy_config?: Record<string, any> },
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<{ task_id: number; template_id: number }>>('/machine/deployNode', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     data: params,
+    ...(options || {}),
+  });
+}
+
+/** Batch deploy POST /machine/batchDeploy (async) */
+export async function batchDeploy(
+  params: {
+    machine_ids: number[];
+    template_id?: number;
+    deploy_config?: Record<string, any>;
+    machine_configs?: Record<string, Record<string, any>>;
+  },
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.BatchDeployResult>>('/machine/batchDeploy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: params,
+    ...(options || {}),
+  });
+}
+
+/** Query deploy status GET /machine/deployStatus */
+export async function deployStatus(
+  params: { task_id?: number; batch_id?: number },
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<any>>('/machine/deployStatus', {
+    method: 'GET',
+    params,
     ...(options || {}),
   });
 }
@@ -119,9 +147,7 @@ export async function clearNode(params: { id: number }, options?: { [key: string
     exit_code: number;
   }>>('/machine/clearNode', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     data: params,
     ...(options || {}),
   });

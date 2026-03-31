@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   ModalForm,
   ProFormDigit,
@@ -8,6 +7,7 @@ import {
   ProFormTextArea,
 } from '@ant-design/pro-components';
 import { message } from 'antd';
+import React from 'react';
 import { saveAsn } from '@/services/swagger/asn';
 
 type AsnFormModalValues = Partial<API.AsnSaveParams> & {
@@ -35,7 +35,9 @@ const AsnFormModal: React.FC<AsnFormModalProps> = ({
       open={open}
       initialValues={{
         ...current,
-        metadata_text: current?.metadata ? JSON.stringify(current.metadata, null, 2) : undefined,
+        metadata_text: current?.metadata
+          ? JSON.stringify(current.metadata, null, 2)
+          : undefined,
       }}
       modalProps={{
         destroyOnHidden: true,
@@ -87,7 +89,11 @@ const AsnFormModal: React.FC<AsnFormModalProps> = ({
               ]
         }
       />
-      <ProFormText name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]} />
+      <ProFormText
+        name="name"
+        label="名称"
+        rules={[{ required: true, message: '请输入名称' }]}
+      />
       <ProFormTextArea name="description" label="描述" />
       <ProFormText
         name="country"

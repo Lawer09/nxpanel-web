@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   ModalForm,
   ProFormDigit,
@@ -8,6 +7,7 @@ import {
   ProFormTextArea,
 } from '@ant-design/pro-components';
 import { message } from 'antd';
+import React from 'react';
 import { saveProvider } from '@/services/swagger/provider';
 
 type ProviderFormModalValues = Partial<API.ProviderSaveParams> & {
@@ -51,9 +51,15 @@ const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       initialValues={{
         ...current,
         is_active: current?.id ? current.is_active : true,
-        regions_text: current?.regions ? JSON.stringify(current.regions, null, 2) : undefined,
-        services_text: current?.services ? JSON.stringify(current.services, null, 2) : undefined,
-        metadata_text: current?.metadata ? JSON.stringify(current.metadata, null, 2) : undefined,
+        regions_text: current?.regions
+          ? JSON.stringify(current.regions, null, 2)
+          : undefined,
+        services_text: current?.services
+          ? JSON.stringify(current.services, null, 2)
+          : undefined,
+        metadata_text: current?.metadata
+          ? JSON.stringify(current.metadata, null, 2)
+          : undefined,
       }}
       modalProps={{
         destroyOnHidden: true,
@@ -61,7 +67,9 @@ const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       onOpenChange={onOpenChange}
       onFinish={async (values) => {
         try {
-          const selectedAsn = asnOptions.find((item) => item.value === values.asn_id);
+          const selectedAsn = asnOptions.find(
+            (item) => item.value === values.asn_id,
+          );
           const payload: API.ProviderSaveParams = {
             id: current?.id,
             name: values.name,

@@ -1,5 +1,5 @@
-import React from 'react';
 import { Card, Col, Row, Space, Statistic, Tag } from 'antd';
+import React from 'react';
 
 type StatsPanelProps = {
   stats?: API.IpPoolStats;
@@ -23,7 +23,11 @@ const StatsPanel: React.FC<StatsPanelProps> = ({ stats, loading }) => {
           <Statistic title="平均评分" value={stats?.avg_score || 0} />
         </Col>
         <Col span={4}>
-          <Statistic title="平均成功率" value={stats?.avg_success_rate || 0} suffix="%" />
+          <Statistic
+            title="平均成功率"
+            value={stats?.avg_success_rate || 0}
+            suffix="%"
+          />
         </Col>
         <Col span={4}>
           <Statistic title="高风险数" value={stats?.high_risk_count || 0} />

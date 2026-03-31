@@ -1,7 +1,7 @@
-import React from 'react';
 import { LockOutlined, MailOutlined } from '@ant-design/icons';
-import { Button, Checkbox, Form, Input, message } from 'antd';
 import { history, useModel, useRequest } from '@umijs/max';
+import { Button, Checkbox, Form, Input, message } from 'antd';
+import React from 'react';
 import { flushSync } from 'react-dom';
 import { login } from '@/services/swagger/auth';
 import styles from './login.less';
@@ -40,11 +40,14 @@ const LoginPage: React.FC = () => {
         } else {
           localStorage.removeItem('secure_path');
         }
-        localStorage.setItem('user_info', JSON.stringify({
-          is_admin,
-          token,
-          email: form.getFieldValue('email'),
-        }));
+        localStorage.setItem(
+          'user_info',
+          JSON.stringify({
+            is_admin,
+            token,
+            email: form.getFieldValue('email'),
+          }),
+        );
 
         message.success(res.message || '登录成功');
 
@@ -132,7 +135,11 @@ const LoginPage: React.FC = () => {
             />
           </Form.Item>
 
-          <Form.Item name="remember" valuePropName="checked" initialValue={true}>
+          <Form.Item
+            name="remember"
+            valuePropName="checked"
+            initialValue={true}
+          >
             <Checkbox>记住我</Checkbox>
           </Form.Item>
 

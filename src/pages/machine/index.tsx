@@ -11,7 +11,7 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { useRequest } from '@umijs/max';
-import { Button, Drawer, Modal, message, Spin, Tooltip } from 'antd';
+import { App, Button, Drawer, Spin, Tooltip } from 'antd';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   batchDeleteMachines,
@@ -23,6 +23,7 @@ import {
   testMachineConnection,
 } from '@/services/swagger/machine';
 import { fetchProvider } from '@/services/swagger/provider';
+import BatchDeployModal from './components/BatchDeployModal';
 import CreateForm from './components/CreateForm';
 import DeployModal from './components/DeployModal';
 import UpdateForm from './components/UpdateForm';
@@ -37,6 +38,7 @@ const PAY_MODE_MAP: Record<number, string> = {
 };
 
 const MachineList: React.FC = () => {
+  const { message: messageApi, modal } = App.useApp();
   const actionRef = useRef<ActionType | null>(null);
   const [showDetail, setShowDetail] = useState<boolean>(false);
   const [currentRow, setCurrentRow] = useState<API.Machine>();
@@ -49,8 +51,7 @@ const MachineList: React.FC = () => {
   const [selectedDeployMachine, setSelectedDeployMachine] = useState<
     API.Machine | undefined
   >();
-
-  const [messageApi, contextHolder] = message.useMessage();
+  const [batchDeployOpen, setBatchDeployOpen] = useState(false);
 
   // 加载供应商列表
   useEffect(() => {
@@ -267,7 +268,7 @@ const MachineList: React.FC = () => {
         <Tooltip key="delete" title="Delete">
           <DeleteOutlined
             onClick={() => {
-              Modal.confirm({
+              modal.confirm({
                 title: `Are you sure to delete machine "${record.name}"?`,
                 onOk: () => {
                   if (record.id) {
@@ -291,7 +292,7 @@ const MachineList: React.FC = () => {
         messageApi.warning('Please select machines to delete');
         return;
       }
-      Modal.confirm({
+      modal.confirm({
         title: `Are you sure to delete ${selectedRows.length} selected machines?`,
         onOk: async () => {
           await batchDelRun({
@@ -307,7 +308,6 @@ const MachineList: React.FC = () => {
 
   return (
     <PageContainer>
-      {contextHolder}
       <ProTable<API.Machine>
         headerTitle="Machine Management"
         actionRef={actionRef}
@@ -364,6 +364,13 @@ const MachineList: React.FC = () => {
           >
             Batch Delete
           </Button>
+          <Button
+            type="primary"
+            onClick={() => setBatchDeployOpen(true)}
+            disabled={selectedRowsState.length === 0}
+          >
+            批量部署 ({selectedRowsState.length})
+          </Button>
         </FooterToolbar>
       )}
 
@@ -397,6 +404,18 @@ const MachineList: React.FC = () => {
         onClose={() => {
           setDeployModalOpen(false);
           setSelectedDeployMachine(undefined);
+        }}
+        onSuccess={() => actionRef.current?.reload()}
+      />
+
+      <BatchDeployModal
+        open={batchDeployOpen}
+        machines={selectedRowsState}
+        onClose={() => setBatchDeployOpen(false)}
+        onSuccess={() => {
+          setBatchDeployOpen(false);
+          setSelectedRows([]);
+          actionRef.current?.reload();
         }}
       />
     </PageContainer>

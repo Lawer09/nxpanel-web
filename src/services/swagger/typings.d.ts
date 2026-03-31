@@ -490,4 +490,492 @@ interface Machine {
     data: PerformancePlatformItem[];
   }
 
+  // ==================== User ====================
+
+  interface UserFilter {
+    id: string;
+    value: string | number | (string | number)[];
+  }
+
+  interface UserSort {
+    id: string;
+    desc: boolean;
+  }
+
+  interface UserPlanLite {
+    id: number;
+    name: string;
+  }
+
+  interface UserInviteLite {
+    id: number;
+    email: string;
+  }
+
+  interface UserGroupLite {
+    id: number;
+    name: string;
+  }
+
+  interface UserItem {
+    id: number;
+    email: string;
+    token?: string;
+    uuid?: string;
+    invite_user_id?: number | null;
+    plan_id?: number | null;
+    group_id?: number | null;
+    transfer_enable?: number | null;
+    speed_limit?: number | null;
+    device_limit?: number | null;
+    u?: number;
+    d?: number;
+    total_used?: number;
+    banned?: boolean | number;
+    is_admin?: boolean | number;
+    is_staff?: boolean | number;
+    balance?: number;
+    commission_balance?: number;
+    commission_rate?: number | null;
+    commission_type?: number;
+    discount?: number | null;
+    expired_at?: number | null;
+    last_login_at?: number | null;
+    remarks?: string | null;
+    subscribe_url?: string;
+    created_at?: number;
+    updated_at?: number;
+    plan?: UserPlanLite;
+    invite_user?: UserInviteLite;
+    group?: UserGroupLite;
+  }
+
+  interface UserFetchParams {
+    current?: number;
+    pageSize?: number;
+    filter?: UserFilter[];
+    sort?: UserSort[];
+  }
+
+  interface UserUpdateParams {
+    id: number;
+    email?: string;
+    password?: string;
+    transfer_enable?: number | null;
+    expired_at?: number | null;
+    banned?: boolean | number;
+    plan_id?: number | null;
+    commission_rate?: number | null;
+    discount?: number | null;
+    is_admin?: boolean | number;
+    is_staff?: boolean | number;
+    u?: number;
+    d?: number;
+    balance?: number;
+    commission_type?: number;
+    commission_balance?: number;
+    remarks?: string | null;
+    speed_limit?: number | null;
+    device_limit?: number | null;
+    invite_user_email?: string;
+  }
+
+  interface UserGenerateParams {
+    email_suffix: string;
+    email_prefix?: string;
+    generate_count?: number;
+    password?: string;
+    plan_id?: number;
+    expired_at?: number;
+    download_csv?: boolean;
+  }
+
+  interface UserSendMailParams {
+    subject: string;
+    content: string;
+    filter?: UserFilter[];
+    sort?: UserSort[];
+    sort_type?: string;
+  }
+
+  // ==================== Plan ====================
+
+  type PlanResetTrafficMethod = 0 | 1 | 2 | 3 | 4 | null;
+
+  interface PlanPrices {
+    monthly?: number | null;
+    quarterly?: number | null;
+    half_yearly?: number | null;
+    yearly?: number | null;
+    two_yearly?: number | null;
+    three_yearly?: number | null;
+    onetime?: number | null;
+    reset_traffic?: number | null;
+  }
+
+  interface PlanGroupLite {
+    id: number;
+    name: string;
+  }
+
+  interface PlanItem {
+    id: number;
+    name: string;
+    group_id?: number | null;
+    transfer_enable: number;
+    speed_limit?: number | null;
+    device_limit?: number | null;
+    capacity_limit?: number | null;
+    show: boolean;
+    renew: boolean;
+    sell: boolean;
+    sort: number;
+    content?: string | null;
+    reset_traffic_method?: PlanResetTrafficMethod;
+    prices?: PlanPrices | null;
+    tags?: string[] | null;
+    group?: PlanGroupLite | null;
+    users_count?: number;
+    active_users_count?: number;
+    created_at: number;
+    updated_at: number;
+  }
+
+  interface PlanSaveParams {
+    id?: number;
+    name: string;
+    transfer_enable: number;
+    group_id?: number | null;
+    speed_limit?: number | null;
+    device_limit?: number | null;
+    capacity_limit?: number | null;
+    content?: string | null;
+    reset_traffic_method?: PlanResetTrafficMethod;
+    prices?: PlanPrices | null;
+    tags?: string[] | null;
+    force_update?: boolean;
+  }
+
+  interface PlanUpdateParams {
+    id: number;
+    show?: boolean;
+    renew?: boolean;
+    sell?: boolean;
+  }
+
+  // ==================== Order ====================
+
+  type OrderStatus = 0 | 1 | 2 | 3 | 4;
+  type OrderType = 1 | 2 | 3 | 4;
+
+  type OrderPeriod =
+    | 'monthly'
+    | 'quarterly'
+    | 'half_yearly'
+    | 'yearly'
+    | 'two_yearly'
+    | 'three_yearly'
+    | 'onetime'
+    | 'reset_traffic';
+
+  type OrderAssignPeriod =
+    | 'month_price'
+    | 'quarter_price'
+    | 'half_year_price'
+    | 'year_price'
+    | 'two_year_price'
+    | 'three_year_price'
+    | 'onetime_price'
+    | 'reset_price';
+
+  interface OrderPlanLite {
+    id: number;
+    name: string;
+  }
+
+  interface OrderItem {
+    id: number;
+    user_id: number;
+    plan_id: number;
+    payment_id?: number | null;
+    period: OrderPeriod | string;
+    trade_no: string;
+    total_amount: number;
+    handling_amount?: number | null;
+    balance_amount?: number | null;
+    refund_amount?: number | null;
+    surplus_amount?: number | null;
+    discount_amount?: number | null;
+    type: OrderType;
+    status: OrderStatus;
+    surplus_order_ids?: number[] | null;
+    coupon_id?: number | null;
+    invite_user_id?: number | null;
+    commission_status?: number | null;
+    commission_balance?: number | null;
+    commission_rate?: number | null;
+    actual_commission_balance?: number | null;
+    paid_at?: number | null;
+    callback_no?: string | null;
+    plan?: OrderPlanLite | null;
+    created_at: number;
+    updated_at: number;
+  }
+
+  interface OrderDetail extends OrderItem {
+    user?: UserItem;
+    invite_user?: UserInviteLite;
+    commission_log?: any;
+    surplus_orders?: OrderItem[];
+  }
+
+  interface OrderFetchParams {
+    current?: number;
+    pageSize?: number;
+    is_commission?: boolean;
+    filter?: UserFilter[];
+    sort?: UserSort[];
+  }
+
+  interface OrderAssignParams {
+    plan_id: number;
+    email: string;
+    total_amount: number;
+    period: OrderAssignPeriod;
+  }
+
+  // ==================== Server Template ====================
+
+  interface ServerTemplate {
+    id: number;
+    name: string;
+    type: ServerProtocolType | string;
+    description?: string | null;
+    is_default: boolean;
+    host?: string | null;
+    port?: string | number | null;
+    server_port?: number | null;
+    rate?: number | null;
+    show?: boolean | null;
+    code?: string | null;
+    spectific_key?: string | null;
+    group_ids?: number[] | null;
+    route_ids?: number[] | null;
+    tags?: string[] | null;
+    excludes?: string[] | null;
+    ips?: string[] | null;
+    parent_id?: number | null;
+    rate_time_enable?: boolean | null;
+    rate_time_ranges?: ServerNodeRateTimeRange[] | null;
+    custom_outbounds?: any[] | null;
+    custom_routes?: any[] | null;
+    cert_config?: any[] | null;
+    protocol_settings?: Record<string, any> | null;
+    created_at?: number;
+    updated_at?: number;
+  }
+
+  interface ServerTemplateSaveParams {
+    name: string;
+    type: ServerProtocolType | string;
+    description?: string;
+    is_default?: boolean;
+    host?: string;
+    port?: string | number;
+    server_port?: number;
+    rate?: number;
+    show?: boolean;
+    code?: string;
+    spectific_key?: string;
+    group_ids?: number[];
+    route_ids?: number[];
+    tags?: string[];
+    excludes?: string[];
+    ips?: string[];
+    parent_id?: number;
+    rate_time_enable?: boolean;
+    rate_time_ranges?: ServerNodeRateTimeRange[];
+    custom_outbounds?: any[];
+    custom_routes?: any[];
+    cert_config?: any[];
+    protocol_settings?: Record<string, any>;
+  }
+
+  interface ServerTemplateFetchParams {
+    page?: number;
+    page_size?: number;
+    name?: string;
+    type?: string;
+    is_default?: boolean;
+  }
+
+  interface ServerTemplatePageData {
+    data: ServerTemplate[];
+    total: number;
+    pageSize: number;
+    page: number;
+  }
+
+  // ==================== Deploy Template ====================
+
+  type DeployNodeType =
+    | 'vless'
+    | 'vmess'
+    | 'trojan'
+    | 'shadowsocks'
+    | 'hysteria'
+    | 'hysteria2'
+    | 'tuic'
+    | 'anytls';
+
+  interface DeployTemplate {
+    id: number;
+    name: string;
+    node_type: DeployNodeType | string;
+    description?: string | null;
+    core_type?: number | null;   // 1=xray 2=sing-box 3=mihomo
+    tls?: number | null;          // 0=none 1=tls 2=xtls
+    cert_mode?: string | null;    // none/http/dns/self
+    cert_domain?: string | null;
+    network?: string | null;
+    network_settings?: Record<string, any> | null;
+    group_ids?: number[] | null;
+    route_ids?: number[] | null;
+    is_default: boolean;
+    extra?: Record<string, any> | null;
+    created_at: number;
+    updated_at: number;
+  }
+
+  interface DeployTemplateSaveParams {
+    name: string;
+    node_type: DeployNodeType | string;
+    description?: string;
+    core_type?: number | null;
+    tls?: number | null;
+    cert_mode?: string;
+    cert_domain?: string;
+    network?: string;
+    network_settings?: Record<string, any>;
+    group_ids?: number[];
+    route_ids?: number[];
+    is_default?: boolean;
+    extra?: Record<string, any>;
+  }
+
+  // ==================== Deploy Task ====================
+
+  type DeployTaskStatus = 'pending' | 'running' | 'success' | 'failed';
+
+  interface DeployTaskItem {
+    task_id: number;
+    machine_id: number;
+    status: DeployTaskStatus;
+  }
+
+  interface BatchDeployResult {
+    batch_id: number;
+    task_count: number;
+    tasks: DeployTaskItem[];
+  }
+
+  interface DeployTaskDetail {
+    id: number;
+    batch_id?: number | null;
+    machine_id: number;
+    server_id?: number | null;
+    status: DeployTaskStatus;
+    output?: string | null;
+    started_at?: string | null;
+    finished_at?: string | null;
+    machine?: { id: number; name: string; ip_address: string } | null;
+    server?: { id: number; name: string } | null;
+  }
+
+  interface BatchDeployStatus {
+    summary: {
+      total: number;
+      pending: number;
+      running: number;
+      success: number;
+      failed: number;
+    };
+    tasks: DeployTaskDetail[];
+  }
+
+  // ==================== DNS ====================
+
+  interface DnsDomain {
+    id: number;
+    domain: string;
+    enabled: boolean;
+    provider: string;
+    last_synced_at?: string | null;
+  }
+
+  interface DnsDomainRecord {
+    id: number;
+    subdomain: string;
+    fqdn: string;
+    ipv4: string;
+    enabled: boolean;
+  }
+
+  interface DnsDomainDetail extends DnsDomain {
+    records: DnsDomainRecord[];
+  }
+
+  interface DnsRecord {
+    id: number;
+    domain: string;
+    subdomain: string;
+    fqdn: string;
+    enabled: boolean;
+  }
+
+  interface DnsResolveParams {
+    ipv4: string;
+    subdomain: string;
+    domain: string;
+    unique: boolean;
+  }
+
+  interface DnsResolveResult {
+    action: 'created' | 'unchanged' | 'replace';
+    ipv4: string;
+    subdomain: string;
+    domain: string;
+    fqdn: string;
+    unique: boolean;
+    removed_records?: string[];
+  }
+
+  interface DnsRecordsByIpResult {
+    ipv4: string;
+    records: DnsRecord[];
+  }
+
+  interface DnsUnbindParams {
+    ipv4: string;
+    fqdn: string;
+  }
+
+  interface DnsUnbindResult {
+    ipv4: string;
+    fqdn: string;
+    action: string;
+  }
+
+  interface DnsSyncResult {
+    total_remote: number;
+    inserted: number;
+    updated: number;
+  }
+
+  interface DnsResponse<T> {
+    code: number;
+    msg: string;
+    data: T | null;
+  }
+
 }
