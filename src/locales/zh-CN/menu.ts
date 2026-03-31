@@ -52,4 +52,8 @@ export default {
   'menu.editor.flow': '流程编辑器',
   'menu.editor.mind': '脑图编辑器',
   'menu.editor.koni': '拓扑编辑器',
+  'menu.resource.asn': 'ASN 管理',
+  'menu.resource.provider': '供应商管理',
+  'menu.report': '数据报表',
+  'menu.report.performance': '用户节点报告',
 };

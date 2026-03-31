@@ -1,3 +1,4 @@
+import { DeleteOutlined, EditOutlined, LinkOutlined } from '@ant-design/icons';
 import type {
   ActionType,
   ProColumns,
@@ -10,32 +11,69 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { useRequest } from '@umijs/max';
-import { Button, Drawer, Tooltip, message } from 'antd';
-import { DeleteOutlined, EditOutlined, LinkOutlined } from '@ant-design/icons';
-import React, { useCallback, useRef, useState } from 'react';
+import { Button, Drawer, Modal, message, Spin, Tooltip } from 'antd';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  getMachineList,
-  deleteMachine,
   batchDeleteMachines,
+  clearNode,
+  deleteMachine,
+  deployNode,
+  getMachineDetail,
+  getMachineList,
   testMachineConnection,
 } from '@/services/swagger/machine';
+import { fetchProvider } from '@/services/swagger/provider';
 import CreateForm from './components/CreateForm';
+import DeployModal from './components/DeployModal';
 import UpdateForm from './components/UpdateForm';
+
+const PAY_MODE_MAP: Record<number, string> = {
+  1: 'Hourly',
+  2: 'Daily',
+  3: 'Monthly',
+  4: 'Quarterly',
+  5: 'Yearly',
+  6: 'Once',
+};
 
 const MachineList: React.FC = () => {
   const actionRef = useRef<ActionType | null>(null);
   const [showDetail, setShowDetail] = useState<boolean>(false);
   const [currentRow, setCurrentRow] = useState<API.Machine>();
   const [selectedRowsState, setSelectedRows] = useState<API.Machine[]>([]);
+  const [providerOptions, setProviderOptions] = useState<
+    Array<{ label: string; value: number }>
+  >([]);
+  const [testingMachineId, setTestingMachineId] = useState<number | null>(null);
+  const [deployModalOpen, setDeployModalOpen] = useState(false);
+  const [selectedDeployMachine, setSelectedDeployMachine] = useState<
+    API.Machine | undefined
+  >();
 
   const [messageApi, contextHolder] = message.useMessage();
 
+  // 加载供应商列表
+  useEffect(() => {
+    fetchProvider({ current: 1, pageSize: 1000 }).then((res) => {
+      if (res.code === 0 && res.data?.data) {
+        setProviderOptions(
+          res.data.data.map((item) => ({ label: item.name, value: item.id })),
+        );
+      }
+    });
+  }, []);
+
   const { run: delRun } = useRequest(deleteMachine, {
     manual: true,
-    onSuccess: () => {
-      setSelectedRows([]);
-      actionRef.current?.reloadAndRest?.();
-      messageApi.success('Machine deleted successfully');
+    formatResult: (res: any) => res,
+    onSuccess: (res: any) => {
+      if (res?.code === 0) {
+        setSelectedRows([]);
+        actionRef.current?.reloadAndRest?.();
+        messageApi.success('Machine deleted successfully');
+      } else {
+        messageApi.error(res?.msg || 'Delete failed');
+      }
     },
     onError: () => {
       messageApi.error('Delete failed, please try again');
@@ -46,10 +84,15 @@ const MachineList: React.FC = () => {
     batchDeleteMachines,
     {
       manual: true,
-      onSuccess: () => {
-        setSelectedRows([]);
-        actionRef.current?.reloadAndRest?.();
-        messageApi.success('Batch delete completed successfully');
+      formatResult: (res: any) => res,
+      onSuccess: (res: any) => {
+        if (res?.code === 0) {
+          setSelectedRows([]);
+          actionRef.current?.reloadAndRest?.();
+          messageApi.success('Batch delete completed successfully');
+        } else {
+          messageApi.error(res?.msg || 'Batch delete failed');
+        }
       },
       onError: () => {
         messageApi.error('Batch delete failed, please try again');
@@ -63,14 +106,27 @@ const MachineList: React.FC = () => {
     onSuccess: (res: any) => {
       if (res?.code === 0) {
         messageApi.success('Connection test successful');
+        actionRef.current?.reload?.();
       } else {
         messageApi.error(res?.msg || 'Connection test failed');
       }
+      setTestingMachineId(null);
     },
     onError: () => {
       messageApi.error('Connection test error');
+      setTestingMachineId(null);
     },
   });
+
+  // 供应商ID → 名称 映射函数
+  const getProviderName = useCallback(
+    (id?: number) => {
+      if (id === undefined || id === null) return '-';
+      const found = providerOptions.find((p) => p.value === id);
+      return found?.label || String(id);
+    },
+    [providerOptions],
+  );
 
   const columns: ProColumns<API.Machine>[] = [
     {
@@ -78,9 +134,16 @@ const MachineList: React.FC = () => {
       dataIndex: 'name',
       render: (dom, entity) => (
         <a
-          onClick={() => {
-            setCurrentRow(entity);
-            setShowDetail(true);
+          onClick={async () => {
+            if (entity.id) {
+              const res = await getMachineDetail({ id: entity.id });
+              if (res.code === 0 && res.data) {
+                setCurrentRow(res.data);
+                setShowDetail(true);
+              } else {
+                messageApi.error(res.msg || 'Failed to get detail');
+              }
+            }
           }}
         >
           {dom}
@@ -104,7 +167,6 @@ const MachineList: React.FC = () => {
         online: { text: 'Online', status: 'Success' },
         offline: { text: 'Offline', status: 'Default' },
         error: { text: 'Error', status: 'Error' },
-        maintenance: { text: 'Maintenance', status: 'Processing' },
       },
     },
     {
@@ -126,6 +188,7 @@ const MachineList: React.FC = () => {
       title: 'Provider',
       dataIndex: 'provider',
       search: false,
+      render: (_, record) => getProviderName(record.provider),
     },
     {
       title: 'Price',
@@ -134,12 +197,24 @@ const MachineList: React.FC = () => {
       render: (_, record) => (record.price ? `$${record.price}` : '-'),
     },
     {
+      title: 'Pay Mode',
+      dataIndex: 'pay_mode',
+      search: false,
+      render: (_, record) =>
+        record.pay_mode
+          ? PAY_MODE_MAP[record.pay_mode] || record.pay_mode
+          : '-',
+    },
+    {
+      title: 'Tags',
+      dataIndex: 'tags',
+      search: true,
+    },
+    {
       title: 'Active',
       dataIndex: 'is_active',
-      valueEnum: {
-        1: { text: 'Active', status: 'Success' },
-        0: { text: 'Inactive', status: 'Default' },
-      },
+      search: false,
+      render: (_, record) => (record.is_active ? 'Active' : 'Inactive'),
     },
     {
       title: 'Operations',
@@ -155,27 +230,53 @@ const MachineList: React.FC = () => {
           }
           onOk={actionRef.current?.reload}
           values={record}
+          providerOptions={providerOptions}
         />,
         <Tooltip key="test" title="Test Connection">
-          <LinkOutlined
+          <Spin size="small" spinning={testingMachineId === record.id}>
+            <LinkOutlined
+              onClick={() => {
+                if (record.id) {
+                  setTestingMachineId(record.id);
+                  testConnRun({ id: record.id });
+                } else {
+                  messageApi.error('Invalid machine id');
+                }
+              }}
+              style={{ cursor: 'pointer', color: '#1890ff' }}
+            />
+          </Spin>
+        </Tooltip>,
+        <Tooltip key="deploy" title="Deploy">
+          <Button
+            type="link"
+            size="small"
             onClick={() => {
               if (record.id) {
-                testConnRun({ id: record.id });
+                setSelectedDeployMachine(record);
+                setDeployModalOpen(true);
               } else {
                 messageApi.error('Invalid machine id');
               }
             }}
-            style={{ cursor: 'pointer', color: '#1890ff' }}
-          />
+            style={{ color: '#52c41a', padding: 0 }}
+          >
+            部署
+          </Button>
         </Tooltip>,
         <Tooltip key="delete" title="Delete">
           <DeleteOutlined
             onClick={() => {
-              if (record.id) {
-                delRun({ id: record.id });
-              } else {
-                messageApi.error('Invalid machine id');
-              }
+              Modal.confirm({
+                title: `Are you sure to delete machine "${record.name}"?`,
+                onOk: () => {
+                  if (record.id) {
+                    delRun({ id: record.id });
+                  } else {
+                    messageApi.error('Invalid machine id');
+                  }
+                },
+              });
             }}
             style={{ cursor: 'pointer', color: '#ff4d4f' }}
           />
@@ -190,8 +291,15 @@ const MachineList: React.FC = () => {
         messageApi.warning('Please select machines to delete');
         return;
       }
-      await batchDelRun({
-        ids: selectedRows.map((row) => row.id).filter((id): id is number => typeof id === 'number'),
+      Modal.confirm({
+        title: `Are you sure to delete ${selectedRows.length} selected machines?`,
+        onOk: async () => {
+          await batchDelRun({
+            ids: selectedRows
+              .map((row) => row.id)
+              .filter((id): id is number => typeof id === 'number'),
+          });
+        },
       });
     },
     [batchDelRun, messageApi],
@@ -208,7 +316,11 @@ const MachineList: React.FC = () => {
           labelWidth: 120,
         }}
         toolBarRender={() => [
-          <CreateForm key="create" reload={actionRef.current?.reload} />,
+          <CreateForm
+            key="create"
+            reload={actionRef.current?.reload}
+            providerOptions={providerOptions}
+          />,
         ]}
         request={async (params) => {
           const res = await getMachineList({
@@ -217,6 +329,7 @@ const MachineList: React.FC = () => {
             name: params.name,
             hostname: params.hostname,
             status: params.status,
+            tags: params.tags,
           });
           return {
             data: res.data?.data || [],
@@ -236,7 +349,9 @@ const MachineList: React.FC = () => {
         <FooterToolbar
           extra={
             <div>
-              Selected <a style={{ fontWeight: 600 }}>{selectedRowsState.length}</a> machines
+              Selected{' '}
+              <a style={{ fontWeight: 600 }}>{selectedRowsState.length}</a>{' '}
+              machines
             </div>
           }
         >
@@ -275,6 +390,15 @@ const MachineList: React.FC = () => {
           />
         )}
       </Drawer>
+
+      <DeployModal
+        open={deployModalOpen}
+        machine={selectedDeployMachine}
+        onClose={() => {
+          setDeployModalOpen(false);
+          setSelectedDeployMachine(undefined);
+        }}
+      />
     </PageContainer>
   );
 };

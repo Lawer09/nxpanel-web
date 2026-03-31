@@ -112,3 +112,27 @@ export async function getIpInfo(
     ...(options || {}),
   });
 }
+
+export async function ipPoolBatchImport(
+  body: { items: any[] },
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<{
+    created: Array<{ id: number; ip: string }>;
+    updated: Array<{ id: number; ip: string }>;
+    failed: Array<{ ip: string; reason: string }>;
+    summary: {
+      total: number;
+      created_count: number;
+      updated_count: number;
+      failed_count: number;
+    };
+  }>>('/ip-pool/batchImport', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  });
+}

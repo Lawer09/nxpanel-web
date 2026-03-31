@@ -1,25 +1,32 @@
-import React, { useRef } from 'react';
 import type { ProFormInstance } from '@ant-design/pro-components';
 import {
   ModalForm,
   ProForm,
-  ProFormText,
-  ProFormSelect,
-  ProFormTextArea,
   ProFormDigit,
-  ProFormCheckbox,
+  ProFormSelect,
+  ProFormSwitch,
+  ProFormText,
+  ProFormTextArea,
 } from '@ant-design/pro-components';
-import { message } from 'antd';
+import { App } from 'antd';
+import React, { useRef } from 'react';
 import { updateMachine } from '@/services/swagger/machine';
 
 interface UpdateFormProps {
   trigger: React.ReactNode;
   onOk?: () => void;
   values: API.Machine;
+  providerOptions?: Array<{ label: string; value: number }>;
 }
 
-const UpdateForm: React.FC<UpdateFormProps> = ({ trigger, onOk, values }) => {
+const UpdateForm: React.FC<UpdateFormProps> = ({
+  trigger,
+  onOk,
+  values,
+  providerOptions = [],
+}) => {
   const formRef = useRef<ProFormInstance>(null);
+  const { message } = App.useApp();
 
   return (
     <ModalForm<Partial<API.Machine>>
@@ -54,18 +61,50 @@ const UpdateForm: React.FC<UpdateFormProps> = ({ trigger, onOk, values }) => {
       }}
     >
       <ProForm.Group>
-        <ProFormText width="md" name="name" label="Machine Name" />
-        <ProFormText width="md" name="hostname" label="Hostname" />
+        <ProFormText
+          width="md"
+          name="name"
+          label="Machine Name"
+          fieldProps={{ maxLength: 255 }}
+        />
+        <ProFormText
+          width="md"
+          name="hostname"
+          label="Hostname"
+          fieldProps={{ maxLength: 255 }}
+        />
       </ProForm.Group>
 
       <ProForm.Group>
         <ProFormText width="md" name="ip_address" label="IP Address" />
-        <ProFormDigit width="md" name="port" label="SSH Port" min={1} max={65535} />
+        <ProFormDigit
+          width="md"
+          name="port"
+          label="SSH Port"
+          min={1}
+          max={65535}
+        />
       </ProForm.Group>
 
       <ProForm.Group>
         <ProFormText width="md" name="username" label="SSH Username" />
-        <ProFormText.Password width="md" name="password" label="Password" />
+        <ProFormText width="md" name="os_type" label="OS Type" />
+      </ProForm.Group>
+
+      <ProForm.Group>
+        <ProFormText.Password
+          width="md"
+          name="password"
+          label="Password"
+          placeholder="Leave blank to keep unchanged"
+        />
+        <ProFormTextArea
+          width="md"
+          name="private_key"
+          label="Private Key"
+          placeholder="Leave blank to keep unchanged"
+          fieldProps={{ rows: 3 }}
+        />
       </ProForm.Group>
 
       <ProForm.Group>
@@ -77,10 +116,8 @@ const UpdateForm: React.FC<UpdateFormProps> = ({ trigger, onOk, values }) => {
             { label: 'Online', value: 'online' },
             { label: 'Offline', value: 'offline' },
             { label: 'Error', value: 'error' },
-            { label: 'Maintenance', value: 'maintenance' },
           ]}
         />
-        <ProFormText width="md" name="os_type" label="OS Type" />
       </ProForm.Group>
 
       <ProForm.Group>
@@ -95,33 +132,44 @@ const UpdateForm: React.FC<UpdateFormProps> = ({ trigger, onOk, values }) => {
 
       <ProForm.Group>
         <ProFormDigit width="md" name="bandwidth" label="Bandwidth (Mbps)" />
-        <ProFormText width="md" name="provider" label="Cloud Provider" />
+        <ProFormSelect
+          width="md"
+          name="provider"
+          label="Provider"
+          options={providerOptions}
+          showSearch
+          fieldProps={{ optionFilterProp: 'label' }}
+        />
       </ProForm.Group>
 
       <ProForm.Group>
-        <ProFormDigit width="md" name="price" label="Price" />
+        <ProFormDigit
+          width="md"
+          name="price"
+          label="Price"
+          fieldProps={{ precision: 2 }}
+        />
         <ProFormSelect
           width="md"
           name="pay_mode"
           label="Pay Mode"
           options={[
-            { label: 'Hourly', value: 'hourly' },
-            { label: 'Daily', value: 'daily' },
-            { label: 'Monthly', value: 'monthly' },
-            { label: 'Quarterly', value: 'quarterly' },
-            { label: 'Yearly', value: 'yearly' },
-            { label: 'Once', value: 'once' },
+            { label: 'Hourly', value: 1 },
+            { label: 'Daily', value: 2 },
+            { label: 'Monthly', value: 3 },
+            { label: 'Quarterly', value: 4 },
+            { label: 'Yearly', value: 5 },
+            { label: 'Once', value: 6 },
           ]}
         />
       </ProForm.Group>
 
       <ProForm.Group>
         <ProFormText width="md" name="tags" label="Tags" />
+        <ProFormSwitch name="is_active" label="Active" />
       </ProForm.Group>
 
       <ProFormTextArea name="description" label="Description" />
-
-      <ProFormCheckbox name="is_active" label="Active" />
     </ModalForm>
   );
 };

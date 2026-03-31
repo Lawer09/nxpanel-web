@@ -10,15 +10,15 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { useRequest } from '@umijs/max';
-import { Button, Drawer, Modal, Select, message } from 'antd';
+import { Button, Drawer, Modal, message, Select } from 'antd';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchAsn, unbindAsnProviders } from '@/services/swagger/asn';
 import {
   deleteProvider,
   fetchProvider,
-  getProvidersByAsn,
   getProviderDetail,
   getProviderStats,
+  getProvidersByAsn,
   getUnboundProviders,
   updateProviderAsn,
   updateProviderStatus,
@@ -65,6 +65,7 @@ const ProviderPage: React.FC = () => {
     },
     {
       manual: true,
+      formatResult: (res: any) => res,
     },
   );
   const asnList = (asnListData || []) as API.AsnItem[];
@@ -77,7 +78,7 @@ const ProviderPage: React.FC = () => {
     if (formOpen && asnList.length === 0) {
       loadAsnList();
     }
-  }, [formOpen, asnList.length, loadAsnList]);
+  }, [formOpen, loadAsnList]);
 
   const asnOptions = useMemo(
     () =>
@@ -108,24 +109,32 @@ const ProviderPage: React.FC = () => {
       {
         title: 'ASN 名称',
         render: (_, record) =>
-          typeof record.asn === 'object' && record.asn ? record.asn.name || '-' : '-',
+          typeof record.asn === 'object' && record.asn
+            ? record.asn.name || '-'
+            : '-',
       },
       { title: '可靠性', dataIndex: 'reliability' },
       { title: '声誉', dataIndex: 'reputation' },
       { title: '速度等级', dataIndex: 'speed_level' },
       { title: '稳定性', dataIndex: 'stability' },
-      { title: '活跃', render: (_, record) => (record.is_active ? '是' : '否') },
+      {
+        title: '活跃',
+        render: (_, record) => (record.is_active ? '是' : '否'),
+      },
       {
         title: 'regions',
-        render: (_, record) => (record.regions ? JSON.stringify(record.regions) : '-'),
+        render: (_, record) =>
+          record.regions ? JSON.stringify(record.regions) : '-',
       },
       {
         title: 'services',
-        render: (_, record) => (record.services ? JSON.stringify(record.services) : '-'),
+        render: (_, record) =>
+          record.services ? JSON.stringify(record.services) : '-',
       },
       {
         title: 'metadata',
-        render: (_, record) => (record.metadata ? JSON.stringify(record.metadata) : '-'),
+        render: (_, record) =>
+          record.metadata ? JSON.stringify(record.metadata) : '-',
       },
     ],
     [],
@@ -345,7 +354,9 @@ const ProviderPage: React.FC = () => {
         request={async (params) => {
           const current = Number(params.current || 1);
           const pageSize = Number(params.pageSize || 10);
-          const selectedAsnId = params.asn_id ? Number(params.asn_id) : undefined;
+          const selectedAsnId = params.asn_id
+            ? Number(params.asn_id)
+            : undefined;
           const res = showUnboundOnly
             ? await getUnboundProviders({
                 current,
@@ -367,7 +378,8 @@ const ProviderPage: React.FC = () => {
                   is_active:
                     params.is_active === true || params.is_active === 'true'
                       ? true
-                      : params.is_active === false || params.is_active === 'false'
+                      : params.is_active === false ||
+                          params.is_active === 'false'
                         ? false
                         : undefined,
                   min_reliability: params.min_reliability
@@ -442,8 +454,12 @@ const ProviderPage: React.FC = () => {
           />
           <Button onClick={bindAsnBySelection}>批量绑定 ASN</Button>
           <Button onClick={unbindAsnBySelection}>批量解除 ASN</Button>
-          <Button onClick={() => updateStatusBySelection(true)}>批量启用</Button>
-          <Button onClick={() => updateStatusBySelection(false)}>批量禁用</Button>
+          <Button onClick={() => updateStatusBySelection(true)}>
+            批量启用
+          </Button>
+          <Button onClick={() => updateStatusBySelection(false)}>
+            批量禁用
+          </Button>
           <Button
             danger
             onClick={() => {

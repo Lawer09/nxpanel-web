@@ -20,13 +20,13 @@ const loginPath = '/user/login';
 
 /**
  * 动态获取 API 基础 URL
- * 本地开发: http://localhost:8001
- * 远程生产: https://bb.app.cc
+ * 本地开发: http://localhost:8081
+ * 远程生产: http://pupu.apptilaus.com
  */
 const getBaseURL = (): string => {
   // 服务端渲染时直接返回远程地址
   if (typeof window === 'undefined') {
-    return 'https://bb.app.cc';
+    return 'https://pupu.apptilaus.com';
   }
 
   const hostname = window.location.hostname;
@@ -37,11 +37,10 @@ const getBaseURL = (): string => {
     hostname === '127.0.0.1' ||
     hostname.startsWith('192.168.')
   ) {
-    return 'http://localhost:8001';
+    return 'https://pupu.apptilaus.com';
   }
-
   // 默认远程生产环境
-  return 'https://bb.app.cc';
+  return 'https://pupu.apptilaus.com';
 };
 
 /**

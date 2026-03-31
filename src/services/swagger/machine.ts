@@ -10,6 +10,7 @@ export async function getMachineList(
     name?: string;
     status?: string;
     hostname?: string;
+    tags?: string; 
   },
   options?: { [key: string]: any },
 ) {
@@ -87,6 +88,36 @@ export async function testMachineConnection(params: { id: number }, options?: { 
   return request<API.ApiResponse<{
     status: string;
   }>>('/machine/testConnection', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: params,
+    ...(options || {}),
+  });
+}
+
+/** Deploy node POST /machine/deployNode */
+export async function deployNode(params: { id: number }, options?: { [key: string]: any }) {
+  return request<API.ApiResponse<{
+    output: string;
+    exit_code: number;
+  }>>('/machine/deployNode', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: params,
+    ...(options || {}),
+  });
+}
+
+/** Clear node POST /machine/clearNode */
+export async function clearNode(params: { id: number }, options?: { [key: string]: any }) {
+  return request<API.ApiResponse<{
+    output: string;
+    exit_code: number;
+  }>>('/machine/clearNode', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

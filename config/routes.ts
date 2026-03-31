@@ -16,8 +16,8 @@ export default [
     layout: false,
     routes: [
       {
-      path: '/user/login',
-      component: './user/Login',
+        path: '/user/login',
+        component: './user/Login',
       },
       {
         path: '/user/register',
@@ -85,6 +85,22 @@ export default [
         path: '/resource/machine',
         name: 'machine',
         component: './machine',
+      },
+    ],
+  },
+  {
+    path: '/report',
+    name: 'report',
+    icon: 'barChart',
+    routes: [
+      {
+        path: '/report',
+        redirect: '/report/performance',
+      },
+      {
+        path: '/report/performance',
+        name: 'performance',
+        component: './report/performance',
       },
     ],
   },

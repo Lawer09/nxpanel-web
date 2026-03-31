@@ -10,7 +10,7 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { useRequest } from '@umijs/max';
-import { Button, Drawer, Modal, Space, Tag, message } from 'antd';
+import { Button, Drawer, Modal, message, Space, Tag } from 'antd';
 import React, { useMemo, useRef, useState } from 'react';
 import {
   deleteIpPool,
@@ -19,7 +19,9 @@ import {
   fetchIpPool,
   getIpPoolDetail,
   getIpPoolStats,
+  ipPoolBatchImport,
 } from '@/services/swagger/ipPool';
+import BatchImportModal from './components/BatchImportModal';
 import IpPoolFormModal from './components/IpPoolFormModal';
 import ResetScoreModal from './components/ResetScoreModal';
 import StatsPanel from './components/StatsPanel';
@@ -47,12 +49,11 @@ const IpPoolPage: React.FC = () => {
   const [selectedRows, setSelectedRows] = useState<API.IpPoolItem[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [scoreOpen, setScoreOpen] = useState(false);
+  const [batchImportOpen, setBatchImportOpen] = useState(false);
   const [currentRow, setCurrentRow] = useState<API.IpPoolItem>();
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailRow, setDetailRow] = useState<API.IpPoolItem>();
-
   const [messageApi, contextHolder] = message.useMessage();
-
   const {
     data: statsData,
     loading: statsLoading,
@@ -77,15 +78,30 @@ const IpPoolPage: React.FC = () => {
       { title: '时区', dataIndex: 'timezone' },
       { title: '信息链接', dataIndex: 'readme_url' },
       { title: '评分', dataIndex: 'score' },
-      { title: '负载', render: (_, record) => `${record.load || 0}/${record.max_load || 0}` },
-      { title: '成功率', render: (_, record) => `${record.success_rate || 0}%` },
+      {
+        title: '负载',
+        render: (_, record) => `${record.load || 0}/${record.max_load || 0}`,
+      },
+      {
+        title: '成功率',
+        render: (_, record) => `${record.success_rate || 0}%`,
+      },
       { title: '状态', dataIndex: 'status' },
       { title: '风险值', render: (_, record) => getRiskTag(record.risk_level) },
       { title: '总请求数', dataIndex: 'total_requests' },
       { title: '成功请求数', dataIndex: 'successful_requests' },
-      { title: '最后使用', render: (_, record) => formatTimestamp(record.last_used_at) },
-      { title: '创建时间', render: (_, record) => formatTimestamp(record.created_at) },
-      { title: '更新时间', render: (_, record) => formatTimestamp(record.updated_at) },
+      {
+        title: '最后使用',
+        render: (_, record) => formatTimestamp(record.last_used_at),
+      },
+      {
+        title: '创建时间',
+        render: (_, record) => formatTimestamp(record.created_at),
+      },
+      {
+        title: '更新时间',
+        render: (_, record) => formatTimestamp(record.updated_at),
+      },
     ],
     [],
   );
@@ -284,7 +300,11 @@ const IpPoolPage: React.FC = () => {
             search_ip: params.search_ip as string | undefined,
             country: params.country as string | undefined,
             status: params.status as API.IpPoolStatus | undefined,
-            risk_level: params.risk_level as 'high' | 'medium' | 'low' | undefined,
+            risk_level: params.risk_level as
+              | 'high'
+              | 'medium'
+              | 'low'
+              | undefined,
             min_success_rate: params.min_success_rate
               ? Number(params.min_success_rate)
               : undefined,
@@ -315,6 +335,13 @@ const IpPoolPage: React.FC = () => {
             }}
           >
             新增 IP
+          </Button>,
+          <Button
+            key="batch-import"
+            type="primary"
+            onClick={() => setBatchImportOpen(true)}
+          >
+            批量导入
           </Button>,
           <Button key="stats" onClick={() => refreshStats()}>
             刷新统计
@@ -359,7 +386,6 @@ const IpPoolPage: React.FC = () => {
           </Button>
         </FooterToolbar>
       )}
-
       <IpPoolFormModal
         open={formOpen}
         current={currentRow}
@@ -388,7 +414,6 @@ const IpPoolPage: React.FC = () => {
           refreshStats();
         }}
       />
-
       <Drawer
         width={700}
         open={detailOpen}
@@ -405,10 +430,21 @@ const IpPoolPage: React.FC = () => {
               data: detailRow,
             })}
             params={{ id: detailRow.id }}
-            columns={detailColumns as ProDescriptionsItemProps<API.IpPoolItem>[]}
+            columns={
+              detailColumns as ProDescriptionsItemProps<API.IpPoolItem>[]
+            }
           />
         )}
       </Drawer>
+      <BatchImportModal
+        open={batchImportOpen}
+        onClose={() => setBatchImportOpen(false)}
+        onSuccess={() => {
+          setBatchImportOpen(false);
+          actionRef.current?.reload();
+          refreshStats();
+        }}
+      />{' '}
     </PageContainer>
   );
 };

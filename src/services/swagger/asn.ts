@@ -98,3 +98,27 @@ export async function unbindAsnProviders(
     ...(options || {}),
   });
 }
+
+export async function asnBatchImport(
+  body: { items: any[] },
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<{
+    created: Array<{ id: number; asn: string }>;
+    updated: Array<{ id: number; asn: string }>;
+    failed: Array<{ asn: string; reason: string }>;
+    summary: {
+      total: number;
+      created_count: number;
+      updated_count: number;
+      failed_count: number;
+    };
+  }>>('/asn/batchImport', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
