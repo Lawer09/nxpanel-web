@@ -54,9 +54,15 @@ const errorConfig = {
         securePath &&
         typeof config?.url === 'string' &&
         config.url.startsWith('/') &&
-        !config.url.startsWith('/api/')
+        !config.url.startsWith('/api/') &&
+        !config.url.startsWith('/v3')
       ) {
         config.url = `/api/v2/${securePath}${config.url}`;
+      }
+      else if (securePath && config.url.startsWith('/v3'))
+      {
+        let urlWithoutV3 = config.url.replace('/v3', ''); // 移除 "/v3"
+        config.url = `/api/v3/${securePath}${urlWithoutV3}`;
       }
       return config;
     },

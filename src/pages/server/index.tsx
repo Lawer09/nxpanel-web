@@ -3,7 +3,9 @@ import { PageContainer, ProTable } from '@ant-design/pro-components';
 import { Button, Modal, Space, Switch, Tabs, Tag, message } from 'antd';
 import React, { useMemo, useRef, useState } from 'react';
 import {
+  batchDeployServerNodes,
   copyServerNode,
+  deployServerNode,
   dropServerGroup,
   dropServerNode,
   dropServerRoute,
@@ -13,6 +15,7 @@ import {
   sortServerNodes,
   updateServerNode,
 } from '@/services/swagger/server';
+import DeployResultModal, { type DeployTarget } from './components/DeployResultModal';
 import GroupFormModal from './components/GroupFormModal';
 import NodeFormModal from './components/NodeFormModal';
 import RouteFormModal from './components/RouteFormModal';
@@ -45,6 +48,10 @@ const ServerManagePage: React.FC = () => {
 
   const [routeModalOpen, setRouteModalOpen] = useState(false);
   const [editingRoute, setEditingRoute] = useState<API.ServerRoute | undefined>();
+
+  const [selectedNodeKeys, setSelectedNodeKeys] = useState<number[]>([]);
+  const [deployTarget, setDeployTarget] = useState<DeployTarget | null>(null);
+  const [deployModalOpen, setDeployModalOpen] = useState(false);
 
   const groupOptions = useMemo(
     () => groupRows.map((item) => ({ label: item.name, value: item.id })),
@@ -202,6 +209,25 @@ const ServerManagePage: React.FC = () => {
           }}
         >
           复制
+        </a>,
+        <a
+          key="deploy"
+          onClick={async () => {
+            if (!record.id) return;
+            try {
+              const res = await deployServerNode({ server_id: record.id });
+              if (res.code !== 0) {
+                messageApi.error(res.msg || '部署请求失败');
+                return;
+              }
+              setDeployTarget({ mode: 'single', task_id: res.data.task_id, server_name: record.name });
+              setDeployModalOpen(true);
+            } catch {
+              messageApi.error('部署请求失败');
+            }
+          }}
+        >
+          部署
         </a>,
         <a
           key="delete"
@@ -368,6 +394,11 @@ const ServerManagePage: React.FC = () => {
                 rowKey="id"
                 actionRef={nodeActionRef}
                 columns={nodeColumns}
+                rowSelection={{
+                  selectedRowKeys: selectedNodeKeys,
+                  onChange: (keys) => setSelectedNodeKeys(keys as number[]),
+                  preserveSelectedRowKeys: true,
+                }}
                 request={async () => {
                   const [nodesRes, groupsRes, routesRes] = await Promise.all([
                     getServerNodes(),
@@ -397,6 +428,33 @@ const ServerManagePage: React.FC = () => {
                     }}
                   >
                     新建节点
+                  </Button>,
+                  <Button
+                    key="batch-deploy"
+                    disabled={selectedNodeKeys.length === 0}
+                    onClick={async () => {
+                      if (selectedNodeKeys.length === 0) return;
+                      if (selectedNodeKeys.length > 50) {
+                        messageApi.warning('批量部署最多支持 50 个节点');
+                        return;
+                      }
+                      try {
+                        const res = await batchDeployServerNodes({ server_ids: selectedNodeKeys });
+                        if (res.code !== 0) {
+                          messageApi.error(res.msg || '批量部署请求失败');
+                          return;
+                        }
+                        setSelectedNodeKeys([]);
+                        setDeployTarget({ mode: 'batch', batch_id: res.data.batch_id });
+                        setDeployModalOpen(true);
+                      } catch {
+                        messageApi.error('批量部署请求失败');
+                      }
+                    }}
+                  >
+                    {selectedNodeKeys.length > 0
+                      ? `批量部署 (${selectedNodeKeys.length})`
+                      : '批量部署'}
                   </Button>,
                   <Button
                     key="sort"
@@ -506,6 +564,14 @@ const ServerManagePage: React.FC = () => {
         }}
         onSuccess={() => {
           nodeActionRef.current?.reload();
+        }}
+      />
+      <DeployResultModal
+        open={deployModalOpen}
+        target={deployTarget}
+        onClose={() => {
+          setDeployModalOpen(false);
+          setDeployTarget(null);
         }}
       />
       <GroupFormModal

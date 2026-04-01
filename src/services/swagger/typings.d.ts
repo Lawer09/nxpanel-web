@@ -141,6 +141,44 @@ interface Machine {
     show?: number;
   }
 
+  // ── Deploy ─────────────────────────────────────────────────────────────────
+
+  type DeployTaskStatus = 'pending' | 'running' | 'success' | 'failed';
+
+  interface DeployTask {
+    id?: number;
+    task_id?: number;
+    server_id: number;
+    batch_id?: number | null;
+    status: DeployTaskStatus;
+    output?: string | null;
+    started_at?: string | null;
+    finished_at?: string | null;
+    server?: { id: number; name: string; type: string; host: string };
+  }
+
+  interface DeployResultSingle {
+    id: number;
+    server_id: number;
+    batch_id: number | null;
+    status: DeployTaskStatus;
+    output?: string | null;
+    started_at?: string | null;
+    finished_at?: string | null;
+    server?: { id: number; name: string; type: string; host: string };
+  }
+
+  interface DeployResultBatch {
+    summary: {
+      total: number;
+      pending: number;
+      running: number;
+      success: number;
+      failed: number;
+    };
+    tasks: DeployTask[];
+  }
+
   interface ServerGroup {
     id: number;
     name: string;
@@ -770,9 +808,20 @@ interface Machine {
     custom_outbounds?: any[] | null;
     custom_routes?: any[] | null;
     cert_config?: any[] | null;
+    generation_options?: ServerTemplateGenerationOptions | null;
     protocol_settings?: Record<string, any> | null;
     created_at?: number;
     updated_at?: number;
+  }
+
+  interface ServerTemplateGenerationOptions {
+    port_random?: boolean;
+    server_port_random?: boolean;
+    port_same?: boolean;
+    port_min?: number;
+    port_max?: number;
+    reality_key_random?: boolean;
+    reality_shortid_random?: boolean;
   }
 
   interface ServerTemplateSaveParams {
@@ -798,6 +847,7 @@ interface Machine {
     custom_outbounds?: any[];
     custom_routes?: any[];
     cert_config?: any[];
+    generation_options?: ServerTemplateGenerationOptions;
     protocol_settings?: Record<string, any>;
   }
 

@@ -196,13 +196,15 @@ const PlanFormModal: React.FC<PlanFormModalProps> = ({
             label={label}
             style={{ marginBottom: 8 }}
           >
-            <InputNumber
-              min={0}
-              precision={2}
-              style={{ width: '100%' }}
-              placeholder="留空不售卖"
-              addonBefore="¥"
-            />
+            <Space.Compact>
+              ¥
+              <InputNumber
+                min={0}
+                precision={2}
+                style={{ width: '100%' }}
+                placeholder="留空不售卖"
+                />
+            </Space.Compact>
           </Form.Item>
         ))}
       </div>

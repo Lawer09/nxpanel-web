@@ -6,6 +6,7 @@ import {
   ProFormSwitch,
   ProFormText,
 } from '@ant-design/pro-components';
+import { Col, Form, Row } from 'antd';
 
 const VmessFields: React.FC = () => (
   <>
@@ -43,7 +44,9 @@ const VmessFields: React.FC = () => (
   </>
 );
 
-const VlessFields: React.FC = () => (
+const VlessFields: React.FC = () => {
+  const form = Form.useFormInstance();
+  return (
   <>
     <ProFormSelect
       name={['protocol_settings', 'tls']}
@@ -114,37 +117,85 @@ const VlessFields: React.FC = () => (
                 name={['protocol_settings', 'reality_settings', 'allow_insecure']}
                 label="Reality Allow Insecure"
               />
-              <ProFormText
-                name={['protocol_settings', 'reality_settings', 'public_key']}
-                label="Reality Public Key"
-              />
-              <ProFormText
-                name={['protocol_settings', 'reality_settings', 'private_key']}
-                label="Reality Private Key"
-              />
-              <ProFormText
-                name={['protocol_settings', 'reality_settings', 'short_id']}
-                label="Reality Short ID"
-                rules={[
-                  {
-                    validator: async (_, value) => {
-                      if (!value) {
-                        return;
-                      }
-                      const text = String(value).trim();
-                      if (text.length > 16) {
-                        throw new Error('Short ID 长度不能超过 16');
-                      }
-                      if (text.length % 2 !== 0) {
-                        throw new Error('Short ID 必须是偶数长度');
-                      }
-                      if (!/^[a-fA-F0-9]+$/.test(text)) {
-                        throw new Error('Short ID 必须为十六进制字符');
-                      }
-                    },
-                  },
-                ]}
-              />
+              <ProFormDependency name={[['generation_options', 'reality_key_random']]}>
+                {({ generation_options }) => {
+                  const keyRandom = Boolean(generation_options?.reality_key_random);
+                  return (
+                    <Row gutter={8} align="bottom">
+                      <Col flex="1">
+                        <ProFormText
+                          name={['protocol_settings', 'reality_settings', 'public_key']}
+                          label="Reality Public Key"
+                          fieldProps={{ disabled: keyRandom }}
+                        />
+                      </Col>
+                      <Col flex="1">
+                        <ProFormText
+                          name={['protocol_settings', 'reality_settings', 'private_key']}
+                          label="Reality Private Key"
+                          fieldProps={{ disabled: keyRandom }}
+                        />
+                      </Col>
+                      <Col style={{ paddingBottom: 24 }}>
+                        <ProFormSwitch
+                          name={['generation_options', 'reality_key_random']}
+                          label="随机密钥对"
+                          tooltip="部署时随机生成 X25519 公私钥"
+                          fieldProps={{
+                            onChange: (checked: boolean) => {
+                              if (checked) {
+                                form.setFieldValue(['protocol_settings', 'reality_settings', 'public_key'], undefined);
+                                form.setFieldValue(['protocol_settings', 'reality_settings', 'private_key'], undefined);
+                              }
+                            },
+                          }}
+                        />
+                      </Col>
+                    </Row>
+                  );
+                }}
+              </ProFormDependency>
+              <ProFormDependency name={[['generation_options', 'reality_shortid_random']]}>
+                {({ generation_options }) => {
+                  const shortidRandom = Boolean(generation_options?.reality_shortid_random);
+                  return (
+                    <Row gutter={8} align="bottom">
+                      <Col flex="1">
+                        <ProFormText
+                          name={['protocol_settings', 'reality_settings', 'short_id']}
+                          label="Reality Short ID"
+                          fieldProps={{ disabled: shortidRandom }}
+                          rules={[
+                            {
+                              validator: async (_, value) => {
+                                if (!value || shortidRandom) return;
+                                const text = String(value).trim();
+                                if (text.length > 16) throw new Error('Short ID 长度不能超过 16');
+                                if (text.length % 2 !== 0) throw new Error('Short ID 必须是偶数长度');
+                                if (!/^[a-fA-F0-9]+$/.test(text)) throw new Error('Short ID 必须为十六进制字符');
+                              },
+                            },
+                          ]}
+                        />
+                      </Col>
+                      <Col style={{ paddingBottom: 24 }}>
+                        <ProFormSwitch
+                          name={['generation_options', 'reality_shortid_random']}
+                          label="随机 Short ID"
+                          tooltip="部署时随机生成 Reality Short ID"
+                          fieldProps={{
+                            onChange: (checked: boolean) => {
+                              if (checked) {
+                                form.setFieldValue(['protocol_settings', 'reality_settings', 'short_id'], undefined);
+                              }
+                            },
+                          }}
+                        />
+                      </Col>
+                    </Row>
+                  );
+                }}
+              </ProFormDependency>
             </>
           );
         }
@@ -152,7 +203,8 @@ const VlessFields: React.FC = () => (
       }}
     </ProFormDependency>
   </>
-);
+  );
+};
 
 const TrojanFields: React.FC = () => (
   <>

@@ -1,7 +1,7 @@
 import { request } from '@umijs/max';
 
 export async function fetchPlans(options?: { [key: string]: any }) {
-  return request<API.ApiResponse<API.PlanItem[]>>('/plan/fetch', {
+  return request<API.ApiResponse<API.PlanItem[]>>('/v3/plan/fetch', {
     method: 'GET',
     ...(options || {}),
   });
@@ -11,7 +11,7 @@ export async function savePlan(
   body: API.PlanSaveParams,
   options?: { [key: string]: any },
 ) {
-  return request<API.ApiResponse<boolean>>('/plan/save', {
+  return request<API.ApiResponse<boolean>>('/v3/plan/save', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
@@ -23,7 +23,7 @@ export async function updatePlan(
   body: API.PlanUpdateParams,
   options?: { [key: string]: any },
 ) {
-  return request<API.ApiResponse<boolean>>('/plan/update', {
+  return request<API.ApiResponse<boolean>>('/v3/plan/update', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
@@ -35,7 +35,7 @@ export async function dropPlan(
   body: { id: number },
   options?: { [key: string]: any },
 ) {
-  return request<API.ApiResponse<boolean>>('/plan/drop', {
+  return request<API.ApiResponse<boolean>>('/v3/plan/drop', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
@@ -47,7 +47,7 @@ export async function sortPlans(
   body: { ids: number[] },
   options?: { [key: string]: any },
 ) {
-  return request<API.ApiResponse<boolean>>('/plan/sort', {
+  return request<API.ApiResponse<boolean>>('/v3/plan/sort', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,

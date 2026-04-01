@@ -1,16 +1,6 @@
-import { DeleteOutlined, SearchOutlined } from '@ant-design/icons';
-import {
-  Alert,
-  App,
-  Button,
-  Drawer,
-  Input,
-  Space,
-  Spin,
-  Table,
-  Tag,
-  Typography,
-} from 'antd';
+import { Drawer, Spin, Table, Tag, Typography, Input, Button, Space, Alert } from 'antd';
+import { SearchOutlined, DeleteOutlined } from '@ant-design/icons';
+import { App } from 'antd';
 import React, { useState } from 'react';
 import { recordsByIp, unbindRecord } from '@/services/swagger/dns';
 

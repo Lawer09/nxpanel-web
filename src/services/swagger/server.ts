@@ -146,3 +146,52 @@ export async function dropServerRoute(
     ...(options || {}),
   });
 }
+
+export async function restartServerNode(
+  body: { id: number },
+  options?: { [key: string]: any },
+) {
+  return request<{ data: null }>('/server/manage/restart', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+export async function deployServerNode(
+  body: { server_id: number },
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<{ task_id: number; server_id: number; status: API.DeployTaskStatus }>>('/server/manage/deploy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+export async function batchDeployServerNodes(
+  body: { server_ids: number[] },
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<{ batch_id: number; task_count: number; tasks: API.DeployTask[] }>>('/server/manage/batchServerDeploy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+export async function getDeployResult(
+  params: { task_id?: number; batch_id?: number; server_id?: number },
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.DeployResultSingle | API.DeployResultBatch>>('/server/manage/deployResult', {
+    method: 'GET',
+    params,
+    ...(options || {}),
+  });
+}

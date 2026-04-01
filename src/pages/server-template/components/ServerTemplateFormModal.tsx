@@ -54,6 +54,7 @@ const getInitialValues = (tpl?: API.ServerTemplate) => {
     ips: tpl.ips ?? [],
     rate_time_enable: Boolean(tpl.rate_time_enable),
     rate_time_ranges: tpl.rate_time_ranges ?? [],
+    generation_options: tpl.generation_options ?? {},
     protocol_settings: tpl.protocol_settings ?? {},
   };
 };
@@ -119,6 +120,18 @@ const ServerTemplateFormModal: React.FC<ServerTemplateFormModalProps> = ({
             end: String(r.end || ''),
             rate: Number(r.rate || 0),
           })),
+          generation_options: (() => {
+            const g = values.generation_options ?? {};
+            const result: API.ServerTemplateGenerationOptions = {};
+            if (g.port_random != null) result.port_random = Boolean(g.port_random);
+            if (g.server_port_random != null) result.server_port_random = Boolean(g.server_port_random);
+            if (g.port_same != null) result.port_same = Boolean(g.port_same);
+            if (g.port_min != null) result.port_min = Number(g.port_min);
+            if (g.port_max != null) result.port_max = Number(g.port_max);
+            if (g.reality_key_random != null) result.reality_key_random = Boolean(g.reality_key_random);
+            if (g.reality_shortid_random != null) result.reality_shortid_random = Boolean(g.reality_shortid_random);
+            return Object.keys(result).length ? result : undefined;
+          })(),
           protocol_settings: compactProtocol,
         };
 
@@ -176,27 +189,44 @@ const ServerTemplateFormModal: React.FC<ServerTemplateFormModalProps> = ({
       <Divider orientation="left" style={{ fontSize: 13 }}>
         节点地址（可选）
       </Divider>
-      <Row gutter={16}>
-        <Col span={12}>
-          <ProFormText
-            name="host"
-            label="节点域名 / IP"
-            placeholder="留空则模板不指定"
-          />
-        </Col>
-        <Col span={6}>
-          <ProFormText name="port" label="客户端端口" placeholder="如 443" />
-        </Col>
-        <Col span={6}>
-          <ProFormDigit
-            name="server_port"
-            label="服务端端口"
-            min={1}
-            max={65535}
-            placeholder="如 443"
-          />
-        </Col>
-      </Row>
+      <ProFormDependency name={[['generation_options', 'port_random'], ['generation_options', 'server_port_random'], ['generation_options', 'port_same']]}>
+        {({ generation_options }) => {
+          const portRandom = generation_options?.port_random;
+          const serverPortRandom = generation_options?.server_port_random;
+          const portSame = generation_options?.port_same;
+          // 客户端端口随机时隐藏客户端端口输入框
+          // 服务端端口随机（或两端一致）时隐藏服务端端口输入框
+          const hidePort = Boolean(portRandom);
+          const hideServerPort = Boolean(portSame || serverPortRandom);
+          return (
+            <Row gutter={16}>
+              <Col span={12}>
+                <ProFormText
+                  name="host"
+                  label="节点域名 / IP"
+                  placeholder="留空则模板不指定"
+                />
+              </Col>
+              {!hidePort && (
+                <Col span={6}>
+                  <ProFormText name="port" label="客户端端口" placeholder="如 443" />
+                </Col>
+              )}
+              {!hideServerPort && (
+                <Col span={hidePort ? 12 : 6}>
+                  <ProFormDigit
+                    name="server_port"
+                    label="服务端端口"
+                    min={1}
+                    max={65535}
+                    placeholder="如 443"
+                  />
+                </Col>
+              )}
+            </Row>
+          );
+        }}
+      </ProFormDependency>
       <Row gutter={16}>
         <Col span={8}>
           <ProFormDigit
@@ -317,7 +347,61 @@ const ServerTemplateFormModal: React.FC<ServerTemplateFormModalProps> = ({
         }
       </ProFormDependency>
 
-      {/* ── 协议设置 ─────────────────────────── */}
+      {/* ── 生成选项 ─────────────────────────── */}
+      <Divider orientation="left" style={{ fontSize: 13 }}>
+        生成选项（部署时自动生成）
+      </Divider>
+      <Row gutter={16}>
+        <Col span={8}>
+          <ProFormSwitch
+            name={['generation_options', 'port_random']}
+            label="客户端端口随机"
+            tooltip="部署节点时随机生成客户端端口"
+          />
+        </Col>
+        <Col span={8}>
+          <ProFormSwitch
+            name={['generation_options', 'server_port_random']}
+            label="服务端端口独立随机"
+            tooltip="服务端端口独立随机生成（优先级低于「两端一致」）"
+          />
+        </Col>
+        <Col span={8}>
+          <ProFormSwitch
+            name={['generation_options', 'port_same']}
+            label="两端端口保持一致"
+            tooltip="随机时客户端与服务端端口保持一致，优先于「服务端独立随机」"
+          />
+        </Col>
+      </Row>
+      <ProFormDependency name={[['generation_options', 'port_random']]}>
+        {({ generation_options }) =>
+          generation_options?.port_random ? (
+            <Row gutter={16}>
+              <Col span={12}>
+                <ProFormDigit
+                  name={['generation_options', 'port_min']}
+                  label="最小端口"
+                  min={1}
+                  max={65535}
+                  placeholder="默认 10000"
+                  fieldProps={{ precision: 0 }}
+                />
+              </Col>
+              <Col span={12}>
+                <ProFormDigit
+                  name={['generation_options', 'port_max']}
+                  label="最大端口"
+                  min={1}
+                  max={65535}
+                  placeholder="默认 60000"
+                  fieldProps={{ precision: 0 }}
+                />
+              </Col>
+            </Row>
+          ) : null
+        }
+      </ProFormDependency>
       <Divider orientation="left" style={{ fontSize: 13 }}>
         协议设置（可选）
       </Divider>

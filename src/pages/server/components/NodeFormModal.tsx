@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ProFormDependency,
   ModalForm,
@@ -8,10 +8,15 @@ import {
   ProFormSwitch,
   ProFormText,
 } from '@ant-design/pro-components';
-import { message } from 'antd';
-import { saveServerNode } from '@/services/swagger/server';
+import { Alert, Button, Col, Divider, Form, Row, Select, Space, Tag, Typography } from 'antd';
+import { ThunderboltOutlined, SaveOutlined } from '@ant-design/icons';
+import { getMachineList } from '@/services/swagger/machine';
+import { fetchServerTemplates, getServerTemplateDetail } from '@/services/swagger/serverTemplate';
+import { restartServerNode, saveServerNode } from '@/services/swagger/server';
 import ProtocolSettingsFields from './ProtocolSettingsFields';
 import { protocolOptions, type SelectOption } from './constants';
+
+const { Text } = Typography;
 
 type NodeFormModalValues = Partial<API.ServerNodeSaveParams> & {
   protocol_settings?: Record<string, any>;
@@ -79,6 +84,12 @@ const getInitialValues = (node?: API.ServerNode): NodeFormModalValues => {
   };
 };
 
+// 协议颜色映射
+const PROTOCOL_COLORS: Record<string, string> = {
+  vless: 'blue', vmess: 'purple', trojan: 'red', shadowsocks: 'cyan',
+  hysteria: 'orange', tuic: 'green', anytls: 'magenta', socks: 'default', naive: 'volcano',
+};
+
 const NodeFormModal: React.FC<NodeFormModalProps> = ({
   open,
   node,
@@ -87,52 +98,232 @@ const NodeFormModal: React.FC<NodeFormModalProps> = ({
   onOpenChange,
   onSuccess,
 }) => {
+  const [form] = Form.useForm<NodeFormModalValues>();
+  const savedNodeIdRef = useRef<number | undefined>(undefined);
+
+  // 机器列表
+  const [machines, setMachines] = useState<API.Machine[]>([]);
+  const [machinesLoading, setMachinesLoading] = useState(false);
+  // 模板列表
+  const [templates, setTemplates] = useState<API.ServerTemplate[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  // 模板填充提示
+  const [filledFrom, setFilledFrom] = useState<string | null>(null);
+
+  // 打开时加载机器和模板
+  useEffect(() => {
+    if (!open) {
+      setFilledFrom(null);
+      savedNodeIdRef.current = undefined;
+      return;
+    }
+    setMachinesLoading(true);
+    getMachineList({ page: 1, pageSize: 200 })
+      .then((res) => setMachines(res.data?.data || []))
+      .finally(() => setMachinesLoading(false));
+
+    setTemplatesLoading(true);
+    fetchServerTemplates({ page: 1, page_size: 200 })
+      .then((res) => setTemplates(res.data?.data || []))
+      .finally(() => setTemplatesLoading(false));
+  }, [open]);
+
+  // 选择机器 → 填充 host
+  const handleMachineSelect = (machineId: number) => {
+    const m = machines.find((x) => x.id === machineId);
+    if (!m) return;
+    form.setFieldsValue({ host: m.ip_address });
+    setFilledFrom(`已从机器「${m.name}」填充节点地址`);
+  };
+
+  // 选择模板 → 填充全部字段
+  const handleTemplateSelect = async (templateId: number) => {
+    const tpl = templates.find((x) => x.id === templateId);
+    if (!tpl) return;
+    // 如果没有 protocol_settings，拉取详情
+    let detail = tpl;
+    if (!detail.protocol_settings) {
+      const res = await getServerTemplateDetail({ id: templateId });
+      if (res.data) detail = res.data;
+    }
+    const patch: Partial<NodeFormModalValues> = {
+      type: detail.type || undefined,
+      port: detail.port !== null && detail.port !== undefined ? String(detail.port) : undefined,
+      server_port: detail.server_port ?? undefined,
+      rate: detail.rate ?? undefined,
+      show: detail.show ?? undefined,
+      code: detail.code ?? undefined,
+      group_ids: detail.group_ids ?? undefined,
+      route_ids: detail.route_ids ?? undefined,
+      tags: detail.tags ?? undefined,
+      excludes: detail.excludes ?? undefined,
+      ips: detail.ips ?? undefined,
+      parent_id: detail.parent_id ?? undefined,
+      rate_time_enable: detail.rate_time_enable ?? undefined,
+      rate_time_ranges: detail.rate_time_ranges ?? undefined,
+      protocol_settings: detail.protocol_settings ?? undefined,
+    };
+    // host 仅在模板有值时填充
+    if (detail.host) patch.host = detail.host;
+    form.setFieldsValue(patch);
+    setFilledFrom(`已从模板「${detail.name}」填充节点配置`);
+  };
+
+  // 构建提交 payload
+  const buildPayload = (values: NodeFormModalValues): API.ServerNodeSaveParams => {
+    const compactProtocolSettings = compactValue(values.protocol_settings);
+    return {
+      id: node?.id,
+      type: String(values.type || ''),
+      name: String(values.name || ''),
+      host: String(values.host || ''),
+      port: String(values.port || ''),
+      server_port: Number(values.server_port || 0),
+      rate: Number(values.rate || 1),
+      rate_time_enable: Boolean(values.rate_time_enable),
+      rate_time_ranges: (values.rate_time_ranges || []).map((item) => ({
+        start: String(item.start || ''),
+        end: String(item.end || ''),
+        rate: Number(item.rate || 0),
+      })),
+      group_ids: values.group_ids || [],
+      route_ids: values.route_ids || [],
+      parent_id: values.parent_id,
+      code: values.code,
+      tags: values.tags || [],
+      excludes: values.excludes || [],
+      ips: values.ips || [],
+      show: values.show,
+      protocol_settings: compactProtocolSettings,
+    };
+  };
+
   return (
     <ModalForm<NodeFormModalValues>
       title={node ? '编辑节点' : '新建节点'}
       open={open}
+      form={form}
+      width={640}
       initialValues={getInitialValues(node)}
-      modalProps={{
-        destroyOnHidden: true,
-      }}
+      modalProps={{ destroyOnHidden: true }}
       onOpenChange={onOpenChange}
+      submitter={{
+        render: (props) => (
+          <Space>
+            <Button onClick={() => onOpenChange(false)}>取消</Button>
+            <Button
+              icon={<ThunderboltOutlined />}
+              onClick={async () => {
+                try {
+                  await form.validateFields();
+                  const values = form.getFieldsValue(true) as NodeFormModalValues;
+                  const payload = buildPayload(values);
+                  const saveRes = await saveServerNode(payload);
+                  const nodeId = (saveRes as any)?.data?.id ?? node?.id;
+                  savedNodeIdRef.current = nodeId;
+                  if (nodeId) {
+                    await restartServerNode({ id: nodeId });
+                  }
+                  onSuccess();
+                  onOpenChange(false);
+                } catch (_e) {
+                  // 验证失败时 validateFields 会自动提示
+                }
+              }}
+            >
+              保存并重启
+            </Button>
+            <Button type="primary" icon={<SaveOutlined />} onClick={() => props.submit()}>
+              保存
+            </Button>
+          </Space>
+        ),
+      }}
       onFinish={async (values) => {
         try {
-          const compactProtocolSettings = compactValue(values.protocol_settings);
-          const payload: API.ServerNodeSaveParams = {
-            id: node?.id,
-            type: String(values.type || ''),
-            name: String(values.name || ''),
-            host: String(values.host || ''),
-            port: String(values.port || ''),
-            server_port: Number(values.server_port || 0),
-            rate: Number(values.rate || 1),
-            rate_time_enable: Boolean(values.rate_time_enable),
-            rate_time_ranges: (values.rate_time_ranges || []).map((item) => ({
-              start: String(item.start || ''),
-              end: String(item.end || ''),
-              rate: Number(item.rate || 0),
-            })),
-            group_ids: values.group_ids || [],
-            route_ids: values.route_ids || [],
-            parent_id: values.parent_id,
-            code: values.code,
-            tags: values.tags || [],
-            excludes: values.excludes || [],
-            ips: values.ips || [],
-            show: values.show,
-            protocol_settings: compactProtocolSettings,
-          };
+          const payload = buildPayload(values);
           await saveServerNode(payload);
-          message.success(node ? '节点已更新' : '节点已创建');
           onSuccess();
           return true;
         } catch (error: any) {
-          message.error(error?.message || '节点保存失败');
           return false;
         }
       }}
     >
+      {/* ── 快速填充区 ─────────────────────────────────── */}
+      {!node && (
+        <>
+          <Divider orientation="left" style={{ fontSize: 13, marginTop: 0 }}>
+            快速填充
+          </Divider>
+          <Row gutter={16} style={{ marginBottom: 8 }}>
+            <Col span={12}>
+              <div style={{ marginBottom: 4 }}>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  从机器填充地址
+                </Text>
+              </div>
+              <Select
+                placeholder="选择机器（自动填入节点地址）"
+                loading={machinesLoading}
+                showSearch
+                optionFilterProp="label"
+                style={{ width: '100%' }}
+                onChange={handleMachineSelect}
+                options={machines.map((m) => ({
+                  label: `${m.name}（${m.ip_address}）`,
+                  value: m.id,
+                }))}
+              />
+            </Col>
+            <Col span={12}>
+              <div style={{ marginBottom: 4 }}>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  从节点模板填充配置
+                </Text>
+              </div>
+              <Select
+                placeholder="选择模板（自动填入全部配置）"
+                loading={templatesLoading}
+                showSearch
+                optionFilterProp="label"
+                style={{ width: '100%' }}
+                onChange={handleTemplateSelect}
+                optionRender={(opt) => {
+                  const tpl = templates.find((t) => t.id === opt.value);
+                  return (
+                    <Space>
+                      <Tag color={PROTOCOL_COLORS[tpl?.type ?? ''] ?? 'default'} style={{ fontSize: 11 }}>
+                        {tpl?.type ?? ''}
+                      </Tag>
+                      {opt.label}
+                    </Space>
+                  );
+                }}
+                options={templates.map((t) => ({
+                  label: t.name,
+                  value: t.id,
+                }))}
+              />
+            </Col>
+          </Row>
+          {filledFrom && (
+            <Alert
+              message={filledFrom}
+              type="success"
+              showIcon
+              closable
+              onClose={() => setFilledFrom(null)}
+              style={{ marginBottom: 16 }}
+            />
+          )}
+        </>
+      )}
+
+      {/* ── 节点基础信息 ───────────────────────────────── */}
+      <Divider orientation="left" style={{ fontSize: 13, marginTop: node ? 0 : undefined }}>
+        节点信息
+      </Divider>
       <ProFormSelect
         name="type"
         label="协议类型"
