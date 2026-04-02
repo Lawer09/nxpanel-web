@@ -20,6 +20,7 @@ import {
   getServerYesterdayRank,
 } from '@/services/swagger/stat';
 import ServerStatDetail from './components/ServerStatDetail';
+import ServerTrafficChart from './components/ServerTrafficChart';
 
 const { RangePicker } = DatePicker;
 const { Text } = Typography;
@@ -261,6 +262,9 @@ const ServerStatPage: React.FC = () => {
           bordered
         />
       </Card>
+
+      {/* 节点流量趋势图 */}
+      <ServerTrafficChart serverOptions={serverOptions} />
 
       {/* 节点流量详情 */}
       <ServerStatDetail serverOptions={serverOptions} />

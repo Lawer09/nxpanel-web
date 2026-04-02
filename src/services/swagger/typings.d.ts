@@ -1153,6 +1153,26 @@ interface Machine {
     record_at?: number;
   }
 
+  interface StatServerDetailItem {
+    server_id: number;
+    server_name: string;
+    server_type: string;
+    u: number;
+    d: number;
+    total: number;
+    record_at: number;
+    year?: number;
+    month?: number;
+    day?: number;
+    hour?: number;
+    minute?: number;
+  }
+
+  interface StatServerDetailPageData {
+    total: number;
+    data: StatServerDetailItem[];
+  }
+
   interface StatServerPageData {
     total: number;
     data: StatServerItem[];

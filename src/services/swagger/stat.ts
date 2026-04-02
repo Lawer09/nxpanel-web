@@ -96,6 +96,25 @@ export async function getStatServer(
   });
 }
 
+/** 节点流量图表详情（按粒度聚合） */
+export async function getStatServerDetail(
+  params: {
+    server_id?: number;
+    start_time?: number;
+    end_time?: number;
+    granularity?: 'minute' | 'hour' | 'day';
+    page?: number;
+    pageSize?: number;
+  },
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.StatServerDetailPageData>>('/v3/stat/getStatServerDetail', {
+    method: 'GET',
+    params,
+    ...(options || {}),
+  });
+}
+
 /** 流量汇总概览 */
 export async function getOverride(options?: { [key: string]: any }) {
   return request<API.ApiResponse<API.StatOverviewData>>('/v3/stat/getOverride', {
