@@ -36,6 +36,12 @@ export default [
     component: './Welcome',
   },
   {
+    path: '/dashboard',
+    name: 'dashboard',
+    icon: 'dashboardOutlined',
+    component: './dashboard',
+  },
+  {
     path: '/admin',
     name: 'admin',
     icon: 'crown',
@@ -111,6 +117,16 @@ export default [
         path: '/report/performance',
         name: 'performance',
         component: './report/performance',
+      },
+      {
+        path: '/report/user-stat',
+        name: 'user-stat',
+        component: './report/user-stat',
+      },
+      {
+        path: '/report/server-stat',
+        name: 'server-stat',
+        component: './report/server-stat',
       },
     ],
   },
