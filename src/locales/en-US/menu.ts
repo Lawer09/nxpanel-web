@@ -32,6 +32,7 @@ export default {
   'menu.resource.server': 'Server Manage',
   'menu.resource.ip-pool': 'IP Pool',
   'menu.resource.machine': 'Machine Manage',
+  'menu.system': 'System Monitor',
   'menu.profile': 'Profile',
   'menu.profile.basic': 'Basic Profile',
   'menu.profile.advanced': 'Advanced Profile',

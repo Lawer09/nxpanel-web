@@ -11,6 +11,7 @@ import React, { useEffect, useState } from 'react';
 import { savePlan } from '@/services/swagger/plan';
 
 const PERIOD_LABELS: Record<string, string> = {
+  weekly: '周付',
   monthly: '月付',
   quarterly: '季付',
   half_yearly: '半年付',
@@ -56,15 +57,12 @@ const PlanFormModal: React.FC<PlanFormModalProps> = ({
         const prices = current.prices ?? {};
         form.setFieldsValue({
           ...current,
-          transfer_enable_gb: Math.round(
-            current.transfer_enable / 1024 / 1024 / 1024,
-          ),
           reset_traffic_method: current.reset_traffic_method ?? -1,
           ...Object.fromEntries(
             Object.entries(PERIOD_LABELS).map(([key]) => [
               `price_${key}`,
               prices[key as keyof API.PlanPrices] != null
-                ? Number(prices[key as keyof API.PlanPrices]) / 100
+                ? Number(prices[key as keyof API.PlanPrices])
                 : undefined,
             ]),
           ),
@@ -88,7 +86,7 @@ const PlanFormModal: React.FC<PlanFormModalProps> = ({
     for (const key of Object.keys(PERIOD_LABELS)) {
       const v = values[`price_${key}`];
       prices[key as keyof API.PlanPrices] =
-        v != null && v !== '' ? Math.round(Number(v) * 100) : null;
+        v != null && v !== '' ? Math.round(Number(v)) : null;
     }
     return prices;
   };
@@ -106,9 +104,7 @@ const PlanFormModal: React.FC<PlanFormModalProps> = ({
         const payload: API.PlanSaveParams = {
           id: current?.id,
           name: values.name,
-          transfer_enable: Math.round(
-            Number(values.transfer_enable_gb) * 1024 * 1024 * 1024,
-          ),
+          transfer_enable: values.transfer_enable,
           group_id: values.group_id ?? null,
           speed_limit: values.speed_limit ?? null,
           device_limit: values.device_limit ?? null,
@@ -139,7 +135,7 @@ const PlanFormModal: React.FC<PlanFormModalProps> = ({
 
       <Space style={{ width: '100%', gap: 16 }} align="start">
         <ProFormDigit
-          name="transfer_enable_gb"
+          name="transfer_enable"
           label="流量配额 (GB)"
           rules={[{ required: true, message: '请输入流量配额' }]}
           fieldProps={{ min: 1, style: { width: 180 } }}
@@ -179,7 +175,7 @@ const PlanFormModal: React.FC<PlanFormModalProps> = ({
       </Space>
 
       <Divider orientation="left" style={{ fontSize: 13 }}>
-        价格配置（元，留空表示不售卖该周期）
+        价格配置
       </Divider>
 
       <div
@@ -196,15 +192,13 @@ const PlanFormModal: React.FC<PlanFormModalProps> = ({
             label={label}
             style={{ marginBottom: 8 }}
           >
-            <Space.Compact>
-              ¥
-              <InputNumber
-                min={0}
-                precision={2}
-                style={{ width: '100%' }}
-                placeholder="留空不售卖"
-                />
-            </Space.Compact>
+            <InputNumber
+              min={0}
+              precision={2}
+              style={{ width: '100%' }}
+              placeholder="留空不售卖"
+              prefix="¥"
+            />
           </Form.Item>
         ))}
       </div>

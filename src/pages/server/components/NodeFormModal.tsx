@@ -8,7 +8,7 @@ import {
   ProFormSwitch,
   ProFormText,
 } from '@ant-design/pro-components';
-import { Alert, Button, Col, Divider, Form, Row, Select, Space, Tag, Typography } from 'antd';
+import { Alert, Button, Col, Divider, Form, Row, Select, Space, Tag, Typography, App } from 'antd';
 import { ThunderboltOutlined, SaveOutlined } from '@ant-design/icons';
 import { getMachineList } from '@/services/swagger/machine';
 import { fetchServerTemplates, getServerTemplateDetail } from '@/services/swagger/serverTemplate';
@@ -99,6 +99,7 @@ const NodeFormModal: React.FC<NodeFormModalProps> = ({
   onSuccess,
 }) => {
   const [form] = Form.useForm<NodeFormModalValues>();
+  const { message } = App.useApp();
   const savedNodeIdRef = useRef<number | undefined>(undefined);
 
   // 机器列表
@@ -109,6 +110,14 @@ const NodeFormModal: React.FC<NodeFormModalProps> = ({
   const [templatesLoading, setTemplatesLoading] = useState(false);
   // 模板填充提示
   const [filledFrom, setFilledFrom] = useState<string | null>(null);
+
+  // open/node 变化时重置表单，确保编辑数据正确回填
+  useEffect(() => {
+    if (open) {
+      form.resetFields();
+      form.setFieldsValue(getInitialValues(node));
+    }
+  }, [open, node]);
 
   // 打开时加载机器和模板
   useEffect(() => {
@@ -169,6 +178,20 @@ const NodeFormModal: React.FC<NodeFormModalProps> = ({
     setFilledFrom(`已从模板「${detail.name}」填充节点配置`);
   };
 
+  // 解析后端错误并提示
+  const handleApiError = (error: any) => {
+    const res = error?.response?.data ?? error?.data;
+    if (res?.msg) {
+      // 若 data 字段有字段级错误，拼接展示
+      const fieldErrors = res.data
+        ? Object.values(res.data as Record<string, string[]>).flat().join('；')
+        : '';
+      message.error(fieldErrors || res.msg);
+    } else {
+      message.error('操作失败，请稍后重试');
+    }
+  };
+
   // 构建提交 payload
   const buildPayload = (values: NodeFormModalValues): API.ServerNodeSaveParams => {
     const compactProtocolSettings = compactValue(values.protocol_settings);
@@ -226,8 +249,9 @@ const NodeFormModal: React.FC<NodeFormModalProps> = ({
                   }
                   onSuccess();
                   onOpenChange(false);
-                } catch (_e) {
-                  // 验证失败时 validateFields 会自动提示
+                } catch (e: any) {
+                  if (e?.errorFields) return; // 表单校验失败，antd 自动提示
+                  handleApiError(e);
                 }
               }}
             >
@@ -246,6 +270,7 @@ const NodeFormModal: React.FC<NodeFormModalProps> = ({
           onSuccess();
           return true;
         } catch (error: any) {
+          handleApiError(error);
           return false;
         }
       }}
@@ -343,14 +368,14 @@ const NodeFormModal: React.FC<NodeFormModalProps> = ({
       <ProFormText
         name="port"
         label="连接端口"
-        rules={[{ required: true, message: '请输入连接端口' }]}
+        placeholder="留空则随机生成"
       />
       <ProFormDigit
         name="server_port"
         label="服务端口"
         min={1}
         max={65535}
-        rules={[{ required: true, message: '请输入服务端口' }]}
+        placeholder="留空则随机生成"
       />
       <ProFormDigit
         name="rate"
@@ -425,18 +450,6 @@ const NodeFormModal: React.FC<NodeFormModalProps> = ({
       <ProFormSelect
         name="tags"
         label="标签"
-        mode="tags"
-        fieldProps={{ tokenSeparators: [','] }}
-      />
-      <ProFormSelect
-        name="excludes"
-        label="排除项"
-        mode="tags"
-        fieldProps={{ tokenSeparators: [','] }}
-      />
-      <ProFormSelect
-        name="ips"
-        label="IP 列表"
         mode="tags"
         fieldProps={{ tokenSeparators: [','] }}
       />

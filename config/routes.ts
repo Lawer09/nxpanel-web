@@ -115,6 +115,12 @@ export default [
     ],
   },
   {
+    path: '/system',
+    name: 'system',
+    icon: 'dashboard',
+    component: './system',
+  },
+  {
     path: '/user-manage',
     name: 'user-manage',
     icon: 'user',

@@ -16,11 +16,13 @@ import {
   sortPlans,
   updatePlan,
 } from '@/services/swagger/plan';
+import { fetchServerGroups } from '@/services/swagger/server';
 import PlanFormModal from './components/PlanFormModal';
 
 const { Text } = Typography;
 
 const PERIOD_LABELS: Record<string, string> = {
+  weekly: '周付',
   monthly: '月付',
   quarterly: '季付',
   half_yearly: '半年付',
@@ -39,16 +41,21 @@ const RESET_METHOD_LABELS: Record<number, string> = {
   4: '按年',
 };
 
+// const formatBytes = (bytes: number): string => {
+//   if (bytes >= 1024 ** 4) return (bytes / 1024 ** 4).toFixed(1) + ' TB';
+//   if (bytes >= 1024 ** 3) return (bytes / 1024 ** 3).toFixed(1) + ' GB';
+//   if (bytes >= 1024 ** 2) return (bytes / 1024 ** 2).toFixed(1) + ' MB';
+//   return bytes + ' B';
+// };
+
 const formatBytes = (bytes: number): string => {
-  if (bytes >= 1024 ** 4) return (bytes / 1024 ** 4).toFixed(1) + ' TB';
-  if (bytes >= 1024 ** 3) return (bytes / 1024 ** 3).toFixed(1) + ' GB';
-  if (bytes >= 1024 ** 2) return (bytes / 1024 ** 2).toFixed(1) + ' MB';
-  return bytes + ' B';
+  return bytes + ' GB';
 };
 
 const PlanPage: React.FC = () => {
   const { message: messageApi, modal: modalApi } = App.useApp();
   const [plans, setPlans] = useState<API.PlanItem[]>([]);
+  const [groups, setGroups] = useState<API.ServerGroup[]>([]);
   const [loading, setLoading] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [currentPlan, setCurrentPlan] = useState<API.PlanItem | undefined>();
@@ -70,6 +77,9 @@ const PlanPage: React.FC = () => {
 
   useEffect(() => {
     loadPlans();
+    fetchServerGroups().then((res) => {
+      if (res.data) setGroups(res.data);
+    });
   }, []);
 
   const handleToggle = async (
@@ -221,7 +231,7 @@ const PlanPage: React.FC = () => {
                 .map(([key, label]) => {
                   const v = prices[key as keyof API.PlanPrices];
                   return v != null
-                    ? { label, val: (v / 100).toFixed(2) }
+                    ? { label, val: v }
                     : null;
                 })
                 .filter(Boolean);
@@ -338,6 +348,7 @@ const PlanPage: React.FC = () => {
       <PlanFormModal
         open={formOpen}
         current={currentPlan}
+        groups={groups}
         onOpenChange={setFormOpen}
         onSuccess={() => {
           setFormOpen(false);
