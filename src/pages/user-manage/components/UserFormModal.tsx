@@ -10,7 +10,9 @@ import {
 import { App } from 'antd';
 import dayjs from 'dayjs';
 import React from 'react';
+import { useRequest } from '@umijs/max';
 import { updateUser } from '@/services/swagger/user';
+import { fetchPlans } from '@/services/swagger/plan';
 
 type UserFormModalProps = {
   open: boolean;
@@ -26,6 +28,15 @@ const UserFormModal: React.FC<UserFormModalProps> = ({
   onSuccess,
 }) => {
   const { message: messageApi } = App.useApp();
+
+  const { data: plansRes } = useRequest(fetchPlans, { cacheKey: 'plan-list' });
+  const planOptions = [
+    { label: '无套餐', value: null },
+    ...((plansRes as any) ?? []).map((p: API.PlanItem) => ({
+      label: p.name,
+      value: p.id,
+    })),
+  ];
 
   const initialValues = current
     ? {
@@ -133,12 +144,13 @@ const UserFormModal: React.FC<UserFormModalProps> = ({
         min={0}
         fieldProps={{ precision: 2, step: 0.01 }}
       />
-      <ProFormDigit
+      <ProFormSelect
         name="plan_id"
-        label="套餐 ID"
-        min={0}
-        placeholder="留空则不修改"
-        fieldProps={{ precision: 0 }}
+        label="套餐"
+        options={planOptions}
+        placeholder="选择套餐"
+        allowClear
+        fieldProps={{ allowClear: true }}
       />
       <ProFormDigit
         name="speed_limit"

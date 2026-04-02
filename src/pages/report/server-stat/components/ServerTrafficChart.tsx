@@ -53,7 +53,7 @@ const ServerTrafficChart: React.FC<ServerTrafficChartProps> = ({ serverOptions }
     { refreshDeps: [chartServerId, chartRange, granularity] },
   );
 
-  const rawData: API.StatServerDetailItem[] = (chartRes as any)?.data?.data || [];
+  const rawData: API.StatServerDetailItem[] = (chartRes as any)?.data || [];
 
   // 转换为折线图数据：每条记录拆成上传/下载两个系列
   const chartData = useMemo(() => {
