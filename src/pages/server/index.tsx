@@ -13,6 +13,7 @@ import {
   fetchServerRoutes,
   getServerNodes,
   sortServerNodes,
+  testServerPort,
   updateServerNode,
 } from '@/services/swagger/server';
 import DeployResultModal, { type DeployTarget } from './components/DeployResultModal';
@@ -52,6 +53,7 @@ const ServerManagePage: React.FC = () => {
   const [selectedNodeKeys, setSelectedNodeKeys] = useState<number[]>([]);
   const [deployTarget, setDeployTarget] = useState<DeployTarget | null>(null);
   const [deployModalOpen, setDeployModalOpen] = useState(false);
+  const [portTestLoading, setPortTestLoading] = useState<number | null>(null);
 
   const groupOptions = useMemo(
     () => groupRows.map((item) => ({ label: item.name, value: item.id })),
@@ -82,7 +84,7 @@ const ServerManagePage: React.FC = () => {
     {
       title: '协议',
       dataIndex: 'type',
-      width: 120,
+      width: 100,
       valueType: 'select',
       valueEnum: protocolOptions.reduce(
         (acc, item) => {
@@ -95,6 +97,7 @@ const ServerManagePage: React.FC = () => {
     {
       title: '地址',
       dataIndex: 'host',
+      width: 140,
       copyable: true,
       search: false,
     },
@@ -133,12 +136,12 @@ const ServerManagePage: React.FC = () => {
         2: { text: '正常运行', status: 'Success' },
       },
     },
-    {
-      title: '排序值',
-      dataIndex: 'sort',
-      width: 100,
-      search: false,
-    },
+    // {
+    //   title: '排序值',
+    //   dataIndex: 'sort',
+    //   width: 100,
+    //   search: false,
+    // },
     {
       title: '权限组',
       dataIndex: 'groups',
@@ -228,6 +231,47 @@ const ServerManagePage: React.FC = () => {
           }}
         >
           部署
+        </a>,
+        <a
+          key="testPort"
+          onClick={async () => {
+            if (!record.id) return;
+            setPortTestLoading(record.id);
+            try {
+              const res = await testServerPort({ id: record.id });
+              const d = res.data;
+              if (d?.reachable) {
+                Modal.success({
+                  title: `端口连通 — ${record.name}`,
+                  content: (
+                    <div>
+                      <div>地址：{d.host}:{d.port}</div>
+                      <div>延迟：{d.latency_ms} ms</div>
+                      <div>{d.message}</div>
+                    </div>
+                  ),
+                });
+              } else {
+                Modal.error({
+                  title: `端口不通 — ${record.name}`,
+                  content: (
+                    <div>
+                      <div>地址：{d?.host}:{d?.port}</div>
+                      <div>延迟：{d?.latency_ms} ms</div>
+                      <div>{d?.message}</div>
+                      {d?.errno != null && <div>错误码：{d.errno}</div>}
+                    </div>
+                  ),
+                });
+              }
+            } catch {
+              messageApi.error('端口测试请求失败');
+            } finally {
+              setPortTestLoading(null);
+            }
+          }}
+        >
+          {portTestLoading === record.id ? '测试中...' : '测试端口'}
         </a>,
         <a
           key="delete"

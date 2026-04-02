@@ -186,6 +186,15 @@ interface Machine {
     server_count?: number;
   }
 
+  interface PortTestResult {
+    host: string;
+    port: number;
+    reachable: boolean;
+    latency_ms: number;
+    message: string;
+    errno?: number;
+  }
+
   interface ServerGroupSaveParams {
     id?: number;
     name: string;

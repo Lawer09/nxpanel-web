@@ -293,6 +293,25 @@ const VlessTlsFields: React.FC = () => (
                 },
               ]}
             />
+            <ProFormSwitch
+              name={['protocol_settings', 'utls', 'enabled']}
+              label="uTLS Enabled"
+              colProps={{ span: 6 }}
+            />
+            <ProFormSelect
+              name={['protocol_settings', 'utls', 'fingerprint']}
+              label="uTLS Fingerprint"
+              colProps={{ span: 10 }}
+              options={[
+                { label: 'chrome', value: 'chrome' },
+                { label: 'firefox', value: 'firefox' },
+                { label: 'safari', value: 'safari' },
+                { label: 'ios', value: 'ios' },
+                { label: 'android', value: 'android' },
+                { label: 'edge', value: 'edge' },
+              ]}
+              placeholder="选择指纹"
+            />
           </div>
         );
       }

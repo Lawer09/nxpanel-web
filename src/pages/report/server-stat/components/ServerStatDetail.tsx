@@ -65,11 +65,13 @@ const ServerStatDetail: React.FC<ServerStatDetailProps> = ({ serverOptions }) =>
           />
           <RangePicker
             size="small"
-            showTime
             value={[dayjs.unix(detailRange[0]), dayjs.unix(detailRange[1])]}
-            onChange={(_, strings) => {
-              if (strings[0] && strings[1]) {
-                setDetailRange([dayjs(strings[0]).unix(), dayjs(strings[1]).unix()]);
+            onChange={(dates) => {
+              if (dates?.[0] && dates?.[1]) {
+                setDetailRange([
+                  dates[0].startOf('day').unix(),
+                  dates[1].endOf('day').unix(),
+                ]);
                 setDetailPage(1);
               }
             }}

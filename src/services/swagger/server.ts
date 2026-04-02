@@ -195,3 +195,14 @@ export async function getDeployResult(
     ...(options || {}),
   });
 }
+
+export async function testServerPort(
+  params: { id: number },
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.PortTestResult>>('/server/manage/testPort', {
+    method: 'GET',
+    params,
+    ...(options || {}),
+  });
+}
