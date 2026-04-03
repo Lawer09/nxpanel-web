@@ -8,7 +8,7 @@ import {
 } from '@ant-design/pro-components';
 import { message } from 'antd';
 import React from 'react';
-import { saveAsn } from '@/services/swagger/asn';
+import { saveAsn } from '@/services/infra/api';
 
 type AsnFormModalValues = Partial<API.AsnSaveParams> & {
   metadata_text?: string;

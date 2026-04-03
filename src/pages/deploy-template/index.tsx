@@ -8,7 +8,7 @@ import {
   fetchDeployTemplates,
   previewDeployTemplate,
   setDefaultDeployTemplate,
-} from '@/services/swagger/deployTemplate';
+} from '@/services/server/api';
 import TemplateFormModal from './components/TemplateFormModal';
 import TemplatePreviewDrawer from './components/TemplatePreviewDrawer';
 

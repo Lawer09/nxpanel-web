@@ -1,6 +1,7 @@
 import { request } from '@umijs/max';
 
-/** 用户每日流量明细（分页） */
+// ── 统计 ─────────────────────────────────────────────────────────────────────
+
 export async function getStatUser(
   params: { user_id: number; pageSize?: number; page?: number },
   options?: { [key: string]: any },
@@ -12,13 +13,8 @@ export async function getStatUser(
   });
 }
 
-/** 用户或节点流量 Top10 + 环比 */
 export async function getTrafficRank(
-  params: {
-    type: 'user' | 'node';
-    start_time?: number;
-    end_time?: number;
-  },
+  params: { type: 'user' | 'node'; start_time?: number; end_time?: number },
   options?: { [key: string]: any },
 ) {
   return request<API.ApiResponse<API.TrafficRankData>>('/v3/stat/getTrafficRank', {
@@ -28,7 +24,6 @@ export async function getTrafficRank(
   });
 }
 
-/** 用户消耗排行 Top20 */
 export async function getUserConsumptionRank(
   params: {
     type: 'user_consumption_rank';
@@ -45,7 +40,6 @@ export async function getUserConsumptionRank(
   });
 }
 
-/** 节点流量排行 Top20 */
 export async function getServerTrafficRank(
   params: {
     type: 'server_traffic_rank';
@@ -62,7 +56,6 @@ export async function getServerTrafficRank(
   });
 }
 
-/** 全量节点实时流量排行 */
 export async function getServerLastRank(options?: { [key: string]: any }) {
   return request<API.ApiResponse<API.ServerRankData>>('/v3/stat/getServerLastRank', {
     method: 'GET',
@@ -70,7 +63,6 @@ export async function getServerLastRank(options?: { [key: string]: any }) {
   });
 }
 
-/** 昨日节点流量排行 */
 export async function getServerYesterdayRank(options?: { [key: string]: any }) {
   return request<API.ApiResponse<API.ServerRankData>>('/v3/stat/getServerYesterdayRank', {
     method: 'GET',
@@ -78,7 +70,6 @@ export async function getServerYesterdayRank(options?: { [key: string]: any }) {
   });
 }
 
-/** 节点流量详情（分页） */
 export async function getStatServer(
   params: {
     server_id?: number;
@@ -96,7 +87,6 @@ export async function getStatServer(
   });
 }
 
-/** 节点流量图表详情（按粒度聚合） */
 export async function getStatServerDetail(
   params: {
     server_id?: number;
@@ -115,7 +105,6 @@ export async function getStatServerDetail(
   });
 }
 
-/** 流量汇总概览 */
 export async function getOverride(options?: { [key: string]: any }) {
   return request<API.ApiResponse<API.StatOverviewData>>('/v3/stat/getOverride', {
     method: 'GET',
@@ -123,7 +112,6 @@ export async function getOverride(options?: { [key: string]: any }) {
   });
 }
 
-/** 运营概览（包含更多字段） */
 export async function getStats(options?: { [key: string]: any }) {
   return request<API.ApiResponse<API.StatOverviewData>>('/v3/stat/getStats', {
     method: 'GET',

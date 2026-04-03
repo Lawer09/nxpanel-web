@@ -16,7 +16,7 @@ import {
   sortPlans,
   updatePlan,
 } from '@/services/swagger/plan';
-import { fetchServerGroups } from '@/services/swagger/server';
+import { fetchServerGroups } from '@/services/server/api';
 import PlanFormModal from './components/PlanFormModal';
 
 const { Text } = Typography;

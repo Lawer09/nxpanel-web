@@ -11,7 +11,7 @@ import React, { useEffect } from 'react';
 import {
   saveDeployTemplate,
   updateDeployTemplate,
-} from '@/services/swagger/deployTemplate';
+} from '@/services/server/api';
 
 const NODE_TYPE_OPTIONS = [
   { label: 'VLESS', value: 'vless' },

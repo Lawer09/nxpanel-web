@@ -15,10 +15,11 @@ import {
   sortServerNodes,
   testServerPort,
   updateServerNode,
-} from '@/services/swagger/server';
+} from '@/services/server/api';
 import DeployResultModal, { type DeployTarget } from './components/DeployResultModal';
 import GroupFormModal from './components/GroupFormModal';
 import NodeFormModal from './components/NodeFormModal';
+import OnlineUsersModal from './components/OnlineUsersModal';
 import RouteFormModal from './components/RouteFormModal';
 import { protocolOptions } from './components/constants';
 
@@ -54,6 +55,9 @@ const ServerManagePage: React.FC = () => {
   const [deployTarget, setDeployTarget] = useState<DeployTarget | null>(null);
   const [deployModalOpen, setDeployModalOpen] = useState(false);
   const [portTestLoading, setPortTestLoading] = useState<number | null>(null);
+  const [onlineUsersServerId, setOnlineUsersServerId] = useState<number | null>(null);
+  const [onlineUsersServerName, setOnlineUsersServerName] = useState<string | undefined>();
+  const [onlineUsersModalOpen, setOnlineUsersModalOpen] = useState(false);
 
   const groupOptions = useMemo(
     () => groupRows.map((item) => ({ label: item.name, value: item.id })),
@@ -272,6 +276,17 @@ const ServerManagePage: React.FC = () => {
           }}
         >
           {portTestLoading === record.id ? '测试中...' : '测试端口'}
+        </a>,
+        <a
+          key="onlineUsers"
+          onClick={() => {
+            if (!record.id) return;
+            setOnlineUsersServerId(record.id);
+            setOnlineUsersServerName(record.name);
+            setOnlineUsersModalOpen(true);
+          }}
+        >
+          在线用户
         </a>,
         <a
           key="delete"
@@ -644,6 +659,16 @@ const ServerManagePage: React.FC = () => {
         onSuccess={() => {
           routeActionRef.current?.reload();
           nodeActionRef.current?.reload();
+        }}
+      />
+      <OnlineUsersModal
+        open={onlineUsersModalOpen}
+        serverId={onlineUsersServerId}
+        serverName={onlineUsersServerName}
+        onClose={() => {
+          setOnlineUsersModalOpen(false);
+          setOnlineUsersServerId(null);
+          setOnlineUsersServerName(undefined);
         }}
       />
     </PageContainer>

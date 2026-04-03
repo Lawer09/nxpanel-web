@@ -12,7 +12,7 @@ import {
 import { useRequest } from '@umijs/max';
 import { Button, Drawer, Modal, message, Select } from 'antd';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { fetchAsn, unbindAsnProviders } from '@/services/swagger/asn';
+import { fetchAsn, unbindAsnProviders } from '@/services/infra/api';
 import {
   deleteProvider,
   fetchProvider,
@@ -22,7 +22,7 @@ import {
   getUnboundProviders,
   updateProviderAsn,
   updateProviderStatus,
-} from '@/services/swagger/provider';
+} from '@/services/provider/api';
 import ProviderFormModal from './components/ProviderFormModal';
 import StatsPanel from './components/StatsPanel';
 

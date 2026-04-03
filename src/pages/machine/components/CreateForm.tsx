@@ -10,7 +10,7 @@ import {
 } from '@ant-design/pro-components';
 import { Button, message } from 'antd';
 import React, { useRef } from 'react';
-import { createMachine } from '@/services/swagger/machine';
+import { createMachine } from '@/services/machine/api';
 
 interface CreateFormProps {
   reload?: (resetPageIndex?: boolean) => Promise<void>;

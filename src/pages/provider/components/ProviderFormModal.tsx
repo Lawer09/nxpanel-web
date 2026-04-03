@@ -8,7 +8,7 @@ import {
 } from '@ant-design/pro-components';
 import { message } from 'antd';
 import React from 'react';
-import { saveProvider } from '@/services/swagger/provider';
+import { saveProvider } from '@/services/provider/api';
 
 type ProviderFormModalValues = Partial<API.ProviderSaveParams> & {
   regions_text?: string;

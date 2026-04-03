@@ -22,8 +22,8 @@ import {
   Typography,
 } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
-import { fetchDeployTemplates } from '@/services/swagger/deployTemplate';
-import { batchDeploy, deployStatus } from '@/services/swagger/machine';
+import { fetchDeployTemplates } from '@/services/server/api';
+import { batchDeploy, deployStatus } from '@/services/machine/api';
 
 const { Text } = Typography;
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { ModalForm, ProFormText } from '@ant-design/pro-components';
 import { message } from 'antd';
-import { saveServerGroup } from '@/services/swagger/server';
+import { saveServerGroup } from '@/services/server/api';
 
 type GroupFormModalProps = {
   open: boolean;

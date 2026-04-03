@@ -2,7 +2,7 @@ import { Drawer, Spin, Table, Tag, Typography, Input, Button, Space, Alert } fro
 import { SearchOutlined, DeleteOutlined } from '@ant-design/icons';
 import { App } from 'antd';
 import React, { useState } from 'react';
-import { recordsByIp, unbindRecord } from '@/services/swagger/dns';
+import { recordsByIp, unbindRecord } from '@/services/dns/api';
 
 const { Text } = Typography;
 

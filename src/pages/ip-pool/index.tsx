@@ -20,7 +20,7 @@ import {
   getIpPoolDetail,
   getIpPoolStats,
   ipPoolBatchImport,
-} from '@/services/swagger/ipPool';
+} from '@/services/infra/api';
 import BatchImportModal from './components/BatchImportModal';
 import IpPoolFormModal from './components/IpPoolFormModal';
 import ResetScoreModal from './components/ResetScoreModal';

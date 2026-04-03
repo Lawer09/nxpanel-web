@@ -22,7 +22,7 @@ import {
   getQueueStats,
   getQueueWorkload,
   getSystemStatus,
-} from '@/services/swagger/system';
+} from '@/services/system/api';
 
 const { Paragraph, Text, Title } = Typography;
 

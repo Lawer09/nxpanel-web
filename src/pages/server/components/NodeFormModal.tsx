@@ -10,9 +10,9 @@ import {
 } from '@ant-design/pro-components';
 import { Alert, Button, Col, Divider, Form, Row, Select, Space, Tag, Typography, App } from 'antd';
 import { ThunderboltOutlined, SaveOutlined } from '@ant-design/icons';
-import { getMachineList } from '@/services/swagger/machine';
-import { fetchServerTemplates, getServerTemplateDetail } from '@/services/swagger/serverTemplate';
-import { restartServerNode, saveServerNode } from '@/services/swagger/server';
+import { getMachineList } from '@/services/machine/api';
+import { fetchServerTemplates, getServerTemplateDetail } from '@/services/server/api';
+import { restartServerNode, saveServerNode } from '@/services/server/api';
 import ProtocolSettingsFields from './ProtocolSettingsFields';
 import { protocolOptions, type SelectOption } from './constants';
 

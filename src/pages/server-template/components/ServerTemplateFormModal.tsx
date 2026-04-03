@@ -14,7 +14,7 @@ import ProtocolSettingsFields from '@/pages/server/components/ProtocolSettingsFi
 import {
   saveServerTemplate,
   updateServerTemplate,
-} from '@/services/swagger/serverTemplate';
+} from '@/services/server/api';
 
 interface ServerTemplateFormModalProps {
   open: boolean;

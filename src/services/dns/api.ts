@@ -1,9 +1,9 @@
+
 import { request } from '@umijs/max';
+// ── DNS ──────────────────────────────────────────────────────────────────────
 
 export function availableDomains() {
-  return request<API.DnsResponse<API.DnsDomain[]>>('/dns/domains/available', {
-    method: 'GET',
-  });
+  return request<API.DnsResponse<API.DnsDomain[]>>('/dns/domains/available', { method: 'GET' });
 }
 
 export function availableDomainsDetail() {
@@ -13,9 +13,7 @@ export function availableDomainsDetail() {
 }
 
 export function unavailableDomains() {
-  return request<API.DnsResponse<API.DnsDomain[]>>('/dns/domains/unavailable', {
-    method: 'GET',
-  });
+  return request<API.DnsResponse<API.DnsDomain[]>>('/dns/domains/unavailable', { method: 'GET' });
 }
 
 export function enableDomain(body: { domain: string }) {
@@ -33,9 +31,7 @@ export function disableDomain(body: { domain: string }) {
 }
 
 export function syncDomains() {
-  return request<API.DnsResponse<API.DnsSyncResult>>('/dns/domains/sync', {
-    method: 'POST',
-  });
+  return request<API.DnsResponse<API.DnsSyncResult>>('/dns/domains/sync', { method: 'POST' });
 }
 
 export function resolveRecord(body: API.DnsResolveParams) {

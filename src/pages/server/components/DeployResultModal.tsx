@@ -6,7 +6,7 @@ import {
 } from '@ant-design/icons';
 import { Badge, Button, Descriptions, Modal, Progress, Space, Table, Tag, Typography } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
-import { getDeployResult } from '@/services/swagger/server';
+import { getDeployResult } from '@/services/server/api';
 
 const { Text, Paragraph } = Typography;
 

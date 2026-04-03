@@ -17,9 +17,9 @@ import {
   Upload,
 } from 'antd';
 import React, { useRef, useState } from 'react';
-import { asnBatchImport } from '@/services/swagger/asn';
-import { getIpInfo, ipPoolBatchImport } from '@/services/swagger/ipPool';
-import { providerBatchImport } from '@/services/swagger/provider';
+import { asnBatchImport } from '@/services/infra/api';
+import { getIpInfo, ipPoolBatchImport } from '@/services/infra/api';
+import { providerBatchImport } from '@/services/provider/api';
 
 interface BatchImportModalProps {
   open: boolean;

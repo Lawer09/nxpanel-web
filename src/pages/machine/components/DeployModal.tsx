@@ -18,12 +18,12 @@ import {
   Typography,
 } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
-import { fetchDeployTemplates } from '@/services/swagger/deployTemplate';
+import { fetchDeployTemplates } from '@/services/server/api';
 import {
   clearNode,
   deployNode,
   deployStatus,
-} from '@/services/swagger/machine';
+} from '@/services/machine/api';
 
 const { Text } = Typography;
 

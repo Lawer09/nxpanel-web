@@ -18,7 +18,7 @@ import {
   Typography,
 } from 'antd';
 import React from 'react';
-import { getStats, getServerLastRank, getServerYesterdayRank } from '@/services/swagger/stat';
+import { getStats, getServerLastRank, getServerYesterdayRank } from '@/services/stat/api';
 
 const { Text } = Typography;
 

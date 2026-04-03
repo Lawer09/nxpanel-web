@@ -29,7 +29,7 @@ import {
   syncDomains,
   unavailableDomains,
   unbindRecord,
-} from '@/services/swagger/dns';
+} from '@/services/dns/api';
 import IpRecordsDrawer from './components/IpRecordsDrawer';
 import ResolveModal from './components/ResolveModal';
 

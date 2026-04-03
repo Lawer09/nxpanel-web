@@ -1,8 +1,8 @@
 import { ModalForm, ProFormText } from '@ant-design/pro-components';
 import { App, Form, Select, Tag, Typography } from 'antd';
 import React, { useEffect, useState } from 'react';
-import { getServerNodes } from '@/services/swagger/server';
-import { saveServerTemplateFromNode } from '@/services/swagger/serverTemplate';
+import { getServerNodes } from '@/services/server/api';
+import { saveServerTemplateFromNode } from '@/services/server/api';
 
 const { Text } = Typography;
 

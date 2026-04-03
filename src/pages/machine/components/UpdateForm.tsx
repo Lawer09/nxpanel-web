@@ -10,7 +10,7 @@ import {
 } from '@ant-design/pro-components';
 import { App } from 'antd';
 import React, { useRef } from 'react';
-import { updateMachine } from '@/services/swagger/machine';
+import { updateMachine } from '@/services/machine/api';
 
 interface UpdateFormProps {
   trigger: React.ReactNode;

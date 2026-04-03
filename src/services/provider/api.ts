@@ -1,4 +1,6 @@
+
 import { request } from '@umijs/max';
+// ── 供应商 ───────────────────────────────────────────────────────────────────
 
 export async function fetchProvider(
   params: API.ProviderFetchParams,
@@ -17,9 +19,7 @@ export async function getProviderDetail(
 ) {
   return request<API.ApiResponse<API.ProviderItem>>('/provider/detail', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     data: body,
     ...(options || {}),
   });
@@ -31,9 +31,7 @@ export async function saveProvider(
 ) {
   return request<API.ApiResponse<boolean>>('/provider/save', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     data: body,
     ...(options || {}),
   });
@@ -45,9 +43,7 @@ export async function deleteProvider(
 ) {
   return request<API.ApiResponse<boolean>>('/provider/delete', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     data: body,
     ...(options || {}),
   });
@@ -59,9 +55,7 @@ export async function updateProviderStatus(
 ) {
   return request<API.ApiResponse<boolean>>('/provider/updateStatus', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     data: body,
     ...(options || {}),
   });
@@ -80,9 +74,7 @@ export async function updateProviderAsn(
 ) {
   return request<API.ApiResponse<API.BatchActionResult>>('/provider/updateAsn', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     data: body,
     ...(options || {}),
   });
@@ -114,21 +106,16 @@ export async function providerBatchImport(
   body: { items: any[] },
   options?: { [key: string]: any },
 ) {
-  return request<API.ApiResponse<{
-    created: Array<{ id: number; name: string }>;
-    updated: Array<{ id: number; name: string }>;
-    failed: Array<{ name: string; reason: string }>;
-    summary: {
-      total: number;
-      created_count: number;
-      updated_count: number;
-      failed_count: number;
-    };
-  }>>('/provider/batchImport', {
+  return request<
+    API.ApiResponse<{
+      created: Array<{ id: number; name: string }>;
+      updated: Array<{ id: number; name: string }>;
+      failed: Array<{ name: string; reason: string }>;
+      summary: { total: number; created_count: number; updated_count: number; failed_count: number };
+    }>
+  >('/provider/batchImport', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     data: body,
     ...(options || {}),
   });

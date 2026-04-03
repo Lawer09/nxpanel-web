@@ -7,7 +7,7 @@ import {
 } from '@ant-design/pro-components';
 import { Button, Form, Input, message, Space } from 'antd';
 import React, { useRef, useState } from 'react';
-import { getIpInfo, saveIpPool } from '@/services/swagger/ipPool';
+import { getIpInfo, saveIpPool } from '@/services/infra/api';
 
 type IpPoolFormModalProps = {
   open: boolean;

@@ -15,14 +15,12 @@ import { App, Button, Drawer, Spin, Tooltip } from 'antd';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   batchDeleteMachines,
-  clearNode,
   deleteMachine,
-  deployNode,
   getMachineDetail,
   getMachineList,
   testMachineConnection,
-} from '@/services/swagger/machine';
-import { fetchProvider } from '@/services/swagger/provider';
+} from '@/services/machine/api';
+import { fetchProvider } from '@/services/provider/api';
 import BatchDeployModal from './components/BatchDeployModal';
 import CreateForm from './components/CreateForm';
 import DeployModal from './components/DeployModal';

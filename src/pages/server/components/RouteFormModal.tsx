@@ -1,7 +1,7 @@
 import React from 'react';
 import { ModalForm, ProFormSelect, ProFormText } from '@ant-design/pro-components';
 import { message } from 'antd';
-import { saveServerRoute } from '@/services/swagger/server';
+import { saveServerRoute } from '@/services/server/api';
 
 type RouteFormModalValues = Partial<API.ServerRouteSaveParams> & {
   match?: string[];

@@ -6,7 +6,7 @@ import {
 } from '@ant-design/pro-components';
 import { Alert, App, Tag } from 'antd';
 import React, { useEffect, useState } from 'react';
-import { availableDomains, resolveRecord } from '@/services/swagger/dns';
+import { availableDomains, resolveRecord } from '@/services/dns/api';
 
 interface ResolveModalProps {
   open: boolean;

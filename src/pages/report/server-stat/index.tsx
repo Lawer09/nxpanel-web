@@ -18,7 +18,7 @@ import {
   getServerTrafficRank,
   getServerLastRank,
   getServerYesterdayRank,
-} from '@/services/swagger/stat';
+} from '@/services/stat/api';
 import ServerStatDetail from './components/ServerStatDetail';
 import ServerTrafficChart from './components/ServerTrafficChart';
 

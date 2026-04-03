@@ -3,7 +3,7 @@ import { Card, DatePicker, Radio, Select, Space, Spin } from 'antd';
 import dayjs from 'dayjs';
 import React, { useMemo, useState } from 'react';
 import { useRequest } from '@umijs/max';
-import { getStatServerDetail } from '@/services/swagger/stat';
+import { getStatServerDetail } from '@/services/stat/api';
 
 const { RangePicker } = DatePicker;
 

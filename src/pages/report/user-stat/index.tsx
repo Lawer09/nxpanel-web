@@ -22,7 +22,7 @@ import {
   getTrafficRank,
   getUserConsumptionRank,
   getStatUser,
-} from '@/services/swagger/stat';
+} from '@/services/stat/api';
 
 const { RangePicker } = DatePicker;
 const { Text } = Typography;

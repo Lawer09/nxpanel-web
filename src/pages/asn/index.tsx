@@ -18,7 +18,7 @@ import {
   getAsnDetail,
   getAsnProviders,
   getAsnStats,
-} from '@/services/swagger/asn';
+} from '@/services/infra/api';
 import AsnFormModal from './components/AsnFormModal';
 import StatsPanel from './components/StatsPanel';
 

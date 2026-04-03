@@ -2,7 +2,7 @@ import { Card, DatePicker, Select, Table, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
 import React, { useState } from 'react';
 import { useRequest } from '@umijs/max';
-import { getStatServer } from '@/services/swagger/stat';
+import { getStatServer } from '@/services/stat/api';
 
 const { RangePicker } = DatePicker;
 const { Text } = Typography;
@@ -42,7 +42,7 @@ const ServerStatDetail: React.FC<ServerStatDetailProps> = ({ serverOptions }) =>
   );
 
   const detailData: API.StatServerItem[] = (detailRes as any)?.data || [];
-  const detailTotal: number = (detailRes as any)?.data?.total || 0;
+  const detailTotal: number = (detailRes as any)?.total || 0;
 
   return (
     <Card

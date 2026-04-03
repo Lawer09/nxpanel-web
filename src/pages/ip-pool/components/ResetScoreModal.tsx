@@ -1,7 +1,7 @@
 import { ModalForm, ProFormDigit } from '@ant-design/pro-components';
 import { message } from 'antd';
 import React from 'react';
-import { resetIpPoolScore } from '@/services/swagger/ipPool';
+import { resetIpPoolScore } from '@/services/infra/api';
 
 type ResetScoreModalProps = {
   open: boolean;

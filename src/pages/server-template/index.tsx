@@ -6,13 +6,13 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   fetchServerGroups,
   fetchServerRoutes,
-} from '@/services/swagger/server';
+} from '@/services/server/api';
 import {
   deleteServerTemplate,
   fetchServerTemplates,
   previewServerTemplate,
   setDefaultServerTemplate,
-} from '@/services/swagger/serverTemplate';
+} from '@/services/server/api';
 import SaveFromNodeModal from './components/SaveFromNodeModal';
 import ServerTemplateFormModal from './components/ServerTemplateFormModal';
 import ServerTemplatePreviewDrawer from './components/ServerTemplatePreviewDrawer';

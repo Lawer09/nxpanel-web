@@ -27,7 +27,7 @@ import {
   getPerformanceNodeStats,
   getPerformancePlatformStats,
   getPerformanceTrend,
-} from '@/services/swagger/performance';
+} from '@/services/performance/api';
 
 const { RangePicker } = DatePicker;
 const { Text } = Typography;
