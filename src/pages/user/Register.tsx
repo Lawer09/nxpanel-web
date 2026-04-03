@@ -2,7 +2,7 @@ import { LockOutlined, MailOutlined } from '@ant-design/icons';
 import { history, useRequest } from '@umijs/max';
 import { Button, Form, Input, Modal, message } from 'antd';
 import React, { useState } from 'react';
-import { register } from '@/services/swagger/auth';
+import { register } from '@/services/auth/api';
 import styles from './login.less';
 
 const RegisterPage: React.FC = () => {

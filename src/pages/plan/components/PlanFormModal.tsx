@@ -8,7 +8,7 @@ import {
 } from '@ant-design/pro-components';
 import { App, Divider, Form, InputNumber, Space, Tag, Typography } from 'antd';
 import React, { useEffect, useState } from 'react';
-import { savePlan } from '@/services/swagger/plan';
+import { savePlan } from '@/services/plan/api';
 
 const PERIOD_LABELS: Record<string, string> = {
   weekly: '周付',

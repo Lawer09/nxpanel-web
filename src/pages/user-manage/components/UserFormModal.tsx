@@ -11,8 +11,8 @@ import { App } from 'antd';
 import dayjs from 'dayjs';
 import React from 'react';
 import { useRequest } from '@umijs/max';
-import { updateUser } from '@/services/swagger/user';
-import { fetchPlans } from '@/services/swagger/plan';
+import { updateUser } from '@/services/user/api';
+import { fetchPlans } from '@/services/plan/api';
 
 type UserFormModalProps = {
   open: boolean;

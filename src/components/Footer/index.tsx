@@ -8,11 +8,11 @@ const Footer: React.FC = () => {
       style={{
         background: 'none',
       }}
-      copyright="Powered by Ant Desgin"
+      copyright="Pupu"
       links={[
         {
           key: 'Ant Design Pro',
-          title: 'Ant Design Pro',
+          title: 'Pupu',
           href: 'https://pro.ant.design',
           blankTarget: true,
         },
@@ -24,7 +24,7 @@ const Footer: React.FC = () => {
         },
         {
           key: 'Ant Design',
-          title: 'Ant Design',
+          title: 'Pupu',
           href: 'https://ant.design',
           blankTarget: true,
         },

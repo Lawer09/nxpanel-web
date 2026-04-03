@@ -6,7 +6,7 @@ import {
 } from '@ant-design/pro-components';
 import { App, Form } from 'antd';
 import React from 'react';
-import { assignOrder } from '@/services/swagger/order';
+import { assignOrder } from '@/services/order/api';
 
 const PERIOD_OPTIONS = [
   { label: '月付', value: 'month_price' },

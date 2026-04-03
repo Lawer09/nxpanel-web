@@ -10,8 +10,8 @@ import {
   getOrderDetail,
   payOrder,
   updateOrder,
-} from '@/services/swagger/order';
-import { fetchPlans } from '@/services/swagger/plan';
+} from '@/services/order/api';
+import { fetchPlans } from '@/services/plan/api';
 import AssignOrderModal from './components/AssignOrderModal';
 import OrderDetailDrawer from './components/OrderDetailDrawer';
 

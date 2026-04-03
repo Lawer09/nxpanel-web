@@ -5,7 +5,7 @@ import {
 } from '@ant-design/pro-components';
 import { Alert, App } from 'antd';
 import React from 'react';
-import { sendUserMail } from '@/services/swagger/user';
+import { sendUserMail } from '@/services/user/api';
 
 type SendMailModalProps = {
   open: boolean;

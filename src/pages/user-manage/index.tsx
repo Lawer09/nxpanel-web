@@ -19,7 +19,7 @@ import {
   dumpUserCSV,
   fetchUsers,
   resetUserSecret,
-} from '@/services/swagger/user';
+} from '@/services/user/api';
 import GenerateUserModal from './components/GenerateUserModal';
 import SendMailModal from './components/SendMailModal';
 import UserFormModal from './components/UserFormModal';
@@ -58,23 +58,28 @@ const UserManagePage: React.FC = () => {
       dataIndex: 'email',
       width: 220,
       render: (_, record) => (
-        <Space direction="vertical" size={0}>
-          <Text
-            style={{ cursor: 'pointer', color: '#1677ff' }}
-            onClick={() => {
-              setCurrentUser(record);
-              setEditOpen(true);
-            }}
-          >
-            {record.email}
-          </Text>
-          {record.plan && (
-            <Tag color="blue" style={{ fontSize: 11 }}>
-              {record.plan.name}
-            </Tag>
-          )}
-        </Space>
+        <Text
+          style={{ cursor: 'pointer', color: '#1677ff' }}
+          onClick={() => {
+            setCurrentUser(record);
+            setEditOpen(true);
+          }}
+        >
+          {record.email}
+        </Text>
       ),
+    },
+    {
+      title: '当前套餐',
+      dataIndex: ['plan', 'name'],
+      width: 130,
+      search: false,
+      render: (_, record) =>
+        record.plan ? (
+          <Tag color="blue">{record.plan.name}</Tag>
+        ) : (
+          <Tag color="default">无套餐</Tag>
+        ),
     },
     {
       title: '搜索邮箱',
@@ -101,16 +106,16 @@ const UserManagePage: React.FC = () => {
       render: (_, record) =>
         record.balance != null ? `¥${Number(record.balance).toFixed(2)}` : '-',
     },
-    {
-      title: '佣金余额',
-      dataIndex: 'commission_balance',
-      width: 100,
-      search: false,
-      render: (_, record) =>
-        record.commission_balance != null
-          ? `¥${Number(record.commission_balance).toFixed(2)}`
-          : '-',
-    },
+    // {
+    //   title: '佣金余额',
+    //   dataIndex: 'commission_balance',
+    //   width: 100,
+    //   search: false,
+    //   render: (_, record) =>
+    //     record.commission_balance != null
+    //       ? `¥${Number(record.commission_balance).toFixed(2)}`
+    //       : '-',
+    // },
     {
       title: '流量使用',
       key: 'traffic',
@@ -143,22 +148,22 @@ const UserManagePage: React.FC = () => {
         );
       },
     },
-    {
-      title: '邀请人',
-      dataIndex: 'invite_user',
-      width: 160,
-      search: false,
-      render: (_, record) =>
-        record.invite_user ? (
-          <Tooltip title={`ID: ${record.invite_user.id}`}>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              {record.invite_user.email}
-            </Text>
-          </Tooltip>
-        ) : (
-          '-'
-        ),
-    },
+    // {
+    //   title: '邀请人',
+    //   dataIndex: 'invite_user',
+    //   width: 160,
+    //   search: false,
+    //   render: (_, record) =>
+    //     record.invite_user ? (
+    //       <Tooltip title={`ID: ${record.invite_user.id}`}>
+    //         <Text type="secondary" style={{ fontSize: 12 }}>
+    //           {record.invite_user.email}
+    //         </Text>
+    //       </Tooltip>
+    //     ) : (
+    //       '-'
+    //     ),
+    // },
     {
       title: '角色',
       key: 'roles',

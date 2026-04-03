@@ -8,7 +8,7 @@ import {
 import { Alert, App, Table, Typography } from 'antd';
 import dayjs from 'dayjs';
 import React, { useState } from 'react';
-import { generateUser } from '@/services/swagger/user';
+import { generateUser } from '@/services/user/api';
 
 type GenerateUserModalProps = {
   open: boolean;

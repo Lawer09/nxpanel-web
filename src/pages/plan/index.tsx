@@ -15,7 +15,7 @@ import {
   fetchPlans,
   sortPlans,
   updatePlan,
-} from '@/services/swagger/plan';
+} from '@/services/plan/api';
 import { fetchServerGroups } from '@/services/server/api';
 import PlanFormModal from './components/PlanFormModal';
 
