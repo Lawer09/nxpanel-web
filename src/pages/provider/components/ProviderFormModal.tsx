@@ -14,6 +14,8 @@ type ProviderFormModalValues = Partial<API.ProviderSaveParams> & {
   regions_text?: string;
   services_text?: string;
   metadata_text?: string;
+  api_credentials_text?: string;
+  supported_operations_text?: string;
 };
 
 type ProviderFormModalProps = {
@@ -60,6 +62,12 @@ const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
         metadata_text: current?.metadata
           ? JSON.stringify(current.metadata, null, 2)
           : undefined,
+        api_credentials_text: current?.api_credentials
+          ? JSON.stringify(current.api_credentials, null, 2)
+          : undefined,
+        supported_operations_text: current?.supported_operations
+          ? JSON.stringify(current.supported_operations, null, 2)
+          : undefined,
       }}
       modalProps={{
         destroyOnHidden: true,
@@ -89,6 +97,9 @@ const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
             regions: parseJsonField(values.regions_text, 'regions'),
             services: parseJsonField(values.services_text, 'services'),
             metadata: parseJsonField(values.metadata_text, 'metadata'),
+            driver: values.driver,
+            api_credentials: parseJsonField(values.api_credentials_text, 'api_credentials'),
+            supported_operations: parseJsonField(values.supported_operations_text, 'supported_operations'),
           };
           const res = await saveProvider(payload);
           if (res.code !== 0) {
@@ -154,6 +165,24 @@ const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
         name="metadata_text"
         label="metadata(JSON)"
         fieldProps={{ autoSize: { minRows: 3, maxRows: 8 } }}
+      />
+      <ProFormText
+        name="driver"
+        label="驱动标识"
+        fieldProps={{ maxLength: 50 }}
+        tooltip="驱动程序标识符，如 vultr、aws 等"
+      />
+      <ProFormTextArea
+        name="api_credentials_text"
+        label="API 凭证(JSON)"
+        fieldProps={{ autoSize: { minRows: 3, maxRows: 8 } }}
+        tooltip="API 密钥等凭证信息，将自动加密存储"
+      />
+      <ProFormTextArea
+        name="supported_operations_text"
+        label="支持的操作(JSON 数组)"
+        fieldProps={{ autoSize: { minRows: 2, maxRows: 6 } }}
+        tooltip='例如：["create", "delete", "reboot"]'
       />
     </ModalForm>
   );

@@ -1,4 +1,4 @@
-import { DeleteOutlined, EditOutlined, LinkOutlined } from '@ant-design/icons';
+import { CloudDownloadOutlined, DeleteOutlined, EditOutlined, LinkOutlined } from '@ant-design/icons';
 import type {
   ActionType,
   ProColumns,
@@ -24,6 +24,7 @@ import { fetchProvider } from '@/services/provider/api';
 import BatchDeployModal from './components/BatchDeployModal';
 import CreateForm from './components/CreateForm';
 import DeployModal from './components/DeployModal';
+import ImportFromCloudModal from './components/ImportFromCloudModal';
 import UpdateForm from './components/UpdateForm';
 
 const PAY_MODE_MAP: Record<number, string> = {
@@ -50,6 +51,7 @@ const MachineList: React.FC = () => {
     API.Machine | undefined
   >();
   const [batchDeployOpen, setBatchDeployOpen] = useState(false);
+  const [importCloudOpen, setImportCloudOpen] = useState(false);
 
   // 加载供应商列表
   useEffect(() => {
@@ -314,6 +316,13 @@ const MachineList: React.FC = () => {
           labelWidth: 120,
         }}
         toolBarRender={() => [
+          <Button
+            key="importCloud"
+            icon={<CloudDownloadOutlined />}
+            onClick={() => setImportCloudOpen(true)}
+          >
+            从云端导入
+          </Button>,
           <CreateForm
             key="create"
             reload={actionRef.current?.reload}
@@ -415,6 +424,13 @@ const MachineList: React.FC = () => {
           setSelectedRows([]);
           actionRef.current?.reload();
         }}
+      />
+
+      <ImportFromCloudModal
+        open={importCloudOpen}
+        providerOptions={providerOptions}
+        onClose={() => setImportCloudOpen(false)}
+        onSuccess={() => actionRef.current?.reload()}
       />
     </PageContainer>
   );

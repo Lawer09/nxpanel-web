@@ -120,3 +120,15 @@ export async function providerBatchImport(
     ...(options || {}),
   });
 }
+
+export async function getProviderInstances(
+  body: API.ProviderInstanceFetchParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.ProviderInstancesResult>>('/v3/provider/instances', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}

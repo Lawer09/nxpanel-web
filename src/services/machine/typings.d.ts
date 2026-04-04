@@ -23,6 +23,7 @@ declare namespace API {
     tags?: string;
     description?: string;
     is_active?: boolean;
+    provider_instance_id?: string;
     last_check_at?: string;
     created_at?: string;
     updated_at?: string;

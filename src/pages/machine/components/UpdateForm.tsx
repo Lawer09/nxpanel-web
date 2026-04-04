@@ -169,6 +169,12 @@ const UpdateForm: React.FC<UpdateFormProps> = ({
         <ProFormSwitch name="is_active" label="Active" />
       </ProForm.Group>
 
+      <ProFormText
+        name="provider_instance_id"
+        label="Provider Instance ID"
+        tooltip="供应商平台上的实例 ID"
+        fieldProps={{ maxLength: 255 }}
+      />
       <ProFormTextArea name="description" label="Description" />
     </ModalForm>
   );

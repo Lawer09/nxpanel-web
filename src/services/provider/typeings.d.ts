@@ -20,6 +20,9 @@ declare namespace API {
     regions?: any;
     services?: any;
     metadata?: Record<string, any>;
+    driver?: string;
+    api_credentials?: Record<string, any>;
+    supported_operations?: string[];
     created_at?: number;
     updated_at?: number;
   }
@@ -33,6 +36,8 @@ declare namespace API {
     is_active?: boolean;
     min_reliability?: number;
     asn_id?: number;
+    driver?: string;
+    has_driver?: boolean;
   }
 
   interface ProviderSaveParams {
@@ -54,6 +59,9 @@ declare namespace API {
     regions?: any;
     services?: any;
     metadata?: Record<string, any>;
+    driver?: string;
+    api_credentials?: Record<string, any>;
+    supported_operations?: string[];
   }
 
   interface ProviderStatsCountryItem {
@@ -75,5 +83,53 @@ declare namespace API {
     by_country?: ProviderStatsCountryItem[];
     by_type?: ProviderStatsTypeItem[];
     [key: string]: any;
+  }
+
+  // ── 云端实例 ──────────────────────────────────────────────────────────────────
+
+  interface ProviderInstanceTag {
+    key: string;
+    value?: string;
+  }
+
+  interface ProviderInstanceFetchParams {
+    provider_id: number;
+    instanceIds?: string[];
+    zoneId?: string;
+    status?: string;
+    name?: string;
+    ipv4Address?: string;
+    ipv6Address?: string;
+    tagKeys?: string[];
+    tags?: ProviderInstanceTag[];
+    pageSize?: number;
+    page?: number;
+  }
+
+  interface ProviderInstance {
+    instance_id: string;
+    name?: string;
+    status?: string;
+    zone_id?: string;
+    instance_type?: string;
+    cpu?: number;
+    memory?: number;
+    public_ips?: string[];
+    private_ips?: string[];
+    image_id?: string;
+    image_name?: string;
+    create_time?: string;
+    expired_time?: string | null;
+    resource_group_id?: string;
+  }
+
+  interface ProviderInstancesResult {
+    provider_id: number;
+    provider_name?: string;
+    driver?: string;
+    total: number;
+    page: number;
+    pageSize: number;
+    data: ProviderInstance[];
   }
 }
