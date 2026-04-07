@@ -249,7 +249,7 @@ const MachineList: React.FC = () => {
           </Spin>
         </Tooltip>,
         <Tooltip key="deploy" title="Deploy">
-          <Button
+          {/* <Button
             type="link"
             size="small"
             onClick={() => {
@@ -263,7 +263,7 @@ const MachineList: React.FC = () => {
             style={{ color: '#52c41a', padding: 0 }}
           >
             部署
-          </Button>
+          </Button> */}
         </Tooltip>,
         <Tooltip key="delete" title="Delete">
           <DeleteOutlined

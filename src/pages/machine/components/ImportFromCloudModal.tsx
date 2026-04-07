@@ -7,7 +7,6 @@ import {
   Form,
   Input,
   Modal,
-  Progress,
   Select,
   Space,
   Table,
@@ -16,6 +15,7 @@ import {
   Typography,
 } from 'antd';
 import React, { useEffect, useState } from 'react';
+import type { TableRowSelection } from 'antd/es/table/interface';
 import { createMachine } from '@/services/machine/api';
 import { getProviderInstances } from '@/services/provider/api';
 
@@ -52,6 +52,9 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
   const [importingIds, setImportingIds] = useState<Set<string>>(new Set());
   const [importedIds, setImportedIds] = useState<Set<string>>(new Set());
   const [selectedProviderId, setSelectedProviderId] = useState<number | undefined>();
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewData, setPreviewData] = useState<Array<API.ProviderInstance & { username: string; port: string; authMethod: 'password' | 'key'; credentials: string }>>([]);
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -133,6 +136,11 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
         return next;
       });
     }
+  };
+
+  const rowSelection: TableRowSelection<API.ProviderInstance> = {
+    selectedRowKeys,
+    onChange: (keys) => setSelectedRowKeys(keys),
   };
 
   const columns = [
@@ -231,19 +239,21 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
   ];
 
   return (
-    <Modal
-      title={
-        <Space>
-          <CloudDownloadOutlined />
-          从云端导入机器
-        </Space>
-      }
-      open={open}
-      onCancel={onClose}
-      footer={null}
-      width={1100}
-      destroyOnHidden
-    >
+    <>
+      <Modal
+        title={
+          <Space>
+            <CloudDownloadOutlined />
+            从云端导入机器
+          </Space>
+        }
+        open={open}
+        onCancel={onClose}
+        footer={null}
+        width={1100}
+        destroyOnHidden
+        forceRender
+      >
       <Form
         form={form}
         layout="inline"
@@ -372,6 +382,7 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
 
       <Table<API.ProviderInstance>
         rowKey="instance_id"
+        rowSelection={rowSelection}
         columns={columns}
         dataSource={instances}
         loading={loading}
@@ -391,7 +402,172 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
         }}
         locale={{ emptyText: selectedProviderId ? '暂无数据，请点击查询' : '请先选择供应商并点击查询' }}
       />
-    </Modal>
+      
+      {selectedRowKeys.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <Button 
+            type="primary" 
+            onClick={() => {
+              setPreviewData(
+                instances
+                  .filter(i => selectedRowKeys.includes(i.instance_id))
+                  .map(i => ({
+                    ...i,
+                    username: 'root',
+                    port: '22',
+                    authMethod: 'password',
+                    credentials: ''
+                  }))
+              );
+              setPreviewVisible(true);
+            }}
+          >
+            批量导入 ({selectedRowKeys.length} 台)
+          </Button>
+        </div>
+      )}
+      </Modal>
+      
+      <Modal
+        title="批量导入预览"
+        open={previewVisible}
+        onCancel={() => setPreviewVisible(false)}
+        width={1000}
+        footer={[
+          <Button key="cancel" onClick={() => setPreviewVisible(false)}>
+            取消
+          </Button>,
+          <Button 
+            key="import" 
+            type="primary" 
+            loading={importingIds.size > 0}
+            onClick={async () => {
+              const providerId = form.getFieldValue('provider_id');
+              
+              for (const instance of previewData) {
+                setImportingIds(prev => new Set(prev).add(instance.instance_id));
+                try {
+                  const res = await createMachine({
+                    name: instance.name || instance.instance_id,
+                    hostname: instance.name || instance.instance_id,
+                    ip_address: instance.public_ips?.[0] || instance.private_ips?.[0] || '',
+                    port: parseInt(instance.port) || 22,
+                    username: instance.username || 'root',
+                    [instance.authMethod === 'password' ? 'password' : 'private_key']: instance.credentials,
+                    provider: providerId,
+                    provider_instance_id: instance.instance_id,
+                    os_type: instance.image_name,
+                    cpu_cores: instance.cpu != null ? String(instance.cpu) : undefined,
+                    memory: instance.memory != null ? `${instance.memory}GB` : undefined,
+                  });
+                  
+                  if (res.code === 0) {
+                    setImportedIds(prev => new Set(prev).add(instance.instance_id));
+                  } else {
+                    messageApi.error(`导入 ${instance.instance_id} 失败: ${res.msg}`);
+                  }
+                } finally {
+                  setImportingIds(prev => {
+                    const next = new Set(prev);
+                    next.delete(instance.instance_id);
+                    return next;
+                  });
+                }
+              }
+              
+              onSuccess();
+              setPreviewVisible(false);
+              setSelectedRowKeys([]);
+            }}
+          >
+            开始导入
+          </Button>
+        ]}
+      >
+      <Table
+        rowKey="instance_id"
+        dataSource={previewData}
+        columns={[
+          {
+            title: 'Instance ID',
+            dataIndex: 'instance_id',
+            width: 160,
+          },
+          {
+            title: '名称',
+            dataIndex: 'name',
+            width: 140,
+          },
+          {
+            title: 'SSH 用户名',
+            width: 120,
+            render: (_, record, index) => (
+              <Input 
+                value={record.username}
+                onChange={(e) => {
+                  const newData = [...previewData];
+                  newData[index].username = e.target.value;
+                  setPreviewData(newData);
+                }}
+                style={{ width: '100%' }} 
+              />
+            ),
+          },
+          {
+            title: 'SSH 端口',
+            width: 100,
+            render: (_, record, index) => (
+              <Input 
+                value={record.port}
+                onChange={(e) => {
+                  const newData = [...previewData];
+                  newData[index].port = e.target.value;
+                  setPreviewData(newData);
+                }}
+                style={{ width: '100%' }} 
+              />
+            ),
+          },
+          {
+            title: '认证方式',
+            width: 120,
+            render: (_, record, index) => (
+              <Select
+                value={record.authMethod}
+                onChange={(value) => {
+                  const newData = [...previewData];
+                  newData[index].authMethod = value;
+                  setPreviewData(newData);
+                }}
+                options={[
+                  { label: '密码', value: 'password' },
+                  { label: '密钥', value: 'key' },
+                ]}
+                style={{ width: '100%' }}
+              />
+            ),
+          },
+          {
+            title: '密码/密钥',
+            width: 200,
+            render: (_, record, index) => (
+              <Input.Password 
+                value={record.credentials}
+                onChange={(e) => {
+                  const newData = [...previewData];
+                  newData[index].credentials = e.target.value;
+                  setPreviewData(newData);
+                }}
+                placeholder={record.authMethod === 'password' ? '输入密码' : '输入密钥'}
+                style={{ width: '100%' }} 
+              />
+            ),
+          },
+        ]}
+        size="small"
+      />
+      </Modal>
+    </>
   );
 };
 
