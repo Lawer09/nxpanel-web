@@ -6,7 +6,7 @@ export async function fetchProvider(
   params: API.ProviderFetchParams,
   options?: { [key: string]: any },
 ) {
-  return request<API.ApiResponse<API.PageData<API.ProviderItem>>>('/provider/fetch', {
+  return request<API.ApiResponse<API.PageResult<API.ProviderItem>>>('/provider/fetch', {
     method: 'GET',
     params,
     ...(options || {}),
@@ -84,7 +84,7 @@ export async function getUnboundProviders(
   params: { current?: number; pageSize?: number; search?: string },
   options?: { [key: string]: any },
 ) {
-  return request<API.ApiResponse<API.PageData<API.ProviderItem>>>('/provider/getUnboundProviders', {
+  return request<API.ApiResponse<API.PageResult<API.ProviderItem>>>('/provider/getUnboundProviders', {
     method: 'GET',
     params,
     ...(options || {}),

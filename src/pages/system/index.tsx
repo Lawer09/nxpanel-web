@@ -193,10 +193,12 @@ const SystemPage: React.FC = () => {
     }));
   }, [masters]);
 
-  return (
-    <PageContainer title="系统状态监控">
-      <Tabs activeKey={activeKey} onChange={(key) => setActiveKey(key)}>
-        <Tabs.TabPane key="status" tab="系统状态">
+  const tabItems = useMemo(
+    () => [
+      {
+        key: 'status',
+        label: '系统状态',
+        children: (
           <Card loading={loading}>
             <Descriptions column={1} bordered>
               <Descriptions.Item label="定时任务运行状态">
@@ -210,9 +212,12 @@ const SystemPage: React.FC = () => {
               </Descriptions.Item>
             </Descriptions>
           </Card>
-        </Tabs.TabPane>
-
-        <Tabs.TabPane key="queueStats" tab="队列统计">
+        ),
+      },
+      {
+        key: 'queueStats',
+        label: '队列统计',
+        children: (
           <Card loading={loading}>
             {stats ? (
               <Descriptions column={1} bordered>
@@ -254,9 +259,12 @@ const SystemPage: React.FC = () => {
               <Text type="secondary">暂无数据</Text>
             )}
           </Card>
-        </Tabs.TabPane>
-
-        <Tabs.TabPane key="workload" tab="队列负载">
+        ),
+      },
+      {
+        key: 'workload',
+        label: '队列负载',
+        children: (
           <Card loading={loading}>
             <Table<API.QueueWorkloadItem>
               rowKey="name"
@@ -270,9 +278,12 @@ const SystemPage: React.FC = () => {
               ]}
             />
           </Card>
-        </Tabs.TabPane>
-
-        <Tabs.TabPane key="masters" tab="Master Supervisor">
+        ),
+      },
+      {
+        key: 'masters',
+        label: 'Master Supervisor',
+        children: (
           <Card loading={loading}>
             {Array.isArray(masters) ? (
               <Table<any>
@@ -285,9 +296,12 @@ const SystemPage: React.FC = () => {
               <pre>{JSON.stringify(masters, null, 2)}</pre>
             )}
           </Card>
-        </Tabs.TabPane>
-
-        <Tabs.TabPane key="failedJobs" tab="失败任务">
+        ),
+      },
+      {
+        key: 'failedJobs',
+        label: '失败任务',
+        children: (
           <Card>
             <Table<API.HorizonFailedJob>
               rowKey="id"
@@ -317,9 +331,12 @@ const SystemPage: React.FC = () => {
               ]}
             />
           </Card>
-        </Tabs.TabPane>
-
-        <Tabs.TabPane key="auditLog" tab="审计日志">
+        ),
+      },
+      {
+        key: 'auditLog',
+        label: '审计日志',
+        children: (
           <Card>
             <Form
               form={auditForm}
@@ -412,8 +429,34 @@ const SystemPage: React.FC = () => {
               ]}
             />
           </Card>
-        </Tabs.TabPane>
-      </Tabs>
+        ),
+      },
+    ],
+    [
+      activeKey,
+      auditData,
+      auditForm,
+      auditLoading,
+      auditParams,
+      auditTotal,
+      failedJobs,
+      failedLoading,
+      failedPage.page,
+      failedPage.pageSize,
+      failedTotal,
+      loadFailedJobs,
+      loading,
+      masterColumns,
+      masters,
+      stats,
+      status,
+      workload,
+    ],
+  );
+
+  return (
+    <PageContainer title="系统状态监控">
+      <Tabs activeKey={activeKey} onChange={(key) => setActiveKey(key)} items={tabItems} />
     </PageContainer>
   );
 };

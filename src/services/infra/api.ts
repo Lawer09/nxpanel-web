@@ -6,7 +6,7 @@ export async function fetchAsn(
   params: API.AsnFetchParams,
   options?: { [key: string]: any },
 ) {
-  return request<API.ApiResponse<API.PageData<API.AsnItem>>>('/asn/fetch', {
+  return request<API.ApiResponse<API.PageResult<API.AsnItem>>>('/asn/fetch', {
     method: 'GET',
     params,
     ...(options || {}),
@@ -105,7 +105,7 @@ export async function fetchIpPool(
   params: API.IpPoolFetchParams,
   options?: { [key: string]: any },
 ) {
-  return request<API.ApiResponse<API.PageData<API.IpPoolItem>>>('/ip-pool/fetch', {
+  return request<API.ApiResponse<API.PageResult<API.IpPoolItem>>>('/ip-pool/fetch', {
     method: 'GET',
     params,
     ...(options || {}),

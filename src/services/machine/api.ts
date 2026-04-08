@@ -11,7 +11,7 @@ export async function getMachineList(
   },
   options?: { [key: string]: any },
 ) {
-  return request<API.ApiResponse<API.PageData<API.Machine>>>('/machine/fetch', {
+  return request<API.ApiResponse<API.PageResult<API.Machine>>>('/machine/fetch', {
     method: 'GET',
     params: { ...params },
     ...(options || {}),

@@ -131,6 +131,27 @@ export default [
     ],
   },
   {
+    path: '/invite-gift-card',
+    name: 'invite-gift-card',
+    icon: 'gift',
+    routes: [
+      {
+        path: '/invite-gift-card',
+        redirect: '/invite-gift-card/rules',
+      },
+      {
+        path: '/invite-gift-card/rules',
+        name: 'invite-gift-card-rules',
+        component: './invite-gift-card',
+      },
+      {
+        path: '/invite-gift-card/logs',
+        name: 'invite-gift-card-logs',
+        component: './invite-gift-card/logs',
+      },
+    ],
+  },
+  {
     path: '/system',
     name: 'system',
     icon: 'dashboard',

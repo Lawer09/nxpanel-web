@@ -7,7 +7,7 @@ declare namespace API {
     data: T;
   }
 
-  interface PageData<T> {
+  interface PageResult<T> {
     page: number;
     pageSize: number;
     total: number;

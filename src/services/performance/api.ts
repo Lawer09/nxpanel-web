@@ -5,7 +5,7 @@ export async function fetchPerformance(
   params: API.PerformanceFetchParams,
   options?: { [key: string]: any },
 ) {
-  return request<API.ApiResponse<API.PageData<API.PerformanceRecord>>>('/performance/fetch', {
+  return request<API.ApiResponse<API.PageResult<API.PerformanceRecord>>>('/performance/fetch', {
     method: 'GET',
     params,
     ...(options || {}),

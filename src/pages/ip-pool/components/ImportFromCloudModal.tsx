@@ -15,7 +15,7 @@ import {
 } from 'antd';
 import React, { useEffect, useState } from 'react';
 import { fetchProvider } from '@/services/provider/api';
-import { getProviderEips, ipPoolBatchImport } from '@/services/infra/api';
+import { getIpInfo, getProviderEips, ipPoolBatchImport } from '@/services/infra/api';
 
 const { Text } = Typography;
 
@@ -132,23 +132,47 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
 
     try {
       const selectedEips = eips.filter((eip) =>
-        selectedRowKeys.includes(eip.eip_id)
+        selectedRowKeys.includes(eip.eip_id),
       );
 
-      // Build batch import items
-      const items = selectedEips.map((eip) => ({
-        ip: eip.ip_address,
-        machine_id: null,
-        metadata: {
-          eip_id: eip.eip_id,
-          vendor: eips[0]?.metadata?.bandwidth ? 'zenlayer' : 'unknown',
-          status: eip.status,
-          zone_id: eip.zone_id,
-          instance_id: eip.instance_id,
-        },
-        country: '-',
-        status: 'active' as const,
-      }));
+      const items = await Promise.all(
+        selectedEips.map(async (eip) => {
+          const ipValue = Array.isArray((eip as any).ip_address)
+            ? (eip as any).ip_address[0]
+            : eip.ip_address;
+
+          let ipInfo: API.IpInfoData | undefined;
+          try {
+            const infoRes = await getIpInfo({ ip: ipValue });
+            if (infoRes.code === 0 && infoRes.data) {
+              ipInfo = infoRes.data;
+            }
+          } catch (_error) {
+            ipInfo = undefined;
+          }
+
+          return {
+            ip: ipValue,
+            machine_id: null,
+            metadata: {
+              eip_id: eip.eip_id,
+              vendor: eips[0]?.metadata?.bandwidth ? 'zenlayer' : 'unknown',
+              status: eip.status,
+              zone_id: eip.zone_id,
+              instance_id: eip.instance_id,
+            },
+            hostname: ipInfo?.hostname,
+            city: ipInfo?.city,
+            region: ipInfo?.region,
+            country: ipInfo?.country || '-',
+            loc: ipInfo?.loc,
+            org: ipInfo?.org,
+            postal: ipInfo?.postal,
+            timezone: ipInfo?.timezone,
+            status: 'active' as const,
+          };
+        }),
+      );
 
       const res = await ipPoolBatchImport({ items });
 
