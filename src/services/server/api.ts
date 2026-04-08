@@ -126,7 +126,7 @@ export async function getServerOnlineUsers(
   params: { id: number },
   options?: { [key: string]: any },
 ) {
-  return request<API.ApiResponse<API.ServerOnlineUsersResult>>('/server/manage/onlineUsers', {
+  return request<API.ApiResponse<API.ServerOnlineUsersResult>>('/v3/server/manage/onlineUsers', {
     method: 'GET',
     params,
     ...(options || {}),

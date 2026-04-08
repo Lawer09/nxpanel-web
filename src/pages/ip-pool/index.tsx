@@ -22,6 +22,7 @@ import {
   ipPoolBatchImport,
 } from '@/services/infra/api';
 import BatchImportModal from './components/BatchImportModal';
+import ImportFromCloudModal from './components/ImportFromCloudModal';
 import IpPoolFormModal from './components/IpPoolFormModal';
 import ResetScoreModal from './components/ResetScoreModal';
 import StatsPanel from './components/StatsPanel';
@@ -50,6 +51,7 @@ const IpPoolPage: React.FC = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [scoreOpen, setScoreOpen] = useState(false);
   const [batchImportOpen, setBatchImportOpen] = useState(false);
+  const [cloudImportOpen, setCloudImportOpen] = useState(false);
   const [currentRow, setCurrentRow] = useState<API.IpPoolItem>();
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailRow, setDetailRow] = useState<API.IpPoolItem>();
@@ -337,6 +339,13 @@ const IpPoolPage: React.FC = () => {
             新增 IP
           </Button>,
           <Button
+            key="cloud-import"
+            type="primary"
+            onClick={() => setCloudImportOpen(true)}
+          >
+            从云端导入
+          </Button>,
+          <Button
             key="batch-import"
             type="primary"
             onClick={() => setBatchImportOpen(true)}
@@ -444,7 +453,16 @@ const IpPoolPage: React.FC = () => {
           actionRef.current?.reload();
           refreshStats();
         }}
-      />{' '}
+      />
+      <ImportFromCloudModal
+        open={cloudImportOpen}
+        onClose={() => setCloudImportOpen(false)}
+        onSuccess={() => {
+          setCloudImportOpen(false);
+          actionRef.current?.reload();
+          refreshStats();
+        }}
+      />
     </PageContainer>
   );
 };

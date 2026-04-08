@@ -205,3 +205,15 @@ export async function ipPoolBatchImport(
     ...(options || {}),
   });
 }
+
+export async function getProviderEips(
+  body: API.ProviderEipFetchParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.ProviderEipResult>>('/v3/provider/eips', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}

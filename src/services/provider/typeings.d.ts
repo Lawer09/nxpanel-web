@@ -132,4 +132,59 @@ declare namespace API {
     pageSize: number;
     data: ProviderInstance[];
   }
+
+  // ── 云端 EIP ──────────────────────────────────────────────────────────────────
+
+  interface ProviderEipTag {
+    key: string;
+    value?: string;
+  }
+
+  interface ProviderEipFetchParams {
+    provider_id: number;
+    eipIds?: string[];
+    regionId?: string;
+    name?: string;
+    status?: string;
+    isDefault?: boolean;
+    privateIpAddress?: string;
+    ipAddress?: string;
+    ipAddresses?: string[];
+    instanceId?: string;
+    associatedId?: string;
+    cidrIds?: string[];
+    resourceGroupId?: string;
+    tagKeys?: string[];
+    tags?: ProviderEipTag[];
+    internetChargeType?: string;
+    pageSize?: number;
+    page?: number;
+  }
+
+  interface ProviderEipMetadata {
+    bandwidth?: number;
+    internetChargeType?: string;
+    [key: string]: any;
+  }
+
+  interface ProviderEipItem {
+    eip_id: string;
+    ip_address: string;
+    status?: string;
+    instance_id?: string;
+    zone_id?: string;
+    create_time?: string;
+    metadata?: ProviderEipMetadata;
+    _raw?: any;
+  }
+
+  interface ProviderEipResult {
+    provider_id: number;
+    provider_name?: string;
+    driver?: string;
+    total: number;
+    pageNum: number;
+    pageSize: number;
+    data: ProviderEipItem[];
+  }
 }

@@ -121,6 +121,8 @@ declare namespace API {
   interface IpPoolSaveParams {
     id?: number;
     ip?: string;
+    machine_id?: number | null;
+    metadata?: Record<string, any>;
     hostname?: string;
     city?: string;
     region?: string;
