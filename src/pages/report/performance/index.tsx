@@ -352,7 +352,7 @@ const PerformancePage: React.FC = () => {
   return (
     <PageContainer>
       {/* Stats period selector */}
-      <Card style={{ marginBottom: 16 }} bodyStyle={{ paddingBottom: 8 }}>
+      <Card style={{ marginBottom: 16 }} styles={{ body: { paddingBottom: 8 } }}>
         <Space>
           <span>统计周期：</span>
           <Select

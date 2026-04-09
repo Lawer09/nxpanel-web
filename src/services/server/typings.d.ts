@@ -49,6 +49,8 @@ declare namespace API {
     parent_id?: number | null;
     sort?: number;
     code?: string | null;
+    online_limit?: number | null;
+    machine_id?: number | null;
     protocol_settings?: Record<string, any>;
     last_check_at?: number | null;
     last_push_at?: number | null;
@@ -72,6 +74,8 @@ declare namespace API {
     route_ids?: number[];
     parent_id?: number;
     code?: string;
+    online_limit?: number | null;
+    machine_id?: number | null;
     tags?: string[];
     excludes?: string[];
     ips?: string[];

@@ -1,4 +1,10 @@
-import { CloudDownloadOutlined, DeleteOutlined, EditOutlined, LinkOutlined } from '@ant-design/icons';
+import {
+  CloudDownloadOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  LinkOutlined,
+  SwapOutlined,
+} from '@ant-design/icons';
 import type {
   ActionType,
   ProColumns,
@@ -25,6 +31,7 @@ import BatchDeployModal from './components/BatchDeployModal';
 import CreateForm from './components/CreateForm';
 import DeployModal from './components/DeployModal';
 import ImportFromCloudModal from './components/ImportFromCloudModal';
+import SwitchIpModal from './components/SwitchIpModal';
 import UpdateForm from './components/UpdateForm';
 
 const PAY_MODE_MAP: Record<number, string> = {
@@ -248,23 +255,33 @@ const MachineList: React.FC = () => {
             />
           </Spin>
         </Tooltip>,
-        <Tooltip key="deploy" title="Deploy">
-          {/* <Button
-            type="link"
-            size="small"
-            onClick={() => {
-              if (record.id) {
-                setSelectedDeployMachine(record);
-                setDeployModalOpen(true);
-              } else {
-                messageApi.error('Invalid machine id');
-              }
-            }}
-            style={{ color: '#52c41a', padding: 0 }}
-          >
-            部署
-          </Button> */}
-        </Tooltip>,
+        <SwitchIpModal
+          key="switch-ip"
+          trigger={
+            <Tooltip title="Switch IP">
+              <SwapOutlined style={{ cursor: 'pointer', color: '#722ed1' }} />
+            </Tooltip>
+          }
+          machine={record}
+          onSuccess={() => actionRef.current?.reload?.()}
+        />,
+        // <Tooltip key="deploy" title="Deploy">
+        //   <Button
+        //     type="link"
+        //     size="small"
+        //     onClick={() => {
+        //       if (record.id) {
+        //         setSelectedDeployMachine(record);
+        //         setDeployModalOpen(true);
+        //       } else {
+        //         messageApi.error('Invalid machine id');
+        //       }
+        //     }}
+        //     style={{ color: '#52c41a', padding: 0 }}
+        //   >
+        //     部署
+        //   </Button>
+        // </Tooltip>,
         <Tooltip key="delete" title="Delete">
           <DeleteOutlined
             onClick={() => {

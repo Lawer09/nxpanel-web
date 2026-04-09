@@ -60,6 +60,8 @@ const getInitialValues = (node?: API.ServerNode): NodeFormModalValues => {
       rate_time_ranges: [],
       port: '',
       server_port: 443,
+      online_limit: undefined,
+      machine_id: undefined,
       group_ids: [],
       route_ids: [],
       tags: [],
@@ -73,6 +75,8 @@ const getInitialValues = (node?: API.ServerNode): NodeFormModalValues => {
     port: String(node.port || ''),
     parent_id: node.parent_id ?? undefined,
     code: node.code ?? undefined,
+    online_limit: node.online_limit ?? undefined,
+    machine_id: node.machine_id ?? undefined,
     group_ids: node.group_ids || [],
     route_ids: node.route_ids || [],
     rate_time_enable: Boolean(node.rate_time_enable),
@@ -213,6 +217,8 @@ const NodeFormModal: React.FC<NodeFormModalProps> = ({
       route_ids: values.route_ids || [],
       parent_id: values.parent_id,
       code: values.code,
+      online_limit: values.online_limit ?? null,
+      machine_id: values.machine_id ?? null,
       tags: values.tags || [],
       excludes: values.excludes || [],
       ips: values.ips || [],
@@ -383,6 +389,24 @@ const NodeFormModal: React.FC<NodeFormModalProps> = ({
         min={0}
         fieldProps={{ step: 0.1 }}
         rules={[{ required: true, message: '请输入基础倍率' }]}
+      />
+      <ProFormDigit
+        name="online_limit"
+        label="在线用户上限"
+        min={1}
+        placeholder="留空则不限制"
+      />
+      <ProFormSelect
+        name="machine_id"
+        label="绑定机器"
+        allowClear
+        showSearch
+        placeholder="可选"
+        fieldProps={{ optionFilterProp: 'label' }}
+        options={machines.map((m) => ({
+          label: `${m.name}（${m.ip_address}）`,
+          value: m.id,
+        }))}
       />
       <ProFormSwitch name="rate_time_enable" label="启用动态倍率" />
       <ProFormDependency name={['rate_time_enable']}>

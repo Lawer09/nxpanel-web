@@ -134,6 +134,7 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
       const selectedEips = eips.filter((eip) =>
         selectedRowKeys.includes(eip.eip_id),
       );
+      const providerId = form.getFieldValue('provider_id') as number | undefined;
 
       const items = await Promise.all(
         selectedEips.map(async (eip) => {
@@ -154,6 +155,9 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
           return {
             ip: ipValue,
             machine_id: null,
+            provider_id: providerId,
+            provider_ip_id: eip.eip_id,
+            ip_type: 'elastic' as const,
             metadata: {
               eip_id: eip.eip_id,
               vendor: eips[0]?.metadata?.bandwidth ? 'zenlayer' : 'unknown',

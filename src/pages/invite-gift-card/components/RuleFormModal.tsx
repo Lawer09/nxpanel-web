@@ -137,7 +137,6 @@ const RuleFormModal: React.FC<RuleFormModalProps> = ({
         options={templates.map((t) => ({
           label: t.name,
           value: t.id,
-          disabled: !t.status,
         }))}
         fieldProps={{
           showSearch: true,
@@ -175,7 +174,11 @@ const RuleFormModal: React.FC<RuleFormModalProps> = ({
             fieldProps={{
               precision: 2,
               min: 0,
-              addonAfter: '元',
+              formatter: (value) => (value === undefined || value === null ? '' : `${value} 元`),
+              parser: (displayValue) => {
+                const parsed = parseFloat(displayValue?.replace(/\s*元/g, '') ?? '');
+                return isNaN(parsed) ? 0 : parsed; // 返回数字
+              },
             }}
           />
 
@@ -206,7 +209,12 @@ const RuleFormModal: React.FC<RuleFormModalProps> = ({
         fieldProps={{
           min: 0,
           precision: 0,
-          addonAfter: '次',
+          formatter: (value) =>
+            value === undefined || value === null ? '' : `${value} 次`,
+          parser: (value) => {
+              const parsed = parseInt(value?.replace(/\s*次/g, '') ?? '', 10);
+              return isNaN(parsed) ? 0 : parsed; // 返回数字
+          }
         }}
       />
 
@@ -217,7 +225,13 @@ const RuleFormModal: React.FC<RuleFormModalProps> = ({
         fieldProps={{
           min: 1,
           precision: 0,
-          addonAfter: '小时',
+          formatter: (value) =>
+            value === undefined || value === null ? '' : `${value} 小时`,
+          parser: (value) =>
+          {
+              const parsed = parseInt(value?.replace(/\s*小时/g, '') ?? '', 10);
+              return isNaN(parsed) ? 0 : parsed; // 返回数字
+          } ,
         }}
       />
 

@@ -6,8 +6,9 @@ import {
   ProFormText,
 } from '@ant-design/pro-components';
 import { Button, Form, Input, message, Space } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { getIpInfo, saveIpPool } from '@/services/infra/api';
+import { getMachineList } from '@/services/machine/api';
 
 type IpPoolFormModalProps = {
   open: boolean;
@@ -25,6 +26,17 @@ const IpPoolFormModal: React.FC<IpPoolFormModalProps> = ({
   const [messageApi, contextHolder] = message.useMessage();
   const formRef = useRef<ProFormInstance<API.IpPoolSaveParams>>(null);
   const [fetchingIpInfo, setFetchingIpInfo] = useState(false);
+  const [machines, setMachines] = useState<API.Machine[]>([]);
+  const [machinesLoading, setMachinesLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setMachinesLoading(true);
+      getMachineList({ page: 1, pageSize: 200 })
+        .then((res) => setMachines(res.data?.data || []))
+        .finally(() => setMachinesLoading(false));
+    }
+  }, [open]);
 
   const fetchIpDetail = async () => {
     const ip = formRef.current?.getFieldValue('ip');
@@ -68,7 +80,7 @@ const IpPoolFormModal: React.FC<IpPoolFormModalProps> = ({
     <ModalForm<API.IpPoolSaveParams>
       title={current ? '编辑 IP' : '新增 IP'}
       open={open}
-      initialValues={current}
+      initialValues={{ ...(current || {}), ip_type: current?.ip_type ?? 'elastic' }}
       formRef={formRef}
       modalProps={{
         destroyOnHidden: true,
@@ -78,6 +90,10 @@ const IpPoolFormModal: React.FC<IpPoolFormModalProps> = ({
         const payload: API.IpPoolSaveParams = {
           id: current?.id,
           ip: current?.id ? undefined : values.ip,
+          machine_id: values.machine_id ?? null,
+          provider_id: values.provider_id ?? null,
+          provider_ip_id: values.provider_ip_id ?? null,
+          ip_type: values.ip_type ?? 'elastic',
           hostname: values.hostname,
           city: values.city,
           region: values.region,
@@ -152,6 +168,32 @@ const IpPoolFormModal: React.FC<IpPoolFormModalProps> = ({
       <ProFormText name="postal" label="邮编" />
       <ProFormText name="timezone" label="时区" placeholder="Europe/Berlin" />
       <ProFormText name="readme_url" label="信息链接" />
+      <ProFormSelect
+        name="machine_id"
+        label="绑定机器"
+        allowClear
+        showSearch
+        placeholder="可选"
+        
+        fieldProps={{ 
+          optionFilterProp: 'label',
+          loading: machinesLoading 
+        }}
+        options={machines.map((m) => ({
+          label: `${m.name}（${m.ip_address}）`,
+          value: m.id,
+        }))}
+      />
+      <ProFormSelect
+        name="ip_type"
+        label="IP 类型"
+        options={[
+          { label: '弹性IP', value: 'elastic' },
+          { label: '公网IP', value: 'public' },
+        ]}
+      />
+      <ProFormText name="provider_ip_id" label="Provider IP ID" />
+      <ProFormDigit name="provider_id" label="Provider ID" min={1} />
       <ProFormDigit name="score" label="评分" min={0} max={100} />
       <ProFormDigit name="max_load" label="最大负载" min={0} />
       <ProFormSelect

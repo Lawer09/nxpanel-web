@@ -84,6 +84,10 @@ declare namespace API {
   interface IpPoolItem {
     id: number;
     ip: string;
+    machine_id?: number | null;
+    provider_id?: number | null;
+    provider_ip_id?: string | null;
+    ip_type?: 'elastic' | 'public';
     hostname?: string;
     city?: string;
     region?: string;
@@ -122,6 +126,9 @@ declare namespace API {
     id?: number;
     ip?: string;
     machine_id?: number | null;
+    provider_id?: number | null;
+    provider_ip_id?: string | null;
+    ip_type?: 'elastic' | 'public';
     metadata?: Record<string, any>;
     hostname?: string;
     city?: string;

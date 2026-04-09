@@ -24,6 +24,7 @@ declare namespace API {
     description?: string;
     is_active?: boolean;
     provider_instance_id?: string;
+    nic_id?: string;
     last_check_at?: string;
     created_at?: string;
     updated_at?: string;
@@ -65,5 +66,25 @@ declare namespace API {
       failed: number;
     };
     tasks: DeployTaskDetail[];
+  }
+
+  interface SwitchMachineIpResult {
+    machine_id: number;
+    ip_id: number;
+    ip: string;
+    is_primary: boolean;
+    is_egress: boolean;
+  }
+
+  interface BatchImportMachinesResult {
+    created: Array<{ id: number; provider_instance_id: string }>;
+    updated: Array<{ id: number; provider_instance_id: string }>;
+    failed: Array<{ index: number; provider_instance_id: string; reason: string }>;
+    summary: {
+      total: number;
+      created_count: number;
+      updated_count: number;
+      failed_count: number;
+    };
   }
 }

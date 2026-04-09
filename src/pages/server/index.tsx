@@ -1,6 +1,6 @@
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
-import { Button, Modal, Space, Switch, Tabs, Tag, message } from 'antd';
+import { Badge, Button, Modal, Space, Switch, Tabs, Tag, Tooltip, message } from 'antd';
 import React, { useMemo, useRef, useState } from 'react';
 import {
   batchDeployServerNodes,
@@ -84,11 +84,35 @@ const ServerManagePage: React.FC = () => {
       title: '节点名称',
       dataIndex: 'name',
       ellipsis: true,
+      render: (_, record) => {
+        const protocolColor: Record<string, string> = {
+          vless: 'blue',
+          vmess: 'purple',
+          trojan: 'red',
+          shadowsocks: 'cyan',
+          hysteria: 'orange',
+          tuic: 'green',
+          anytls: 'magenta',
+          socks: 'default',
+          naive: 'volcano',
+          http: 'geekblue',
+          mieru: 'lime',
+        };
+        return (
+          <Space>
+            <Tag color={protocolColor[record.type] || 'default'} style={{ fontSize: 11 }}>
+              {record.type}
+            </Tag>
+            <span>{record.name}</span>
+          </Space>
+        );
+      },
     },
     {
       title: '协议',
       dataIndex: 'type',
       width: 100,
+      hideInTable: true,
       valueType: 'select',
       valueEnum: protocolOptions.reduce(
         (acc, item) => {
@@ -106,18 +130,6 @@ const ServerManagePage: React.FC = () => {
       search: false,
     },
     {
-      title: '连接端口',
-      dataIndex: 'port',
-      width: 110,
-      search: false,
-    },
-    {
-      title: '服务端口',
-      dataIndex: 'server_port',
-      width: 110,
-      search: false,
-    },
-    {
       title: '倍率',
       dataIndex: 'rate',
       width: 90,
@@ -126,18 +138,37 @@ const ServerManagePage: React.FC = () => {
     {
       title: '在线用户',
       dataIndex: 'online',
-      width: 100,
-      search: false,
-    },
-    {
-      title: '可用状态',
-      dataIndex: 'available_status',
       width: 120,
       search: false,
-      valueEnum: {
-        0: { text: '未运行', status: 'Default' },
-        1: { text: '未使用/异常', status: 'Warning' },
-        2: { text: '正常运行', status: 'Success' },
+      render: (_, record) => {
+        const limit = record.online_limit ? String(record.online_limit) : '不限';
+        return `${record.online || 0} / ${limit}`;
+      },
+    },
+    {
+      title: '绑定机器',
+      dataIndex: 'machine_id',
+      width: 80,
+      search: false,
+      render: (_, record) => (record.machine_id ? '是' : '否'),
+    },
+    {
+      title: '状态',
+      dataIndex: 'available_status',
+      width: 50,
+      search: false,
+      render: (_, record) => {
+        const statusConfig: Record<number, { text: string; status: 'default' | 'warning' | 'success' }> = {
+          0: { text: '未运行', status: 'default' },
+          1: { text: '未使用/异常', status: 'warning' },
+          2: { text: '正常运行', status: 'success' },
+        };
+        const config = statusConfig[record.available_status ?? 0] || statusConfig[0];
+        return (
+          <Tooltip title={config.text}>
+            <Badge status={config.status} />
+          </Tooltip>
+        );
       },
     },
     // {
@@ -164,13 +195,14 @@ const ServerManagePage: React.FC = () => {
     {
       title: '最后检查',
       dataIndex: 'last_check_at',
+      width: 160,
       search: false,
       render: (_, record) => formatTimestamp(record.last_check_at),
     },
     {
       title: '显示',
       dataIndex: 'show',
-      width: 90,
+      width: 80,
       search: false,
       render: (_, record) => (
         <Switch

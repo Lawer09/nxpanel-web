@@ -70,6 +70,7 @@ const IpPoolPage: React.FC = () => {
     () => [
       { title: 'ID', dataIndex: 'id' },
       { title: 'IP', dataIndex: 'ip' },
+      { title: '绑定机器ID', dataIndex: 'machine_id' },
       { title: '主机名', dataIndex: 'hostname' },
       { title: '城市', dataIndex: 'city' },
       { title: '地区', dataIndex: 'region' },
@@ -146,6 +147,13 @@ const IpPoolPage: React.FC = () => {
       width: 90,
     },
     {
+      title: '绑定机器',
+      dataIndex: 'machine_id',
+      width: 100,
+      search: false,
+      render: (_, record) => (record.machine_id ? '是' : '否'),
+    },
+    {
       title: '状态',
       dataIndex: 'status',
       width: 100,
@@ -199,18 +207,18 @@ const IpPoolPage: React.FC = () => {
     {
       title: '创建时间',
       dataIndex: 'created_at',
-      width: 170,
+      width: 200,
       sorter: true,
       search: false,
       render: (_, record) => formatTimestamp(record.created_at),
     },
-    {
-      title: '最后使用',
-      dataIndex: 'last_used_at',
-      width: 170,
-      search: false,
-      render: (_, record) => formatTimestamp(record.last_used_at),
-    },
+    // {
+    //   title: '最后使用',
+    //   dataIndex: 'last_used_at',
+    //   width: 170,
+    //   search: false,
+    //   render: (_, record) => formatTimestamp(record.last_used_at),
+    // },
     {
       title: '操作',
       valueType: 'option',

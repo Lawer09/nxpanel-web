@@ -16,7 +16,7 @@ import {
 } from 'antd';
 import React, { useEffect, useState } from 'react';
 import type { TableRowSelection } from 'antd/es/table/interface';
-import { createMachine } from '@/services/machine/api';
+import { batchImportMachines } from '@/services/machine/api';
 import { getProviderInstances } from '@/services/provider/api';
 
 const { Text } = Typography;
@@ -55,6 +55,8 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewData, setPreviewData] = useState<Array<API.ProviderInstance & { username: string; port: string; authMethod: 'password' | 'key'; credentials: string }>>([]);
+  const [importResult, setImportResult] = useState<API.BatchImportMachinesResult | null>(null);
+  const [importResultVisible, setImportResultVisible] = useState(false);
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -64,6 +66,8 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
       setPage(1);
       setImportedIds(new Set());
       setSelectedProviderId(undefined);
+      setSelectedRowKeys([]);
+      setImportResult(null);
       form.resetFields();
     }
   }, [open, form]);
@@ -105,37 +109,6 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
   const handleSearch = () => {
     setPage(1);
     fetchInstances(1, pageSize);
-  };
-
-  const handleImport = async (instance: API.ProviderInstance) => {
-    const providerId = form.getFieldValue('provider_id');
-    setImportingIds((prev) => new Set(prev).add(instance.instance_id));
-    try {
-      const res = await createMachine({
-        name: instance.name || instance.instance_id,
-        hostname: instance.name || instance.instance_id,
-        ip_address: instance.public_ips?.[0] || instance.private_ips?.[0] || '',
-        port: 22,
-        username: 'root',
-        provider: providerId,
-        provider_instance_id: instance.instance_id,
-        os_type: instance.image_name,
-        cpu_cores: instance.cpu != null ? String(instance.cpu) : undefined,
-        memory: instance.memory != null ? `${instance.memory}GB` : undefined,
-      });
-      if (res.code === 0) {
-        setImportedIds((prev) => new Set(prev).add(instance.instance_id));
-        onSuccess();
-      } else {
-        messageApi.error(res.msg || '导入失败');
-      }
-    } finally {
-      setImportingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(instance.instance_id);
-        return next;
-      });
-    }
   };
 
   const rowSelection: TableRowSelection<API.ProviderInstance> = {
@@ -216,25 +189,6 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
       title: '镜像',
       dataIndex: 'image_name',
       width: 130,
-    },
-    {
-      title: '操作',
-      width: 90,
-      render: (_: any, record: API.ProviderInstance) => {
-        const imported = importedIds.has(record.instance_id);
-        const importing = importingIds.has(record.instance_id);
-        return (
-          <Button
-            size="small"
-            type={imported ? 'default' : 'primary'}
-            loading={importing}
-            disabled={imported}
-            onClick={() => handleImport(record)}
-          >
-            {imported ? '已导入' : '导入'}
-          </Button>
-        );
-      },
     },
   ];
 
@@ -443,41 +397,50 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
             loading={importingIds.size > 0}
             onClick={async () => {
               const providerId = form.getFieldValue('provider_id');
+              setImportingIds(new Set(previewData.map(i => i.instance_id)));
               
-              for (const instance of previewData) {
-                setImportingIds(prev => new Set(prev).add(instance.instance_id));
-                try {
-                  const res = await createMachine({
-                    name: instance.name || instance.instance_id,
-                    hostname: instance.name || instance.instance_id,
-                    ip_address: instance.public_ips?.[0] || instance.private_ips?.[0] || '',
-                    port: parseInt(instance.port) || 22,
-                    username: instance.username || 'root',
-                    [instance.authMethod === 'password' ? 'password' : 'private_key']: instance.credentials,
-                    provider: providerId,
-                    provider_instance_id: instance.instance_id,
-                    os_type: instance.image_name,
-                    cpu_cores: instance.cpu != null ? String(instance.cpu) : undefined,
-                    memory: instance.memory != null ? `${instance.memory}GB` : undefined,
+              try {
+                const items = previewData.map(instance => ({
+                  name: instance.name || instance.instance_id,
+                  hostname: instance.name || instance.instance_id,
+                  ip_address: instance.public_ips?.[0] || instance.private_ips?.[0] || '',
+                  port: parseInt(instance.port) || 22,
+                  username: instance.username || 'root',
+                  [instance.authMethod === 'password' ? 'password' : 'private_key']: instance.credentials,
+                  provider: providerId,
+                  provider_instance_id: instance.instance_id,
+                  nic_id: instance.nic_id,
+                  os_type: instance.image_name,
+                  cpu_cores: instance.cpu != null ? String(instance.cpu) : undefined,
+                  memory: instance.memory != null ? `${instance.memory}GB` : undefined,
+                }));
+                
+                const res = await batchImportMachines({ items });
+                
+                if (res.code === 0 && res.data) {
+                  setImportResult(res.data);
+                  setImportResultVisible(true);
+                  
+                  // Mark imported instances
+                  res.data.created.forEach(item => {
+                    setImportedIds(prev => new Set(prev).add(item.provider_instance_id));
+                  });
+                  res.data.updated.forEach(item => {
+                    setImportedIds(prev => new Set(prev).add(item.provider_instance_id));
                   });
                   
-                  if (res.code === 0) {
-                    setImportedIds(prev => new Set(prev).add(instance.instance_id));
-                  } else {
-                    messageApi.error(`导入 ${instance.instance_id} 失败: ${res.msg}`);
-                  }
-                } finally {
-                  setImportingIds(prev => {
-                    const next = new Set(prev);
-                    next.delete(instance.instance_id);
-                    return next;
-                  });
+                  messageApi.success('批量导入完成');
+                  onSuccess();
+                  setPreviewVisible(false);
+                  setSelectedRowKeys([]);
+                } else {
+                  messageApi.error(res.msg || '批量导入失败');
                 }
+              } catch (error: any) {
+                messageApi.error(error?.message || '导入出错');
+              } finally {
+                setImportingIds(new Set());
               }
-              
-              onSuccess();
-              setPreviewVisible(false);
-              setSelectedRowKeys([]);
             }}
           >
             开始导入
@@ -566,6 +529,76 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
         ]}
         size="small"
       />
+      </Modal>
+
+      {/* Import Result Modal */}
+      <Modal
+        title="导入结果"
+        open={importResultVisible}
+        onCancel={() => setImportResultVisible(false)}
+        onOk={() => setImportResultVisible(false)}
+        width={800}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <h4>导入统计</h4>
+          <Space>
+            <span>✓ 新建: {importResult?.summary?.created_count || 0}</span>
+            <span>◈ 更新: {importResult?.summary?.updated_count || 0}</span>
+            <span>✗ 失败: {importResult?.summary?.failed_count || 0}</span>
+          </Space>
+        </div>
+
+        {importResult?.created && importResult.created.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <h5 style={{ color: '#52c41a' }}>✓ 成功新建</h5>
+            <Table
+              columns={[
+                { title: 'ID', dataIndex: 'id', key: 'id' },
+                { title: 'Provider Instance ID', dataIndex: 'provider_instance_id', key: 'provider_instance_id' },
+              ]}
+              dataSource={importResult.created}
+              size="small"
+              pagination={false}
+              rowKey="id"
+              bordered
+            />
+          </div>
+        )}
+
+        {importResult?.updated && importResult.updated.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <h5 style={{ color: '#1677ff' }}>◈ 成功更新</h5>
+            <Table
+              columns={[
+                { title: 'ID', dataIndex: 'id', key: 'id' },
+                { title: 'Provider Instance ID', dataIndex: 'provider_instance_id', key: 'provider_instance_id' },
+              ]}
+              dataSource={importResult.updated}
+              size="small"
+              pagination={false}
+              rowKey="id"
+              bordered
+            />
+          </div>
+        )}
+
+        {importResult?.failed && importResult.failed.length > 0 && (
+          <div>
+            <h5 style={{ color: '#ff4d4f' }}>✗ 导入失败</h5>
+            <Table
+              columns={[
+                { title: '序号', dataIndex: 'index', key: 'index' },
+                { title: 'Provider Instance ID', dataIndex: 'provider_instance_id', key: 'provider_instance_id' },
+                { title: '原因', dataIndex: 'reason', key: 'reason' },
+              ]}
+              dataSource={importResult.failed}
+              size="small"
+              pagination={false}
+              rowKey="index"
+              bordered
+            />
+          </div>
+        )}
       </Modal>
     </>
   );

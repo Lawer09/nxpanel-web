@@ -118,6 +118,7 @@ declare namespace API {
     private_ips?: string[];
     image_id?: string;
     image_name?: string;
+    nic_id?: string;
     create_time?: string;
     expired_time?: string | null;
     resource_group_id?: string;
