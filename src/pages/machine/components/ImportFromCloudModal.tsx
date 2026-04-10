@@ -409,7 +409,7 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
                   [instance.authMethod === 'password' ? 'password' : 'private_key']: instance.credentials,
                   provider: providerId,
                   provider_instance_id: instance.instance_id,
-                  nic_id: instance.nic_id,
+                  provider_nic_id: instance.nic_id,
                   os_type: instance.image_name,
                   cpu_cores: instance.cpu != null ? String(instance.cpu) : undefined,
                   memory: instance.memory != null ? `${instance.memory}GB` : undefined,

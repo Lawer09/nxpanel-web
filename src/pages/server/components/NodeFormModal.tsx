@@ -141,12 +141,15 @@ const NodeFormModal: React.FC<NodeFormModalProps> = ({
       .finally(() => setTemplatesLoading(false));
   }, [open]);
 
-  // 选择机器 → 填充 host
+  // 选择机器 → 填充 host 并设置绑定机器
   const handleMachineSelect = (machineId: number) => {
     const m = machines.find((x) => x.id === machineId);
     if (!m) return;
-    form.setFieldsValue({ host: m.ip_address });
-    setFilledFrom(`已从机器「${m.name}」填充节点地址`);
+    form.setFieldsValue({ 
+      host: m.ip_address,
+      machine_id: m.id 
+    });
+    setFilledFrom(`已从机器「${m.name}」填充节点地址并绑定机器`);
   };
 
   // 选择模板 → 填充全部字段
@@ -399,9 +402,9 @@ const NodeFormModal: React.FC<NodeFormModalProps> = ({
       <ProFormSelect
         name="machine_id"
         label="绑定机器"
-        allowClear
         showSearch
-        placeholder="可选"
+        placeholder="请选择机器"
+        rules={[{ required: true, message: '请选择绑定机器' }]}
         fieldProps={{ optionFilterProp: 'label' }}
         options={machines.map((m) => ({
           label: `${m.name}（${m.ip_address}）`,
@@ -416,7 +419,6 @@ const NodeFormModal: React.FC<NodeFormModalProps> = ({
               name="rate_time_ranges"
               label="动态倍率规则"
               creatorButtonProps={{ creatorButtonText: '添加时间段倍率' }}
-              itemContainerRender={(doms) => <>{doms}</>}
             >
               <ProFormText
                 name="start"

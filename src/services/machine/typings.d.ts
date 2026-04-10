@@ -24,7 +24,7 @@ declare namespace API {
     description?: string;
     is_active?: boolean;
     provider_instance_id?: string;
-    nic_id?: string;
+    provider_nic_id?: string;
     last_check_at?: string;
     created_at?: string;
     updated_at?: string;

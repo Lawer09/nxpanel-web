@@ -167,7 +167,7 @@ const CreateForm: React.FC<CreateFormProps> = ({
         fieldProps={{ maxLength: 255 }}
       />
       <ProFormText
-        name="nic_id"
+        name="provider_nic_id"
         label="NIC ID"
         tooltip="网卡 ID"
         fieldProps={{ maxLength: 255 }}
