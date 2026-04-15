@@ -5,9 +5,9 @@ import {
   ProFormSelect,
   ProFormSwitch,
 } from '@ant-design/pro-components';
-import { App } from 'antd';
+import { App, Space, Typography } from 'antd';
 import React, { useRef } from 'react';
-import { fetchIpPool } from '@/services/infra/api';
+import { getSwitchableIps } from '@/services/infra/api';
 import { switchMachineIp } from '@/services/machine/api';
 
 interface SwitchIpModalProps {
@@ -23,6 +23,7 @@ const SwitchIpModal: React.FC<SwitchIpModalProps> = ({
 }) => {
   const formRef = useRef<ProFormInstance>(null);
   const { message } = App.useApp();
+  const { Text } = Typography;
 
   return (
     <ModalForm<{
@@ -35,6 +36,8 @@ const SwitchIpModal: React.FC<SwitchIpModalProps> = ({
       trigger={trigger}
       formRef={formRef}
       autoFocusFirstInput
+      grid
+      rowProps={{ gutter: 16 }}
       modalProps={{
         destroyOnHidden: true,
       }}
@@ -68,44 +71,71 @@ const SwitchIpModal: React.FC<SwitchIpModalProps> = ({
       }}
     >
       <ProForm.Group>
-        <ProFormSwitch name="only_unbound" label="Only unbound" />
-      </ProForm.Group>
-
-      <ProForm.Group>
         <ProFormSelect
-          width="md"
           name="ip_id"
           label="New IP"
           rules={[{ required: true, message: 'Please select an IP' }]}
           showSearch
           dependencies={['only_unbound']}
           request={async (params) => {
-            const res = await fetchIpPool({
+            if (!machine?.id) {
+              message.error('Invalid machine id');
+              return [];
+            }
+            const res = await getSwitchableIps({
+              machine_id: machine.id,
               current: 1,
               pageSize: 1000,
-              status: 'active',
             });
             if (res.code !== 0) {
               message.error(res.msg || 'Failed to load IP list');
               return [];
             }
-            const onlyUnbound = params?.only_unbound ?? true;
             const items = res.data?.data || [];
-            const filtered = onlyUnbound
-              ? items.filter((item) => !item.machine_id)
-              : items;
-            return filtered.map((item) => ({
-              label: item.ip,
+            return items.map((item) => ({
+              label: (
+                <Space direction="vertical" size={0}>
+                  <Space size={6} align="center">
+                    <Text>{item.ip}</Text>
+                    {machine?.ip_address && item.ip === machine.ip_address && (
+                      <Text type="warning" style={{ fontSize: 12 }}>
+                        当前IP
+                      </Text>
+                    )}
+                    <Text style={{ fontSize: 12 }}>
+                    {[
+                      item.country,
+                      item.region,
+                    ].filter(Boolean).join(' / ') || '-'}
+                  </Text>
+                  </Space>
+                </Space>
+              ),
               value: item.id,
+              labelText: `${item.ip} ${item.country || ''} ${item.region || ''}`.trim(),
             }));
           }}
-          fieldProps={{ optionFilterProp: 'label' }}
+          fieldProps={{ optionFilterProp: 'labelText' }}
+          colProps={{ span: 16 }}
+        />
+        <ProFormSwitch
+          name="only_unbound"
+          label="Only unbound"
+          colProps={{ span: 8 }}
         />
       </ProForm.Group>
 
       <ProForm.Group>
-        <ProFormSwitch name="set_as_primary" label="Set as Primary" />
-        <ProFormSwitch name="set_as_egress" label="Set as Egress" />
+        <ProFormSwitch
+          name="set_as_primary"
+          label="Set as Primary"
+          colProps={{ span: 12 }}
+        />
+        <ProFormSwitch
+          name="set_as_egress"
+          label="Set as Egress"
+          colProps={{ span: 12 }}
+        />
       </ProForm.Group>
     </ModalForm>
   );

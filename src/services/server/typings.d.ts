@@ -149,6 +149,58 @@ declare namespace API {
     users: ServerOnlineUser[];
   }
 
+  // ── 切换域名 ───────────────────────────────────────────────────────────────
+
+  interface SwitchServerDomainParams {
+    server_id: number;
+    domain: string;
+    subdomain?: string;
+  }
+
+  interface SwitchServerDomainResult {
+    server_id: number;
+    machine_id: number;
+    resolved_ip: string;
+    fqdn: string;
+    result: Record<string, any>;
+  }
+
+  interface BatchBindDomainItem {
+    id: number;
+    domain: string;
+    subdomain?: string;
+  }
+
+  interface BatchBindDomainParams {
+    bindings: BatchBindDomainItem[];
+  }
+
+  interface BatchBindDomainSuccessItem {
+    index: number;
+    server_id: number;
+    machine_id: number;
+    domain: string;
+    subdomain: string;
+    unique: boolean;
+    resolved_ip: string;
+    fqdn: string;
+    updated_host: string;
+    success: boolean;
+  }
+
+  interface BatchBindDomainErrorItem {
+    index: number;
+    server_id: number;
+    domain: string;
+    subdomain: string;
+    error: string;
+  }
+
+  interface BatchBindDomainResult {
+    results: BatchBindDomainSuccessItem[];
+    errors: BatchBindDomainErrorItem[];
+  }
+
   // ── 部署（节点侧） ────────────────────────────────────────────────────────────
 
   type DeployTaskStatus = 'pending' | 'running' | 'success' | 'failed';

@@ -74,7 +74,7 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
 
   const fetchInstances = async (currentPage = page, currentSize = pageSize) => {
     const values = form.getFieldsValue();
-    if (!values.provider_id) return;
+    if (!values.providerId) return;
     setLoading(true);
     try {
       // Build tag filters
@@ -84,7 +84,7 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
         .map((t: any) => ({ key: t.key, value: t.value || undefined }));
 
       const res = await getProviderInstances({
-        provider_id: values.provider_id,
+        providerId: values.providerId,
         status: values.status || undefined,
         name: values.name || undefined,
         tagKeys: tagKeys.length ? tagKeys : undefined,
@@ -214,7 +214,7 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
         style={{ marginBottom: 16, flexWrap: 'wrap', gap: 8 }}
         onFinish={handleSearch}
       >
-        <Form.Item name="provider_id" label="供应商" rules={[{ required: true, message: '请选择供应商' }]}>
+        <Form.Item name="providerId" label="供应商" rules={[{ required: true, message: '请选择供应商' }]}>
           <Select
             style={{ width: 200 }}
             options={providerOptions}
@@ -396,7 +396,7 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
             type="primary" 
             loading={importingIds.size > 0}
             onClick={async () => {
-              const providerId = form.getFieldValue('provider_id');
+              const providerId = form.getFieldValue('providerId');
               setImportingIds(new Set(previewData.map(i => i.instance_id)));
               
               try {
@@ -404,12 +404,14 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
                   name: instance.name || instance.instance_id,
                   hostname: instance.name || instance.instance_id,
                   ip_address: instance.public_ips?.[0] || instance.private_ips?.[0] || '',
+                  private_ip_address: instance.private_ips?.[0] || '',
                   port: parseInt(instance.port) || 22,
                   username: instance.username || 'root',
                   [instance.authMethod === 'password' ? 'password' : 'private_key']: instance.credentials,
                   provider: providerId,
                   provider_instance_id: instance.instance_id,
                   provider_nic_id: instance.nic_id,
+                  zone_id: instance.zone_id,
                   os_type: instance.image_name,
                   cpu_cores: instance.cpu != null ? String(instance.cpu) : undefined,
                   memory: instance.memory != null ? `${instance.memory}GB` : undefined,

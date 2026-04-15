@@ -173,4 +173,19 @@ declare namespace API {
     by_country: IpPoolStatsCountryItem[];
   }
 
+  // ── 可切换 IP 列表 ─────────────────────────────────────────────────────────
+
+  interface SwitchableIpItem {
+    id: number;
+    ip: string;
+    country?: string;
+    region?: string;
+  }
+
+  interface SwitchableIpFetchParams {
+    machine_id: number;
+    current?: number;
+    pageSize?: number;
+  }
+
 }

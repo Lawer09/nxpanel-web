@@ -286,7 +286,7 @@ const NodeFormModal: React.FC<NodeFormModalProps> = ({
     >
       {/* ── 快速填充区 ─────────────────────────────────── */}
       {!node && (
-        <>
+        <div>
           <Divider orientation="left" style={{ fontSize: 13, marginTop: 0 }}>
             快速填充
           </Divider>
@@ -351,7 +351,7 @@ const NodeFormModal: React.FC<NodeFormModalProps> = ({
               style={{ marginBottom: 16 }}
             />
           )}
-        </>
+        </div>
       )}
 
       {/* ── 节点基础信息 ───────────────────────────────── */}

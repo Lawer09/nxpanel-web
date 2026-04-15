@@ -49,4 +49,13 @@ export default {
   'menu.editor.flow': '流程編輯器',
   'menu.editor.mind': '腦圖編輯器',
   'menu.editor.koni': '拓撲編輯器',
+  'menu.resource': '資源管理',
+  'menu.resource.server': '節點管理',
+  'menu.resource.ip-pool': 'IP 池管理',
+  'menu.resource.machine': '機器管理',
+  'menu.resource.deploy-template': '部署模板',
+  'menu.resource.server-template': '節點模板',
+  'menu.resource.asn': 'ASN 管理',
+  'menu.resource.provider': '供應商管理',
+  'menu.resource.ssh-key': '密鑰管理',
 };

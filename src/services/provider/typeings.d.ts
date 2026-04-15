@@ -93,7 +93,7 @@ declare namespace API {
   }
 
   interface ProviderInstanceFetchParams {
-    provider_id: number;
+    providerId: number;
     instanceIds?: string[];
     zoneId?: string;
     status?: string;
@@ -142,7 +142,7 @@ declare namespace API {
   }
 
   interface ProviderEipFetchParams {
-    provider_id: number;
+    providerId: number;
     eipIds?: string[];
     regionId?: string;
     name?: string;
@@ -169,23 +169,181 @@ declare namespace API {
   }
 
   interface ProviderEipItem {
-    eip_id: string;
-    ip_address: string;
+    eipId: string;
+    ipAddress: string | string[];
     status?: string;
-    instance_id?: string;
-    zone_id?: string;
-    create_time?: string;
+    instanceId?: string;
+    zoneId?: string;
+    createTime?: string;
     metadata?: ProviderEipMetadata;
     _raw?: any;
   }
 
   interface ProviderEipResult {
-    provider_id: number;
-    provider_name?: string;
+    providerId: number;
+    providerName?: string;
     driver?: string;
     total: number;
-    pageNum: number;
+    page: number;
     pageSize: number;
     data: ProviderEipItem[];
+  }
+
+  // ── 云端可用区 ───────────────────────────────────────────────────────────────
+
+  interface ProviderZonesFetchParams {
+    provider_id?: number;
+    providerId?: number;
+    zoneIds?: string[];
+  }
+
+  interface ProviderZoneItem {
+    zoneId: string;
+    zoneName?: string;
+    regionId?: string;
+    supportSecurityGroup?: boolean;
+    _raw?: any;
+  }
+
+  interface ProviderZonesResult {
+    requestId?: string;
+    data: ProviderZoneItem[];
+    providerId?: number;
+    providerName?: string;
+    driver?: string;
+  }
+
+  // ── 云端子网 ────────────────────────────────────────────────────────────────
+
+  interface ProviderSubnetsFetchParams {
+    provider_id?: number;
+    providerId?: number;
+    subnetIds?: string[];
+    name?: string;
+    cidrBlock?: string;
+    regionId?: string;
+    pageSize?: number;
+    pageNum?: number;
+    vpcIds?: string[];
+    dhcpOptionsSetId?: string;
+  }
+
+  interface ProviderSubnetItem {
+    name?: string;
+    subnetId: string;
+    cidrBlock?: string;
+    vpcId?: string;
+    vpcName?: string;
+    _raw?: any;
+  }
+
+  interface ProviderSubnetsResult {
+    requestId?: string;
+    total?: number;
+    page?: number;
+    pageSize?: number;
+    data: ProviderSubnetItem[];
+    provider_id?: number;
+    providerId?: number;
+    provider_name?: string;
+    providerName?: string;
+    driver?: string;
+  }
+
+  // ── 云端实例规格 ─────────────────────────────────────────────────────────────
+
+  interface ProviderInstanceTypesFetchParams {
+    provider_id?: number;
+    providerId?: number;
+    zoneId?: string;
+    instanceType?: string;
+  }
+
+  interface ProviderInstanceTypeItem {
+    instanceType: string;
+    cpuCount?: number;
+    memory?: number;
+    _raw?: any;
+  }
+
+  interface ProviderInstanceTypesResult {
+    requestId?: string;
+    data: ProviderInstanceTypeItem[];
+    provider_id?: number;
+    providerId?: number;
+    provider_name?: string;
+    providerName?: string;
+    driver?: string;
+  }
+
+  // ── 云端 SSH 密钥 ─────────────────────────────────────────────────────────────
+
+  interface ProviderSshKeyFetchParams {
+    provider_id?: number;
+    providerId?: number;
+    keyIds?: string[];
+    keyName?: string;
+    pageSize?: number;
+    page?: number;
+  }
+
+  interface ProviderSshKeyItem {
+    key_id: string;
+    key_name: string;
+    key_description?: string;
+    public_key?: string;
+    fingerprint?: string;
+    create_time?: string;
+    _raw?: any;
+  }
+
+  interface ProviderSshKeyResult {
+    provider_id?: number;
+    providerId?: number;
+    provider_name?: string;
+    providerName?: string;
+    driver?: string;
+    total: number;
+    page: number;
+    pageSize: number;
+    data: ProviderSshKeyItem[];
+  }
+
+  // ── 云端创建实例 ─────────────────────────────────────────────────────────────
+
+  interface ProviderCreateInstanceParams {
+    providerId: number;
+    zoneId: string;
+    instanceType: string;
+    subnetId: string;
+    sshKeyId: number;
+    name?: string;
+    instanceCount?: number;
+  }
+
+  interface ProviderCreateInstanceResult {
+    providerId: number;
+    instanceIds: string[];
+    orderSn?: string;
+  }
+
+  // ── 云端绑定 EIP ────────────────────────────────────────────────────────────
+
+  interface ProviderBindEipItem {
+    nicId: string;
+    elasticIpId: string;
+    privateIpAddress: string;
+  }
+
+  type ProviderBindEipsResult = Array<{
+    success: boolean;
+    nic_id?: string;
+    eip_id?: string;
+    [key: string]: any;
+  }>;
+
+  interface ProviderBindEipsParams {
+    providerId: number;
+    bindings: ProviderBindEipItem[];
   }
 }

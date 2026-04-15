@@ -34,6 +34,7 @@ export default {
   'menu.resource.machine': '机器管理',
   'menu.resource.deploy-template': '部署模板',
   'menu.resource.server-template': '节点模板',
+  'menu.resource.ssh-key': '密钥管理',
   'menu.system': '系统状态监控',
   'menu.dns': '域名解析',
   'menu.profile': '详情页',

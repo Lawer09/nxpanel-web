@@ -105,15 +105,30 @@ export async function fetchIpPool(
   params: API.IpPoolFetchParams,
   options?: { [key: string]: any },
 ) {
-  return request<API.ApiResponse<API.PageResult<API.IpPoolItem>>>('/ip-pool/fetch', {
+  return request<API.ApiResponse<API.PageResult<API.IpPoolItem>>>('/v3/ip-pool/fetch', {
     method: 'GET',
     params,
     ...(options || {}),
   });
 }
 
+export async function getSwitchableIps(
+  params: API.SwitchableIpFetchParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.PageResult<API.SwitchableIpItem>>>(
+    '/v3/ip-pool/get-switchable-ips',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: params,
+      ...(options || {}),
+    },
+  );
+}
+
 export async function getIpPoolDetail(body: { id: number }, options?: { [key: string]: any }) {
-  return request<API.ApiResponse<API.IpPoolItem>>('/ip-pool/detail', {
+  return request<API.ApiResponse<API.IpPoolItem>>('/v3/ip-pool/detail', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
@@ -125,7 +140,7 @@ export async function saveIpPool(
   body: API.IpPoolSaveParams,
   options?: { [key: string]: any },
 ) {
-  return request<API.ApiResponse<boolean>>('/ip-pool/save', {
+  return request<API.ApiResponse<boolean>>('/v3/ip-pool/save', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
@@ -134,7 +149,7 @@ export async function saveIpPool(
 }
 
 export async function deleteIpPool(body: { ids: number[] }, options?: { [key: string]: any }) {
-  return request<API.ApiResponse<boolean>>('/ip-pool/delete', {
+  return request<API.ApiResponse<boolean>>('/v3/ip-pool/delete', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
@@ -143,7 +158,7 @@ export async function deleteIpPool(body: { ids: number[] }, options?: { [key: st
 }
 
 export async function enableIpPool(body: { id: number }, options?: { [key: string]: any }) {
-  return request<API.ApiResponse<boolean>>('/ip-pool/enable', {
+  return request<API.ApiResponse<boolean>>('/v3/ip-pool/enable', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
@@ -152,7 +167,7 @@ export async function enableIpPool(body: { id: number }, options?: { [key: strin
 }
 
 export async function disableIpPool(body: { id: number }, options?: { [key: string]: any }) {
-  return request<API.ApiResponse<boolean>>('/ip-pool/disable', {
+  return request<API.ApiResponse<boolean>>('/v3/ip-pool/disable', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
@@ -164,7 +179,7 @@ export async function resetIpPoolScore(
   body: { id: number; score: number },
   options?: { [key: string]: any },
 ) {
-  return request<API.ApiResponse<boolean>>('/ip-pool/reset-score', {
+  return request<API.ApiResponse<boolean>>('/v3/ip-pool/reset-score', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
@@ -173,14 +188,14 @@ export async function resetIpPoolScore(
 }
 
 export async function getIpPoolStats(options?: { [key: string]: any }) {
-  return request<API.ApiResponse<API.IpPoolStats>>('/ip-pool/stats', {
+  return request<API.ApiResponse<API.IpPoolStats>>('/v3/ip-pool/stats', {
     method: 'GET',
     ...(options || {}),
   });
 }
 
 export async function getIpInfo(params: { ip: string }, options?: { [key: string]: any }) {
-  return request<API.ApiResponse<API.IpInfoData>>('/ip-pool/get-ipinfo', {
+  return request<API.ApiResponse<API.IpInfoData>>('/v3/ip-pool/get-ipinfo', {
     method: 'GET',
     params,
     ...(options || {}),
@@ -198,7 +213,7 @@ export async function ipPoolBatchImport(
       failed: Array<{ ip: string; reason: string }>;
       summary: { total: number; created_count: number; updated_count: number; failed_count: number };
     }>
-  >('/ip-pool/batchImport', {
+  >('/v3/ip-pool/batchImport', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,

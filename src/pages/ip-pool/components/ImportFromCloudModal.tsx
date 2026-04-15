@@ -85,7 +85,7 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
 
   const fetchEips = async (currentPage = page, currentSize = pageSize) => {
     const values = form.getFieldsValue();
-    if (!values.provider_id) return;
+    if (!values.providerId) return;
     setLoading(true);
     try {
       const tagKeys: string[] = (values.tagKeys || []).filter(Boolean);
@@ -94,7 +94,7 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
         .map((t: any) => ({ key: t.key, value: t.value || undefined }));
 
       const res = await getProviderEips({
-        provider_id: values.provider_id,
+        providerId: values.providerId,
         status: values.status || undefined,
         name: values.name || undefined,
         ipAddress: values.ipAddress || undefined,
@@ -106,7 +106,7 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
       if (res.code === 0 && res.data) {
         setEips(res.data.data || []);
         setTotal(res.data.total || 0);
-        setPage(res.data.pageNum || currentPage);
+        setPage(res.data.page || currentPage);
       } else if (res.code !== 0) {
         messageApi.error(res.msg || '获取EIP列表失败');
         setEips([]);
@@ -132,15 +132,15 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
 
     try {
       const selectedEips = eips.filter((eip) =>
-        selectedRowKeys.includes(eip.eip_id),
+        selectedRowKeys.includes(eip.eipId),
       );
-      const providerId = form.getFieldValue('provider_id') as number | undefined;
+      const providerId = form.getFieldValue('providerId') as number | undefined;
 
       const items = await Promise.all(
         selectedEips.map(async (eip) => {
-          const ipValue = Array.isArray((eip as any).ip_address)
-            ? (eip as any).ip_address[0]
-            : eip.ip_address;
+          const ipValue = Array.isArray((eip as any).ipAddress)
+            ? (eip as any).ipAddress[0]
+            : eip.ipAddress;
 
           let ipInfo: API.IpInfoData | undefined;
           try {
@@ -156,14 +156,14 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
             ip: ipValue,
             machine_id: null,
             provider_id: providerId,
-            provider_ip_id: eip.eip_id,
+            provider_ip_id: eip.eipId,
             ip_type: 'elastic' as const,
             metadata: {
-              eip_id: eip.eip_id,
+              eip_id: eip.eipId,
               vendor: eips[0]?.metadata?.bandwidth ? 'zenlayer' : 'unknown',
               status: eip.status,
-              zone_id: eip.zone_id,
-              instance_id: eip.instance_id,
+              zone_id: eip.zoneId,
+              instance_id: eip.instanceId,
             },
             hostname: ipInfo?.hostname,
             city: ipInfo?.city,
@@ -203,7 +203,7 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
   const columns = [
     {
       title: 'EIP ID',
-      dataIndex: 'eip_id',
+      dataIndex: 'eipId',
       width: 160,
       render: (id: string) => (
         <Text copyable style={{ fontSize: 12 }}>
@@ -213,7 +213,7 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
     },
     {
       title: 'IP 地址',
-      dataIndex: 'ip_address',
+      dataIndex: 'ipAddress',
       width: 140,
       render: (ip: string) => (
         <Tag color="blue">{ip}</Tag>
@@ -232,12 +232,12 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
     },
     {
       title: '可用区',
-      dataIndex: 'zone_id',
+      dataIndex: 'zoneId',
       width: 130,
     },
     {
       title: '关联实例',
-      dataIndex: 'instance_id',
+      dataIndex: 'instanceId',
       width: 160,
       render: (id: string) => id ? (
         <Tooltip title={id}>
@@ -280,7 +280,7 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
           onFinish={handleSearch}
         >
           <Form.Item
-            name="provider_id"
+            name="providerId"
             label="供应商"
             rules={[{ required: true, message: '请选择供应商' }]}
           >
@@ -376,7 +376,7 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
         </Form>
 
         <Table<API.ProviderEipItem>
-          rowKey="eip_id"
+          rowKey="eipId"
           rowSelection={{
             selectedRowKeys,
             onChange: (keys) => setSelectedRowKeys(keys),

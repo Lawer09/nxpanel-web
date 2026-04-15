@@ -8,6 +8,7 @@ import {
 import { Button, Form, Input, message, Space } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
 import { getIpInfo, saveIpPool } from '@/services/infra/api';
+import { fetchProvider } from '@/services/provider/api';
 import { getMachineList } from '@/services/machine/api';
 
 type IpPoolFormModalProps = {
@@ -28,6 +29,10 @@ const IpPoolFormModal: React.FC<IpPoolFormModalProps> = ({
   const [fetchingIpInfo, setFetchingIpInfo] = useState(false);
   const [machines, setMachines] = useState<API.Machine[]>([]);
   const [machinesLoading, setMachinesLoading] = useState(false);
+  const [providerOptions, setProviderOptions] = useState<
+    Array<{ label: string; value: number }>
+  >([]);
+  const [providersLoading, setProvidersLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -35,6 +40,17 @@ const IpPoolFormModal: React.FC<IpPoolFormModalProps> = ({
       getMachineList({ page: 1, pageSize: 200 })
         .then((res) => setMachines(res.data?.data || []))
         .finally(() => setMachinesLoading(false));
+
+      setProvidersLoading(true);
+      fetchProvider({ current: 1, pageSize: 1000 })
+        .then((res) => {
+          if (res.code === 0 && res.data?.data) {
+            setProviderOptions(
+              res.data.data.map((item) => ({ label: item.name, value: item.id })),
+            );
+          }
+        })
+        .finally(() => setProvidersLoading(false));
     }
   }, [open]);
 
@@ -193,7 +209,15 @@ const IpPoolFormModal: React.FC<IpPoolFormModalProps> = ({
         ]}
       />
       <ProFormText name="provider_ip_id" label="Provider IP ID" />
-      <ProFormDigit name="provider_id" label="Provider ID" min={1} />
+      <ProFormSelect
+        name="provider_id"
+        label="Provider"
+        allowClear
+        showSearch
+        placeholder="选择供应商"
+        fieldProps={{ optionFilterProp: 'label', loading: providersLoading }}
+        options={providerOptions}
+      />
       <ProFormDigit name="score" label="评分" min={0} max={100} />
       <ProFormDigit name="max_load" label="最大负载" min={0} />
       <ProFormSelect

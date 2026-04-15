@@ -49,4 +49,13 @@ export default {
   'menu.editor.flow': 'ویرایشگر جریان',
   'menu.editor.mind': 'ویرایشگر ذهن',
   'menu.editor.koni': 'ویرایشگر Koni',
+  'menu.resource': 'مدیریت منابع',
+  'menu.resource.server': 'مدیریت نود',
+  'menu.resource.ip-pool': 'مدیریت مخزن IP',
+  'menu.resource.machine': 'مدیریت ماشین',
+  'menu.resource.deploy-template': 'قالب استقرار',
+  'menu.resource.server-template': 'قالب نود',
+  'menu.resource.asn': 'مدیریت ASN',
+  'menu.resource.provider': 'مدیریت ارائه‌دهنده',
+  'menu.resource.ssh-key': 'مدیریت کلید SSH',
 };

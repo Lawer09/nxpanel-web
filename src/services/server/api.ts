@@ -133,6 +133,36 @@ export async function getServerOnlineUsers(
   });
 }
 
+export async function switchServerDomain(
+  body: API.SwitchServerDomainParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.SwitchServerDomainResult>>(
+    '/v3/server/manage/switchDomain',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: body,
+      ...(options || {}),
+    },
+  );
+}
+
+export async function batchBindDomain(
+  body: API.BatchBindDomainParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.BatchBindDomainResult>>(
+    '/v3/server/manage/batchBindDomain',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: body,
+      ...(options || {}),
+    },
+  );
+}
+
 // ── 权限组 ───────────────────────────────────────────────────────────────────
 
 export async function fetchServerGroups(options?: { [key: string]: any }) {

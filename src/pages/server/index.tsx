@@ -21,6 +21,7 @@ import GroupFormModal from './components/GroupFormModal';
 import NodeFormModal from './components/NodeFormModal';
 import OnlineUsersModal from './components/OnlineUsersModal';
 import RouteFormModal from './components/RouteFormModal';
+import SwitchDomainModal from './components/SwitchDomainModal';
 import { protocolOptions } from './components/constants';
 
 const formatTimestamp = (timestamp?: number | null) => {
@@ -58,6 +59,8 @@ const ServerManagePage: React.FC = () => {
   const [onlineUsersServerId, setOnlineUsersServerId] = useState<number | null>(null);
   const [onlineUsersServerName, setOnlineUsersServerName] = useState<string | undefined>();
   const [onlineUsersModalOpen, setOnlineUsersModalOpen] = useState(false);
+  const [switchDomainOpen, setSwitchDomainOpen] = useState(false);
+  const [switchDomainServers, setSwitchDomainServers] = useState<API.ServerNode[]>([]);
 
   const groupOptions = useMemo(
     () => groupRows.map((item) => ({ label: item.name, value: item.id })),
@@ -142,7 +145,18 @@ const ServerManagePage: React.FC = () => {
       search: false,
       render: (_, record) => {
         const limit = record.online_limit ? String(record.online_limit) : '不限';
-        return `${record.online || 0} / ${limit}`;
+        return (
+          <a
+            onClick={() => {
+              if (!record.id) return;
+              setOnlineUsersServerId(record.id);
+              setOnlineUsersServerName(record.name);
+              setOnlineUsersModalOpen(true);
+            }}
+          >
+            {record.online || 0} / {limit}
+          </a>
+        );
       },
     },
     {
@@ -248,77 +262,6 @@ const ServerManagePage: React.FC = () => {
           }}
         >
           复制
-        </a>,
-        <a
-          key="deploy"
-          onClick={async () => {
-            if (!record.id) return;
-            try {
-              const res = await deployServerNode({ server_id: record.id });
-              if (res.code !== 0) {
-                messageApi.error(res.msg || '部署请求失败');
-                return;
-              }
-              setDeployTarget({ mode: 'single', task_id: res.data.task_id, server_name: record.name });
-              setDeployModalOpen(true);
-            } catch {
-              messageApi.error('部署请求失败');
-            }
-          }}
-        >
-          部署
-        </a>,
-        <a
-          key="testPort"
-          onClick={async () => {
-            if (!record.id) return;
-            setPortTestLoading(record.id);
-            try {
-              const res = await testServerPort({ id: record.id });
-              const d = res.data;
-              if (d?.reachable) {
-                Modal.success({
-                  title: `端口连通 — ${record.name}`,
-                  content: (
-                    <div>
-                      <div>地址：{d.host}:{d.port}</div>
-                      <div>延迟：{d.latency_ms} ms</div>
-                      <div>{d.message}</div>
-                    </div>
-                  ),
-                });
-              } else {
-                Modal.error({
-                  title: `端口不通 — ${record.name}`,
-                  content: (
-                    <div>
-                      <div>地址：{d?.host}:{d?.port}</div>
-                      <div>延迟：{d?.latency_ms} ms</div>
-                      <div>{d?.message}</div>
-                      {d?.errno != null && <div>错误码：{d.errno}</div>}
-                    </div>
-                  ),
-                });
-              }
-            } catch {
-              messageApi.error('端口测试请求失败');
-            } finally {
-              setPortTestLoading(null);
-            }
-          }}
-        >
-          {portTestLoading === record.id ? '测试中...' : '测试端口'}
-        </a>,
-        <a
-          key="onlineUsers"
-          onClick={() => {
-            if (!record.id) return;
-            setOnlineUsersServerId(record.id);
-            setOnlineUsersServerName(record.name);
-            setOnlineUsersModalOpen(true);
-          }}
-        >
-          在线用户
         </a>,
         <a
           key="delete"
@@ -521,6 +464,22 @@ const ServerManagePage: React.FC = () => {
                     新建节点
                   </Button>,
                   <Button
+                    key="switch-domain"
+                    disabled={selectedNodeKeys.length === 0}
+                    onClick={() => {
+                      if (selectedNodeKeys.length === 0) return;
+                      const servers = nodeRows.filter((item) => selectedNodeKeys.includes(item.id));
+                      if (!servers.length) {
+                        messageApi.warning('请选择有效节点');
+                        return;
+                      }
+                      setSwitchDomainServers(servers);
+                      setSwitchDomainOpen(true);
+                    }}
+                  >
+                    切换域名
+                  </Button>,
+                  <Button
                     key="batch-deploy"
                     disabled={selectedNodeKeys.length === 0}
                     onClick={async () => {
@@ -543,9 +502,63 @@ const ServerManagePage: React.FC = () => {
                       }
                     }}
                   >
-                    {selectedNodeKeys.length > 0
-                      ? `批量部署 (${selectedNodeKeys.length})`
-                      : '批量部署'}
+                    批量部署
+                  </Button>,
+                  <Button
+                    key="test-port"
+                    disabled={selectedNodeKeys.length === 0}
+                    loading={portTestLoading != null}
+                    onClick={async () => {
+                      if (selectedNodeKeys.length === 0) return;
+                      if (selectedNodeKeys.length > 20) {
+                        messageApi.warning('端口测试最多支持 20 个节点');
+                        return;
+                      }
+                      setPortTestLoading(0);
+                      try {
+                        const nodesMap = new Map(nodeRows.map((n) => [n.id, n]));
+                        const results = await Promise.all(
+                          selectedNodeKeys.map(async (id) => {
+                            const res = await testServerPort({ id });
+                            return { id, res };
+                          }),
+                        );
+                        const success = results.filter((r) => r.res?.data?.reachable);
+                        const failed = results.filter((r) => !r.res?.data?.reachable);
+                        Modal.info({
+                          title: '端口测试结果',
+                          width: 600,
+                          content: (
+                            <div>
+                              <div>成功：{success.length}</div>
+                              <div>失败：{failed.length}</div>
+                              {failed.length > 0 && (
+                                <div style={{ marginTop: 8 }}>
+                                  {failed.slice(0, 10).map((item) => {
+                                    const node = nodesMap.get(item.id);
+                                    const d = item.res?.data;
+                                    return (
+                                      <div key={item.id}>
+                                        {node?.name || item.id} - {d?.message || '端口不通'}
+                                      </div>
+                                    );
+                                  })}
+                                  {failed.length > 10 && (
+                                    <div>...</div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ),
+                        });
+                      } catch {
+                        messageApi.error('端口测试请求失败');
+                      } finally {
+                        setPortTestLoading(null);
+                      }
+                    }}
+                  >
+                    端口测试
                   </Button>,
                   <Button
                     key="sort"
@@ -701,6 +714,19 @@ const ServerManagePage: React.FC = () => {
           setOnlineUsersModalOpen(false);
           setOnlineUsersServerId(null);
           setOnlineUsersServerName(undefined);
+        }}
+      />
+      <SwitchDomainModal
+        open={switchDomainOpen}
+        servers={switchDomainServers}
+        onOpenChange={(open) => {
+          setSwitchDomainOpen(open);
+          if (!open) {
+            setSwitchDomainServers([]);
+          }
+        }}
+        onSuccess={() => {
+          nodeActionRef.current?.reload();
         }}
       />
     </PageContainer>

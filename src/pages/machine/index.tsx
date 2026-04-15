@@ -28,11 +28,11 @@ import {
 } from '@/services/machine/api';
 import { fetchProvider } from '@/services/provider/api';
 import BatchDeployModal from './components/BatchDeployModal';
-import CreateForm from './components/CreateForm';
+import SaveForm from './components/SaveForm';
 import DeployModal from './components/DeployModal';
 import ImportFromCloudModal from './components/ImportFromCloudModal';
+import CreateFromCloudModal from './components/CreateFromCloudModal';
 import SwitchIpModal from './components/SwitchIpModal';
-import UpdateForm from './components/UpdateForm';
 
 const PAY_MODE_MAP: Record<number, string> = {
   1: 'Hourly',
@@ -59,6 +59,7 @@ const MachineList: React.FC = () => {
   >();
   const [batchDeployOpen, setBatchDeployOpen] = useState(false);
   const [importCloudOpen, setImportCloudOpen] = useState(false);
+  const [createCloudOpen, setCreateCloudOpen] = useState(false);
 
   // 加载供应商列表
   useEffect(() => {
@@ -172,9 +173,9 @@ const MachineList: React.FC = () => {
       title: 'Status',
       dataIndex: 'status',
       valueEnum: {
-        online: { text: 'Online', status: 'Success' },
-        offline: { text: 'Offline', status: 'Default' },
-        error: { text: 'Error', status: 'Error' },
+        online: { text: '', status: 'Success' },
+        offline: { text: '', status: 'Default' },
+        error: { text: '', status: 'Error' },
       },
     },
     {
@@ -229,13 +230,14 @@ const MachineList: React.FC = () => {
       dataIndex: 'option',
       valueType: 'option',
       render: (_, record) => [
-        <UpdateForm
+        <SaveForm
           key="edit"
           trigger={
             <Tooltip title="Edit">
               <EditOutlined />
             </Tooltip>
           }
+          mode="update"
           onOk={actionRef.current?.reload}
           values={record}
           providerOptions={providerOptions}
@@ -340,8 +342,12 @@ const MachineList: React.FC = () => {
           >
             从云端导入
           </Button>,
-          <CreateForm
+          <Button key="createCloud" onClick={() => setCreateCloudOpen(true)}>
+            云端创建
+          </Button>,
+          <SaveForm
             key="create"
+            mode="create"
             reload={actionRef.current?.reload}
             providerOptions={providerOptions}
           />,
@@ -447,6 +453,13 @@ const MachineList: React.FC = () => {
         open={importCloudOpen}
         providerOptions={providerOptions}
         onClose={() => setImportCloudOpen(false)}
+        onSuccess={() => actionRef.current?.reload()}
+      />
+
+      <CreateFromCloudModal
+        open={createCloudOpen}
+        providerOptions={providerOptions}
+        onClose={() => setCreateCloudOpen(false)}
         onSuccess={() => actionRef.current?.reload()}
       />
     </PageContainer>

@@ -75,6 +75,12 @@ const CreateForm: React.FC<CreateFormProps> = ({
           label="IP Address"
           rules={[{ required: true, message: 'Please enter IP address' }]}
         />
+        <ProFormText
+          width="md"
+          name="private_ip_address"
+          label="Private IP Address"
+          rules={[{ required: false, message: 'Please enter private IP address' }]}
+        />
         <ProFormDigit
           width="md"
           name="port"

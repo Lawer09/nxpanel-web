@@ -87,4 +87,22 @@ declare namespace API {
       failed_count: number;
     };
   }
+
+  interface CreateSimpleMachineParams {
+    providerId: number;
+    zoneId: string;
+    instanceType: string;
+    subnetId: string;
+    eips: Array<{ eipId: string; publicIp?: string }>;
+    sshKeyId: number;
+    name?: string;
+    instanceCount?: number;
+  }
+
+  interface CreateSimpleMachineResult {
+    instanceIdSet?: string[];
+    bind_results?: any;
+    machine_import?: any;
+    [key: string]: any;
+  }
 }

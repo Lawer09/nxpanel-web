@@ -155,3 +155,15 @@ export async function batchImportMachines(
     ...(options || {}),
   });
 }
+
+export async function createSimpleMachine(
+  body: API.CreateSimpleMachineParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.CreateSimpleMachineResult>>('/v3/machine/createSimple', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}

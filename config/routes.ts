@@ -79,6 +79,11 @@ export default [
         name: 'server-template',
         component: './server-template',
       },
+      {
+        path: '/resource/ssh-key',
+        name: 'ssh-key',
+        component: './ssh-key',
+      },
     ],
   },
   {

@@ -144,3 +144,75 @@ export async function getProviderEips(
     ...(options || {}),
   });
 }
+
+export async function getProviderZones(
+  body: API.ProviderZonesFetchParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.ProviderZonesResult>>('/v3/provider/zones', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+export async function getProviderSubnets(
+  body: API.ProviderSubnetsFetchParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.ProviderSubnetsResult>>('/v3/provider/subnets', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+export async function getProviderInstanceTypes(
+  body: API.ProviderInstanceTypesFetchParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.ProviderInstanceTypesResult>>('/v3/provider/instance-types', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+export async function getProviderSshKeys(
+  body: API.ProviderSshKeyFetchParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.ProviderSshKeyResult>>('/v3/provider/keypairs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+export async function createProviderInstance(
+  body: API.ProviderCreateInstanceParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.ProviderCreateInstanceResult>>('/v3/provider/create-instance', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+export async function bindProviderEips(
+  body: API.ProviderBindEipsParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.ProviderBindEipsResult>>('/v3/provider/bindeips', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}

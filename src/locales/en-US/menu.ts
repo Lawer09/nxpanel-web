@@ -36,6 +36,7 @@ export default {
   'menu.resource.server-template': 'Server Template',
   'menu.resource.asn': 'ASN Manage',
   'menu.resource.provider': 'Provider Manage',
+  'menu.resource.ssh-key': 'SSH Key Manage',
   'menu.report': 'Reports',
   'menu.report.performance': 'Node Performance',
   'menu.report.user-stat': 'User Traffic',
