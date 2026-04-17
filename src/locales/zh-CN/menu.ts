@@ -69,4 +69,5 @@ export default {
   'menu.user-manage': '用户管理',
   'menu.plan': '套餐管理',
   'menu.order': '订单管理',
+  'menu.ticket': '工单管理',
 };

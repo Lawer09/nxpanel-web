@@ -18,6 +18,8 @@ declare namespace API {
     gpu_info?: string;
     bandwidth?: number;
     provider?: number;
+    zoneId?: string;
+    zone_id?: string;
     price?: number;
     pay_mode?: number;
     tags?: string;

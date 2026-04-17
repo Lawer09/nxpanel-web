@@ -164,6 +164,12 @@ export default [
     component: './dns',
   },
   {
+    path: '/ticket',
+    name: 'ticket',
+    icon: 'customerService',
+    component: './ticket',
+  },
+  {
     path: '/',
     redirect: '/dashboard',
   },

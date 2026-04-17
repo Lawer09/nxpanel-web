@@ -7,7 +7,7 @@ import {
 } from '@ant-design/pro-components';
 import { App, Space, Typography } from 'antd';
 import React, { useRef } from 'react';
-import { getSwitchableIps } from '@/services/infra/api';
+import { getProviderEips } from '@/services/provider/api';
 import { switchMachineIp } from '@/services/machine/api';
 
 interface SwitchIpModalProps {
@@ -27,7 +27,7 @@ const SwitchIpModal: React.FC<SwitchIpModalProps> = ({
 
   return (
     <ModalForm<{
-      ip_id: number;
+      ip_id: string;
       set_as_primary: boolean;
       set_as_egress: boolean;
       only_unbound: boolean;
@@ -77,14 +77,24 @@ const SwitchIpModal: React.FC<SwitchIpModalProps> = ({
           rules={[{ required: true, message: 'Please select an IP' }]}
           showSearch
           dependencies={['only_unbound']}
-          request={async (params) => {
+          request={async (params, formData) => {
             if (!machine?.id) {
               message.error('Invalid machine id');
               return [];
             }
-            const res = await getSwitchableIps({
-              machine_id: machine.id,
-              current: 1,
+            if (!machine?.provider) {
+              message.error('Invalid provider id');
+              return [];
+            }
+            if (!machine.zoneId && !machine.zone_id) {
+              message.error('Invalid zone id');
+              return [];
+            }
+            const res = await getProviderEips({
+              providerId: machine.provider,
+              zoneId: machine.zoneId || machine.zone_id,
+              status: formData?.only_unbound ? 'UNBIND' : undefined,
+              page: 1,
               pageSize: 1000,
             });
             if (res.code !== 0) {
@@ -92,28 +102,28 @@ const SwitchIpModal: React.FC<SwitchIpModalProps> = ({
               return [];
             }
             const items = res.data?.data || [];
-            return items.map((item) => ({
-              label: (
-                <Space direction="vertical" size={0}>
-                  <Space size={6} align="center">
-                    <Text>{item.ip}</Text>
-                    {machine?.ip_address && item.ip === machine.ip_address && (
-                      <Text type="warning" style={{ fontSize: 12 }}>
-                        当前IP
-                      </Text>
-                    )}
-                    <Text style={{ fontSize: 12 }}>
-                    {[
-                      item.country,
-                      item.region,
-                    ].filter(Boolean).join(' / ') || '-'}
-                  </Text>
+            return items.map((item) => {
+              const ipLabel = Array.isArray(item.ipAddress)
+                ? item.ipAddress.join(', ')
+                : item.ipAddress;
+              return {
+                label: (
+                  <Space direction="vertical" size={0}>
+                    <Space size={6} align="center">
+                      <Text>{ipLabel}</Text>
+                      {machine?.ip_address && ipLabel === machine.ip_address && (
+                        <Text type="warning" style={{ fontSize: 12 }}>
+                          当前IP
+                        </Text>
+                      )}
+                      <Text style={{ fontSize: 12 }}>{item.zoneId || '-'}</Text>
+                    </Space>
                   </Space>
-                </Space>
-              ),
-              value: item.id,
-              labelText: `${item.ip} ${item.country || ''} ${item.region || ''}`.trim(),
-            }));
+                ),
+                value: item.eipId,
+                labelText: `${ipLabel} ${item.zoneId || ''}`.trim(),
+              };
+            });
           }}
           fieldProps={{ optionFilterProp: 'labelText' }}
           colProps={{ span: 16 }}

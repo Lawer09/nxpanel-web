@@ -144,6 +144,7 @@ declare namespace API {
   interface ProviderEipFetchParams {
     providerId: number;
     eipIds?: string[];
+    zoneId?: string;
     regionId?: string;
     name?: string;
     status?: string;

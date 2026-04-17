@@ -49,6 +49,7 @@ export default {
   'menu.plan': 'Plan Manage',
   'menu.order': 'Order Manage',
   'menu.dns': 'DNS',
+  'menu.ticket': 'Ticket Manage',
   'menu.profile': 'Profile',
   'menu.profile.basic': 'Basic Profile',
   'menu.profile.advanced': 'Advanced Profile',

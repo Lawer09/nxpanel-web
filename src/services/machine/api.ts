@@ -130,7 +130,7 @@ export async function clearNode(params: { id: number }, options?: { [key: string
 export async function switchMachineIp(
   body: {
     machine_id: number;
-    ip_id: number;
+    ip_id: string | number;
     set_as_primary?: boolean;
     set_as_egress?: boolean;
   },
