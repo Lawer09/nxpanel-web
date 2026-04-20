@@ -84,4 +84,172 @@ declare namespace API {
     period_days: number;
     data: PerformancePlatformItem[];
   }
+
+  // ── 聚合性能数据 (5分钟粒度) ──────────────────────────────────────────────
+
+  interface AggregatedPerformanceParams {
+    node_id?: number;
+    date_from?: string;
+    date_to?: string;
+    client_country?: string;
+    platform?: string;
+    page?: number;
+    page_size?: number;
+  }
+
+  interface AggregatedPerformanceItem {
+    id: number;
+    date: string;
+    hour: number;
+    minute: number;
+    node_id: number;
+    client_country?: string;
+    client_city?: string;
+    platform?: string;
+    client_isp?: string;
+    avg_success_rate: number;
+    avg_delay: number;
+    total_count: number;
+  }
+
+  // ── 用户上报次数 (5分钟粒度) ──────────────────────────────────────────────
+
+  interface UserReportCountParams {
+    user_id?: number;
+    date_from?: string;
+    date_to?: string;
+    platform?: string;
+    app_id?: string;
+    order_by?: 'report_count' | 'date' | 'user_id';
+    order_dir?: 'asc' | 'desc';
+    page?: number;
+    page_size?: number;
+  }
+
+  interface UserReportCountItem {
+    id: number;
+    date: string;
+    hour: number;
+    minute: number;
+    user_id: number;
+    report_count: number;
+    node_count: number;
+    platform?: string;
+    app_id?: string;
+    app_version?: string;
+  }
+
+  // ── 用户上报次数汇总 (按天) ───────────────────────────────────────────────
+
+  interface UserReportDailyParams {
+    user_id?: number;
+    date_from?: string;
+    date_to?: string;
+    page?: number;
+    page_size?: number;
+  }
+
+  interface UserReportDailyItem {
+    date: string;
+    user_id: number;
+    total_reports: number;
+    max_nodes: number;
+    platform?: string;
+    app_id?: string;
+    app_version?: string;
+  }
+
+  // ── 分布查询公共参数 ──────────────────────────────────────────────────────
+
+  interface DistributionParams {
+    date_from?: string;
+    date_to?: string;
+    app_id?: string;
+    node_id?: number;
+  }
+
+  interface VersionDistributionItem {
+    app_id?: string;
+    app_version?: string;
+    total_reports: number;
+    node_count: number;
+    avg_success_rate: number;
+    avg_delay: number;
+    percentage: number;
+  }
+
+  interface PlatformDistributionItem {
+    platform?: string;
+    total_reports: number;
+    node_count: number;
+    avg_success_rate: number;
+    avg_delay: number;
+    percentage: number;
+  }
+
+  interface CountryDistributionItem {
+    client_country?: string;
+    client_isp?: string;
+    total_reports: number;
+    node_count: number;
+    avg_success_rate: number;
+    avg_delay: number;
+    percentage: number;
+  }
+
+  // ── 失败节点聚合 ──────────────────────────────────────────────────────────
+
+  interface FailedNodesParams {
+    max_success_rate?: number;
+    group_by?: 'country' | 'isp' | 'node' | 'time';
+    date_from?: string;
+    date_to?: string;
+    node_id?: number;
+    client_country?: string;
+    client_isp?: string;
+    app_id?: string;
+  }
+
+  interface FailedNodesByCountryItem {
+    client_country: string;
+    total_reports: number;
+    node_count: number;
+    avg_success_rate: number;
+    avg_delay: number;
+  }
+
+  interface FailedNodesByIspItem {
+    client_country: string;
+    client_isp: string;
+    total_reports: number;
+    node_count: number;
+    avg_success_rate: number;
+    avg_delay: number;
+  }
+
+  interface FailedNodesByNodeItem {
+    node_id: number;
+    client_country: string;
+    client_isp: string;
+    total_reports: number;
+    avg_success_rate: number;
+    avg_delay: number;
+    first_seen: string;
+    last_seen: string;
+  }
+
+  interface FailedNodesByTimeItem {
+    date: string;
+    hour: number;
+    total_reports: number;
+    node_count: number;
+    avg_success_rate: number;
+    avg_delay: number;
+  }
+
+  type FailedNodesItem =
+    | FailedNodesByCountryItem
+    | FailedNodesByIspItem
+    | FailedNodesByNodeItem
+    | FailedNodesByTimeItem;
 }

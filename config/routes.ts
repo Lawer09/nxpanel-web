@@ -110,6 +110,31 @@ export default [
         name: 'server-stat',
         component: './report/server-stat',
       },
+      {
+        path: '/report/perf-aggregated',
+        name: 'perf-aggregated',
+        component: './report/perf-aggregated',
+      },
+      {
+        path: '/report/user-report-count',
+        name: 'user-report-count',
+        component: './report/user-report-count',
+      },
+      {
+        path: '/report/user-report-daily',
+        name: 'user-report-daily',
+        component: './report/user-report-daily',
+      },
+      {
+        path: '/report/perf-distribution',
+        name: 'perf-distribution',
+        component: './report/perf-distribution',
+      },
+      {
+        path: '/report/failed-nodes',
+        name: 'failed-nodes',
+        component: './report/failed-nodes',
+      },
     ],
   },
   {
@@ -137,7 +162,22 @@ export default [
     path: '/system',
     name: 'system',
     icon: 'dashboard',
-    component: './system',
+    routes: [
+      {
+        path: '/system',
+        redirect: '/system/monitor',
+      },
+      {
+        path: '/system/monitor',
+        name: 'monitor',
+        component: './system',
+      },
+      {
+        path: '/system/version',
+        name: 'version',
+        component: './system/version',
+      },
+    ],
   },
   {
     path: '/user-manage',

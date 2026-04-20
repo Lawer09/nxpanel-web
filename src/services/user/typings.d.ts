@@ -26,6 +26,16 @@ declare namespace API {
     name: string;
   }
 
+  interface RegisterMetadata {
+    app_id?: string;
+    app_version?: string;
+    brand?: string;
+    city?: string;
+    country?: string;
+    platform?: string;
+    timestamp?: string;
+  }
+
   interface UserItem {
     id: number;
     email: string;
@@ -57,6 +67,7 @@ declare namespace API {
     plan?: UserPlanLite;
     invite_user?: UserInviteLite;
     group?: UserGroupLite;
+    register_metadata?: RegisterMetadata;
   }
 
   interface UserFetchParams {

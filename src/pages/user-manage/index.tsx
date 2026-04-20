@@ -4,8 +4,10 @@ import {
   App,
   Badge,
   Button,
+  Descriptions,
   Dropdown,
   Modal,
+  Popover,
   Space,
   Tag,
   Tooltip,
@@ -185,6 +187,41 @@ const UserManagePage: React.FC = () => {
         record.created_at
           ? dayjs.unix(record.created_at).format('YYYY-MM-DD HH:mm:ss')
           : '-',
+    },
+    {
+      title: '注册包名',
+      dataIndex: ['register_metadata', 'app_id'],
+      width: 180,
+      search: false,
+      render: (_, record) => {
+        const meta = record.register_metadata;
+        if (!meta?.app_id) return '-';
+        const content = (
+          <Descriptions column={1} size="small" bordered style={{ width: 320 }}>
+            <Descriptions.Item label="应用包名">{meta.app_id}</Descriptions.Item>
+            <Descriptions.Item label="应用版本">{meta.app_version ?? '-'}</Descriptions.Item>
+            <Descriptions.Item label="品牌">{meta.brand ?? '-'}</Descriptions.Item>
+            <Descriptions.Item label="平台">{meta.platform ?? '-'}</Descriptions.Item>
+            <Descriptions.Item label="国家">{meta.country ?? '-'}</Descriptions.Item>
+            <Descriptions.Item label="城市">{meta.city ?? '-'}</Descriptions.Item>
+          </Descriptions>
+        );
+        return (
+          <Popover content={content} title="注册设备信息" trigger="click">
+            <Text style={{ cursor: 'pointer', color: '#1677ff' }}>
+              {meta.app_id}
+            </Text>
+          </Popover>
+        );
+      },
+    },
+    {
+      title: '注册版本',
+      dataIndex: ['register_metadata', 'app_version'],
+      width: 100,
+      search: false,
+      render: (_, record) =>
+        record.register_metadata?.app_version ?? '-',
     },
     {
       title: '操作',
