@@ -139,3 +139,39 @@ export async function getFailedNodes(
     { method: 'GET', params, ...(options || {}) },
   );
 }
+
+// ── 用户留存分析 ─────────────────────────────────────────────────────────────
+
+export async function getRetention(
+  params: API.RetentionParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.RetentionData>>(
+    '/v3/performance/retention',
+    { method: 'GET', params, ...(options || {}) },
+  );
+}
+
+// ── 活跃用户趋势 ─────────────────────────────────────────────────────────────
+
+export async function getActiveUsers(
+  params: API.ActiveUsersParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.ActiveUsersTrendData>>(
+    '/v3/performance/activeUsers',
+    { method: 'GET', params, ...(options || {}) },
+  );
+}
+
+// ── 活跃用户概览 ─────────────────────────────────────────────────────────────
+
+export async function getActiveUsersSummary(
+  params: API.ActiveUsersSummaryParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.ActiveUsersSummaryData>>(
+    '/v3/performance/activeUsersSummary',
+    { method: 'GET', params, ...(options || {}) },
+  );
+}

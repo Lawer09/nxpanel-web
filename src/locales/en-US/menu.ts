@@ -52,6 +52,7 @@ export default {
   'menu.system': 'System',
   'menu.system.monitor': 'System Monitor',
   'menu.system.version': 'Version Management',
+  'menu.system.app-client': 'App Client',
   'menu.user-manage': 'User Manage',
   'menu.plan': 'Plan Manage',
   'menu.order': 'Order Manage',

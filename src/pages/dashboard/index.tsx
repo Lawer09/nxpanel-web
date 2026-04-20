@@ -11,14 +11,24 @@ import {
 import {
   Card,
   Col,
+  DatePicker,
   Row,
+  Select,
+  Space,
   Statistic,
   Table,
   Tag,
+  Tooltip,
   Typography,
 } from 'antd';
-import React from 'react';
+import dayjs from 'dayjs';
+import React, { useState } from 'react';
 import { getStats, getServerLastRank, getServerYesterdayRank } from '@/services/stat/api';
+import {
+  getRetention,
+  getActiveUsers,
+  getActiveUsersSummary,
+} from '@/services/performance/api';
 
 const { Text } = Typography;
 
@@ -52,6 +62,41 @@ const DashboardPage: React.FC = () => {
   const { data: statsRes, loading: statsLoading } = useRequest(getStats);
   const { data: lastRankRes, loading: lastLoading } = useRequest(getServerLastRank);
   const { data: yesterdayRankRes, loading: yesterdayLoading } = useRequest(getServerYesterdayRank);
+
+  // ── 留存 & 活跃用户 ──────────────────────────────────────────────────────
+  const [retentionRange, setRetentionRange] = useState<[string, string]>([
+    dayjs().subtract(14, 'day').format('YYYY-MM-DD'),
+    dayjs().format('YYYY-MM-DD'),
+  ]);
+  const [activeGranularity, setActiveGranularity] = useState<'day' | 'week' | 'month'>('day');
+  const [activeRange, setActiveRange] = useState<[string, string]>([
+    dayjs().subtract(30, 'day').format('YYYY-MM-DD'),
+    dayjs().format('YYYY-MM-DD'),
+  ]);
+
+  const { data: summaryRes, loading: summaryLoading } = useRequest(getActiveUsersSummary, {
+    defaultParams: [{}],
+  });
+  const summary = ((summaryRes as any)?.data ?? summaryRes) as API.ActiveUsersSummaryData | undefined;
+
+  const { data: retentionRes, loading: retentionLoading } = useRequest(
+    () => getRetention({ date_from: retentionRange[0], date_to: retentionRange[1] }),
+    { refreshDeps: [retentionRange] },
+  );
+  const retentionData: API.RetentionCohortItem[] =
+    ((retentionRes as any)?.data?.data ?? (retentionRes as any)?.data) || [];
+
+  const { data: activeRes, loading: activeLoading } = useRequest(
+    () =>
+      getActiveUsers({
+        date_from: activeRange[0],
+        date_to: activeRange[1],
+        granularity: activeGranularity,
+      }),
+    { refreshDeps: [activeRange, activeGranularity] },
+  );
+  const activeData: API.ActiveUsersTrendItem[] =
+    ((activeRes as any)?.data?.data ?? (activeRes as any)?.data) || [];
 
   const stats = (statsRes as any)?.data ?? statsRes as API.StatOverviewData | undefined;
   const lastRank: API.ServerRankItem[] = (lastRankRes as any)?.data?.list ?? (lastRankRes as any)?.list ?? [];
@@ -272,6 +317,160 @@ const DashboardPage: React.FC = () => {
           </Card>
         </Col>
       </Row>
+
+      {/* ── 活跃用户概览 ─────────────────────────────────────────────── */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        <Col xs={24} sm={8}>
+          <Card loading={summaryLoading} size="small">
+            <Statistic
+              title="DAU（日活）"
+              value={summary?.dau?.count ?? '--'}
+              prefix={<TeamOutlined />}
+              valueStyle={{ color: '#1890ff' }}
+            />
+            <GrowthTag value={summary?.dau?.change} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card loading={summaryLoading} size="small">
+            <Statistic
+              title="WAU（周活）"
+              value={summary?.wau?.count ?? '--'}
+              prefix={<TeamOutlined />}
+              valueStyle={{ color: '#52c41a' }}
+            />
+            <GrowthTag value={summary?.wau?.change} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card loading={summaryLoading} size="small">
+            <Statistic
+              title="MAU（月活）"
+              value={summary?.mau?.count ?? '--'}
+              prefix={<TeamOutlined />}
+              valueStyle={{ color: '#722ed1' }}
+            />
+            <GrowthTag value={summary?.mau?.change} />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* ── 留存矩阵 ─────────────────────────────────────────────────── */}
+      <Card
+        title="用户留存分析"
+        loading={retentionLoading}
+        style={{ marginBottom: 16 }}
+        extra={
+          <DatePicker.RangePicker
+            value={[dayjs(retentionRange[0]), dayjs(retentionRange[1])]}
+            onChange={(dates) => {
+              if (dates && dates[0] && dates[1]) {
+                setRetentionRange([
+                  dates[0].format('YYYY-MM-DD'),
+                  dates[1].format('YYYY-MM-DD'),
+                ]);
+              }
+            }}
+            allowClear={false}
+          />
+        }
+      >
+        <Table<API.RetentionCohortItem>
+          size="small"
+          rowKey="date"
+          dataSource={retentionData}
+          pagination={false}
+          scroll={{ x: 900 }}
+          bordered
+          columns={[
+            { title: '日期', dataIndex: 'date', width: 110, fixed: 'left' },
+            { title: '活跃用户', dataIndex: 'active_users', width: 90 },
+            ...([1, 3, 7, 14, 30] as const).map((d) => ({
+              title: `Day+${d}`,
+              key: `day_${d}`,
+              width: 120,
+              render: (_: any, record: API.RetentionCohortItem) => {
+                const r = record.retention?.[`day_${d}` as keyof typeof record.retention];
+                if (!r) return <Text type="secondary">-</Text>;
+                const color =
+                  r.rate >= 50 ? '#52c41a' : r.rate >= 20 ? '#faad14' : '#ff4d4f';
+                return (
+                  <Tooltip title={`${r.count} 人`}>
+                    <Tag color={color}>{r.rate.toFixed(1)}%</Tag>
+                  </Tooltip>
+                );
+              },
+            })),
+          ]}
+        />
+      </Card>
+
+      {/* ── 活跃用户趋势 ─────────────────────────────────────────────── */}
+      <Card
+        title="活跃用户趋势"
+        loading={activeLoading}
+        style={{ marginBottom: 16 }}
+        extra={
+          <Space>
+            <Select
+              value={activeGranularity}
+              onChange={setActiveGranularity}
+              style={{ width: 100 }}
+              options={[
+                { label: '按天', value: 'day' },
+                { label: '按周', value: 'week' },
+                { label: '按月', value: 'month' },
+              ]}
+            />
+            <DatePicker.RangePicker
+              value={[dayjs(activeRange[0]), dayjs(activeRange[1])]}
+              onChange={(dates) => {
+                if (dates && dates[0] && dates[1]) {
+                  setActiveRange([
+                    dates[0].format('YYYY-MM-DD'),
+                    dates[1].format('YYYY-MM-DD'),
+                  ]);
+                }
+              }}
+              allowClear={false}
+            />
+          </Space>
+        }
+      >
+        <Table<API.ActiveUsersTrendItem>
+          size="small"
+          rowKey="period"
+          dataSource={activeData}
+          pagination={false}
+          scroll={{ x: 600 }}
+          bordered
+          columns={[
+            {
+              title: '周期',
+              dataIndex: 'period',
+              width: 120,
+              render: (_, record) =>
+                record.period_start && record.period_end && record.period_start !== record.period_end
+                  ? `${record.period_start} ~ ${record.period_end}`
+                  : record.period,
+            },
+            {
+              title: '活跃用户',
+              dataIndex: 'active_users',
+              width: 120,
+              sorter: (a, b) => a.active_users - b.active_users,
+              render: (v: number) => <Text strong>{v.toLocaleString()}</Text>,
+            },
+            {
+              title: '总上报次数',
+              dataIndex: 'total_reports',
+              width: 130,
+              sorter: (a, b) => a.total_reports - b.total_reports,
+              render: (v: number) => v.toLocaleString(),
+            },
+          ]}
+        />
+      </Card>
     </PageContainer>
   );
 };

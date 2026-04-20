@@ -38,6 +38,7 @@ export default {
   'menu.system': '系统管理',
   'menu.system.monitor': '系统状态监控',
   'menu.system.version': '版本管理',
+  'menu.system.app-client': '应用管理',
   'menu.dns': '域名解析',
   'menu.profile': '详情页',
   'menu.profile.basic': '基础详情页',

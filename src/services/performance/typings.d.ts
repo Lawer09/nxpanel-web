@@ -252,4 +252,81 @@ declare namespace API {
     | FailedNodesByIspItem
     | FailedNodesByNodeItem
     | FailedNodesByTimeItem;
+
+  // ── 用户留存分析 ──────────────────────────────────────────────────────────
+
+  interface RetentionParams {
+    date_from?: string;
+    date_to?: string;
+    app_id?: string;
+    platform?: string;
+  }
+
+  interface RetentionDayData {
+    count: number;
+    rate: number;
+  }
+
+  interface RetentionCohortItem {
+    date: string;
+    active_users: number;
+    retention: {
+      day_1: RetentionDayData | null;
+      day_3: RetentionDayData | null;
+      day_7: RetentionDayData | null;
+      day_14: RetentionDayData | null;
+      day_30: RetentionDayData | null;
+    };
+  }
+
+  interface RetentionData {
+    data: RetentionCohortItem[];
+    date_from: string;
+    date_to: string;
+    retention_days: number[];
+  }
+
+  // ── 活跃用户趋势 ──────────────────────────────────────────────────────────
+
+  interface ActiveUsersParams {
+    date_from?: string;
+    date_to?: string;
+    app_id?: string;
+    platform?: string;
+    granularity?: 'day' | 'week' | 'month';
+  }
+
+  interface ActiveUsersTrendItem {
+    period: string;
+    period_start?: string;
+    period_end?: string;
+    active_users: number;
+    total_reports: number;
+  }
+
+  interface ActiveUsersTrendData {
+    data: ActiveUsersTrendItem[];
+    granularity: string;
+  }
+
+  // ── 活跃用户概览 ──────────────────────────────────────────────────────────
+
+  interface ActiveUsersSummaryParams {
+    app_id?: string;
+    platform?: string;
+  }
+
+  interface ActiveUsersMetric {
+    count: number;
+    yesterday?: number;
+    last_week?: number;
+    last_month?: number;
+    change: number;
+  }
+
+  interface ActiveUsersSummaryData {
+    dau: ActiveUsersMetric;
+    wau: ActiveUsersMetric;
+    mau: ActiveUsersMetric;
+  }
 }

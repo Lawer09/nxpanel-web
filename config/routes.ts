@@ -177,6 +177,11 @@ export default [
         name: 'version',
         component: './system/version',
       },
+      {
+        path: '/system/app-client',
+        name: 'app-client',
+        component: './system/app-client',
+      },
     ],
   },
   {
