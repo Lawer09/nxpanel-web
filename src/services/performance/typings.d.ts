@@ -87,29 +87,39 @@ declare namespace API {
 
   // ── 聚合性能数据 (5分钟粒度) ──────────────────────────────────────────────
 
+  type AggregatedGroupBy = 'node' | 'country' | 'isp' | 'platform' | 'app_version' | 'date' | 'hour';
+
   interface AggregatedPerformanceParams {
+    group_by?: AggregatedGroupBy;
     node_id?: number;
     date_from?: string;
     date_to?: string;
     client_country?: string;
+    client_isp?: string;
     platform?: string;
+    app_id?: string;
+    app_version?: string;
     page?: number;
     page_size?: number;
   }
 
   interface AggregatedPerformanceItem {
-    id: number;
-    date: string;
-    hour: number;
-    minute: number;
-    node_id: number;
+    id?: number;
+    date?: string;
+    hour?: number;
+    minute?: number;
+    node_id?: number;
     client_country?: string;
     client_city?: string;
-    platform?: string;
     client_isp?: string;
+    platform?: string;
+    app_id?: string;
+    app_version?: string;
     avg_success_rate: number;
     avg_delay: number;
     total_count: number;
+    node_count?: number;
+    record_count?: number;
   }
 
   // ── 用户上报次数 (5分钟粒度) ──────────────────────────────────────────────

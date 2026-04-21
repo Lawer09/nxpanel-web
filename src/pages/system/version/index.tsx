@@ -266,7 +266,7 @@ const VersionPage: React.FC = () => {
         onOk={handleSubmit}
         confirmLoading={submitting}
         width={640}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item

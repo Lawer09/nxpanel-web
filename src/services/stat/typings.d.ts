@@ -126,4 +126,109 @@ declare namespace API {
     commissionPendingTotal?: number;
   }
 
+  // ── App 流量报表 ──────────────────────────────────────────────────────────
+
+  interface AppTrafficBaseParams {
+    app_id?: string;
+    start_time?: number;
+    end_time?: number;
+  }
+
+  interface AppTrafficPageParams extends AppTrafficBaseParams {
+    page?: number;
+    pageSize?: number;
+  }
+
+  interface AppTrafficByAppIdParams extends AppTrafficPageParams {}
+
+  interface AppTrafficByVersionParams extends AppTrafficPageParams {
+    app_version?: string;
+  }
+
+  interface AppTrafficTrendParams extends AppTrafficBaseParams {
+    app_version?: string;
+  }
+
+  interface AppTrafficSummaryParams {
+    app_id?: string;
+    app_version?: string;
+  }
+
+  interface AppTrafficByAppIdItem {
+    app_id: string;
+    u: number;
+    d: number;
+    total: number;
+    user_count: number;
+  }
+
+  interface AppTrafficByVersionItem {
+    app_id: string;
+    app_version: string;
+    u: number;
+    d: number;
+    total: number;
+    user_count: number;
+  }
+
+  interface AppTrafficTrendItem {
+    record_at: number;
+    date: string;
+    u: number;
+    d: number;
+    total: number;
+    user_count: number;
+  }
+
+  interface AppTrafficSummaryItem {
+    app_id: string;
+    app_version: string;
+    u: number;
+    d: number;
+    total: number;
+    transfer_enable: number;
+    user_count: number;
+  }
+
+  interface AppTrafficSummaryData {
+    list: AppTrafficSummaryItem[];
+    summary: {
+      u: number;
+      d: number;
+      total: number;
+      transfer_enable: number;
+      user_count: number;
+    };
+  }
+
+  type AppTrafficAggregateGroupBy = 'app_id' | 'app_version';
+
+  interface AppTrafficAggregateParams {
+    group_by: AppTrafficAggregateGroupBy[];
+    app_id?: string;
+    app_version?: string;
+    min_total?: number;
+    min_user_total?: number;
+    start_time?: number;
+    end_time?: number;
+    page?: number;
+    pageSize?: number;
+  }
+
+  interface AppTrafficAggregateItem {
+    app_id: string;
+    app_version?: string;
+    u: number;
+    d: number;
+    total: number;
+    user_count: number;
+  }
+
+  interface AppTrafficPageData<T> {
+    data: T[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }
+
 }

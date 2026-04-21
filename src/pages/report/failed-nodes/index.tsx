@@ -179,11 +179,11 @@ const FailedNodesPage: React.FC = () => {
     time: timeColumns,
   };
 
-  const rowKeyMap: Record<GroupBy, (r: any) => string> = {
-    country: (r) => r.client_country,
-    isp: (r) => `${r.client_country}_${r.client_isp}`,
-    node: (r) => `${r.node_id}_${r.client_country}_${r.client_isp}`,
-    time: (r) => `${r.date}_${r.hour}`,
+  const rowKeyMap: Record<GroupBy, (r: any, idx: number) => string> = {
+    country: (r, i) => `${r.client_country ?? ''}_${i}`,
+    isp: (r, i) => `${r.client_country ?? ''}_${r.client_isp ?? ''}_${i}`,
+    node: (r, i) => `${r.node_id ?? ''}_${r.client_country ?? ''}_${r.client_isp ?? ''}_${i}`,
+    time: (r, i) => `${r.date ?? ''}_${r.hour ?? ''}_${i}`,
   };
 
   return (

@@ -133,7 +133,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
       onCancel={onClose}
       width={720}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
       styles={{ body: { padding: 0, height: 600 } }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', height: 600 }}>

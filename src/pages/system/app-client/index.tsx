@@ -229,7 +229,7 @@ const AppClientPage: React.FC = () => {
           form.resetFields();
           setEditingRecord(undefined);
         }}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item

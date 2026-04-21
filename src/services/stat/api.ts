@@ -118,3 +118,55 @@ export async function getStats(options?: { [key: string]: any }) {
     ...(options || {}),
   });
 }
+
+// ── App 流量报表 ─────────────────────────────────────────────────────────────
+
+export async function getAppTrafficByAppId(
+  params: API.AppTrafficByAppIdParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.AppTrafficPageData<API.AppTrafficByAppIdItem>>>(
+    '/v3/stat/appTraffic/byAppId',
+    { method: 'GET', params, ...(options || {}) },
+  );
+}
+
+export async function getAppTrafficByVersion(
+  params: API.AppTrafficByVersionParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.AppTrafficPageData<API.AppTrafficByVersionItem>>>(
+    '/v3/stat/appTraffic/byVersion',
+    { method: 'GET', params, ...(options || {}) },
+  );
+}
+
+export async function getAppTrafficTrend(
+  params: API.AppTrafficTrendParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<{ list: API.AppTrafficTrendItem[] }>>(
+    '/v3/stat/appTraffic/trend',
+    { method: 'GET', params, ...(options || {}) },
+  );
+}
+
+export async function getAppTrafficSummary(
+  params: API.AppTrafficSummaryParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.AppTrafficSummaryData>>(
+    '/v3/stat/appTraffic/summary',
+    { method: 'GET', params, ...(options || {}) },
+  );
+}
+
+export async function getAppTrafficAggregate(
+  data: API.AppTrafficAggregateParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.AppTrafficPageData<API.AppTrafficAggregateItem>>>(
+    '/v3/stat/appTraffic/aggregate',
+    { method: 'POST', data, ...(options || {}) },
+  );
+}

@@ -14,6 +14,44 @@ declare namespace API {
     | 'http'
     | 'mieru';
 
+  // ── 节点负载 & 运行指标 ────────────────────────────────────────────────────
+
+  interface ServerNodeDiskInfo {
+    total: number;
+    used: number;
+  }
+
+  interface ServerNodeMemInfo {
+    total: number;
+    used: number;
+  }
+
+  interface ServerNodeSwapInfo {
+    total: number;
+    used: number;
+  }
+
+  interface ServerNodeLoadStatus {
+    cpu: number;
+    disk: ServerNodeDiskInfo;
+    mem: ServerNodeMemInfo;
+    swap: ServerNodeSwapInfo;
+    kernel_status?: any;
+    updated_at: number;
+  }
+
+  interface ServerNodeMetrics {
+    uptime: number;
+    goroutines: number;
+    total_users: number;
+    active_users: number;
+    inbound_speed: number;
+    outbound_speed: number;
+    cpu_per_core: number[];
+    load: number[];
+    updated_at: number;
+  }
+
   // ── 节点 ─────────────────────────────────────────────────────────────────────
 
   interface ServerNodeGroupLite {
@@ -57,7 +95,8 @@ declare namespace API {
     online?: number;
     is_online?: number;
     available_status?: number;
-    load_status?: Record<string, any> | null;
+    load_status?: ServerNodeLoadStatus | null;
+    metrics?: ServerNodeMetrics | null;
     groups?: ServerNodeGroupLite[];
     parent?: ServerNode | null;
   }

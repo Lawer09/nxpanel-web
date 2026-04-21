@@ -19,6 +19,7 @@ import {
 import DeployResultModal, { type DeployTarget } from './components/DeployResultModal';
 import GroupFormModal from './components/GroupFormModal';
 import NodeFormModal from './components/NodeFormModal';
+import NodeStatusModal, { NodeStatusSummary } from './components/NodeStatusModal';
 import OnlineUsersModal from './components/OnlineUsersModal';
 import RouteFormModal from './components/RouteFormModal';
 import SwitchDomainModal from './components/SwitchDomainModal';
@@ -61,6 +62,8 @@ const ServerManagePage: React.FC = () => {
   const [onlineUsersModalOpen, setOnlineUsersModalOpen] = useState(false);
   const [switchDomainOpen, setSwitchDomainOpen] = useState(false);
   const [switchDomainServers, setSwitchDomainServers] = useState<API.ServerNode[]>([]);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [statusNode, setStatusNode] = useState<API.ServerNode | undefined>();
 
   const groupOptions = useMemo(
     () => groupRows.map((item) => ({ label: item.name, value: item.id })),
@@ -191,6 +194,22 @@ const ServerManagePage: React.FC = () => {
     //   width: 100,
     //   search: false,
     // },
+    {
+      title: '负载',
+      key: 'load_info',
+      width: 180,
+      search: false,
+      render: (_, record) => (
+        <a
+          onClick={() => {
+            setStatusNode(record);
+            setStatusModalOpen(true);
+          }}
+        >
+          <NodeStatusSummary node={record} />
+        </a>
+      ),
+    },
     {
       title: '权限组',
       dataIndex: 'groups',
@@ -727,6 +746,14 @@ const ServerManagePage: React.FC = () => {
         }}
         onSuccess={() => {
           nodeActionRef.current?.reload();
+        }}
+      />
+      <NodeStatusModal
+        open={statusModalOpen}
+        node={statusNode}
+        onClose={() => {
+          setStatusModalOpen(false);
+          setStatusNode(undefined);
         }}
       />
     </PageContainer>

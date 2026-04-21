@@ -291,7 +291,7 @@ const DashboardPage: React.FC = () => {
       ) : null}
 
       {/* 节点流量排行 */}
-      <Row gutter={16}>
+      <Row gutter={16} hidden>
         <Col xs={24} lg={12}>
           <Card title="实时节点流量排行" loading={lastLoading} style={{ marginBottom: 16 }}>
             <Table

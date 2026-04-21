@@ -111,11 +111,6 @@ export default [
         component: './report/server-stat',
       },
       {
-        path: '/report/perf-aggregated',
-        name: 'perf-aggregated',
-        component: './report/perf-aggregated',
-      },
-      {
         path: '/report/user-report-count',
         name: 'user-report-count',
         component: './report/user-report-count',
@@ -126,14 +121,19 @@ export default [
         component: './report/user-report-daily',
       },
       {
-        path: '/report/perf-distribution',
-        name: 'perf-distribution',
-        component: './report/perf-distribution',
-      },
-      {
         path: '/report/failed-nodes',
         name: 'failed-nodes',
         component: './report/failed-nodes',
+      },
+      {
+        path: '/report/app-traffic',
+        name: 'app-traffic',
+        component: './report/app-traffic',
+      },
+      {
+        path: '/report/perf-group-analysis',
+        name: 'perf-group-analysis',
+        component: './report/perf-group-analysis',
       },
     ],
   },
