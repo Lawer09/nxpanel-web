@@ -18,8 +18,6 @@ declare namespace API {
     gpu_info?: string;
     bandwidth?: number;
     provider?: number;
-    zoneId?: string;
-    zone_id?: string;
     price?: number;
     pay_mode?: number;
     tags?: string;
@@ -27,6 +25,7 @@ declare namespace API {
     is_active?: boolean;
     provider_instance_id?: string;
     provider_nic_id?: string;
+    provider_zone_id?: string;
     last_check_at?: string;
     created_at?: string;
     updated_at?: string;

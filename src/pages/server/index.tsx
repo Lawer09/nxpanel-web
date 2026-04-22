@@ -5,7 +5,6 @@ import React, { useMemo, useRef, useState } from 'react';
 import {
   batchDeployServerNodes,
   copyServerNode,
-  deployServerNode,
   dropServerGroup,
   dropServerNode,
   dropServerRoute,
@@ -83,7 +82,7 @@ const ServerManagePage: React.FC = () => {
     {
       title: 'ID',
       dataIndex: 'id',
-      width: 80,
+      width: 60,
       search: false,
     },
     {
@@ -138,13 +137,13 @@ const ServerManagePage: React.FC = () => {
     {
       title: '倍率',
       dataIndex: 'rate',
-      width: 90,
+      width: 70,
       search: false,
     },
     {
       title: '在线用户',
       dataIndex: 'online',
-      width: 120,
+      width: 100,
       search: false,
       render: (_, record) => {
         const limit = record.online_limit ? String(record.online_limit) : '不限';
@@ -162,13 +161,13 @@ const ServerManagePage: React.FC = () => {
         );
       },
     },
-    {
-      title: '绑定机器',
-      dataIndex: 'machine_id',
-      width: 80,
-      search: false,
-      render: (_, record) => (record.machine_id ? '是' : '否'),
-    },
+    // {
+    //   title: '绑定机器',
+    //   dataIndex: 'machine_id',
+    //   width: 80,
+    //   search: false,
+    //   render: (_, record) => (record.machine_id ? '是' : '否'),
+    // },
     {
       title: '状态',
       dataIndex: 'available_status',

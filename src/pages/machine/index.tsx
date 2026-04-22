@@ -199,21 +199,21 @@ const MachineList: React.FC = () => {
       search: false,
       render: (_, record) => getProviderName(record.provider),
     },
-    {
-      title: 'Price',
-      dataIndex: 'price',
-      search: false,
-      render: (_, record) => (record.price ? `$${record.price}` : '-'),
-    },
-    {
-      title: 'Pay Mode',
-      dataIndex: 'pay_mode',
-      search: false,
-      render: (_, record) =>
-        record.pay_mode
-          ? PAY_MODE_MAP[record.pay_mode] || record.pay_mode
-          : '-',
-    },
+    // {
+    //   title: 'Price',
+    //   dataIndex: 'price',
+    //   search: false,
+    //   render: (_, record) => (record.price ? `$${record.price}` : '-'),
+    // },
+    // {
+    //   title: 'Pay Mode',
+    //   dataIndex: 'pay_mode',
+    //   search: false,
+    //   render: (_, record) =>
+    //     record.pay_mode
+    //       ? PAY_MODE_MAP[record.pay_mode] || record.pay_mode
+    //       : '-',
+    // },
     {
       title: 'Tags',
       dataIndex: 'tags',
@@ -331,6 +331,7 @@ const MachineList: React.FC = () => {
         headerTitle="Machine Management"
         actionRef={actionRef}
         rowKey="id"
+        scroll={{ y: 600 }}
         search={{
           labelWidth: 120,
         }}

@@ -411,7 +411,7 @@ const ImportFromCloudModal: React.FC<ImportFromCloudModalProps> = ({
                   provider: providerId,
                   provider_instance_id: instance.instance_id,
                   provider_nic_id: instance.nic_id,
-                  zone_id: instance.zone_id,
+                  provider_zone_id: instance.zone_id,
                   os_type: instance.image_name,
                   cpu_cores: instance.cpu != null ? String(instance.cpu) : undefined,
                   memory: instance.memory != null ? `${instance.memory}GB` : undefined,
