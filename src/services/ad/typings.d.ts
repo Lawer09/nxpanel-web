@@ -128,4 +128,98 @@ declare namespace API {
     account_ids?: number[];
     assigned_server_id?: string;
   }
+
+  // ── 广告收益报表 ────────────────────────────────────────────────────────────
+
+  interface AdRevenueQuery {
+    date_from?: string;
+    date_to?: string;
+    source_platform?: string;
+    account_id?: number;
+    project_id?: number;
+    provider_app_id?: string;
+    provider_ad_unit_id?: string;
+    country_code?: string;
+    device_platform?: string;
+    ad_format?: string;
+    report_type?: string;
+    order_by?: string;
+    order_dir?: string;
+    page?: number;
+    size?: number;
+  }
+
+  interface AdRevenueItem {
+    report_date: string;
+    source_platform: string;
+    account_id: number;
+    provider_app_id: string;
+    provider_ad_unit_id: string;
+    country_code: string;
+    device_platform: string;
+    ad_format: string;
+    report_type: string;
+    ad_source_code: string;
+    ad_requests: number;
+    matched_requests: number;
+    impressions: number;
+    clicks: number;
+    estimated_earnings: number;
+    ecpm: number;
+    ctr: number;
+    match_rate: number;
+    show_rate: number;
+  }
+
+  interface AdRevenuePagedResponse {
+    page: number;
+    size: number;
+    total: number;
+    items: AdRevenueItem[];
+  }
+
+  type AdRevenueGroupBy =
+    | 'report_date'
+    | 'source_platform'
+    | 'account_id'
+    | 'provider_app_id'
+    | 'provider_ad_unit_id'
+    | 'country_code'
+    | 'device_platform'
+    | 'ad_format'
+    | 'report_type'
+    | 'ad_source_code';
+
+  interface AdRevenueAggregateRequest extends AdRevenueQuery {
+    group_by: AdRevenueGroupBy[];
+  }
+
+  interface AdRevenueTrendQuery extends AdRevenueQuery {
+    compare_date_from?: string;
+    compare_date_to?: string;
+  }
+
+  interface AdRevenueTrendResponse {
+    current: AdRevenueItem[];
+    compare?: AdRevenueItem[];
+  }
+
+  interface AdRevenueSummary {
+    ad_requests: number;
+    impressions: number;
+    clicks: number;
+    estimated_earnings: number;
+    ecpm: number;
+    ctr: number;
+    match_rate: number;
+    account_count: number;
+    app_count: number;
+    day_count: number;
+  }
+
+  interface AdRevenueTopRankRequest extends AdRevenueQuery {
+    rank_by: 'app' | 'ad_unit' | 'country' | 'account' | 'platform';
+    metric?: string;
+    limit?: number;
+  }
 }

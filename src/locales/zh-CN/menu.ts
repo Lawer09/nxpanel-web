@@ -84,4 +84,5 @@ export default {
   'menu.ad.project-mappings': '项目映射',
   'menu.ad.sync-servers': '同步节点',
   'menu.ad.sync-monitor': '同步监控',
+  'menu.ad.ad-revenue': '收益报表',
 };

@@ -243,6 +243,11 @@ export default [
         name: 'sync-monitor',
         component: './ad/sync-monitor',
       },
+      {
+        path: '/ad/ad-revenue',
+        name: 'ad-revenue',
+        component: './ad/ad-revenue',
+      },
     ],
   },
   {

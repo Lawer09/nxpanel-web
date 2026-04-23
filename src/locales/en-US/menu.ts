@@ -84,4 +84,5 @@ export default {
   'menu.ad.project-mappings': 'Project Mappings',
   'menu.ad.sync-servers': 'Sync Servers',
   'menu.ad.sync-monitor': 'Sync Monitor',
+  'menu.ad.ad-revenue': 'Ad Revenue',
 };

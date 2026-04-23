@@ -128,3 +128,42 @@ export async function triggerSyncJob(data: API.SyncTriggerRequest) {
     data,
   });
 }
+
+// ── 广告收益报表 ──────────────────────────────────────────────────────────────
+
+export async function getAdRevenueFetch(params?: API.AdRevenueQuery) {
+  return request<API.ApiResponse<API.AdRevenuePagedResponse>>('/v3/ad-revenue/fetch', {
+    method: 'GET',
+    params,
+  });
+}
+
+export async function postAdRevenueAggregate(data: API.AdRevenueAggregateRequest) {
+  return request<API.ApiResponse<API.AdRevenueItem[]>>('/v3/ad-revenue/aggregate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data,
+  });
+}
+
+export async function getAdRevenueTrend(params?: API.AdRevenueTrendQuery) {
+  return request<API.ApiResponse<API.AdRevenueTrendResponse>>('/v3/ad-revenue/trend', {
+    method: 'GET',
+    params,
+  });
+}
+
+export async function getAdRevenueSummary(params?: API.AdRevenueQuery) {
+  return request<API.ApiResponse<API.AdRevenueSummary>>('/v3/ad-revenue/summary', {
+    method: 'GET',
+    params,
+  });
+}
+
+export async function postAdRevenueTopRank(data: API.AdRevenueTopRankRequest) {
+  return request<API.ApiResponse<API.AdRevenueItem[]>>('/v3/ad-revenue/top-rank', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data,
+  });
+}
