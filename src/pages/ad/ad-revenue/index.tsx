@@ -228,7 +228,7 @@ const AdRevenuePage: React.FC = () => {
       <AggregateTable filters={filters} />
 
       {/* Top 排行 */}
-      <TopRankTable filters={filters} />
+      {/* <TopRankTable filters={filters} /> */}
 
       {/* 明细表 */}
       <Card title="收益明细">

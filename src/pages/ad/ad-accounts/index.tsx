@@ -340,7 +340,7 @@ const AdAccountsPage: React.FC = () => {
         onCancel={() => setBatchOpen(false)}
         onOk={handleBatchAssign}
         confirmLoading={batchLoading}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={batchForm} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item

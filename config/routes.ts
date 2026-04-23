@@ -36,6 +36,42 @@ export default [
     component: './dashboard',
   },
   {
+    path: '/ad',
+    name: 'ad',
+    icon: 'fundOutlined',
+    routes: [
+      {
+        path: '/ad',
+        redirect: '/ad/ad-accounts',
+      },
+      {
+        path: '/ad/ad-accounts',
+        name: 'ad-accounts',
+        component: './ad/ad-accounts',
+      },
+      {
+        path: '/ad/project-mappings',
+        name: 'project-mappings',
+        component: './ad/project-mappings',
+      },
+      {
+        path: '/ad/sync-servers',
+        name: 'sync-servers',
+        component: './ad/sync-servers',
+      },
+      {
+        path: '/ad/sync-monitor',
+        name: 'sync-monitor',
+        component: './ad/sync-monitor',
+      },
+      {
+        path: '/ad/ad-revenue',
+        name: 'ad-revenue',
+        component: './ad/ad-revenue',
+      },
+    ],
+  },
+  {
     path: '/resource',
     name: 'resource',
     icon: 'appstore',
@@ -214,42 +250,7 @@ export default [
     icon: 'customerService',
     component: './ticket',
   },
-  {
-    path: '/ad',
-    name: 'ad',
-    icon: 'fundOutlined',
-    routes: [
-      {
-        path: '/ad',
-        redirect: '/ad/ad-accounts',
-      },
-      {
-        path: '/ad/ad-accounts',
-        name: 'ad-accounts',
-        component: './ad/ad-accounts',
-      },
-      {
-        path: '/ad/project-mappings',
-        name: 'project-mappings',
-        component: './ad/project-mappings',
-      },
-      {
-        path: '/ad/sync-servers',
-        name: 'sync-servers',
-        component: './ad/sync-servers',
-      },
-      {
-        path: '/ad/sync-monitor',
-        name: 'sync-monitor',
-        component: './ad/sync-monitor',
-      },
-      {
-        path: '/ad/ad-revenue',
-        name: 'ad-revenue',
-        component: './ad/ad-revenue',
-      },
-    ],
-  },
+  
   {
     path: '/',
     redirect: '/dashboard',

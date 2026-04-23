@@ -7,6 +7,7 @@ declare namespace API {
     account_name: string;
     account_label: string;
     auth_type: string;
+    credentials_json: Record<string, any>;
     status: string;
     tags: string[];
     assigned_server_id: string;
