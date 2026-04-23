@@ -6,8 +6,8 @@ import { getAdRevenueTrend } from '@/services/ad/api';
 
 const { RangePicker } = DatePicker;
 
-function fmtMoney(v: number) {
-  return `$${v.toFixed(2)}`;
+function fmtMoney(v: any) {
+  return `$${Number(v ?? 0).toFixed(2)}`;
 }
 
 interface TrendChartProps {
@@ -47,10 +47,10 @@ const TrendChart: React.FC<TrendChartProps> = ({ filters }) => {
   const chartData = useMemo(() => {
     const result: { date: string; value: number; series: string }[] = [];
     (trendData.current || []).forEach((item) => {
-      result.push({ date: item.report_date, value: item.estimated_earnings, series: '当前周期' });
+      result.push({ date: item.report_date, value: Number(item.estimated_earnings), series: '当前周期' });
     });
     (trendData.compare || []).forEach((item) => {
-      result.push({ date: item.report_date, value: item.estimated_earnings, series: '对比周期' });
+      result.push({ date: item.report_date, value: Number(item.estimated_earnings), series: '对比周期' });
     });
     return result;
   }, [trendData]);
@@ -58,10 +58,10 @@ const TrendChart: React.FC<TrendChartProps> = ({ filters }) => {
   const impressionData = useMemo(() => {
     const result: { date: string; value: number; series: string }[] = [];
     (trendData.current || []).forEach((item) => {
-      result.push({ date: item.report_date, value: item.impressions, series: '当前周期' });
+      result.push({ date: item.report_date, value: Number(item.impressions), series: '当前周期' });
     });
     (trendData.compare || []).forEach((item) => {
-      result.push({ date: item.report_date, value: item.impressions, series: '对比周期' });
+      result.push({ date: item.report_date, value: Number(item.impressions), series: '对比周期' });
     });
     return result;
   }, [trendData]);

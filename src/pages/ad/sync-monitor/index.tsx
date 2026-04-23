@@ -298,7 +298,7 @@ const SyncMonitorPage: React.FC = () => {
         </Space>
 
         <Table<API.SyncLog>
-          rowKey={(r) => `${r.server_id}_${r.started_at}_${r.scope}`}
+          rowKey="id"
           dataSource={logs}
           columns={logColumns}
           loading={logsLoading}

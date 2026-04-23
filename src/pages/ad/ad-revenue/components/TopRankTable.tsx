@@ -19,8 +19,8 @@ const METRIC_OPTIONS: { label: string; value: string }[] = [
   { label: 'CTR', value: 'ctr' },
 ];
 
-function fmtMoney(v: number) {
-  return `$${(v ?? 0).toFixed(2)}`;
+function fmtMoney(v: any) {
+  return `$${Number(v ?? 0).toFixed(2)}`;
 }
 
 interface TopRankTableProps {
@@ -45,7 +45,7 @@ const TopRankTable: React.FC<TopRankTableProps> = ({ filters }) => {
         limit,
       });
       if (res.code === 0 && res.data) {
-        setData(res.data);
+        setData(res.data.items || []);
       }
     } finally {
       setLoading(false);
@@ -70,9 +70,9 @@ const TopRankTable: React.FC<TopRankTableProps> = ({ filters }) => {
   const columns: ColumnsType<API.AdRevenueItem> = [
     { title: '排名', key: 'rank', width: 60, render: (_, __, idx) => idx + 1 },
     { title: nf.title, dataIndex: nf.dataIndex, key: 'name', width: 180, ellipsis: true },
-    { title: '请求数', dataIndex: 'ad_requests', key: 'ad_requests', width: 100, render: (v) => (v ?? 0).toLocaleString() },
-    { title: '展示量', dataIndex: 'impressions', key: 'impressions', width: 100, render: (v) => (v ?? 0).toLocaleString() },
-    { title: '点击量', dataIndex: 'clicks', key: 'clicks', width: 90, render: (v) => (v ?? 0).toLocaleString() },
+    { title: '请求数', dataIndex: 'ad_requests', key: 'ad_requests', width: 100, render: (v: any) => Number(v ?? 0).toLocaleString() },
+    { title: '展示量', dataIndex: 'impressions', key: 'impressions', width: 100, render: (v: any) => Number(v ?? 0).toLocaleString() },
+    { title: '点击量', dataIndex: 'clicks', key: 'clicks', width: 90, render: (v: any) => Number(v ?? 0).toLocaleString() },
     { title: '预估收益', dataIndex: 'estimated_earnings', key: 'estimated_earnings', width: 110, render: (v) => fmtMoney(v) },
     { title: 'eCPM', dataIndex: 'ecpm', key: 'ecpm', width: 90, render: (v) => fmtMoney(v) },
   ];
@@ -116,7 +116,7 @@ const TopRankTable: React.FC<TopRankTableProps> = ({ filters }) => {
     >
       <Spin spinning={loading}>
         <Table<API.AdRevenueItem>
-          rowKey={(_, idx) => String(idx)}
+          rowKey={(record) => `${record[nameField[rankBy]?.dataIndex as keyof API.AdRevenueItem] ?? ''}-${record.estimated_earnings}`}
           columns={columns}
           dataSource={data}
           size="small"

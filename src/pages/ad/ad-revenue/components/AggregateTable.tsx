@@ -16,12 +16,12 @@ const GROUP_BY_OPTIONS: { label: string; value: API.AdRevenueGroupBy }[] = [
   { label: '广告源', value: 'ad_source_code' },
 ];
 
-function fmtMoney(v: number) {
-  return `$${(v ?? 0).toFixed(2)}`;
+function fmtMoney(v: any) {
+  return `$${Number(v ?? 0).toFixed(2)}`;
 }
 
-function fmtRate(v: number) {
-  return `${((v ?? 0) * 100).toFixed(2)}%`;
+function fmtRate(v: any) {
+  return `${(Number(v ?? 0) * 100).toFixed(2)}%`;
 }
 
 interface AggregateTableProps {
@@ -42,7 +42,7 @@ const AggregateTable: React.FC<AggregateTableProps> = ({ filters }) => {
         group_by: groupBy,
       });
       if (res.code === 0 && res.data) {
-        setData(res.data);
+        setData(res.data.items || []);
       }
     } finally {
       setLoading(false);
@@ -66,9 +66,9 @@ const AggregateTable: React.FC<AggregateTableProps> = ({ filters }) => {
   });
 
   const metricColumns: ColumnsType<API.AdRevenueItem> = [
-    { title: '请求数', dataIndex: 'ad_requests', key: 'ad_requests', width: 100, render: (v) => (v ?? 0).toLocaleString() },
-    { title: '匹配数', dataIndex: 'matched_requests', key: 'matched_requests', width: 100, render: (v) => (v ?? 0).toLocaleString() },
-    { title: '展示量', dataIndex: 'impressions', key: 'impressions', width: 100, render: (v) => (v ?? 0).toLocaleString() },
+    { title: '请求数', dataIndex: 'ad_requests', key: 'ad_requests', width: 100, render: (v: any) => Number(v ?? 0).toLocaleString() },
+    { title: '匹配数', dataIndex: 'matched_requests', key: 'matched_requests', width: 100, render: (v: any) => Number(v ?? 0).toLocaleString() },
+    { title: '展示量', dataIndex: 'impressions', key: 'impressions', width: 100, render: (v: any) => Number(v ?? 0).toLocaleString() },
     { title: '点击量', dataIndex: 'clicks', key: 'clicks', width: 90, render: (v) => (v ?? 0).toLocaleString() },
     { title: '预估收益', dataIndex: 'estimated_earnings', key: 'estimated_earnings', width: 110, render: (v) => fmtMoney(v) },
     { title: 'eCPM', dataIndex: 'ecpm', key: 'ecpm', width: 90, render: (v) => fmtMoney(v) },
@@ -99,7 +99,7 @@ const AggregateTable: React.FC<AggregateTableProps> = ({ filters }) => {
     >
       <Spin spinning={loading}>
         <Table<API.AdRevenueItem>
-          rowKey={(_, idx) => String(idx)}
+          rowKey={(record, idx) => groupBy.map((g) => record[g]).join('-') || String(idx)}
           columns={[...dimColumns, ...metricColumns]}
           dataSource={data}
           size="small"

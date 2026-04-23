@@ -33,12 +33,12 @@ const PLATFORM_OPTIONS = [
   { label: 'IronSource', value: 'ironsource' },
 ];
 
-function fmtMoney(v: number) {
-  return `$${(v ?? 0).toFixed(2)}`;
+function fmtMoney(v: any) {
+  return `$${Number(v ?? 0).toFixed(2)}`;
 }
 
-function fmtRate(v: number) {
-  return `${((v ?? 0) * 100).toFixed(2)}%`;
+function fmtRate(v: any) {
+  return `${(Number(v ?? 0) * 100).toFixed(2)}%`;
 }
 
 const AdRevenuePage: React.FC = () => {
@@ -116,10 +116,10 @@ const AdRevenuePage: React.FC = () => {
     { title: '国家', dataIndex: 'country_code', key: 'country_code', width: 60 },
     { title: '设备', dataIndex: 'device_platform', key: 'device_platform', width: 80 },
     { title: '广告格式', dataIndex: 'ad_format', key: 'ad_format', width: 90 },
-    { title: '请求数', dataIndex: 'ad_requests', key: 'ad_requests', width: 90, render: (v) => (v ?? 0).toLocaleString() },
-    { title: '匹配数', dataIndex: 'matched_requests', key: 'matched_requests', width: 90, render: (v) => (v ?? 0).toLocaleString() },
-    { title: '展示量', dataIndex: 'impressions', key: 'impressions', width: 90, render: (v) => (v ?? 0).toLocaleString() },
-    { title: '点击量', dataIndex: 'clicks', key: 'clicks', width: 80, render: (v) => (v ?? 0).toLocaleString() },
+    { title: '请求数', dataIndex: 'ad_requests', key: 'ad_requests', width: 90, render: (v: any) => Number(v ?? 0).toLocaleString() },
+    { title: '匹配数', dataIndex: 'matched_requests', key: 'matched_requests', width: 90, render: (v: any) => Number(v ?? 0).toLocaleString() },
+    { title: '展示量', dataIndex: 'impressions', key: 'impressions', width: 90, render: (v: any) => Number(v ?? 0).toLocaleString() },
+    { title: '点击量', dataIndex: 'clicks', key: 'clicks', width: 80, render: (v: any) => Number(v ?? 0).toLocaleString() },
     { title: '预估收益', dataIndex: 'estimated_earnings', key: 'estimated_earnings', width: 100, render: (v) => fmtMoney(v) },
     { title: 'eCPM', dataIndex: 'ecpm', key: 'ecpm', width: 80, render: (v) => fmtMoney(v) },
     { title: 'CTR', dataIndex: 'ctr', key: 'ctr', width: 70, render: (v) => fmtRate(v) },
@@ -185,37 +185,37 @@ const AdRevenuePage: React.FC = () => {
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col span={4}>
             <Card size="small">
-              <Statistic title="预估收益" value={summary?.estimated_earnings ?? 0} precision={2} prefix="$" />
+              <Statistic title="预估收益" value={Number(summary?.estimated_earnings ?? 0)} precision={2} prefix="$" />
             </Card>
           </Col>
           <Col span={4}>
             <Card size="small">
-              <Statistic title="展示量" value={summary?.impressions ?? 0} />
+              <Statistic title="展示量" value={Number(summary?.impressions ?? 0)} />
             </Card>
           </Col>
           <Col span={4}>
             <Card size="small">
-              <Statistic title="点击量" value={summary?.clicks ?? 0} />
+              <Statistic title="点击量" value={Number(summary?.clicks ?? 0)} />
             </Card>
           </Col>
           <Col span={3}>
             <Card size="small">
-              <Statistic title="eCPM" value={summary?.ecpm ?? 0} precision={2} prefix="$" />
+              <Statistic title="eCPM" value={Number(summary?.ecpm ?? 0)} precision={2} prefix="$" />
             </Card>
           </Col>
           <Col span={3}>
             <Card size="small">
-              <Statistic title="CTR" value={(summary?.ctr ?? 0) * 100} precision={2} suffix="%" />
+              <Statistic title="CTR" value={Number(summary?.ctr ?? 0) * 100} precision={2} suffix="%" />
             </Card>
           </Col>
           <Col span={3}>
             <Card size="small">
-              <Statistic title="账号数" value={summary?.account_count ?? 0} />
+              <Statistic title="账号数" value={Number(summary?.account_count ?? 0)} />
             </Card>
           </Col>
           <Col span={3}>
             <Card size="small">
-              <Statistic title="应用数" value={summary?.app_count ?? 0} />
+              <Statistic title="应用数" value={Number(summary?.app_count ?? 0)} />
             </Card>
           </Col>
         </Row>
@@ -233,7 +233,7 @@ const AdRevenuePage: React.FC = () => {
       {/* 明细表 */}
       <Card title="收益明细">
         <Table<API.AdRevenueItem>
-          rowKey={(_, idx) => String(idx)}
+          rowKey={(record) => `${record.report_date}-${record.account_id}-${record.provider_app_id}-${record.provider_ad_unit_id}-${record.country_code}`}
           columns={detailColumns}
           dataSource={detailData}
           loading={detailLoading}

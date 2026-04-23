@@ -139,7 +139,7 @@ export async function getAdRevenueFetch(params?: API.AdRevenueQuery) {
 }
 
 export async function postAdRevenueAggregate(data: API.AdRevenueAggregateRequest) {
-  return request<API.ApiResponse<API.AdRevenueItem[]>>('/v3/ad-revenue/aggregate', {
+  return request<API.ApiResponse<API.AdRevenuePagedResponse>>('/v3/ad-revenue/aggregate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data,
@@ -161,7 +161,7 @@ export async function getAdRevenueSummary(params?: API.AdRevenueQuery) {
 }
 
 export async function postAdRevenueTopRank(data: API.AdRevenueTopRankRequest) {
-  return request<API.ApiResponse<API.AdRevenueItem[]>>('/v3/ad-revenue/top-rank', {
+  return request<API.ApiResponse<API.AdRevenuePagedResponse>>('/v3/ad-revenue/top-rank', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data,
