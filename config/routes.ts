@@ -215,6 +215,42 @@ export default [
     component: './ticket',
   },
   {
+    path: '/ad',
+    name: 'ad',
+    icon: 'fundOutlined',
+    routes: [
+      {
+        path: '/ad',
+        redirect: '/ad/ad-accounts',
+      },
+      {
+        path: '/ad/ad-accounts',
+        name: 'ad-accounts',
+        component: './ad/ad-accounts',
+      },
+      {
+        path: '/ad/batch-assign',
+        name: 'batch-assign',
+        component: './ad/batch-assign',
+      },
+      {
+        path: '/ad/project-mappings',
+        name: 'project-mappings',
+        component: './ad/project-mappings',
+      },
+      {
+        path: '/ad/sync-servers',
+        name: 'sync-servers',
+        component: './ad/sync-servers',
+      },
+      {
+        path: '/ad/sync-monitor',
+        name: 'sync-monitor',
+        component: './ad/sync-monitor',
+      },
+    ],
+  },
+  {
     path: '/',
     redirect: '/dashboard',
   },

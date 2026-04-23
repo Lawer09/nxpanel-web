@@ -79,4 +79,10 @@ export default {
   'menu.plan': '套餐管理',
   'menu.order': '订单管理',
   'menu.ticket': '工单管理',
+  'menu.ad': '广告变现',
+  'menu.ad.ad-accounts': '广告账号管理',
+  'menu.ad.batch-assign': '批量分配',
+  'menu.ad.project-mappings': '项目映射',
+  'menu.ad.sync-servers': '同步节点',
+  'menu.ad.sync-monitor': '同步监控',
 };
