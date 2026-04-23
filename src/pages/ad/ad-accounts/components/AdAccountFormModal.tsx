@@ -93,7 +93,7 @@ const AdAccountFormModal: React.FC<Props> = ({
       onCancel={() => onOpenChange(false)}
       onOk={handleOk}
       width={640}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form form={form} layout="vertical">
         <Space size="middle" style={{ display: 'flex' }}>

@@ -2,12 +2,15 @@ import { PageContainer } from '@ant-design/pro-components';
 import {
   App,
   Button,
+  Form,
   Input,
+  Modal,
   Select,
   Space,
   Switch,
   Table,
   Tag,
+  Tooltip,
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -16,6 +19,7 @@ import {
   getAdAccounts,
   toggleAdAccountStatus,
   testAdAccountCredential,
+  batchAssignServer,
   getSyncServers,
 } from '@/services/ad/api';
 import AdAccountFormModal from './components/AdAccountFormModal';
@@ -50,6 +54,12 @@ const AdAccountsPage: React.FC = () => {
   const [currentRecord, setCurrentRecord] = useState<API.AdAccount | undefined>();
   const [switchLoading, setSwitchLoading] = useState<Record<number, boolean>>({});
   const [testLoading, setTestLoading] = useState<Record<number, boolean>>({});
+
+  // batch assign
+  const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [batchLoading, setBatchLoading] = useState(false);
+  const [batchForm] = Form.useForm();
 
   const loadData = async (p?: number, s?: number) => {
     setLoading(true);
@@ -115,16 +125,42 @@ const AdAccountsPage: React.FC = () => {
     setTestLoading((s) => ({ ...s, [record.id]: false }));
   };
 
+  const handleBatchAssign = async () => {
+    try {
+      const values = await batchForm.validateFields();
+      setBatchLoading(true);
+      const res = await batchAssignServer({
+        account_ids: selectedRowKeys,
+        assigned_server_id: values.assigned_server_id,
+        backup_server_id: values.backup_server_id,
+        isolation_group: values.isolation_group,
+      });
+      setBatchLoading(false);
+      if (res.code !== 0) {
+        messageApi.error(res.msg || '分配失败');
+        return;
+      }
+      messageApi.success(`已成功分配 ${selectedRowKeys.length} 个账号`);
+      setBatchOpen(false);
+      setSelectedRowKeys([]);
+      batchForm.resetFields();
+      loadData();
+    } catch {
+      setBatchLoading(false);
+    }
+  };
+
   const columns: ColumnsType<API.AdAccount> = [
-    { title: 'ID', dataIndex: 'id', width: 60 },
+    { title: 'ID', dataIndex: 'id', width: 60, fixed: 'left' },
     {
       title: '平台',
       dataIndex: 'source_platform',
       width: 100,
+      fixed: 'left',
       render: (v) => <Tag color={PLATFORM_COLORS[v] || 'default'}>{v}</Tag>,
     },
     { title: '账号名', dataIndex: 'account_name', ellipsis: true },
-    { title: '显示名', dataIndex: 'account_label', width: 120, ellipsis: true },
+    { title: '显示名', dataIndex: 'account_label', width: 120, fixed: 'left', ellipsis: true },
     {
       title: '状态',
       dataIndex: 'status',
@@ -139,16 +175,20 @@ const AdAccountsPage: React.FC = () => {
       ),
     },
     {
-      title: '主节点',
+      title: '同步节点',
       dataIndex: 'assigned_server_id',
-      width: 120,
-      render: (v) => v || <Text type="secondary">-</Text>,
-    },
-    {
-      title: '备节点',
-      dataIndex: 'backup_server_id',
-      width: 120,
-      render: (v) => v || <Text type="secondary">-</Text>,
+      width: 130,
+      render: (v, r) => {
+        const main = v || '-';
+        const backup = r.backup_server_id;
+        return backup ? (
+          <Tooltip title={`备选节点: ${backup}`}>
+            <span style={{ cursor: 'pointer', borderBottom: '1px dashed #999' }}>{main}</span>
+          </Tooltip>
+        ) : (
+          <span>{main}</span>
+        );
+      },
     },
     {
       title: '隔离组',
@@ -163,6 +203,7 @@ const AdAccountsPage: React.FC = () => {
       title: '操作',
       key: 'action',
       width: 160,
+      fixed: 'right',
       render: (_, record) => (
         <Space>
           <a
@@ -187,6 +228,13 @@ const AdAccountsPage: React.FC = () => {
   return (
     <PageContainer
       extra={[
+        <Button
+          key="batch"
+          disabled={selectedRowKeys.length === 0}
+          onClick={() => setBatchOpen(true)}
+        >
+          批量分配 ({selectedRowKeys.length})
+        </Button>,
         <Button
           key="add"
           type="primary"
@@ -257,6 +305,11 @@ const AdAccountsPage: React.FC = () => {
         size="middle"
         bordered
         scroll={{ x: 1400 }}
+        rowSelection={{
+          selectedRowKeys,
+          onChange: (keys) => setSelectedRowKeys(keys as number[]),
+          fixed: true,
+        }}
         pagination={{
           current: page,
           pageSize,
@@ -280,6 +333,44 @@ const AdAccountsPage: React.FC = () => {
           loadData();
         }}
       />
+
+      <Modal
+        title={`批量分配 (${selectedRowKeys.length} 个账号)`}
+        open={batchOpen}
+        onCancel={() => setBatchOpen(false)}
+        onOk={handleBatchAssign}
+        confirmLoading={batchLoading}
+        destroyOnClose
+      >
+        <Form form={batchForm} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item
+            name="assigned_server_id"
+            label="主节点"
+            rules={[{ required: true, message: '请选择主节点' }]}
+          >
+            <Select
+              placeholder="选择主节点"
+              options={syncServers.map((s) => ({
+                label: `${s.server_name} (${s.server_id})`,
+                value: s.server_id,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item name="backup_server_id" label="备节点">
+            <Select
+              allowClear
+              placeholder="选择备节点"
+              options={syncServers.map((s) => ({
+                label: `${s.server_name} (${s.server_id})`,
+                value: s.server_id,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item name="isolation_group" label="隔离组">
+            <Input placeholder="可选" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </PageContainer>
   );
 };

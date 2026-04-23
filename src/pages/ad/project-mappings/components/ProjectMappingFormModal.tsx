@@ -70,7 +70,7 @@ const ProjectMappingFormModal: React.FC<Props> = ({
       onCancel={() => onOpenChange(false)}
       onOk={handleOk}
       width={520}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form form={form} layout="vertical">
         <Form.Item

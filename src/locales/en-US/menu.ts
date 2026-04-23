@@ -81,7 +81,6 @@ export default {
   'menu.editor.koni': 'Koni Editor',
   'menu.ad': 'Ad Monetization',
   'menu.ad.ad-accounts': 'Ad Accounts',
-  'menu.ad.batch-assign': 'Batch Assign',
   'menu.ad.project-mappings': 'Project Mappings',
   'menu.ad.sync-servers': 'Sync Servers',
   'menu.ad.sync-monitor': 'Sync Monitor',

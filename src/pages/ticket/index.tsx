@@ -28,7 +28,7 @@ const formatTimestamp = (timestamp?: number) => {
 
 const TicketManage: React.FC = () => {
   const { message, modal } = App.useApp();
-  const actionRef = useRef<ActionType>();
+  const actionRef = useRef<ActionType>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [currentTicket, setCurrentTicket] = useState<API.TicketItem | undefined>();

@@ -229,11 +229,6 @@ export default [
         component: './ad/ad-accounts',
       },
       {
-        path: '/ad/batch-assign',
-        name: 'batch-assign',
-        component: './ad/batch-assign',
-      },
-      {
         path: '/ad/project-mappings',
         name: 'project-mappings',
         component: './ad/project-mappings',
