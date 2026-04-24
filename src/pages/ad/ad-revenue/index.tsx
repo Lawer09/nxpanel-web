@@ -52,8 +52,9 @@ const AdRevenuePage: React.FC = () => {
   // ── 全局筛选 ──────────────────────────────────────────────────────────────
   const [dateRange, setDateRange] = useState<[string, string]>([
     dayjs().subtract(7, 'day').format('YYYY-MM-DD'),
-    dayjs().subtract(1, 'day').format('YYYY-MM-DD'),
+    dayjs().format('YYYY-MM-DD'),
   ]);
+  
   const [platform, setPlatform] = useState<string>();
   const [accountId, setAccountId] = useState<number>();
   const [countryCode, setCountryCode] = useState<string>();

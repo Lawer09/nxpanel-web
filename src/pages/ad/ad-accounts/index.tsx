@@ -24,6 +24,7 @@ import {
 } from '@/services/ad/api';
 import AdAccountFormModal from './components/AdAccountFormModal';
 import ProjectMappingDrawer from './components/ProjectMappingDrawer';
+import { formatUtc8 } from '../utils/time';
 
 const { Text } = Typography;
 
@@ -198,7 +199,15 @@ const AdAccountsPage: React.FC = () => {
     },
     { title: '时区', dataIndex: 'reportingTimezone', width: 120 },
     { title: '币种', dataIndex: 'currencyCode', width: 70 },
-    { title: '更新时间', dataIndex: 'updatedAt', width: 170 },
+    {
+      title: '更新时间',
+      dataIndex: 'updatedAt',
+      width: 170,
+      render: (v) => {
+        const formatted = formatUtc8(v);
+        return formatted === '-' ? <Text type="secondary">-</Text> : formatted;
+      },
+    },
     {
       title: '状态',
       dataIndex: 'status',
