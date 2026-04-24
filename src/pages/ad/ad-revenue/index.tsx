@@ -19,6 +19,7 @@ import {
   getAdRevenueFetch,
   getAdRevenueSummary,
 } from '@/services/ad/api';
+import { formatUtc8 } from '../utils/time';
 import TrendChart from './components/TrendChart';
 import AggregateTable from './components/AggregateTable';
 import TopRankTable from './components/TopRankTable';
@@ -39,6 +40,11 @@ function fmtMoney(v: any) {
 
 function fmtRate(v: any) {
   return `${(Number(v ?? 0) * 100).toFixed(2)}%`;
+}
+
+function fmtUtc8Date(v?: string | null) {
+  if (!v) return '-';
+  return formatUtc8(`${v}T00:00:00Z`);
 }
 
 const AdRevenuePage: React.FC = () => {
@@ -108,7 +114,7 @@ const AdRevenuePage: React.FC = () => {
   }, [dateRange, platform, accountId, countryCode, detailPage, detailSize]);
 
   const detailColumns: ColumnsType<API.AdRevenueItem> = [
-    { title: '日期', dataIndex: 'reportDate', key: 'reportDate', width: 100, fixed: 'left' },
+    { title: '日期', dataIndex: 'reportDate', key: 'reportDate', width: 130, render: (v) => fmtUtc8Date(v) },
     { title: '平台', dataIndex: 'sourcePlatform', key: 'sourcePlatform', width: 90, render: (v) => <Tag>{v}</Tag> },
     { title: '账号 ID', dataIndex: 'accountId', key: 'accountId', width: 80 },
     { title: '应用 ID', dataIndex: 'providerAppId', key: 'providerAppId', width: 140, ellipsis: true },

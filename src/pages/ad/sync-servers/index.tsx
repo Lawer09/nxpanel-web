@@ -12,6 +12,7 @@ import React, { useRef, useState } from 'react';
 import { getSyncServers } from '@/services/ad/api';
 import SyncServerFormModal from './components/SyncServerFormModal';
 import SyncDetailDrawer from './components/SyncDetailDrawer';
+import { formatUtc8 } from '../utils/time';
 
 const { Text } = Typography;
 
@@ -36,7 +37,7 @@ const SyncServersPage: React.FC = () => {
     {
       title: '状态',
       dataIndex: 'status',
-      width: 120,
+      width: 80,
       search: false,
       render: (_, r) => {
         const s = STATUS_MAP[r.status] || { color: 'default', label: r.status };
@@ -48,7 +49,10 @@ const SyncServersPage: React.FC = () => {
       dataIndex: 'lastHeartbeatAt',
       width: 180,
       search: false,
-      render: (v) => v || <Text type="secondary">-</Text>,
+      render: (v) => {
+        const formatted = formatUtc8(v);
+        return formatted === '-' ? <Text type="secondary">-</Text> : formatted;
+      },
     },
     {
       title: '标签',

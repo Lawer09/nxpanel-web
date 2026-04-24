@@ -1,6 +1,7 @@
 import { Line } from '@ant-design/charts';
 import { Card, Col, DatePicker, Row, Space, Spin } from 'antd';
 import dayjs from 'dayjs';
+import { formatUtc8 } from '../../utils/time';
 import React, { useEffect, useMemo, useState } from 'react';
 import { getAdRevenueTrend } from '@/services/ad/api';
 
@@ -8,6 +9,11 @@ const { RangePicker } = DatePicker;
 
 function fmtMoney(v: any) {
   return `$${Number(v ?? 0).toFixed(2)}`;
+}
+
+function fmtUtc8Date(v?: string | null) {
+  if (!v) return '-';
+  return formatUtc8(`${v}T00:00:00Z`);
 }
 
 interface TrendChartProps {
@@ -47,10 +53,10 @@ const TrendChart: React.FC<TrendChartProps> = ({ filters }) => {
   const chartData = useMemo(() => {
     const result: { date: string; value: number; series: string }[] = [];
     (trendData.current || []).forEach((item) => {
-      result.push({ date: item.reportDate, value: Number(item.estimatedEarnings), series: '当前周期' });
+      result.push({ date: fmtUtc8Date(item.reportDate), value: Number(item.estimatedEarnings), series: '当前周期' });
     });
     (trendData.compare || []).forEach((item) => {
-      result.push({ date: item.reportDate, value: Number(item.estimatedEarnings), series: '对比周期' });
+      result.push({ date: fmtUtc8Date(item.reportDate), value: Number(item.estimatedEarnings), series: '对比周期' });
     });
     return result;
   }, [trendData]);
@@ -58,10 +64,10 @@ const TrendChart: React.FC<TrendChartProps> = ({ filters }) => {
   const impressionData = useMemo(() => {
     const result: { date: string; value: number; series: string }[] = [];
     (trendData.current || []).forEach((item) => {
-      result.push({ date: item.reportDate, value: Number(item.impressions), series: '当前周期' });
+      result.push({ date: fmtUtc8Date(item.reportDate), value: Number(item.impressions), series: '当前周期' });
     });
     (trendData.compare || []).forEach((item) => {
-      result.push({ date: item.reportDate, value: Number(item.impressions), series: '对比周期' });
+      result.push({ date: fmtUtc8Date(item.reportDate), value: Number(item.impressions), series: '对比周期' });
     });
     return result;
   }, [trendData]);

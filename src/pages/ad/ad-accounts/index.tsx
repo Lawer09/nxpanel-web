@@ -203,7 +203,7 @@ const AdAccountsPage: React.FC = () => {
       title: '状态',
       dataIndex: 'status',
       fixed: 'right',
-      width: 80,
+      width: 40,
       render: (v, r) => (
         <Switch
           size="small"

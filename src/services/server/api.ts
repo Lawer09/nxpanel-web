@@ -2,10 +2,10 @@ import { request } from '@umijs/max';
 
 // ── 节点管理 ─────────────────────────────────────────────────────────────────
 
-export async function getServerNodes(options?: { [key: string]: any }) {
-  return request<{ data: API.ServerNode[] }>('/server/manage/getNodes', {
+export async function getServerNodes(params?: { page?: number; pageSize?: number } & Record<string, any>) {
+  return request<API.ApiResponse<API.PageResult<API.ServerNode>>>('/v3/server/manage/getNodes', {
     method: 'GET',
-    ...(options || {}),
+    params,
   });
 }
 

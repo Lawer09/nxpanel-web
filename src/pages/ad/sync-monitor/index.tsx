@@ -19,6 +19,7 @@ import {
   triggerSyncJob,
   getSyncServers,
 } from '@/services/ad/api';
+import { formatUtc8 } from '../utils/time';
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -158,7 +159,10 @@ const SyncMonitorPage: React.FC = () => {
       title: '最后成功时间',
       dataIndex: 'lastSuccessAt',
       width: 180,
-      render: (v) => v || <Text type="secondary">-</Text>,
+      render: (v) => {
+        const formatted = formatUtc8(v);
+        return formatted === '-' ? <Text type="secondary">-</Text> : formatted;
+      },
     },
     {
       title: '最后错误',
@@ -191,8 +195,24 @@ const SyncMonitorPage: React.FC = () => {
       render: (v) => <Tag color={STATUS_COLORS[v] || 'default'}>{v}</Tag>,
     },
     { title: '行数', dataIndex: 'rowCount', width: 80, align: 'right' },
-    { title: '开始时间', dataIndex: 'startedAt', width: 180 },
-    { title: '结束时间', dataIndex: 'endedAt', width: 180 },
+    {
+      title: '开始时间',
+      dataIndex: 'startedAt',
+      width: 180,
+      render: (v) => {
+        const formatted = formatUtc8(v);
+        return formatted === '-' ? <Text type="secondary">-</Text> : formatted;
+      },
+    },
+    {
+      title: '结束时间',
+      dataIndex: 'endedAt',
+      width: 180,
+      render: (v) => {
+        const formatted = formatUtc8(v);
+        return formatted === '-' ? <Text type="secondary">-</Text> : formatted;
+      },
+    },
     {
       title: '错误信息',
       dataIndex: 'errorMessage',

@@ -14,6 +14,7 @@ import { ReloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import React, { useEffect, useRef, useState } from 'react';
 import { getSyncStates, getSyncLogs, triggerSyncJob, testSyncServer } from '@/services/ad/api';
+import { formatUtc8 } from '../../utils/time';
 
 const { Text } = Typography;
 
@@ -96,7 +97,7 @@ const SyncDetailDrawer: React.FC<Props> = ({ open, server, onClose }) => {
   };
 
   useEffect(() => {
-    if (open && server) loadStates();
+    // if (open && server) loadStates();
   }, [open, server?.serverId, statesPage]);
 
   const handleRetry = (record: API.SyncState) => {
@@ -114,7 +115,7 @@ const SyncDetailDrawer: React.FC<Props> = ({ open, server, onClose }) => {
           return;
         }
         messageApi.success('已触发重试');
-        loadStates();
+        // loadStates();
       },
     });
   };
@@ -132,7 +133,10 @@ const SyncDetailDrawer: React.FC<Props> = ({ open, server, onClose }) => {
       title: '最后成功',
       dataIndex: 'lastSuccessAt',
       width: 160,
-      render: (v) => v || <Text type="secondary">-</Text>,
+      render: (v) => {
+        const formatted = formatUtc8(v);
+        return formatted === '-' ? <Text type="secondary">-</Text> : formatted;
+      },
     },
     {
       title: '最后错误',
@@ -186,10 +190,13 @@ const SyncDetailDrawer: React.FC<Props> = ({ open, server, onClose }) => {
     },
     {
       title: '开始时间',
-      dataIndex: 'startedFrom',
+      dataIndex: 'startedAt',
       valueType: 'dateRange',
       width: 160,
-      render: (_, record) => record.startedAt || <Text type="secondary">-</Text>,
+      render: (_, record) => {
+        const formatted = formatUtc8(record.startedAt);
+        return formatted === '-' ? <Text type="secondary">-</Text> : formatted;
+      },
       search: {
         transform: (value) => ({
           startedFrom: value[0],
@@ -202,7 +209,10 @@ const SyncDetailDrawer: React.FC<Props> = ({ open, server, onClose }) => {
       dataIndex: 'endedAt',
       width: 160,
       search: false,
-      render: (v) => v || <Text type="secondary">-</Text>,
+      render: (v) => {
+        const formatted = formatUtc8(v);
+        return formatted === '-' ? <Text type="secondary">-</Text> : formatted;
+      },
     },
     {
       title: '错误信息',

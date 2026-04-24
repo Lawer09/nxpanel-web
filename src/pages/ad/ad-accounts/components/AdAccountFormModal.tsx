@@ -158,9 +158,9 @@ const AdAccountFormModal: React.FC<Props> = ({
           </Form.Item>
           <Form.Item
             name="accountName"
-            label="账号名"
-            rules={[{ required: true, message: '请输入账号名' }]}
-            style={{ flex: 1 }}
+            label="发布商账号ID"
+            rules={[{ required: true, message: '请输入发布商账号ID' }]}
+            style={{ flex: 1 , minWidth: 260}}
           >
             <Input placeholder="如 accounts/pub-1234567890" />
           </Form.Item>

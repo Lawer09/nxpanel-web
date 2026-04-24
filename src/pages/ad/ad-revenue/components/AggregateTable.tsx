@@ -2,6 +2,7 @@ import { Card, Select, Space, Spin, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import React, { useEffect, useState } from 'react';
 import { postAdRevenueAggregate } from '@/services/ad/api';
+import { formatUtc8 } from '../../utils/time';
 
 const GROUP_BY_OPTIONS: { label: string; value: API.AdRevenueGroupBy }[] = [
   { label: '日期', value: 'reportDate' },
@@ -22,6 +23,12 @@ function fmtMoney(v: any) {
 
 function fmtRate(v: any) {
   return `${(Number(v ?? 0) * 100).toFixed(2)}%`;
+}
+
+function fmtUtc8Date(v?: string | null) {
+  if (!v) return '-';
+  const value = v.includes('T') ? v : `${v}T00:00:00Z`;
+  return formatUtc8(value).slice(0, 10);
 }
 
 interface AggregateTableProps {
@@ -56,6 +63,16 @@ const AggregateTable: React.FC<AggregateTableProps> = ({ filters }) => {
   // 动态列：根据 groupBy 生成维度列
   const dimColumns: ColumnsType<API.AdRevenueItem> = groupBy.map((g) => {
     const opt = GROUP_BY_OPTIONS.find((o) => o.value === g);
+    if (g === 'reportDate') {
+      return {
+        title: opt?.label ?? g,
+        dataIndex: g,
+        key: g,
+        width: 120,
+        ellipsis: true,
+        render: (v) => fmtUtc8Date(v),
+      };
+    }
     return {
       title: opt?.label ?? g,
       dataIndex: g,
@@ -66,11 +83,11 @@ const AggregateTable: React.FC<AggregateTableProps> = ({ filters }) => {
   });
 
   const metricColumns: ColumnsType<API.AdRevenueItem> = [
+    { title: '预估收益', dataIndex: 'estimatedEarnings', key: 'estimatedEarnings', width: 110, render: (v) => fmtMoney(v) },
     { title: '请求数', dataIndex: 'adRequests', key: 'adRequests', width: 100, render: (v: any) => Number(v ?? 0).toLocaleString() },
     { title: '匹配数', dataIndex: 'matchedRequests', key: 'matchedRequests', width: 100, render: (v: any) => Number(v ?? 0).toLocaleString() },
     { title: '展示量', dataIndex: 'impressions', key: 'impressions', width: 100, render: (v: any) => Number(v ?? 0).toLocaleString() },
     { title: '点击量', dataIndex: 'clicks', key: 'clicks', width: 90, render: (v) => (v ?? 0).toLocaleString() },
-    { title: '预估收益', dataIndex: 'estimatedEarnings', key: 'estimatedEarnings', width: 110, render: (v) => fmtMoney(v) },
     { title: 'eCPM', dataIndex: 'ecpm', key: 'ecpm', width: 90, render: (v) => fmtMoney(v) },
     { title: 'CTR', dataIndex: 'ctr', key: 'ctr', width: 80, render: (v) => fmtRate(v) },
     { title: '匹配率', dataIndex: 'matchRate', key: 'matchRate', width: 80, render: (v) => fmtRate(v) },
@@ -79,7 +96,7 @@ const AggregateTable: React.FC<AggregateTableProps> = ({ filters }) => {
 
   return (
     <Card
-      title="聚合分析"
+      title="统计汇总"
       style={{ marginBottom: 16 }}
       extra={
         <Space>
@@ -99,7 +116,7 @@ const AggregateTable: React.FC<AggregateTableProps> = ({ filters }) => {
     >
       <Spin spinning={loading}>
         <Table<API.AdRevenueItem>
-          rowKey={(record, idx) => groupBy.map((g) => record[g]).join('-') || String(idx)}
+          rowKey={(record, idx) => `${groupBy.map((g) => record[g]).join('-')}-${idx}`}
           columns={[...dimColumns, ...metricColumns]}
           dataSource={data}
           size="small"

@@ -433,7 +433,7 @@ const ServerManagePage: React.FC = () => {
 
   return (
     <PageContainer>
-      {contextHolder}
+      {/* {contextHolder} */}
       <Tabs
         activeKey={activeTab}
         onChange={setActiveTab}
@@ -451,13 +451,15 @@ const ServerManagePage: React.FC = () => {
                   onChange: (keys) => setSelectedNodeKeys(keys as number[]),
                   preserveSelectedRowKeys: true,
                 }}
-                request={async () => {
+                request={async (params) => {
+                  const { current = 1, pageSize = 20 } = params;
                   const [nodesRes, groupsRes, routesRes] = await Promise.all([
-                    getServerNodes(),
+                    getServerNodes({ page: current, pageSize }),
                     fetchServerGroups(),
                     fetchServerRoutes(),
                   ]);
-                  const nodes = Array.isArray(nodesRes?.data) ? nodesRes.data : [];
+                  const nodesPage = nodesRes?.data;
+                  const nodes = nodesPage?.data ?? [];
                   const groups = Array.isArray(groupsRes?.data) ? groupsRes.data : [];
                   const routes = Array.isArray(routesRes?.data) ? routesRes.data : [];
                   setNodeRows(nodes);
@@ -465,10 +467,15 @@ const ServerManagePage: React.FC = () => {
                   setRouteRows(routes);
                   return {
                     data: nodes,
+                    total: nodesPage?.total ?? 0,
                     success: true,
                   };
                 }}
-                pagination={false}
+                pagination={{
+                  defaultPageSize: 20,
+                  showSizeChanger: true,
+                  showTotal: (t) => `共 ${t} 条`,
+                }}
                 search={false}
                 toolBarRender={() => [
                   <Button
