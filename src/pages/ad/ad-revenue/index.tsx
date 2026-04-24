@@ -237,7 +237,7 @@ const AdRevenuePage: React.FC = () => {
       {/* <TopRankTable filters={filters} /> */}
 
       {/* 明细表 */}
-      <Card title="收益明细">
+      {/* <Card title="收益明细">
         <Table<API.AdRevenueItem>
           rowKey={(record) => `${record.reportDate}-${record.accountId}-${record.providerAppId}-${record.providerAdUnitId}-${record.countryCode}`}
           columns={detailColumns}
@@ -254,7 +254,7 @@ const AdRevenuePage: React.FC = () => {
             onChange: (p, s) => { setDetailPage(p); setDetailSize(s); },
           }}
         />
-      </Card>
+      </Card> */}
     </PageContainer>
   );
 };
