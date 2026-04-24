@@ -75,10 +75,11 @@ const DashboardPage: React.FC = () => {
     dayjs().format('YYYY-MM-DD'),
   ]);
 
-  const { data: summaryRes, loading: summaryLoading } = useRequest(getActiveUsersSummary, {
-    defaultParams: [{ appId }],
-    refreshDeps: [appId],
-  });
+  const { data: summaryRes, loading: summaryLoading } = useRequest(
+    () => getActiveUsersSummary({ appId }),
+    { refreshDeps: [appId] },
+  );
+  
   const summary = ((summaryRes as any)?.data ?? summaryRes) as API.ActiveUsersSummaryData | undefined;
 
   const { data: retentionRes, loading: retentionLoading } = useRequest(
