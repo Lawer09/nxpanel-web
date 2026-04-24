@@ -64,6 +64,7 @@ const DashboardPage: React.FC = () => {
   const { data: yesterdayRankRes, loading: yesterdayLoading } = useRequest(getServerYesterdayRank);
 
   // ── 留存 & 活跃用户 ──────────────────────────────────────────────────────
+  const [appId, setAppId] = useState<string | undefined>();
   const [retentionRange, setRetentionRange] = useState<[string, string]>([
     dayjs().subtract(14, 'day').format('YYYY-MM-DD'),
     dayjs().format('YYYY-MM-DD'),
@@ -75,13 +76,14 @@ const DashboardPage: React.FC = () => {
   ]);
 
   const { data: summaryRes, loading: summaryLoading } = useRequest(getActiveUsersSummary, {
-    defaultParams: [{}],
+    defaultParams: [{ appId }],
+    refreshDeps: [appId],
   });
   const summary = ((summaryRes as any)?.data ?? summaryRes) as API.ActiveUsersSummaryData | undefined;
 
   const { data: retentionRes, loading: retentionLoading } = useRequest(
-    () => getRetention({ date_from: retentionRange[0], date_to: retentionRange[1] }),
-    { refreshDeps: [retentionRange] },
+    () => getRetention({ dateFrom: retentionRange[0], dateTo: retentionRange[1], appId }),
+    { refreshDeps: [retentionRange, appId] },
   );
   const retentionData: API.RetentionCohortItem[] =
     ((retentionRes as any)?.data?.data ?? (retentionRes as any)?.data) || [];
@@ -89,11 +91,12 @@ const DashboardPage: React.FC = () => {
   const { data: activeRes, loading: activeLoading } = useRequest(
     () =>
       getActiveUsers({
-        date_from: activeRange[0],
-        date_to: activeRange[1],
+        dateFrom: activeRange[0],
+        dateTo: activeRange[1],
         granularity: activeGranularity,
+        appId,
       }),
-    { refreshDeps: [activeRange, activeGranularity] },
+    { refreshDeps: [activeRange, activeGranularity, appId] },
   );
   const activeData: API.ActiveUsersTrendItem[] =
     ((activeRes as any)?.data?.data ?? (activeRes as any)?.data) || [];
@@ -144,7 +147,24 @@ const DashboardPage: React.FC = () => {
   ];
 
   return (
-    <PageContainer>
+    <PageContainer
+      extra={
+        <Space>
+          <Select
+            value={appId}
+            onChange={setAppId}
+            style={{ width: 260 }}
+            allowClear
+            placeholder="选择包名"
+            options={[
+              { label: 'com.rocket.space.vpn', value: 'com.rocket.space.vpn' },
+              { label: 'com.rocket.hsjd.vpn.jsw', value: 'com.rocket.hsjd.vpn.jsw' },
+              { label: 'com.geektreeone.ddmo.GeekStreeNOOne', value: 'com.geektreeone.ddmo.GeekStreeNOOne' },
+            ]}
+          />
+        </Space>
+      }
+    >
       {/* 核心指标卡片 */}
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} md={6}>
@@ -384,7 +404,7 @@ const DashboardPage: React.FC = () => {
           bordered
           columns={[
             { title: '日期', dataIndex: 'date', width: 110, fixed: 'left' },
-            { title: '活跃用户', dataIndex: 'active_users', width: 90 },
+            { title: '活跃用户', dataIndex: 'activeUsers', width: 90 },
             ...([1, 3, 7, 14, 30] as const).map((d) => ({
               title: `Day+${d}`,
               key: `day_${d}`,
@@ -450,22 +470,22 @@ const DashboardPage: React.FC = () => {
               dataIndex: 'period',
               width: 120,
               render: (_, record) =>
-                record.period_start && record.period_end && record.period_start !== record.period_end
-                  ? `${record.period_start} ~ ${record.period_end}`
+                record.periodStart && record.periodEnd && record.periodStart !== record.periodEnd
+                  ? `${record.periodStart} ~ ${record.periodEnd}`
                   : record.period,
             },
             {
               title: '活跃用户',
-              dataIndex: 'active_users',
+              dataIndex: 'activeUsers',
               width: 120,
-              sorter: (a, b) => a.active_users - b.active_users,
+              sorter: (a, b) => a.activeUsers - b.activeUsers,
               render: (v: number) => <Text strong>{v.toLocaleString()}</Text>,
             },
             {
               title: '总上报次数',
-              dataIndex: 'total_reports',
+              dataIndex: 'totalReports',
               width: 130,
-              sorter: (a, b) => a.total_reports - b.total_reports,
+              sorter: (a, b) => a.totalReports - b.totalReports,
               render: (v: number) => v.toLocaleString(),
             },
           ]}

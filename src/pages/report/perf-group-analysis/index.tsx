@@ -39,48 +39,48 @@ const successRateTag = (rate: number) => {
 
 const colAvgSuccessRate: ColumnsType<API.AggregatedPerformanceItem>[number] = {
   title: '平均成功率',
-  dataIndex: 'avg_success_rate',
-  key: 'avg_success_rate',
+  dataIndex: 'avgSuccessRate',
+  key: 'avgSuccessRate',
   width: 130,
-  render: (_, r) => successRateTag(r.avg_success_rate),
-  sorter: (a, b) => a.avg_success_rate - b.avg_success_rate,
+  render: (_, r) => successRateTag(r.avgSuccessRate),
+  sorter: (a, b) => a.avgSuccessRate - b.avgSuccessRate,
 };
 
 const colAvgDelay: ColumnsType<API.AggregatedPerformanceItem>[number] = {
   title: '平均延迟',
-  dataIndex: 'avg_delay',
-  key: 'avg_delay',
+  dataIndex: 'avgDelay',
+  key: 'avgDelay',
   width: 130,
-  render: (_, r) => delayTag(r.avg_delay),
-  sorter: (a, b) => a.avg_delay - b.avg_delay,
+  render: (_, r) => delayTag(r.avgDelay),
+  sorter: (a, b) => a.avgDelay - b.avgDelay,
 };
 
 const colTotalCount: ColumnsType<API.AggregatedPerformanceItem>[number] = {
   title: '上报总数',
-  dataIndex: 'total_count',
-  key: 'total_count',
+  dataIndex: 'totalCount',
+  key: 'totalCount',
   width: 110,
-  sorter: (a, b) => a.total_count - b.total_count,
+  sorter: (a, b) => a.totalCount - b.totalCount,
 };
 
 const colNodeCount: ColumnsType<API.AggregatedPerformanceItem>[number] = {
   title: '节点数',
-  dataIndex: 'node_count',
-  key: 'node_count',
+  dataIndex: 'nodeCount',
+  key: 'nodeCount',
   width: 90,
 };
 
 const colRecordCount: ColumnsType<API.AggregatedPerformanceItem>[number] = {
   title: '记录数',
-  dataIndex: 'record_count',
-  key: 'record_count',
+  dataIndex: 'recordCount',
+  key: 'recordCount',
   width: 90,
 };
 
 /* ── 各维度列定义 ──────────────────────────────────────────────────────── */
 
 const nodeColumns: ColumnsType<API.AggregatedPerformanceItem> = [
-  { title: '节点 ID', dataIndex: 'node_id', key: 'node_id', width: 100 },
+  { title: '节点 ID', dataIndex: 'nodeId', key: 'nodeId', width: 100 },
   colAvgSuccessRate,
   colAvgDelay,
   colTotalCount,
@@ -88,7 +88,7 @@ const nodeColumns: ColumnsType<API.AggregatedPerformanceItem> = [
 ];
 
 const countryColumns: ColumnsType<API.AggregatedPerformanceItem> = [
-  { title: '国家', dataIndex: 'client_country', key: 'client_country', width: 100 },
+  { title: '国家', dataIndex: 'clientCountry', key: 'clientCountry', width: 100 },
   colAvgSuccessRate,
   colAvgDelay,
   colTotalCount,
@@ -97,8 +97,8 @@ const countryColumns: ColumnsType<API.AggregatedPerformanceItem> = [
 ];
 
 const ispColumns: ColumnsType<API.AggregatedPerformanceItem> = [
-  { title: '国家', dataIndex: 'client_country', key: 'client_country', width: 100 },
-  { title: 'ISP', dataIndex: 'client_isp', key: 'client_isp', width: 180, ellipsis: true },
+  { title: '国家', dataIndex: 'clientCountry', key: 'clientCountry', width: 100 },
+  { title: 'ISP', dataIndex: 'clientIsp', key: 'clientIsp', width: 180, ellipsis: true },
   colAvgSuccessRate,
   colAvgDelay,
   colTotalCount,
@@ -122,8 +122,8 @@ const platformColumns: ColumnsType<API.AggregatedPerformanceItem> = [
 ];
 
 const appVersionColumns: ColumnsType<API.AggregatedPerformanceItem> = [
-  { title: 'App ID', dataIndex: 'app_id', key: 'app_id', width: 180, ellipsis: true },
-  { title: '版本', dataIndex: 'app_version', key: 'app_version', width: 120 },
+  { title: 'App ID', dataIndex: 'appId', key: 'appId', width: 180, ellipsis: true },
+  { title: '版本', dataIndex: 'appVersion', key: 'appVersion', width: 120 },
   colAvgSuccessRate,
   colAvgDelay,
   colTotalCount,
@@ -163,17 +163,17 @@ const columnsMap: Record<GroupBy, ColumnsType<API.AggregatedPerformanceItem>> = 
   country: countryColumns,
   isp: ispColumns,
   platform: platformColumns,
-  app_version: appVersionColumns,
+  appVersion: appVersionColumns,
   date: dateColumns,
   hour: hourColumns,
 };
 
 const rowKeyMap: Record<GroupBy, (r: API.AggregatedPerformanceItem, idx?: number) => string> = {
-  node: (r, i) => `${r.node_id ?? i}`,
-  country: (r, i) => `${r.client_country ?? i}`,
-  isp: (r, i) => `${r.client_country ?? ''}_${r.client_isp ?? ''}_${i}`,
+  node: (r, i) => `${r.nodeId ?? i}`,
+  country: (r, i) => `${r.clientCountry ?? i}`,
+  isp: (r, i) => `${r.clientCountry ?? ''}_${r.clientIsp ?? ''}_${i}`,
   platform: (r, i) => `${r.platform ?? i}`,
-  app_version: (r, i) => `${r.app_id ?? ''}_${r.app_version ?? ''}_${i}`,
+  appVersion: (r, i) => `${r.appId ?? ''}_${r.appVersion ?? ''}_${i}`,
   date: (r, i) => `${r.date ?? i}`,
   hour: (r, i) => `${r.date ?? ''}_${r.hour ?? ''}_${i}`,
 };
@@ -183,7 +183,7 @@ const groupByOptions: { label: string; value: GroupBy }[] = [
   { label: '按国家聚合', value: 'country' },
   { label: '按 ISP 聚合', value: 'isp' },
   { label: '按平台聚合', value: 'platform' },
-  { label: '按应用版本聚合', value: 'app_version' },
+  { label: '按应用版本聚合', value: 'appVersion' },
   { label: '按日期聚合', value: 'date' },
   { label: '按小时聚合', value: 'hour' },
 ];
@@ -206,17 +206,17 @@ const PerfGroupAnalysisPage: React.FC = () => {
   const { data: res, loading } = useRequest(
     () =>
       getAggregatedPerformance({
-        group_by: groupBy,
-        node_id: nodeId,
-        client_country: country,
-        client_isp: isp,
+        groupBy: groupBy,
+        nodeId: nodeId,
+        clientCountry: country,
+        clientIsp: isp,
         platform,
-        app_id: appId,
-        app_version: appVersion,
-        date_from: dateRange?.[0],
-        date_to: dateRange?.[1],
+        appId : appId,
+        appVersion: appVersion,
+        dateFrom: dateRange?.[0],
+        dateTo: dateRange?.[1],
         page,
-        page_size: pageSize,
+        pageSize: pageSize,
       }),
     {
       refreshDeps: [groupBy, dateRange, nodeId, country, isp, platform, appId, appVersion, page, pageSize],

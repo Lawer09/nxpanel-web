@@ -44,6 +44,8 @@ const SyncDetailDrawer: React.FC<Props> = ({ open, server, onClose }) => {
   const [testLoading, setTestLoading] = useState(false);
   const [testResult, setTestResult] = useState<API.TestSyncResult | null>(null);
   const [testResultOpen, setTestResultOpen] = useState(false);
+  const [errorModalOpen, setErrorModalOpen] = useState(false);
+  const [errorModalContent, setErrorModalContent] = useState<string>('');
 
   // ── 同步状态（简单表格） ──
   const [states, setStates] = useState<API.SyncState[]>([]);
@@ -219,8 +221,21 @@ const SyncDetailDrawer: React.FC<Props> = ({ open, server, onClose }) => {
       dataIndex: 'errorMessage',
       ellipsis: true,
       search: false,
-      render: (v) =>
-        v ? <Text type="danger">{String(v)}</Text> : <Text type="secondary">-</Text>,
+      render: (v, record) => {
+        const raw = record?.errorMessage ?? v;
+        if (!raw) return <Text type="secondary">-</Text>;
+        const text = typeof raw === 'string' ? raw : JSON.stringify(raw);
+        return (
+          <a
+            onClick={() => {
+              setErrorModalContent(text);
+              setErrorModalOpen(true);
+            }}
+          >
+            <Text type="secondary">{text}</Text>
+          </a>
+        );
+      },
     },
   ];
 
@@ -329,6 +344,18 @@ const SyncDetailDrawer: React.FC<Props> = ({ open, server, onClose }) => {
             </Descriptions.Item>
           </Descriptions>
         )}
+      </Modal>
+
+      <Modal
+        title="错误信息"
+        open={errorModalOpen}
+        onCancel={() => setErrorModalOpen(false)}
+        footer={null}
+        width={720}
+      >
+        <pre style={{ margin: 0, maxHeight: 400, overflow: 'auto', fontSize: 12 }}>
+          {errorModalContent}
+        </pre>
       </Modal>
     </Drawer>
   );

@@ -2,105 +2,105 @@
 declare namespace API {
     
   interface PerformanceFetchParams {
-    node_id?: number;
-    user_id?: number;
+    nodeId?: number;
+    userId?: number;
     platform?: 'ios' | 'android' | 'windows' | 'macos' | 'linux';
-    client_country?: string;
-    start_at?: number;
-    end_at?: number;
+    clientCountry?: string;
+    startAt?: number;
+    endAt?: number;
     page?: number;
-    page_size?: number;
+    pageSize?: number;
   }
 
   interface PerformanceRecord {
     id: number;
-    user_id: number;
-    node_id: number;
+    userId: number;
+    nodeId: number;
     delay: number;
-    success_rate: number;
+    successRate: number;
     client_ip?: string;
-    client_country?: string;
-    client_city?: string;
-    client_isp?: string;
+    clientCountry?: string;
+    clientCity?: string;
+    clientIsp?: string;
     platform?: string;
-    app_version?: string;
-    created_at: number;
+    appVersion?: string;
+    createdAt: number;
     user?: { id: number; email: string };
   }
 
   interface PerformanceNodeStatItem {
-    node_id: number;
-    report_count: number;
-    avg_delay: number;
-    min_delay: number;
-    max_delay: number;
-    avg_success_rate: number;
-    unique_users: number;
+    nodeId: number;
+    reportCount: number;
+    avgDelay: number;
+    minDelay: number;
+    maxDelay: number;
+    avgSuccessRate: number;
+    uniqueUsers: number;
   }
 
   interface PerformanceNodeStatsData {
-    period_days: number;
+    periodDays: number;
     data: PerformanceNodeStatItem[];
   }
 
   interface PerformanceTrendItem {
-    time_slot: string;
-    avg_delay: number;
-    min_delay: number;
-    max_delay: number;
-    avg_success_rate: number;
-    report_count: number;
+    timeSlot: string;
+    avgDelay: number;
+    minDelay: number;
+    maxDelay: number;
+    avgSuccessRate: number;
+    reportCount: number;
   }
 
   interface PerformanceTrendData {
-    node_id: number;
-    period_days: number;
+    nodeId: number;
+    periodDays: number;
     granularity: string;
     data: PerformanceTrendItem[];
   }
 
   interface PerformanceGeoItem {
-    client_country: string;
-    report_count: number;
-    unique_users: number;
-    avg_delay: number;
-    avg_success_rate: number;
+    clientCountry: string;
+    reportCount: number;
+    uniqueUsers: number;
+    avgDelay: number;
+    avgSuccessRate: number;
   }
 
   interface PerformanceGeoData {
-    period_days: number;
+    periodDays: number;
     data: PerformanceGeoItem[];
   }
 
   interface PerformancePlatformItem {
     platform: string;
-    report_count: number;
-    unique_users: number;
-    avg_delay: number;
-    avg_success_rate: number;
+    reportCount: number;
+    uniqueUsers: number;
+    avgDelay: number;
+    avgSuccessRate: number;
   }
 
   interface PerformancePlatformData {
-    period_days: number;
+    periodDays: number;
     data: PerformancePlatformItem[];
   }
 
   // ── 聚合性能数据 (5分钟粒度) ──────────────────────────────────────────────
 
-  type AggregatedGroupBy = 'node' | 'country' | 'isp' | 'platform' | 'app_version' | 'date' | 'hour';
+  type AggregatedGroupBy = 'node' | 'country' | 'isp' | 'platform' | 'appVersion' | 'date' | 'hour';
 
   interface AggregatedPerformanceParams {
-    group_by?: AggregatedGroupBy;
-    node_id?: number;
-    date_from?: string;
-    date_to?: string;
-    client_country?: string;
-    client_isp?: string;
+    groupBy?: AggregatedGroupBy;
+    nodeId?: number;
+    dateFrom?: string;
+    dateTo?: string;
+    clientCountry?: string;
+    clientIsp?: string;
     platform?: string;
-    app_id?: string;
-    app_version?: string;
+    appId?: string;
+    appVersion?: string;
     page?: number;
-    page_size?: number;
+    pageSize?: number;
   }
 
   interface AggregatedPerformanceItem {
@@ -108,32 +108,32 @@ declare namespace API {
     date?: string;
     hour?: number;
     minute?: number;
-    node_id?: number;
-    client_country?: string;
-    client_city?: string;
-    client_isp?: string;
+    nodeId?: number;
+    clientCountry?: string;
+    clientCity?: string;
+    clientIsp?: string;
     platform?: string;
-    app_id?: string;
-    app_version?: string;
-    avg_success_rate: number;
-    avg_delay: number;
-    total_count: number;
-    node_count?: number;
-    record_count?: number;
+    appId?: string;
+    appVersion?: string;
+    avgSuccessRate: number;
+    avgDelay: number;
+    totalCount: number;
+    nodeCount?: number;
+    recordCount?: number;
   }
 
   // ── 用户上报次数 (5分钟粒度) ──────────────────────────────────────────────
 
   interface UserReportCountParams {
-    user_id?: number;
-    date_from?: string;
-    date_to?: string;
+    userId?: number;
+    dateFrom?: string;
+    dateTo?: string;
     platform?: string;
-    app_id?: string;
-    order_by?: 'report_count' | 'date' | 'user_id';
-    order_dir?: 'asc' | 'desc';
+    appId?: string;
+    orderBy?: 'reportCount' | 'date' | 'userId';
+    orderDir?: 'asc' | 'desc';
     page?: number;
-    page_size?: number;
+    pageSize?: number;
   }
 
   interface UserReportCountItem {
@@ -141,134 +141,78 @@ declare namespace API {
     date: string;
     hour: number;
     minute: number;
-    user_id: number;
-    report_count: number;
-    node_count: number;
+    userId: number;
+    reportCount: number;
+    nodeCount: number;
     platform?: string;
-    app_id?: string;
-    app_version?: string;
+    appId?: string;
+    appVersion?: string;
   }
 
   // ── 用户上报次数汇总 (按天) ───────────────────────────────────────────────
 
   interface UserReportDailyParams {
-    user_id?: number;
-    date_from?: string;
-    date_to?: string;
+    userId?: number;
+    dateFrom?: string;
+    dateTo?: string;
     page?: number;
-    page_size?: number;
+    pageSize?: number;
   }
 
   interface UserReportDailyItem {
     date: string;
-    user_id: number;
-    total_reports: number;
-    max_nodes: number;
+    userId: number;
+    totalReports: number;
+    maxNodes: number;
     platform?: string;
-    app_id?: string;
-    app_version?: string;
+    appId?: string;
+    appVersion?: string;
   }
 
   // ── 分布查询公共参数 ──────────────────────────────────────────────────────
 
   interface DistributionParams {
-    date_from?: string;
-    date_to?: string;
-    app_id?: string;
-    node_id?: number;
+    dateFrom?: string;
+    dateTo?: string;
+    appId?: string;
+    nodeId?: number;
   }
 
   interface VersionDistributionItem {
-    app_id?: string;
-    app_version?: string;
-    total_reports: number;
-    node_count: number;
-    avg_success_rate: number;
-    avg_delay: number;
+    appId?: string;
+    appVersion?: string;
+    totalReports: number;
+    nodeCount: number;
+    avgSuccessRate: number;
+    avgDelay: number;
     percentage: number;
   }
 
   interface PlatformDistributionItem {
     platform?: string;
-    total_reports: number;
-    node_count: number;
-    avg_success_rate: number;
-    avg_delay: number;
+    totalReports: number;
+    nodeCount: number;
+    avgSuccessRate: number;
+    avgDelay: number;
     percentage: number;
   }
 
   interface CountryDistributionItem {
-    client_country?: string;
-    client_isp?: string;
-    total_reports: number;
-    node_count: number;
-    avg_success_rate: number;
-    avg_delay: number;
+    clientCountry?: string;
+    clientIsp?: string;
+    totalReports: number;
+    nodeCount: number;
+    avgSuccessRate: number;
+    avgDelay: number;
     percentage: number;
   }
-
-  // ── 失败节点聚合 ──────────────────────────────────────────────────────────
-
-  interface FailedNodesParams {
-    max_success_rate?: number;
-    group_by?: 'country' | 'isp' | 'node' | 'time';
-    date_from?: string;
-    date_to?: string;
-    node_id?: number;
-    client_country?: string;
-    client_isp?: string;
-    app_id?: string;
-  }
-
-  interface FailedNodesByCountryItem {
-    client_country: string;
-    total_reports: number;
-    node_count: number;
-    avg_success_rate: number;
-    avg_delay: number;
-  }
-
-  interface FailedNodesByIspItem {
-    client_country: string;
-    client_isp: string;
-    total_reports: number;
-    node_count: number;
-    avg_success_rate: number;
-    avg_delay: number;
-  }
-
-  interface FailedNodesByNodeItem {
-    node_id: number;
-    client_country: string;
-    client_isp: string;
-    total_reports: number;
-    avg_success_rate: number;
-    avg_delay: number;
-    first_seen: string;
-    last_seen: string;
-  }
-
-  interface FailedNodesByTimeItem {
-    date: string;
-    hour: number;
-    total_reports: number;
-    node_count: number;
-    avg_success_rate: number;
-    avg_delay: number;
-  }
-
-  type FailedNodesItem =
-    | FailedNodesByCountryItem
-    | FailedNodesByIspItem
-    | FailedNodesByNodeItem
-    | FailedNodesByTimeItem;
 
   // ── 用户留存分析 ──────────────────────────────────────────────────────────
 
   interface RetentionParams {
-    date_from?: string;
-    date_to?: string;
-    app_id?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    appId?: string;
     platform?: string;
   }
 
@@ -279,39 +223,39 @@ declare namespace API {
 
   interface RetentionCohortItem {
     date: string;
-    active_users: number;
+    activeUsers: number;
     retention: {
-      day_1: RetentionDayData | null;
-      day_3: RetentionDayData | null;
-      day_7: RetentionDayData | null;
-      day_14: RetentionDayData | null;
-      day_30: RetentionDayData | null;
+      day1: RetentionDayData | null;
+      day3: RetentionDayData | null;
+      day7: RetentionDayData | null;
+      day14: RetentionDayData | null;
+      day30: RetentionDayData | null;
     };
   }
 
   interface RetentionData {
     data: RetentionCohortItem[];
-    date_from: string;
-    date_to: string;
-    retention_days: number[];
+    dateFrom: string;
+    dateTo: string;
+    retentionDays: number[];
   }
 
   // ── 活跃用户趋势 ──────────────────────────────────────────────────────────
 
   interface ActiveUsersParams {
-    date_from?: string;
-    date_to?: string;
-    app_id?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    appId?: string;
     platform?: string;
     granularity?: 'day' | 'week' | 'month';
   }
 
   interface ActiveUsersTrendItem {
     period: string;
-    period_start?: string;
-    period_end?: string;
-    active_users: number;
-    total_reports: number;
+    periodStart?: string;
+    periodEnd?: string;
+    activeUsers: number;
+    totalReports: number;
   }
 
   interface ActiveUsersTrendData {
@@ -322,15 +266,15 @@ declare namespace API {
   // ── 活跃用户概览 ──────────────────────────────────────────────────────────
 
   interface ActiveUsersSummaryParams {
-    app_id?: string;
+    appId?: string;
     platform?: string;
   }
 
   interface ActiveUsersMetric {
     count: number;
     yesterday?: number;
-    last_week?: number;
-    last_month?: number;
+    lastWeek?: number;
+    lastMonth?: number;
     change: number;
   }
 

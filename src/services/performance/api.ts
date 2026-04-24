@@ -13,7 +13,7 @@ export async function fetchPerformance(
 }
 
 export async function getPerformanceNodeStats(
-  params: { days?: number; node_id?: number },
+  params: { days?: number; nodeId?: number },
   options?: { [key: string]: any },
 ) {
   return request<API.ApiResponse<API.PerformanceNodeStatsData>>('/performance/nodeStats', {
@@ -24,7 +24,7 @@ export async function getPerformanceNodeStats(
 }
 
 export async function getPerformanceTrend(
-  params: { node_id: number; days?: number; granularity?: 'hour' | 'day' },
+  params: { nodeId: number; days?: number; granularity?: 'hour' | 'day' },
   options?: { [key: string]: any },
 ) {
   return request<API.ApiResponse<API.PerformanceTrendData>>('/performance/trend', {
@@ -35,7 +35,7 @@ export async function getPerformanceTrend(
 }
 
 export async function getPerformanceGeoDistribution(
-  params: { days?: number; node_id?: number },
+  params: { days?: number; nodeId?: number },
   options?: { [key: string]: any },
 ) {
   return request<API.ApiResponse<API.PerformanceGeoData>>('/performance/geoDistribution', {
@@ -46,7 +46,7 @@ export async function getPerformanceGeoDistribution(
 }
 
 export async function getPerformancePlatformStats(
-  params: { days?: number; node_id?: number },
+  params: { days?: number; nodeId?: number },
   options?: { [key: string]: any },
 ) {
   return request<API.ApiResponse<API.PerformancePlatformData>>('/performance/platformStats', {
@@ -88,54 +88,6 @@ export async function getUserReportDaily(
 ) {
   return request<API.ApiResponse<API.PageResult<API.UserReportDailyItem>>>(
     '/v3/performance/userReportDaily',
-    { method: 'GET', params, ...(options || {}) },
-  );
-}
-
-// ── 版本分布 ─────────────────────────────────────────────────────────────────
-
-export async function getVersionDistribution(
-  params: API.DistributionParams,
-  options?: { [key: string]: any },
-) {
-  return request<API.ApiResponse<API.VersionDistributionItem[]>>(
-    '/performance/versionDistribution',
-    { method: 'GET', params, ...(options || {}) },
-  );
-}
-
-// ── 平台分布 ─────────────────────────────────────────────────────────────────
-
-export async function getPlatformDistribution(
-  params: API.DistributionParams,
-  options?: { [key: string]: any },
-) {
-  return request<API.ApiResponse<API.PlatformDistributionItem[]>>(
-    '/performance/platformDistribution',
-    { method: 'GET', params, ...(options || {}) },
-  );
-}
-
-// ── 国家/ISP 分布 ────────────────────────────────────────────────────────────
-
-export async function getCountryDistribution(
-  params: API.DistributionParams,
-  options?: { [key: string]: any },
-) {
-  return request<API.ApiResponse<API.CountryDistributionItem[]>>(
-    '/performance/countryDistribution',
-    { method: 'GET', params, ...(options || {}) },
-  );
-}
-
-// ── 失败节点聚合 ─────────────────────────────────────────────────────────────
-
-export async function getFailedNodes(
-  params: API.FailedNodesParams,
-  options?: { [key: string]: any },
-) {
-  return request<API.ApiResponse<API.FailedNodesItem[]>>(
-    '/v3/performance/failedNodes',
     { method: 'GET', params, ...(options || {}) },
   );
 }

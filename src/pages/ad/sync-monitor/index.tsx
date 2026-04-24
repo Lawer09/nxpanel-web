@@ -175,6 +175,7 @@ const SyncMonitorPage: React.FC = () => {
       title: '操作',
       key: 'action',
       width: 80,
+      fixed: 'right',
       render: (_, record) =>
         record.status === 'failed' ? (
           <a onClick={() => handleRetry(record)}>重试</a>
@@ -217,8 +218,12 @@ const SyncMonitorPage: React.FC = () => {
       title: '错误信息',
       dataIndex: 'errorMessage',
       ellipsis: true,
-      render: (v) =>
-        v ? <Text type="danger">{v}</Text> : <Text type="secondary">-</Text>,
+      render: (v, record) => {
+        const raw = record?.errorMessage ?? v;
+        if (!raw) return <Text type="secondary">-</Text>;
+        const text = typeof raw === 'string' ? raw : JSON.stringify(raw);
+        return <Text type="danger">{text}</Text>;
+      },
     },
   ];
 

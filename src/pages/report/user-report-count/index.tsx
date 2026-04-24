@@ -32,18 +32,18 @@ const UserReportCountPage: React.FC = () => {
     },
     {
       title: '用户ID',
-      dataIndex: 'user_id',
+      dataIndex: 'userId',
       width: 100,
       search: false,
     },
     {
       title: '上报次数',
-      dataIndex: 'report_count',
+      dataIndex: 'reportCount',
       width: 110,
       search: false,
-      sorter: (a, b) => a.report_count - b.report_count,
+      sorter: (a, b) => a.reportCount - b.reportCount,
       render: (_, record) => {
-        const count = record.report_count;
+        const count = record.reportCount;
         if (count >= 100) return <Tag color="error">{count}</Tag>;
         if (count >= 50) return <Tag color="warning">{count}</Tag>;
         return <Tag color="default">{count}</Tag>;
@@ -51,10 +51,10 @@ const UserReportCountPage: React.FC = () => {
     },
     {
       title: '涉及节点数',
-      dataIndex: 'node_count',
+      dataIndex: 'nodeCount',
       width: 110,
       search: false,
-      sorter: (a, b) => a.node_count - b.node_count,
+      sorter: (a, b) => a.nodeCount - b.nodeCount,
     },
     {
       title: '平台',
@@ -65,18 +65,18 @@ const UserReportCountPage: React.FC = () => {
     },
     {
       title: 'App 包名',
-      dataIndex: 'app_id',
+      dataIndex: 'appId',
       width: 200,
       search: false,
       ellipsis: true,
-      render: (_, record) => record.app_id || '-',
+      render: (_, record) => record.appId || '-',
     },
     {
       title: 'App 版本',
-      dataIndex: 'app_version',
+      dataIndex: 'appVersion',
       width: 110,
       search: false,
-      render: (_, record) => record.app_version || '-',
+      render: (_, record) => record.appVersion || '-',
     },
   ];
 
@@ -125,8 +125,8 @@ const UserReportCountPage: React.FC = () => {
                 style={{ width: 140 }}
                 options={[
                   { label: '日期', value: 'date' },
-                  { label: '上报次数', value: 'report_count' },
-                  { label: '用户ID', value: 'user_id' },
+                  { label: '上报次数', value: 'reportCount' },
+                  { label: '用户ID', value: 'userId' },
                 ]}
               />
               <Select
@@ -167,15 +167,15 @@ const UserReportCountPage: React.FC = () => {
         request={async (params) => {
           const { current, pageSize } = params;
           const res = await getUserReportCount({
-            user_id: userId,
+            userId,
             platform,
-            app_id: appId,
-            date_from: dateRange?.[0],
-            date_to: dateRange?.[1],
-            order_by: orderBy as API.UserReportCountParams['order_by'],
-            order_dir: orderDir as API.UserReportCountParams['order_dir'],
+            appId,
+            dateFrom: dateRange?.[0],
+            dateTo: dateRange?.[1],
+            orderBy: orderBy as API.UserReportCountParams['orderBy'],
+            orderDir: orderDir as API.UserReportCountParams['orderDir'],
             page: current,
-            page_size: pageSize,
+            pageSize,
           });
           const payload = (res as any)?.data ?? res;
           return {

@@ -23,18 +23,18 @@ const UserReportDailyPage: React.FC = () => {
     },
     {
       title: '用户ID',
-      dataIndex: 'user_id',
+      dataIndex: 'userId',
       width: 100,
       search: false,
     },
     {
       title: '总上报次数',
-      dataIndex: 'total_reports',
+      dataIndex: 'totalReports',
       width: 120,
       search: false,
-      sorter: (a, b) => a.total_reports - b.total_reports,
+      sorter: (a, b) => a.totalReports - b.totalReports,
       render: (_, record) => {
-        const count = record.total_reports;
+        const count = record.totalReports;
         if (count >= 500) return <Tag color="error">{count}</Tag>;
         if (count >= 200) return <Tag color="warning">{count}</Tag>;
         return <Tag color="default">{count}</Tag>;
@@ -42,10 +42,10 @@ const UserReportDailyPage: React.FC = () => {
     },
     {
       title: '最大节点数',
-      dataIndex: 'max_nodes',
+      dataIndex: 'maxNodes',
       width: 110,
       search: false,
-      sorter: (a, b) => a.max_nodes - b.max_nodes,
+      sorter: (a, b) => a.maxNodes - b.maxNodes,
     },
     {
       title: '平台',
@@ -56,18 +56,18 @@ const UserReportDailyPage: React.FC = () => {
     },
     {
       title: 'App 包名',
-      dataIndex: 'app_id',
+      dataIndex: 'appId',
       width: 200,
       search: false,
       ellipsis: true,
-      render: (_, record) => record.app_id || '-',
+      render: (_, record) => record.appId || '-',
     },
     {
       title: 'App 版本',
-      dataIndex: 'app_version',
+      dataIndex: 'appVersion',
       width: 110,
       search: false,
-      render: (_, record) => record.app_version || '-',
+      render: (_, record) => record.appVersion || '-',
     },
   ];
 
@@ -76,7 +76,7 @@ const UserReportDailyPage: React.FC = () => {
       <ProTable<API.UserReportDailyItem>
         headerTitle="用户上报次数汇总（按天）"
         actionRef={actionRef}
-        rowKey={(record) => `${record.date}_${record.user_id}`}
+        rowKey={(record) => `${record.date}_${record.userId}`}
         search={false}
         toolbar={{
           filter: (
@@ -115,11 +115,11 @@ const UserReportDailyPage: React.FC = () => {
         request={async (params) => {
           const { current, pageSize } = params;
           const res = await getUserReportDaily({
-            user_id: userId,
-            date_from: dateRange?.[0],
-            date_to: dateRange?.[1],
+            userId,
+            dateFrom: dateRange?.[0],
+            dateTo: dateRange?.[1],
             page: current,
-            page_size: pageSize,
+            pageSize,
           });
           const payload = (res as any)?.data ?? res;
           return {

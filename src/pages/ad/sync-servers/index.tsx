@@ -31,7 +31,7 @@ const SyncServersPage: React.FC = () => {
   const [currentServer, setCurrentServer] = useState<API.SyncServer | null>(null);
 
   const columns: ProColumns<API.SyncServer>[] = [
-    { title: '节点 ID', dataIndex: 'serverId', width: 160, search: false },
+    { title: '节点 ID', dataIndex: 'serverId', width: 160, search: false, fixed: 'left' },
     { title: '节点名称', dataIndex: 'serverName', width: 180, search: false },
     { title: '主机 IP', dataIndex: 'hostIp', width: 140, search: false },
     {
@@ -69,6 +69,7 @@ const SyncServersPage: React.FC = () => {
       title: '操作',
       key: 'action',
       width: 200,
+      fixed: 'right',
       search: false,
       render: (_, record) => (
         <Space>

@@ -147,11 +147,6 @@ export default [
         component: './report/user-report-daily',
       },
       {
-        path: '/report/failed-nodes',
-        name: 'failed-nodes',
-        component: './report/failed-nodes',
-      },
-      {
         path: '/report/app-traffic',
         name: 'app-traffic',
         component: './report/app-traffic',
