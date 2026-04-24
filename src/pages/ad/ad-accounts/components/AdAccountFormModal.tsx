@@ -33,34 +33,34 @@ const AdAccountFormModal: React.FC<Props> = ({
   const { message: messageApi } = App.useApp();
   const [form] = Form.useForm();
   const isEdit = !!current;
-  const authType = Form.useWatch('auth_type', form);
+  const authType = Form.useWatch('authType', form);
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
       if (current) {
-        const oauth = current.credentials_json?.oauth;
-        form.setFieldsValue({
-          source_platform: current.source_platform,
-          account_name: current.account_name,
-          account_label: current.account_label,
-          auth_type: current.auth_type,
-          credentials_json: current.auth_type !== 'oauth' && current.credentials_json
-            ? JSON.stringify(current.credentials_json, null, 2)
-            : '',
-          oauth_client_id: oauth?.client_id || '',
-          oauth_client_secret: oauth?.client_secret || '',
-          oauth_refresh_token: oauth?.refresh_token || '',
-          oauth_token_url: oauth?.token_url || '',
-          status: current.status,
-          tags: current.tags,
-          assigned_server_id: current.assigned_server_id || undefined,
-          backup_server_id: current.backup_server_id || undefined,
-          isolation_group: current.isolation_group,
-        });
+        const oauth = current.credentialsJson?.oauth;
+            form.setFieldsValue({
+              sourcePlatform: current.sourcePlatform,
+              accountName: current.accountName,
+              accountLabel: current.accountLabel,
+              authType: current.authType,
+              credentialsJson: current.authType !== 'oauth' && current.credentialsJson
+                ? JSON.stringify(current.credentialsJson, null, 2)
+                : '',
+              oauthClientId: oauth?.clientId || oauth?.client_id || '',
+              oauthClientSecret: oauth?.clientSecret || oauth?.client_secret || '',
+              oauthRefreshToken: oauth?.refreshToken || oauth?.refresh_token || '',
+              oauthTokenUrl: oauth?.tokenUrl || oauth?.token_url || 'https://oauth2.googleapis.com/token',
+              status: current.status,
+              tags: current.tags,
+              assignedServerId: current.assignedServerId || undefined,
+              backupServerId: current.backupServerId || undefined,
+              isolationGroup: current.isolationGroup,
+            });
       } else {
         form.resetFields();
-        form.setFieldsValue({ status: 'enabled', auth_type: 'oauth' });
+        form.setFieldsValue({ status: 'enabled', authType: 'oauth' });
       }
     }
   }, [open, current]);
@@ -72,44 +72,44 @@ const AdAccountFormModal: React.FC<Props> = ({
       // build credentials_json
       let credentials: Record<string, any> | null = null;
       if (authType === 'oauth') {
-        const rt = values.oauth_refresh_token;
-        const cid = values.oauth_client_id;
-        const cs = values.oauth_client_secret;
+            const rt = values.oauthRefreshToken;
+            const cid = values.oauthClientId;
+            const cs = values.oauthClientSecret;
         const hasAll = rt && cid && cs;
         const hasAny = rt || cid || cs;
         if (hasAny && !hasAll) {
           messageApi.warning('Client ID、Client Secret、Refresh Token 需同时填写，否则不会更新凭据');
           credentials = null;
         } else if (hasAll) {
-          const oauthData: Record<string, any> = {
-            refresh_token: rt,
-            client_id: cid,
-            client_secret: cs,
-          };
-          if (values.oauth_token_url) {
-            oauthData.token_url = values.oauth_token_url;
-          }
+              const oauthData: Record<string, any> = {
+                refresh_token: rt,
+                client_id: cid,
+                client_secret: cs,
+              };
+              if (values.oauthTokenUrl) {
+                oauthData.token_url = values.oauthTokenUrl;
+              }
           credentials = { oauth: oauthData };
         }
-      } else if (values.credentials_json) {
+      } else if (values.credentialsJson) {
         try {
-          credentials = JSON.parse(values.credentials_json);
+          credentials = JSON.parse(values.credentialsJson);
         } catch {
           messageApi.error('凭据 JSON 格式不正确');
           return;
         }
       }
       const {
-        oauth_refresh_token,
-        oauth_client_id,
-        oauth_client_secret,
-        oauth_token_url,
-        credentials_json,
+        oauthRefreshToken,
+        oauthClientId,
+        oauthClientSecret,
+        oauthTokenUrl,
+        credentialsJson,
         ...rest
       } = values;
       const payload: API.AdAccountUpsertRequest = {
         ...rest,
-        credentials_json: credentials as any,
+        credentialsJson: credentials as any,
       };
       const res = isEdit
         ? await updateAdAccount(current!.id, payload)
@@ -140,7 +140,7 @@ const AdAccountFormModal: React.FC<Props> = ({
       <Form form={form} layout="vertical">
         <Space size="middle" style={{ display: 'flex' }}>
           <Form.Item
-            name="source_platform"
+            name="sourcePlatform"
             label="平台"
             rules={[{ required: true, message: '请选择平台' }]}
             style={{ flex: 1 }}
@@ -157,7 +157,7 @@ const AdAccountFormModal: React.FC<Props> = ({
             />
           </Form.Item>
           <Form.Item
-            name="account_name"
+            name="accountName"
             label="账号名"
             rules={[{ required: true, message: '请输入账号名' }]}
             style={{ flex: 1 }}
@@ -166,13 +166,13 @@ const AdAccountFormModal: React.FC<Props> = ({
           </Form.Item>
         </Space>
 
-        <Form.Item name="account_label" label="名称">
+        <Form.Item name="accountLabel" label="名称">
           <Input placeholder="可选，便于识别" />
         </Form.Item>
 
         <Space size="middle" style={{ display: 'flex' }}>
           <Form.Item
-            name="auth_type"
+            name="authType"
             label="认证方式"
             rules={[{ required: true }]}
             style={{ flex: 1 }}
@@ -201,7 +201,7 @@ const AdAccountFormModal: React.FC<Props> = ({
         </Space>
 
         <Form.Item
-          name="credentials_json"
+          name="credentialsJson"
           label="凭据 JSON"
           rules={[{ required: !isEdit && authType !== 'oauth', message: '请输入凭据' }]}
           extra={isEdit ? '留空则不更新凭据' : undefined}
@@ -217,7 +217,7 @@ const AdAccountFormModal: React.FC<Props> = ({
             style={{ marginBottom: 16 }}
           >
             <Form.Item
-              name="oauth_refresh_token"
+              name="oauthRefreshToken"
               label="Refresh Token"
               rules={[{ required: !isEdit, message: '请输入 Refresh Token' }]}
             >
@@ -225,7 +225,7 @@ const AdAccountFormModal: React.FC<Props> = ({
             </Form.Item>
             <Space size="middle" style={{ display: 'flex' }}>
               <Form.Item
-                name="oauth_client_id"
+                name="oauthClientId"
                 label="Client ID"
                 rules={[{ required: !isEdit, message: '请输入 Client ID' }]}
                 style={{ flex: 1 }}
@@ -233,7 +233,7 @@ const AdAccountFormModal: React.FC<Props> = ({
                 <Input placeholder="Client ID" />
               </Form.Item>
               <Form.Item
-                name="oauth_client_secret"
+                name="oauthClientSecret"
                 label="Client Secret"
                 rules={[{ required: !isEdit, message: '请输入 Client Secret' }]}
                 style={{ flex: 1 }}
@@ -242,7 +242,7 @@ const AdAccountFormModal: React.FC<Props> = ({
               </Form.Item>
             </Space>
             <Form.Item
-              name="oauth_token_url"
+              name="oauthTokenUrl"
               label="Token URL"
               initialValue="https://oauth2.googleapis.com/token"
               style={{ marginBottom: 0 }}
@@ -253,29 +253,29 @@ const AdAccountFormModal: React.FC<Props> = ({
         )}
 
         <Space size="middle" style={{ display: 'flex' }}>
-          <Form.Item name="assigned_server_id" label="主节点" style={{ flex: 1 }}>
+          <Form.Item name="assignedServerId" label="主节点" style={{ flex: 1 }}>
             <Select
               allowClear
               placeholder="选择主节点"
               options={syncServers.map((s) => ({
-                label: `${s.server_name} (${s.server_id})`,
-                value: s.server_id,
+                label: `${s.serverName} (${s.serverId})`,
+                value: s.serverId,
               }))}
             />
           </Form.Item>
-          <Form.Item name="backup_server_id" label="备节点" style={{ flex: 1 }}>
+          <Form.Item name="backupServerId" label="备节点" style={{ flex: 1 }}>
             <Select
               allowClear
               placeholder="选择备节点"
               options={syncServers.map((s) => ({
-                label: `${s.server_name} (${s.server_id})`,
-                value: s.server_id,
+                label: `${s.serverName} (${s.serverId})`,
+                value: s.serverId,
               }))}
             />
           </Form.Item>
         </Space>
 
-        <Form.Item name="isolation_group" label="隔离组">
+        <Form.Item name="isolationGroup" label="隔离组">
           <Input placeholder="可选" />
         </Form.Item>
 

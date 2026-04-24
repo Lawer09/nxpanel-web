@@ -50,19 +50,9 @@ export default [
         component: './ad/ad-accounts',
       },
       {
-        path: '/ad/project-mappings',
-        name: 'project-mappings',
-        component: './ad/project-mappings',
-      },
-      {
         path: '/ad/sync-servers',
         name: 'sync-servers',
         component: './ad/sync-servers',
-      },
-      {
-        path: '/ad/sync-monitor',
-        name: 'sync-monitor',
-        component: './ad/sync-monitor',
       },
       {
         path: '/ad/ad-revenue',

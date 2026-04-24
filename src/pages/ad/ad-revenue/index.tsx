@@ -52,11 +52,11 @@ const AdRevenuePage: React.FC = () => {
   const [countryCode, setCountryCode] = useState<string>();
 
   const filters: API.AdRevenueQuery = {
-    date_from: dateRange[0],
-    date_to: dateRange[1],
-    source_platform: platform,
-    account_id: accountId,
-    country_code: countryCode,
+    dateFrom: dateRange[0],
+    dateTo: dateRange[1],
+    sourcePlatform: platform,
+    accountId,
+    countryCode,
   };
 
   // ── Summary 卡片 ──────────────────────────────────────────────────────────
@@ -92,10 +92,10 @@ const AdRevenuePage: React.FC = () => {
       const res = await getAdRevenueFetch({
         ...filters,
         page: detailPage,
-        size: detailSize,
+        pageSize: detailSize,
       });
       if (res.code === 0 && res.data) {
-        setDetailData(res.data.items || []);
+        setDetailData(res.data.data || []);
         setDetailTotal(res.data.total || 0);
       }
     } finally {
@@ -108,23 +108,23 @@ const AdRevenuePage: React.FC = () => {
   }, [dateRange, platform, accountId, countryCode, detailPage, detailSize]);
 
   const detailColumns: ColumnsType<API.AdRevenueItem> = [
-    { title: '日期', dataIndex: 'report_date', key: 'report_date', width: 100, fixed: 'left' },
-    { title: '平台', dataIndex: 'source_platform', key: 'source_platform', width: 90, render: (v) => <Tag>{v}</Tag> },
-    { title: '账号 ID', dataIndex: 'account_id', key: 'account_id', width: 80 },
-    { title: '应用 ID', dataIndex: 'provider_app_id', key: 'provider_app_id', width: 140, ellipsis: true },
-    { title: '广告单元', dataIndex: 'provider_ad_unit_id', key: 'provider_ad_unit_id', width: 140, ellipsis: true },
-    { title: '国家', dataIndex: 'country_code', key: 'country_code', width: 60 },
-    { title: '设备', dataIndex: 'device_platform', key: 'device_platform', width: 80 },
-    { title: '广告格式', dataIndex: 'ad_format', key: 'ad_format', width: 90 },
-    { title: '请求数', dataIndex: 'ad_requests', key: 'ad_requests', width: 90, render: (v: any) => Number(v ?? 0).toLocaleString() },
-    { title: '匹配数', dataIndex: 'matched_requests', key: 'matched_requests', width: 90, render: (v: any) => Number(v ?? 0).toLocaleString() },
+    { title: '日期', dataIndex: 'reportDate', key: 'reportDate', width: 100, fixed: 'left' },
+    { title: '平台', dataIndex: 'sourcePlatform', key: 'sourcePlatform', width: 90, render: (v) => <Tag>{v}</Tag> },
+    { title: '账号 ID', dataIndex: 'accountId', key: 'accountId', width: 80 },
+    { title: '应用 ID', dataIndex: 'providerAppId', key: 'providerAppId', width: 140, ellipsis: true },
+    { title: '广告单元', dataIndex: 'providerAdUnitId', key: 'providerAdUnitId', width: 140, ellipsis: true },
+    { title: '国家', dataIndex: 'countryCode', key: 'countryCode', width: 60 },
+    { title: '设备', dataIndex: 'devicePlatform', key: 'devicePlatform', width: 80 },
+    { title: '广告格式', dataIndex: 'adFormat', key: 'adFormat', width: 90 },
+    { title: '请求数', dataIndex: 'adRequests', key: 'adRequests', width: 90, render: (v: any) => Number(v ?? 0).toLocaleString() },
+    { title: '匹配数', dataIndex: 'matchedRequests', key: 'matchedRequests', width: 90, render: (v: any) => Number(v ?? 0).toLocaleString() },
     { title: '展示量', dataIndex: 'impressions', key: 'impressions', width: 90, render: (v: any) => Number(v ?? 0).toLocaleString() },
     { title: '点击量', dataIndex: 'clicks', key: 'clicks', width: 80, render: (v: any) => Number(v ?? 0).toLocaleString() },
-    { title: '预估收益', dataIndex: 'estimated_earnings', key: 'estimated_earnings', width: 100, render: (v) => fmtMoney(v) },
+    { title: '预估收益', dataIndex: 'estimatedEarnings', key: 'estimatedEarnings', width: 100, render: (v) => fmtMoney(v) },
     { title: 'eCPM', dataIndex: 'ecpm', key: 'ecpm', width: 80, render: (v) => fmtMoney(v) },
     { title: 'CTR', dataIndex: 'ctr', key: 'ctr', width: 70, render: (v) => fmtRate(v) },
-    { title: '匹配率', dataIndex: 'match_rate', key: 'match_rate', width: 70, render: (v) => fmtRate(v) },
-    { title: '展示率', dataIndex: 'show_rate', key: 'show_rate', width: 70, render: (v) => fmtRate(v) },
+    { title: '匹配率', dataIndex: 'matchRate', key: 'matchRate', width: 70, render: (v) => fmtRate(v) },
+    { title: '展示率', dataIndex: 'showRate', key: 'showRate', width: 70, render: (v) => fmtRate(v) },
   ];
 
   // ── 渲染 ──────────────────────────────────────────────────────────────────
@@ -185,7 +185,7 @@ const AdRevenuePage: React.FC = () => {
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col span={4}>
             <Card size="small">
-              <Statistic title="预估收益" value={Number(summary?.estimated_earnings ?? 0)} precision={2} prefix="$" />
+              <Statistic title="预估收益" value={Number(summary?.estimatedEarnings ?? 0)} precision={2} prefix="$" />
             </Card>
           </Col>
           <Col span={4}>
@@ -210,12 +210,12 @@ const AdRevenuePage: React.FC = () => {
           </Col>
           <Col span={3}>
             <Card size="small">
-              <Statistic title="账号数" value={Number(summary?.account_count ?? 0)} />
+              <Statistic title="账号数" value={Number(summary?.accountCount ?? 0)} />
             </Card>
           </Col>
           <Col span={3}>
             <Card size="small">
-              <Statistic title="应用数" value={Number(summary?.app_count ?? 0)} />
+              <Statistic title="应用数" value={Number(summary?.appCount ?? 0)} />
             </Card>
           </Col>
         </Row>
@@ -233,7 +233,7 @@ const AdRevenuePage: React.FC = () => {
       {/* 明细表 */}
       <Card title="收益明细">
         <Table<API.AdRevenueItem>
-          rowKey={(record) => `${record.report_date}-${record.account_id}-${record.provider_app_id}-${record.provider_ad_unit_id}-${record.country_code}`}
+          rowKey={(record) => `${record.reportDate}-${record.accountId}-${record.providerAppId}-${record.providerAdUnitId}-${record.countryCode}`}
           columns={detailColumns}
           dataSource={detailData}
           loading={detailLoading}

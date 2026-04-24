@@ -5,14 +5,14 @@ import { postAdRevenueTopRank } from '@/services/ad/api';
 
 const RANK_OPTIONS: { label: string; value: string }[] = [
   { label: '应用', value: 'app' },
-  { label: '广告单元', value: 'ad_unit' },
+  { label: '广告单元', value: 'adUnit' },
   { label: '国家', value: 'country' },
   { label: '账号', value: 'account' },
   { label: '平台', value: 'platform' },
 ];
 
 const METRIC_OPTIONS: { label: string; value: string }[] = [
-  { label: '预估收益', value: 'estimated_earnings' },
+  { label: '预估收益', value: 'estimatedEarnings' },
   { label: '展示量', value: 'impressions' },
   { label: '点击量', value: 'clicks' },
   { label: 'eCPM', value: 'ecpm' },
@@ -30,17 +30,17 @@ interface TopRankTableProps {
 const TopRankTable: React.FC<TopRankTableProps> = ({ filters }) => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<API.AdRevenueItem[]>([]);
-  const [rankBy, setRankBy] = useState<'app' | 'ad_unit' | 'country' | 'account' | 'platform'>('app');
-  const [metric, setMetric] = useState('estimated_earnings');
+  const [rankBy, setRankBy] = useState<'app' | 'adUnit' | 'country' | 'account' | 'platform'>('app');
+  const [metric, setMetric] = useState('estimatedEarnings');
   const [limit, setLimit] = useState(20);
 
   const fetchData = async () => {
-    if (!filters.date_from || !filters.date_to) return;
+    if (!filters.dateFrom || !filters.dateTo) return;
     setLoading(true);
     try {
       const res = await postAdRevenueTopRank({
         ...filters,
-        rank_by: rankBy,
+        rankBy,
         metric,
         limit,
       });
@@ -58,11 +58,11 @@ const TopRankTable: React.FC<TopRankTableProps> = ({ filters }) => {
 
   // 根据 rankBy 决定名称列
   const nameField: Record<string, { title: string; dataIndex: string }> = {
-    app: { title: '应用 ID', dataIndex: 'provider_app_id' },
-    ad_unit: { title: '广告单元', dataIndex: 'provider_ad_unit_id' },
-    country: { title: '国家', dataIndex: 'country_code' },
-    account: { title: '账号 ID', dataIndex: 'account_id' },
-    platform: { title: '平台', dataIndex: 'source_platform' },
+    app: { title: '应用 ID', dataIndex: 'providerAppId' },
+    adUnit: { title: '广告单元', dataIndex: 'providerAdUnitId' },
+    country: { title: '国家', dataIndex: 'countryCode' },
+    account: { title: '账号 ID', dataIndex: 'accountId' },
+    platform: { title: '平台', dataIndex: 'sourcePlatform' },
   };
 
   const nf = nameField[rankBy] || nameField.app;
@@ -70,10 +70,10 @@ const TopRankTable: React.FC<TopRankTableProps> = ({ filters }) => {
   const columns: ColumnsType<API.AdRevenueItem> = [
     { title: '排名', key: 'rank', width: 60, render: (_, __, idx) => idx + 1 },
     { title: nf.title, dataIndex: nf.dataIndex, key: 'name', width: 180, ellipsis: true },
-    { title: '请求数', dataIndex: 'ad_requests', key: 'ad_requests', width: 100, render: (v: any) => Number(v ?? 0).toLocaleString() },
+    { title: '请求数', dataIndex: 'adRequests', key: 'adRequests', width: 100, render: (v: any) => Number(v ?? 0).toLocaleString() },
     { title: '展示量', dataIndex: 'impressions', key: 'impressions', width: 100, render: (v: any) => Number(v ?? 0).toLocaleString() },
     { title: '点击量', dataIndex: 'clicks', key: 'clicks', width: 90, render: (v: any) => Number(v ?? 0).toLocaleString() },
-    { title: '预估收益', dataIndex: 'estimated_earnings', key: 'estimated_earnings', width: 110, render: (v) => fmtMoney(v) },
+    { title: '预估收益', dataIndex: 'estimatedEarnings', key: 'estimatedEarnings', width: 110, render: (v) => fmtMoney(v) },
     { title: 'eCPM', dataIndex: 'ecpm', key: 'ecpm', width: 90, render: (v) => fmtMoney(v) },
   ];
 
@@ -116,7 +116,7 @@ const TopRankTable: React.FC<TopRankTableProps> = ({ filters }) => {
     >
       <Spin spinning={loading}>
         <Table<API.AdRevenueItem>
-          rowKey={(record) => `${record[nameField[rankBy]?.dataIndex as keyof API.AdRevenueItem] ?? ''}-${record.estimated_earnings}`}
+          rowKey={(record) => `${record[nameField[rankBy]?.dataIndex as keyof API.AdRevenueItem] ?? ''}-${record.estimatedEarnings}`}
           columns={columns}
           dataSource={data}
           size="small"

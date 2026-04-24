@@ -48,7 +48,7 @@ const AppTrafficPage: React.FC = () => {
     'app_id',
   ]);
   const [dateRange, setDateRange] = useState<[number, number]>([
-    now.subtract(30, 'day').startOf('day').unix(),
+    now.startOf('day').unix(),
     now.endOf('day').unix(),
   ]);
 

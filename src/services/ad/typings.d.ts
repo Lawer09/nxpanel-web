@@ -3,201 +3,206 @@ declare namespace API {
 
   interface AdAccount {
     id: number;
-    source_platform: string;
-    account_name: string;
-    account_label: string;
-    auth_type: string;
-    credentials_json: Record<string, any>;
+    sourcePlatform: string;
+    accountName: string;
+    accountLabel: string;
+    authType: string;
+    credentialsJson: Record<string, any>;
     status: string;
     tags: string[];
-    assigned_server_id: string;
-    backup_server_id: string;
-    isolation_group: string;
-    reporting_timezone: string;
-    currency_code: string;
-    created_at: string;
-    updated_at: string;
+    assignedServerId: string;
+    backupServerId: string;
+    isolationGroup: string;
+    reportingTimezone: string;
+    currencyCode: string;
+    createdAt: string;
+    updatedAt: string;
   }
 
   interface AdAccountUpsertRequest {
-    source_platform: string;
-    account_name: string;
-    account_label?: string;
-    auth_type: string;
-    credentials_json: Record<string, any>;
+    sourcePlatform: string;
+    accountName: string;
+    accountLabel?: string;
+    authType: string;
+    credentialsJson: Record<string, any>;
     status: string;
     tags?: string[];
-    assigned_server_id?: string;
-    backup_server_id?: string;
-    isolation_group?: string;
+    assignedServerId?: string;
+    backupServerId?: string;
+    isolationGroup?: string;
   }
 
-  interface AdAccountPagedResponse {
-    page: number;
-    size: number;
-    total: number;
-    items: AdAccount[];
-  }
 
   interface AdAccountQuery {
-    source_platform?: string;
+    sourcePlatform?: string;
     status?: string;
-    assigned_server_id?: string;
+    assignedServerId?: string;
     keyword?: string;
     page?: number;
-    size?: number;
+    pageSize?: number;
   }
 
   interface BatchAssignServerRequest {
-    account_ids: number[];
-    assigned_server_id: string;
-    backup_server_id?: string;
-    isolation_group?: string;
+    accountIds: number[];
+    assignedServerId: string;
+    backupServerId?: string;
+    isolationGroup?: string;
   }
 
   // ── 项目映射 ────────────────────────────────────────────────────────────────
 
   interface ProjectMapping {
     id: number;
-    project_id: number;
-    source_platform: string;
-    account_id: number;
-    provider_app_id: string;
+    projectId: number;
+    sourcePlatform: string;
+    accountId: number;
+    providerAppId: string;
     status: string;
-    created_at: string;
-    updated_at: string;
+    createdAt: string;
+    updatedAt: string;
   }
 
   interface ProjectMappingUpsertRequest {
-    project_id: number;
-    source_platform: string;
-    account_id: number;
-    provider_app_id: string;
+    projectId: number;
+    sourcePlatform: string;
+    accountId: number;
+    providerAppId: string;
     status: string;
   }
 
   // ── 同步服务器 ──────────────────────────────────────────────────────────────
 
   interface SyncServer {
-    server_id: string;
-    server_name: string;
-    host_ip: string;
+    serverId: string;
+    serverName: string;
+    hostIp: string;
     status: string;
-    last_heartbeat_at: string;
+    secretKey: string;
+    lastHeartbeatAt: string;
     tags: string[];
   }
 
   interface SyncServerCreateRequest {
-    server_id: string;
-    server_name: string;
-    host_ip?: string;
+    serverId: string;
+    serverName: string;
+    hostIp?: string;
+    secretKey?: string;
     tags?: string[];
+  }
+
+  interface TestSyncResult {
+    url: string;
+    httpStatus: number;
+    body: any;
   }
 
   // ── 同步状态 & 日志 ────────────────────────────────────────────────────────
 
   interface SyncState {
     id: number;
-    scope: string;
-    account_id: number;
+    syncScope: string;
+    accountId: number;
     status: string;
-    last_success_at: string;
-    last_error_message: string;
+    lastSuccessAt: string;
+    lastErrorMessage: string;
   }
 
   interface SyncLog {
     id: number;
-    server_id: string;
+    serverId: string;
     scope: string;
     status: string;
-    row_count: number;
-    started_at: string;
-    ended_at: string;
-    error_message: string;
+    rowCount: number;
+    startedAt: string;
+    endedAt: string;
+    errorMessage: string;
   }
 
   interface SyncLogQuery {
-    server_id?: string;
+    serverId?: string;
     status?: string;
     scope?: string;
-    started_from?: string;
-    started_to?: string;
+    startedFrom?: string;
+    startedTo?: string;
+    page?: number;
+    pageSize?: number;
+  }
+
+  interface SyncStateQuery {
+    serverId?: string;
+    scope?: string;
+    accountId?: number;
+    page?: number;
+    pageSize?: number;
   }
 
   interface SyncTriggerRequest {
     scope: string;
-    account_ids?: number[];
-    assigned_server_id?: string;
+    accountIds?: number[];
+    assignedServerId?: string;
   }
 
   // ── 广告收益报表 ────────────────────────────────────────────────────────────
 
   interface AdRevenueQuery {
-    date_from?: string;
-    date_to?: string;
-    source_platform?: string;
-    account_id?: number;
-    project_id?: number;
-    provider_app_id?: string;
-    provider_ad_unit_id?: string;
-    country_code?: string;
-    device_platform?: string;
-    ad_format?: string;
-    report_type?: string;
-    order_by?: string;
-    order_dir?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    sourcePlatform?: string;
+    accountId?: number;
+    projectId?: number;
+    providerAppId?: string;
+    providerAdUnitId?: string;
+    countryCode?: string;
+    devicePlatform?: string;
+    adFormat?: string;
+    reportType?: string;
+    orderBy?: string;
+    orderDir?: string;
     page?: number;
-    size?: number;
+    pageSize?: number;
   }
 
   interface AdRevenueItem {
-    report_date: string;
-    source_platform: string;
-    account_id: number;
-    provider_app_id: string;
-    provider_ad_unit_id: string;
-    country_code: string;
-    device_platform: string;
-    ad_format: string;
-    report_type: string;
-    ad_source_code: string;
-    ad_requests: number;
-    matched_requests: number;
+    reportDate: string;
+    sourcePlatform: string;
+    accountId: number;
+    providerAppId: string;
+    providerAdUnitId: string;
+    countryCode: string;
+    devicePlatform: string;
+    adFormat: string;
+    reportType: string;
+    adSourceCode: string;
+    adRequests: number;
+    matchedRequests: number;
     impressions: number;
     clicks: number;
-    estimated_earnings: number;
+    estimatedEarnings: number;
     ecpm: number;
     ctr: number;
-    match_rate: number;
-    show_rate: number;
-  }
-
-  interface AdRevenuePagedResponse {
-    page: number;
-    size: number;
-    total: number;
-    items: AdRevenueItem[];
+    matchRate: number;
+    showRate: number;
   }
 
   type AdRevenueGroupBy =
-    | 'report_date'
-    | 'source_platform'
-    | 'account_id'
-    | 'provider_app_id'
-    | 'provider_ad_unit_id'
-    | 'country_code'
-    | 'device_platform'
-    | 'ad_format'
-    | 'report_type'
-    | 'ad_source_code';
+    | 'reportDate'
+    | 'sourcePlatform'
+    | 'accountId'
+    | 'providerAppId'
+    | 'providerAdUnitId'
+    | 'countryCode'
+    | 'devicePlatform'
+    | 'adFormat'
+    | 'reportType'
+    | 'adSourceCode';
 
   interface AdRevenueAggregateRequest extends AdRevenueQuery {
-    group_by: AdRevenueGroupBy[];
+    groupBy: AdRevenueGroupBy[];
   }
 
   interface AdRevenueTrendQuery extends AdRevenueQuery {
-    compare_date_from?: string;
-    compare_date_to?: string;
+    compareDateFrom?: string;
+    compareDateTo?: string;
   }
 
   interface AdRevenueTrendResponse {
@@ -206,20 +211,20 @@ declare namespace API {
   }
 
   interface AdRevenueSummary {
-    ad_requests: number;
+    adRequests: number;
     impressions: number;
     clicks: number;
-    estimated_earnings: number;
+    estimatedEarnings: number;
     ecpm: number;
     ctr: number;
-    match_rate: number;
-    account_count: number;
-    app_count: number;
-    day_count: number;
+    matchRate: number;
+    accountCount: number;
+    appCount: number;
+    dayCount: number;
   }
 
   interface AdRevenueTopRankRequest extends AdRevenueQuery {
-    rank_by: 'app' | 'ad_unit' | 'country' | 'account' | 'platform';
+    rankBy: 'app' | 'adUnit' | 'country' | 'account' | 'platform';
     metric?: string;
     limit?: number;
   }

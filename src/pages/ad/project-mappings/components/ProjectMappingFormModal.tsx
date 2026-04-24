@@ -33,10 +33,10 @@ const ProjectMappingFormModal: React.FC<Props> = ({
     if (open) {
       if (current) {
         form.setFieldsValue({
-          project_id: current.project_id,
-          source_platform: current.source_platform,
-          account_id: current.account_id,
-          provider_app_id: current.provider_app_id,
+          projectId: current.projectId,
+          sourcePlatform: current.sourcePlatform,
+          accountId: current.accountId,
+          providerAppId: current.providerAppId,
           status: current.status,
         });
       } else {
@@ -74,14 +74,14 @@ const ProjectMappingFormModal: React.FC<Props> = ({
     >
       <Form form={form} layout="vertical">
         <Form.Item
-          name="project_id"
+          name="projectId"
           label="项目 ID"
           rules={[{ required: true, message: '请输入项目 ID' }]}
         >
           <InputNumber style={{ width: '100%' }} placeholder="项目 ID" min={1} />
         </Form.Item>
         <Form.Item
-          name="source_platform"
+          name="sourcePlatform"
           label="平台"
           rules={[{ required: true, message: '请选择平台' }]}
         >
@@ -97,14 +97,14 @@ const ProjectMappingFormModal: React.FC<Props> = ({
           />
         </Form.Item>
         <Form.Item
-          name="account_id"
+          name="accountId"
           label="账号 ID"
           rules={[{ required: true, message: '请输入账号 ID' }]}
         >
           <InputNumber style={{ width: '100%' }} placeholder="广告账号 ID" min={1} />
         </Form.Item>
         <Form.Item
-          name="provider_app_id"
+          name="providerAppId"
           label="Provider App ID"
           rules={[{ required: true, message: '请输入 Provider App ID' }]}
         >
