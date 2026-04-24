@@ -17,7 +17,8 @@ const UserReportCountPage: React.FC = () => {
   const [userId, setUserId] = useState<number | undefined>();
   const [platform, setPlatform] = useState<string | undefined>();
   const [appId, setAppId] = useState<string | undefined>();
-  const [dateRange, setDateRange] = useState<[string, string] | undefined>();
+  const today = dayjs().format('YYYY-MM-DD');
+  const [dateRange, setDateRange] = useState<[string, string] | undefined>([today, today]);
   const [orderBy, setOrderBy] = useState<string | undefined>();
   const [orderDir, setOrderDir] = useState<string | undefined>();
 

@@ -23,6 +23,7 @@ import {
   getSyncServers,
 } from '@/services/ad/api';
 import AdAccountFormModal from './components/AdAccountFormModal';
+import ProjectMappingDrawer from './components/ProjectMappingDrawer';
 
 const { Text } = Typography;
 
@@ -55,6 +56,10 @@ const AdAccountsPage: React.FC = () => {
   const [switchLoading, setSwitchLoading] = useState<Record<number, boolean>>({});
   const [testLoading, setTestLoading] = useState<Record<number, boolean>>({});
 
+  // project mapping drawer
+  const [mappingDrawerOpen, setMappingDrawerOpen] = useState(false);
+  const [mappingAccount, setMappingAccount] = useState<API.AdAccount | undefined>();
+
   // batch assign
   const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
   const [batchOpen, setBatchOpen] = useState(false);
@@ -64,12 +69,12 @@ const AdAccountsPage: React.FC = () => {
   const loadData = async (p?: number, s?: number) => {
     setLoading(true);
     const res = await getAdAccounts({
-      source_platform: filterPlatform,
+      sourcePlatform: filterPlatform,
       status: filterStatus,
-      assigned_server_id: filterServer,
+      assignedServerId: filterServer,
       keyword: filterKeyword,
       page: p ?? page,
-      size: s ?? pageSize,
+      pageSize: s ?? pageSize,
     });
     setLoading(false);
     if (res.code !== 0) {
@@ -77,7 +82,7 @@ const AdAccountsPage: React.FC = () => {
       return;
     }
     const paged = res.data;
-    setData(paged?.items ?? []);
+    setData(paged?.data ?? []);
     setTotal(paged?.total ?? 0);
   };
 
@@ -87,7 +92,7 @@ const AdAccountsPage: React.FC = () => {
 
   useEffect(() => {
     getSyncServers().then((res) => {
-      if (res.code === 0 && res.data) setSyncServers(res.data);
+      if (res.code === 0 && res.data) setSyncServers(res.data.data ?? []);
     });
   }, []);
 
@@ -130,10 +135,10 @@ const AdAccountsPage: React.FC = () => {
       const values = await batchForm.validateFields();
       setBatchLoading(true);
       const res = await batchAssignServer({
-        account_ids: selectedRowKeys,
-        assigned_server_id: values.assigned_server_id,
-        backup_server_id: values.backup_server_id,
-        isolation_group: values.isolation_group,
+        accountIds: selectedRowKeys,
+        assignedServerId: values.assignedServerId,
+        backupServerId: values.backupServerId,
+        isolationGroup: values.isolationGroup,
       });
       setBatchLoading(false);
       if (res.code !== 0) {
@@ -153,34 +158,29 @@ const AdAccountsPage: React.FC = () => {
   const columns: ColumnsType<API.AdAccount> = [
     { title: 'ID', dataIndex: 'id', width: 60, fixed: 'left' },
     {
-      title: '平台',
-      dataIndex: 'source_platform',
-      width: 100,
+      title: '账号',
+      dataIndex: 'accountName',
+      width: 120,
       fixed: 'left',
-      render: (v) => <Tag color={PLATFORM_COLORS[v] || 'default'}>{v}</Tag>,
-    },
-    { title: '账号名', dataIndex: 'account_name', ellipsis: true },
-    { title: '显示名', dataIndex: 'account_label', width: 120, fixed: 'left', ellipsis: true },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      width: 80,
-      render: (v, r) => (
-        <Switch
-          size="small"
-          checked={v === 'enabled'}
-          loading={!!switchLoading[r.id]}
-          onChange={() => handleToggleStatus(r)}
-        />
+      render: (_, r) => (
+        <Space size={8} align="start">
+          <Tag color={PLATFORM_COLORS[r.sourcePlatform] || 'default'}>{r.sourcePlatform}</Tag>
+          <div>
+            <Tooltip title={r.accountName}>
+              <div style={{ fontWeight: 500 }}>{r.accountLabel || '-'}</div>
+            </Tooltip>
+          </div>
+        </Space>
       ),
     },
+
     {
       title: '同步节点',
-      dataIndex: 'assigned_server_id',
-      width: 130,
+      dataIndex: 'assignedServerId',
+      width: 120,
       render: (v, r) => {
         const main = v || '-';
-        const backup = r.backup_server_id;
+        const backup = r.backupServerId;
         return backup ? (
           <Tooltip title={`备选节点: ${backup}`}>
             <span style={{ cursor: 'pointer', borderBottom: '1px dashed #999' }}>{main}</span>
@@ -192,13 +192,27 @@ const AdAccountsPage: React.FC = () => {
     },
     {
       title: '隔离组',
-      dataIndex: 'isolation_group',
+      dataIndex: 'isolationGroup',
       width: 100,
       render: (v) => v || <Text type="secondary">-</Text>,
     },
-    { title: '时区', dataIndex: 'reporting_timezone', width: 120 },
-    { title: '币种', dataIndex: 'currency_code', width: 70 },
-    { title: '更新时间', dataIndex: 'updated_at', width: 170 },
+    { title: '时区', dataIndex: 'reportingTimezone', width: 120 },
+    { title: '币种', dataIndex: 'currencyCode', width: 70 },
+    { title: '更新时间', dataIndex: 'updatedAt', width: 170 },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      fixed: 'right',
+      width: 80,
+      render: (v, r) => (
+        <Switch
+          size="small"
+          checked={v === 'enabled'}
+          loading={!!switchLoading[r.id]}
+          onChange={() => handleToggleStatus(r)}
+        />
+      ),
+    },
     {
       title: '操作',
       key: 'action',
@@ -213,6 +227,14 @@ const AdAccountsPage: React.FC = () => {
             }}
           >
             编辑
+          </a>
+          <a
+            onClick={() => {
+              setMappingAccount(record);
+              setMappingDrawerOpen(true);
+            }}
+          >
+            映射
           </a>
           <a
             onClick={() => handleTestCredential(record)}
@@ -280,8 +302,8 @@ const AdAccountsPage: React.FC = () => {
           value={filterServer}
           onChange={setFilterServer}
           options={syncServers.map((s) => ({
-            label: `${s.server_name} (${s.server_id})`,
-            value: s.server_id,
+            label: `${s.serverName} (${s.serverId})`,
+            value: s.serverId,
           }))}
         />
         <Input.Search
@@ -344,33 +366,39 @@ const AdAccountsPage: React.FC = () => {
       >
         <Form form={batchForm} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item
-            name="assigned_server_id"
+            name="assignedServerId"
             label="主节点"
             rules={[{ required: true, message: '请选择主节点' }]}
           >
             <Select
               placeholder="选择主节点"
               options={syncServers.map((s) => ({
-                label: `${s.server_name} (${s.server_id})`,
-                value: s.server_id,
+                label: `${s.serverName} (${s.serverId})`,
+                value: s.serverId,
               }))}
             />
           </Form.Item>
-          <Form.Item name="backup_server_id" label="备节点">
+          <Form.Item name="backupServerId" label="备节点">
             <Select
               allowClear
               placeholder="选择备节点"
               options={syncServers.map((s) => ({
-                label: `${s.server_name} (${s.server_id})`,
-                value: s.server_id,
+                label: `${s.serverName} (${s.serverId})`,
+                value: s.serverId,
               }))}
             />
           </Form.Item>
-          <Form.Item name="isolation_group" label="隔离组">
+          <Form.Item name="isolationGroup" label="隔离组">
             <Input placeholder="可选" />
           </Form.Item>
         </Form>
       </Modal>
+
+      <ProjectMappingDrawer
+        open={mappingDrawerOpen}
+        account={mappingAccount ?? null}
+        onClose={() => setMappingDrawerOpen(false)}
+      />
     </PageContainer>
   );
 };

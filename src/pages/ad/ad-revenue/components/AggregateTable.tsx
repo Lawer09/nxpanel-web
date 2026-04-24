@@ -4,16 +4,16 @@ import React, { useEffect, useState } from 'react';
 import { postAdRevenueAggregate } from '@/services/ad/api';
 
 const GROUP_BY_OPTIONS: { label: string; value: API.AdRevenueGroupBy }[] = [
-  { label: '日期', value: 'report_date' },
-  { label: '平台', value: 'source_platform' },
-  { label: '账号', value: 'account_id' },
-  { label: '应用', value: 'provider_app_id' },
-  { label: '广告单元', value: 'provider_ad_unit_id' },
-  { label: '国家', value: 'country_code' },
-  { label: '设备', value: 'device_platform' },
-  { label: '广告格式', value: 'ad_format' },
-  { label: '报表类型', value: 'report_type' },
-  { label: '广告源', value: 'ad_source_code' },
+  { label: '日期', value: 'reportDate' },
+  { label: '平台', value: 'sourcePlatform' },
+  { label: '账号', value: 'accountId' },
+  { label: '应用', value: 'providerAppId' },
+  { label: '广告单元', value: 'providerAdUnitId' },
+  { label: '国家', value: 'countryCode' },
+  { label: '设备', value: 'devicePlatform' },
+  { label: '广告格式', value: 'adFormat' },
+  { label: '报表类型', value: 'reportType' },
+  { label: '广告源', value: 'adSourceCode' },
 ];
 
 function fmtMoney(v: any) {
@@ -31,18 +31,18 @@ interface AggregateTableProps {
 const AggregateTable: React.FC<AggregateTableProps> = ({ filters }) => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<API.AdRevenueItem[]>([]);
-  const [groupBy, setGroupBy] = useState<API.AdRevenueGroupBy[]>(['report_date']);
+  const [groupBy, setGroupBy] = useState<API.AdRevenueGroupBy[]>(['reportDate']);
 
   const fetchData = async () => {
-    if (!filters.date_from || !filters.date_to) return;
+    if (!filters.dateFrom || !filters.dateTo) return;
     setLoading(true);
     try {
       const res = await postAdRevenueAggregate({
         ...filters,
-        group_by: groupBy,
+        groupBy,
       });
       if (res.code === 0 && res.data) {
-        setData(res.data.items || []);
+        setData(res.data.data || []);
       }
     } finally {
       setLoading(false);
@@ -66,15 +66,15 @@ const AggregateTable: React.FC<AggregateTableProps> = ({ filters }) => {
   });
 
   const metricColumns: ColumnsType<API.AdRevenueItem> = [
-    { title: '请求数', dataIndex: 'ad_requests', key: 'ad_requests', width: 100, render: (v: any) => Number(v ?? 0).toLocaleString() },
-    { title: '匹配数', dataIndex: 'matched_requests', key: 'matched_requests', width: 100, render: (v: any) => Number(v ?? 0).toLocaleString() },
+    { title: '请求数', dataIndex: 'adRequests', key: 'adRequests', width: 100, render: (v: any) => Number(v ?? 0).toLocaleString() },
+    { title: '匹配数', dataIndex: 'matchedRequests', key: 'matchedRequests', width: 100, render: (v: any) => Number(v ?? 0).toLocaleString() },
     { title: '展示量', dataIndex: 'impressions', key: 'impressions', width: 100, render: (v: any) => Number(v ?? 0).toLocaleString() },
     { title: '点击量', dataIndex: 'clicks', key: 'clicks', width: 90, render: (v) => (v ?? 0).toLocaleString() },
-    { title: '预估收益', dataIndex: 'estimated_earnings', key: 'estimated_earnings', width: 110, render: (v) => fmtMoney(v) },
+    { title: '预估收益', dataIndex: 'estimatedEarnings', key: 'estimatedEarnings', width: 110, render: (v) => fmtMoney(v) },
     { title: 'eCPM', dataIndex: 'ecpm', key: 'ecpm', width: 90, render: (v) => fmtMoney(v) },
     { title: 'CTR', dataIndex: 'ctr', key: 'ctr', width: 80, render: (v) => fmtRate(v) },
-    { title: '匹配率', dataIndex: 'match_rate', key: 'match_rate', width: 80, render: (v) => fmtRate(v) },
-    { title: '展示率', dataIndex: 'show_rate', key: 'show_rate', width: 80, render: (v) => fmtRate(v) },
+    { title: '匹配率', dataIndex: 'matchRate', key: 'matchRate', width: 80, render: (v) => fmtRate(v) },
+    { title: '展示率', dataIndex: 'showRate', key: 'showRate', width: 80, render: (v) => fmtRate(v) },
   ];
 
   return (

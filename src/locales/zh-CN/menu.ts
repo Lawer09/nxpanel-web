@@ -80,9 +80,7 @@ export default {
   'menu.order': '订单管理',
   'menu.ticket': '工单管理',
   'menu.ad': '广告变现',
-  'menu.ad.ad-accounts': '广告账号管理',
-  'menu.ad.project-mappings': '项目映射',
+  'menu.ad.ad-accounts': '广告账号',
   'menu.ad.sync-servers': '同步节点',
-  'menu.ad.sync-monitor': '同步监控',
   'menu.ad.ad-revenue': '收益报表',
 };

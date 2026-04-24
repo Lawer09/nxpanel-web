@@ -192,7 +192,8 @@ const groupByOptions: { label: string; value: GroupBy }[] = [
 
 const PerfGroupAnalysisPage: React.FC = () => {
   const [groupBy, setGroupBy] = useState<GroupBy>('node');
-  const [dateRange, setDateRange] = useState<[string, string] | undefined>();
+  const today = dayjs().format('YYYY-MM-DD');
+  const [dateRange, setDateRange] = useState<[string, string] | undefined>([today, today]);
   const [nodeId, setNodeId] = useState<number | undefined>();
   const [country, setCountry] = useState<string | undefined>();
   const [isp, setIsp] = useState<string | undefined>();

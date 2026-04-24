@@ -1,8 +1,7 @@
-import { PageContainer } from '@ant-design/pro-components';
 import {
   App,
   Button,
-  Divider,
+  Drawer,
   Space,
   Switch,
   Table,
@@ -17,11 +16,17 @@ import {
   getProjectMappings,
   toggleProjectMappingStatus,
 } from '@/services/ad/api';
-import ProjectMappingFormModal from './components/ProjectMappingFormModal';
+import ProjectMappingFormModal from '../../project-mappings/components/ProjectMappingFormModal';
 
 const { Text } = Typography;
 
-const ProjectMappingsPage: React.FC = () => {
+interface Props {
+  open: boolean;
+  account: API.AdAccount | null;
+  onClose: () => void;
+}
+
+const ProjectMappingDrawer: React.FC<Props> = ({ open, account, onClose }) => {
   const { message: messageApi } = App.useApp();
   const [data, setData] = useState<API.ProjectMapping[]>([]);
   const [loading, setLoading] = useState(false);
@@ -30,19 +35,23 @@ const ProjectMappingsPage: React.FC = () => {
   const [switchLoading, setSwitchLoading] = useState<Record<number, boolean>>({});
 
   const loadData = async () => {
+    if (!account) return;
     setLoading(true);
-    const res = await getProjectMappings();
-    setLoading(false);
-    if (res.code !== 0) {
-      messageApi.error(res.msg || '获取列表失败');
-      return;
+    try {
+      const res = await getProjectMappings({ accountId: account.id });
+      if (res.code === 0) {
+        setData(Array.isArray(res.data) ? res.data : []);
+      }
+    } finally {
+      setLoading(false);
     }
-    setData(Array.isArray(res.data) ? res.data : []);
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (open && account) {
+      loadData();
+    }
+  }, [open, account?.id]);
 
   const handleToggleStatus = async (record: API.ProjectMapping) => {
     const newStatus = record.status === 'enabled' ? 'disabled' : 'enabled';
@@ -60,19 +69,18 @@ const ProjectMappingsPage: React.FC = () => {
 
   const columns: ColumnsType<API.ProjectMapping> = [
     { title: 'ID', dataIndex: 'id', width: 60 },
-    { title: '项目 ID', dataIndex: 'projectId', width: 90 },
-    { title: '账号 ID', dataIndex: 'accountId', width: 90 },
+    { title: '项目 ID', dataIndex: 'projectId', width: 80 },
     {
       title: '平台',
       dataIndex: 'sourcePlatform',
-      width: 100,
+      width: 90,
       render: (v) => <Tag>{v}</Tag>,
     },
     { title: 'Provider App ID', dataIndex: 'providerAppId', ellipsis: true },
     {
       title: '状态',
       dataIndex: 'status',
-      width: 80,
+      width: 70,
       render: (v, r) => (
         <Switch
           size="small"
@@ -82,11 +90,11 @@ const ProjectMappingsPage: React.FC = () => {
         />
       ),
     },
-    { title: '更新时间', dataIndex: 'updatedAt', width: 170 },
+    { title: '更新时间', dataIndex: 'updatedAt', width: 160 },
     {
       title: '操作',
       key: 'action',
-      width: 80,
+      width: 60,
       render: (_, record) => (
         <a
           onClick={() => {
@@ -101,9 +109,14 @@ const ProjectMappingsPage: React.FC = () => {
   ];
 
   return (
-    <PageContainer
-      extra={[
-        <Space key="actions">
+    <Drawer
+      title={account ? `项目映射 — ${account.accountLabel || account.accountName}（ID: ${account.id}）` : '项目映射'}
+      open={open}
+      onClose={onClose}
+      width={820}
+      destroyOnClose
+      extra={
+        <Space>
           <Upload
             accept=".csv"
             showUploadList={false}
@@ -112,10 +125,11 @@ const ProjectMappingsPage: React.FC = () => {
               return false;
             }}
           >
-            <Button icon={<UploadOutlined />}>批量导入 CSV</Button>
+            <Button size="small" icon={<UploadOutlined />}>导入 CSV</Button>
           </Upload>
           <Button
             type="primary"
+            size="small"
             onClick={() => {
               setCurrentRecord(undefined);
               setFormOpen(true);
@@ -123,17 +137,17 @@ const ProjectMappingsPage: React.FC = () => {
           >
             新建映射
           </Button>
-        </Space>,
-      ]}
+        </Space>
+      }
     >
       <Table<API.ProjectMapping>
         rowKey="id"
         dataSource={data}
         columns={columns}
         loading={loading}
-        size="middle"
+        size="small"
         bordered
-        scroll={{ x: 900 }}
+        scroll={{ x: 700 }}
         pagination={{ showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}
       />
 
@@ -146,8 +160,8 @@ const ProjectMappingsPage: React.FC = () => {
           loadData();
         }}
       />
-    </PageContainer>
+    </Drawer>
   );
 };
 
-export default ProjectMappingsPage;
+export default ProjectMappingDrawer;

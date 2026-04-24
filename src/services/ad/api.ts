@@ -3,7 +3,7 @@ import { request } from '@umijs/max';
 // ── 广告账号 ──────────────────────────────────────────────────────────────────
 
 export async function getAdAccounts(params?: API.AdAccountQuery) {
-  return request<API.ApiResponse<API.AdAccountPagedResponse>>('/v3/ad-accounts', {
+  return request<API.ApiResponse<API.PageResult<API.AdAccount>>>('/v3/ad-accounts', {
     method: 'GET',
     params,
   });
@@ -51,9 +51,10 @@ export async function batchAssignServer(data: API.BatchAssignServerRequest) {
 
 // ── 项目映射 ──────────────────────────────────────────────────────────────────
 
-export async function getProjectMappings() {
+export async function getProjectMappings(params?: { accountId?: number }) {
   return request<API.ApiResponse<API.ProjectMapping[]>>('/v3/project-app-mappings', {
     method: 'GET',
+    params,
   });
 }
 
@@ -84,7 +85,7 @@ export async function toggleProjectMappingStatus(id: number, status: string) {
 // ── 同步服务器 ────────────────────────────────────────────────────────────────
 
 export async function getSyncServers() {
-  return request<API.ApiResponse<API.SyncServer[]>>('/v3/sync-servers', {
+  return request<API.ApiResponse<API.PageResult<API.SyncServer>>>('/v3/sync-servers', {
     method: 'GET',
   });
 }
@@ -92,6 +93,14 @@ export async function getSyncServers() {
 export async function createSyncServer(data: API.SyncServerCreateRequest) {
   return request<API.ApiResponse<API.SyncServer>>('/v3/sync-servers', {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data,
+  });
+}
+
+export async function updateSyncServer(serverId: string, data: API.SyncServerCreateRequest) {
+  return request<API.ApiResponse<API.SyncServer>>(`/v3/sync-servers/${serverId}`, {
+    method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     data,
   });
@@ -105,17 +114,23 @@ export async function toggleSyncServerStatus(serverId: string, status: string) {
   });
 }
 
+export async function testSyncServer(serverId: string) {
+  return request<API.ApiResponse<API.TestSyncResult>>(`/v3/sync-servers/${serverId}/test-sync`, {
+    method: 'POST',
+  });
+}
+
 // ── 同步监控 ──────────────────────────────────────────────────────────────────
 
-export async function getSyncStates(params?: { scope?: string; account_id?: number }) {
-  return request<API.ApiResponse<API.SyncState[]>>('/v3/sync-states', {
+export async function getSyncStates(params?: API.SyncStateQuery) {
+  return request<API.ApiResponse<API.PageResult<API.SyncState>>>('/v3/sync-states', {
     method: 'GET',
     params,
   });
 }
 
 export async function getSyncLogs(params?: API.SyncLogQuery) {
-  return request<API.ApiResponse<API.SyncLog[]>>('/v3/sync-logs', {
+  return request<API.ApiResponse<API.PageResult<API.SyncLog>>>('/v3/sync-logs', {
     method: 'GET',
     params,
   });
@@ -132,14 +147,14 @@ export async function triggerSyncJob(data: API.SyncTriggerRequest) {
 // ── 广告收益报表 ──────────────────────────────────────────────────────────────
 
 export async function getAdRevenueFetch(params?: API.AdRevenueQuery) {
-  return request<API.ApiResponse<API.AdRevenuePagedResponse>>('/v3/ad-revenue/fetch', {
+  return request<API.ApiResponse<API.PageResult<API.AdRevenueItem>>>('/v3/ad-revenue/fetch', {
     method: 'GET',
     params,
   });
 }
 
 export async function postAdRevenueAggregate(data: API.AdRevenueAggregateRequest) {
-  return request<API.ApiResponse<API.AdRevenuePagedResponse>>('/v3/ad-revenue/aggregate', {
+  return request<API.ApiResponse<API.PageResult<API.AdRevenueItem>>>('/v3/ad-revenue/aggregate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data,
@@ -161,7 +176,7 @@ export async function getAdRevenueSummary(params?: API.AdRevenueQuery) {
 }
 
 export async function postAdRevenueTopRank(data: API.AdRevenueTopRankRequest) {
-  return request<API.ApiResponse<API.AdRevenuePagedResponse>>('/v3/ad-revenue/top-rank', {
+  return request<API.ApiResponse<API.PageResult<API.AdRevenueItem>>>('/v3/ad-revenue/top-rank', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data,

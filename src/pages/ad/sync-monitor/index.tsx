@@ -24,10 +24,10 @@ const { Text } = Typography;
 const { RangePicker } = DatePicker;
 
 const SCOPE_OPTIONS = [
-  { label: 'account_meta', value: 'account_meta' },
+  { label: 'accountMeta', value: 'accountMeta' },
   { label: 'apps', value: 'apps' },
-  { label: 'ad_units', value: 'ad_units' },
-  { label: 'revenue_daily', value: 'revenue_daily' },
+  { label: 'adUnits', value: 'adUnits' },
+  { label: 'revenueDaily', value: 'revenueDaily' },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
@@ -59,40 +59,40 @@ const SyncMonitorPage: React.FC = () => {
     setStatesLoading(true);
     const res = await getSyncStates();
     setStatesLoading(false);
-    if (res.code === 0) setStates(Array.isArray(res.data) ? res.data : []);
+    if (res.code === 0 && res.data) setStates(res.data.data ?? []);
   };
 
   const loadLogs = async () => {
     setLogsLoading(true);
     const params: API.SyncLogQuery = {
-      server_id: logFilterServer,
+      serverId: logFilterServer,
       status: logFilterStatus,
       scope: logFilterScope,
-      started_from: logFilterRange?.[0],
-      started_to: logFilterRange?.[1],
+      startedFrom: logFilterRange?.[0],
+      startedTo: logFilterRange?.[1],
     };
     const res = await getSyncLogs(params);
     setLogsLoading(false);
-    if (res.code === 0) setLogs(Array.isArray(res.data) ? res.data : []);
+    if (res.code === 0 && res.data) setLogs(res.data.data ?? []);
   };
 
   useEffect(() => {
     loadStates();
     loadLogs();
     getSyncServers().then((res) => {
-      if (res.code === 0 && res.data) setSyncServers(res.data);
+      if (res.code === 0 && res.data) setSyncServers(res.data.data ?? []);
     });
   }, []);
 
   const handleRetry = (record: API.SyncState) => {
     modalApi.confirm({
       title: '确认重试同步任务？',
-      content: `Scope: ${record.scope}，Account: ${record.account_id}`,
+      content: `Scope: ${record.syncScope}，Account: ${record.accountId}`,
       onOk: async () => {
         setTriggerLoading(true);
         const res = await triggerSyncJob({
-          scope: record.scope,
-          account_ids: [record.account_id],
+          scope: record.syncScope,
+          accountIds: [record.accountId],
         });
         setTriggerLoading(false);
         if (res.code !== 0) {
@@ -146,8 +146,8 @@ const SyncMonitorPage: React.FC = () => {
 
   // ── 状态表列 ──
   const stateColumns: ColumnsType<API.SyncState> = [
-    { title: 'Scope', dataIndex: 'scope', width: 140 },
-    { title: '账号 ID', dataIndex: 'account_id', width: 90 },
+    { title: 'Scope', dataIndex: 'syncScope', width: 140 },
+    { title: '账号 ID', dataIndex: 'accountId', width: 90 },
     {
       title: '状态',
       dataIndex: 'status',
@@ -156,13 +156,13 @@ const SyncMonitorPage: React.FC = () => {
     },
     {
       title: '最后成功时间',
-      dataIndex: 'last_success_at',
+      dataIndex: 'lastSuccessAt',
       width: 180,
       render: (v) => v || <Text type="secondary">-</Text>,
     },
     {
       title: '最后错误',
-      dataIndex: 'last_error_message',
+      dataIndex: 'lastErrorMessage',
       ellipsis: true,
       render: (v) =>
         v ? <Text type="danger">{v}</Text> : <Text type="secondary">-</Text>,
@@ -182,7 +182,7 @@ const SyncMonitorPage: React.FC = () => {
 
   // ── 日志表列 ──
   const logColumns: ColumnsType<API.SyncLog> = [
-    { title: '节点 ID', dataIndex: 'server_id', width: 140 },
+    { title: '节点 ID', dataIndex: 'serverId', width: 140 },
     { title: 'Scope', dataIndex: 'scope', width: 130 },
     {
       title: '状态',
@@ -190,12 +190,12 @@ const SyncMonitorPage: React.FC = () => {
       width: 90,
       render: (v) => <Tag color={STATUS_COLORS[v] || 'default'}>{v}</Tag>,
     },
-    { title: '行数', dataIndex: 'row_count', width: 80, align: 'right' },
-    { title: '开始时间', dataIndex: 'started_at', width: 180 },
-    { title: '结束时间', dataIndex: 'ended_at', width: 180 },
+    { title: '行数', dataIndex: 'rowCount', width: 80, align: 'right' },
+    { title: '开始时间', dataIndex: 'startedAt', width: 180 },
+    { title: '结束时间', dataIndex: 'endedAt', width: 180 },
     {
       title: '错误信息',
-      dataIndex: 'error_message',
+      dataIndex: 'errorMessage',
       ellipsis: true,
       render: (v) =>
         v ? <Text type="danger">{v}</Text> : <Text type="secondary">-</Text>,
@@ -229,7 +229,7 @@ const SyncMonitorPage: React.FC = () => {
         }
       >
         <Table<API.SyncState>
-          rowKey={(r) => `${r.scope}_${r.account_id}`}
+          rowKey="id"
           dataSource={states}
           columns={stateColumns}
           loading={statesLoading}
@@ -259,8 +259,8 @@ const SyncMonitorPage: React.FC = () => {
             value={logFilterServer}
             onChange={setLogFilterServer}
             options={syncServers.map((s) => ({
-              label: `${s.server_name} (${s.server_id})`,
-              value: s.server_id,
+              label: `${s.serverName} (${s.serverId})`,
+              value: s.serverId,
             }))}
           />
           <Select

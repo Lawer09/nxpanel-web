@@ -1,20 +1,17 @@
-import { PageContainer } from '@ant-design/pro-components';
+import { PageContainer, ProTable } from '@ant-design/pro-components';
+import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import {
   App,
   Button,
   Select,
   Space,
-  Table,
   Tag,
   Typography,
 } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-import React, { useEffect, useState } from 'react';
-import {
-  getSyncServers,
-  toggleSyncServerStatus,
-} from '@/services/ad/api';
+import React, { useRef, useState } from 'react';
+import { getSyncServers } from '@/services/ad/api';
 import SyncServerFormModal from './components/SyncServerFormModal';
+import SyncDetailDrawer from './components/SyncDetailDrawer';
 
 const { Text } = Typography;
 
@@ -26,65 +23,39 @@ const STATUS_MAP: Record<string, { color: string; label: string }> = {
 
 const SyncServersPage: React.FC = () => {
   const { message: messageApi } = App.useApp();
-  const [data, setData] = useState<API.SyncServer[]>([]);
-  const [loading, setLoading] = useState(false);
+  const actionRef = useRef<ActionType>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const [statusLoading, setStatusLoading] = useState<Record<string, boolean>>({});
+  const [currentRecord, setCurrentRecord] = useState<API.SyncServer | undefined>();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [currentServer, setCurrentServer] = useState<API.SyncServer | null>(null);
 
-  const loadData = async () => {
-    setLoading(true);
-    const res = await getSyncServers();
-    setLoading(false);
-    if (res.code !== 0) {
-      messageApi.error(res.msg || '获取列表失败');
-      return;
-    }
-    setData(Array.isArray(res.data) ? res.data : []);
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const handleStatusChange = async (record: API.SyncServer, newStatus: string) => {
-    setStatusLoading((s) => ({ ...s, [record.server_id]: true }));
-    const res = await toggleSyncServerStatus(record.server_id, newStatus);
-    setStatusLoading((s) => ({ ...s, [record.server_id]: false }));
-    if (res.code !== 0) {
-      messageApi.error(res.msg || '操作失败');
-      return;
-    }
-    setData((prev) =>
-      prev.map((r) =>
-        r.server_id === record.server_id ? { ...r, status: newStatus } : r,
-      ),
-    );
-  };
-
-  const columns: ColumnsType<API.SyncServer> = [
-    { title: '节点 ID', dataIndex: 'server_id', width: 160 },
-    { title: '节点名称', dataIndex: 'server_name', width: 180 },
-    { title: '主机 IP', dataIndex: 'host_ip', width: 140 },
+  const columns: ProColumns<API.SyncServer>[] = [
+    { title: '节点 ID', dataIndex: 'serverId', width: 160, search: false },
+    { title: '节点名称', dataIndex: 'serverName', width: 180, search: false },
+    { title: '主机 IP', dataIndex: 'hostIp', width: 140, search: false },
     {
       title: '状态',
       dataIndex: 'status',
       width: 120,
-      render: (v) => {
-        const s = STATUS_MAP[v] || { color: 'default', label: v };
+      search: false,
+      render: (_, r) => {
+        const s = STATUS_MAP[r.status] || { color: 'default', label: r.status };
         return <Tag color={s.color}>{s.label}</Tag>;
       },
     },
     {
       title: '最后心跳',
-      dataIndex: 'last_heartbeat_at',
+      dataIndex: 'lastHeartbeatAt',
       width: 180,
+      search: false,
       render: (v) => v || <Text type="secondary">-</Text>,
     },
     {
       title: '标签',
       dataIndex: 'tags',
-      render: (tags: string[]) =>
-        (tags ?? []).map((t) => (
+      search: false,
+      render: (_, r) =>
+        (r.tags ?? []).map((t) => (
           <Tag key={t} color="blue">
             {t}
           </Tag>
@@ -93,20 +64,27 @@ const SyncServersPage: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 160,
+      width: 200,
+      search: false,
       render: (_, record) => (
-        <Select
-          size="small"
-          value={record.status}
-          loading={!!statusLoading[record.server_id]}
-          style={{ width: 120 }}
-          onChange={(v) => handleStatusChange(record, v)}
-          options={[
-            { label: '在线', value: 'online' },
-            { label: '离线', value: 'offline' },
-            { label: '维护中', value: 'maintenance' },
-          ]}
-        />
+        <Space>
+          <a
+            onClick={() => {
+              setCurrentServer(record);
+              setDrawerOpen(true);
+            }}
+          >
+            查看
+          </a>
+          <a
+            onClick={() => {
+              setCurrentRecord(record);
+              setFormOpen(true);
+            }}
+          >
+            编辑
+          </a>
+        </Space>
       ),
     },
   ];
@@ -117,30 +95,57 @@ const SyncServersPage: React.FC = () => {
         <Button
           key="add"
           type="primary"
-          onClick={() => setFormOpen(true)}
+          onClick={() => {
+            setCurrentRecord(undefined);
+            setFormOpen(true);
+          }}
         >
           新建节点
         </Button>,
       ]}
     >
-      <Table<API.SyncServer>
-        rowKey="server_id"
-        dataSource={data}
+      <ProTable<API.SyncServer>
+        actionRef={actionRef}
+        rowKey="serverId"
         columns={columns}
-        loading={loading}
+        search={false}
         size="middle"
         bordered
         scroll={{ x: 1000 }}
-        pagination={{ showSizeChanger: true, showTotal: (t) => `共 ${t} 条` }}
+        request={async () => {
+          const res = await getSyncServers();
+          if (res.code !== 0) {
+            messageApi.error(res.msg || '获取列表失败');
+            return { data: [], total: 0, success: false };
+          }
+          const paged = res.data;
+          return {
+            data: paged?.data ?? [],
+            total: paged?.total ?? 0,
+            success: true,
+          };
+        }}
+        pagination={{
+          defaultPageSize: 20,
+          showSizeChanger: true,
+          showTotal: (t) => `共 ${t} 条`,
+        }}
       />
 
       <SyncServerFormModal
         open={formOpen}
+        current={currentRecord}
         onOpenChange={setFormOpen}
         onSuccess={() => {
           setFormOpen(false);
-          loadData();
+          actionRef.current?.reload();
         }}
+      />
+
+      <SyncDetailDrawer
+        open={drawerOpen}
+        server={currentServer}
+        onClose={() => setDrawerOpen(false)}
       />
     </PageContainer>
   );

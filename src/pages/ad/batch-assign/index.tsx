@@ -33,14 +33,14 @@ const BatchAssignPage: React.FC = () => {
 
   const loadAccounts = async (p?: number, s?: number) => {
     setLoading(true);
-    const res = await getAdAccounts({ page: p ?? page, size: s ?? pageSize });
+    const res = await getAdAccounts({ page: p ?? page, pageSize: s ?? pageSize });
     setLoading(false);
     if (res.code !== 0) {
       messageApi.error(res.msg || '获取账号列表失败');
       return;
     }
     const paged = res.data;
-    setAccounts(paged?.items ?? []);
+    setAccounts(paged?.data ?? []);
     setTotal(paged?.total ?? 0);
   };
 
@@ -50,7 +50,7 @@ const BatchAssignPage: React.FC = () => {
 
   useEffect(() => {
     getSyncServers().then((res) => {
-      if (res.code === 0 && res.data) setSyncServers(res.data);
+      if (res.code === 0 && res.data) setSyncServers(res.data.data ?? []);
     });
   }, []);
 
@@ -63,10 +63,10 @@ const BatchAssignPage: React.FC = () => {
       const values = await form.validateFields();
       setSubmitLoading(true);
       const res = await batchAssignServer({
-        account_ids: selectedIds,
-        assigned_server_id: values.assigned_server_id,
-        backup_server_id: values.backup_server_id,
-        isolation_group: values.isolation_group,
+        accountIds: selectedIds,
+        assignedServerId: values.assignedServerId,
+        backupServerId: values.backupServerId,
+        isolationGroup: values.isolationGroup,
       });
       setSubmitLoading(false);
       if (res.code !== 0) {
@@ -85,12 +85,12 @@ const BatchAssignPage: React.FC = () => {
     { title: 'ID', dataIndex: 'id', width: 60 },
     {
       title: '平台',
-      dataIndex: 'source_platform',
+      dataIndex: 'sourcePlatform',
       width: 100,
       render: (v) => <Tag>{v}</Tag>,
     },
-    { title: '账号名', dataIndex: 'account_name', ellipsis: true },
-    { title: '显示名', dataIndex: 'account_label', width: 120, ellipsis: true },
+    { title: '账号名', dataIndex: 'accountName', ellipsis: true },
+    { title: '显示名', dataIndex: 'accountLabel', width: 120, ellipsis: true },
     {
       title: '状态',
       dataIndex: 'status',
@@ -101,34 +101,34 @@ const BatchAssignPage: React.FC = () => {
     },
     {
       title: '当前主节点',
-      dataIndex: 'assigned_server_id',
+      dataIndex: 'assignedServerId',
       width: 140,
       render: (v) => v || <Text type="secondary">-</Text>,
     },
     {
       title: '当前备节点',
-      dataIndex: 'backup_server_id',
+      dataIndex: 'backupServerId',
       width: 140,
       render: (v) => v || <Text type="secondary">-</Text>,
     },
     {
       title: '隔离组',
-      dataIndex: 'isolation_group',
+      dataIndex: 'isolationGroup',
       width: 100,
       render: (v) => v || <Text type="secondary">-</Text>,
     },
   ];
 
   const serverOptions = syncServers.map((s) => ({
-    label: `${s.server_name} (${s.server_id})`,
-    value: s.server_id,
+    label: `${s.serverName} (${s.serverId})`,
+    value: s.serverId,
   }));
 
   return (
     <PageContainer>
       <Form form={form} layout="inline" style={{ marginBottom: 16 }}>
         <Form.Item
-          name="assigned_server_id"
+          name="assignedServerId"
           label="主节点"
           rules={[{ required: true, message: '请选择主节点' }]}
         >
@@ -138,7 +138,7 @@ const BatchAssignPage: React.FC = () => {
             options={serverOptions}
           />
         </Form.Item>
-        <Form.Item name="backup_server_id" label="备节点">
+        <Form.Item name="backupServerId" label="备节点">
           <Select
             allowClear
             placeholder="选择备节点"
@@ -146,7 +146,7 @@ const BatchAssignPage: React.FC = () => {
             options={serverOptions}
           />
         </Form.Item>
-        <Form.Item name="isolation_group" label="隔离组">
+        <Form.Item name="isolationGroup" label="隔离组">
           <Input placeholder="可选" style={{ width: 140 }} />
         </Form.Item>
         <Form.Item>
