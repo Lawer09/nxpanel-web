@@ -13,7 +13,8 @@ function fmtMoney(v: any) {
 
 function fmtUtc8Date(v?: string | null) {
   if (!v) return '-';
-  return formatUtc8(`${v}T00:00:00Z`);
+  const value = v.includes('T') ? v : `${v}T00:00:00Z`;
+  return formatUtc8(value).slice(0, 10);
 }
 
 interface TrendChartProps {

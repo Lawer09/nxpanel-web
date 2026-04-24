@@ -210,7 +210,7 @@ const SyncDetailDrawer: React.FC<Props> = ({ open, server, onClose }) => {
       width: 160,
       search: false,
       render: (v) => {
-        const formatted = formatUtc8(v);
+        const formatted = formatUtc8(String(v));
         return formatted === '-' ? <Text type="secondary">-</Text> : formatted;
       },
     },

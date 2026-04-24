@@ -16,6 +16,7 @@ import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import React, { useEffect, useState } from 'react';
 import {
+  getAdAccounts,
   getAdRevenueFetch,
   getAdRevenueSummary,
 } from '@/services/ad/api';
@@ -56,6 +57,7 @@ const AdRevenuePage: React.FC = () => {
   const [platform, setPlatform] = useState<string>();
   const [accountId, setAccountId] = useState<number>();
   const [countryCode, setCountryCode] = useState<string>();
+  const [accountOptions, setAccountOptions] = useState<{ label: string; value: number }[]>([]);
 
   const filters: API.AdRevenueQuery = {
     dateFrom: dateRange[0],
@@ -84,6 +86,19 @@ const AdRevenuePage: React.FC = () => {
   useEffect(() => {
     fetchSummary();
   }, [dateRange, platform, accountId, countryCode]);
+
+  useEffect(() => {
+    getAdAccounts({ page: 1, pageSize: 100 }).then((res) => {
+      if (res.code !== 0) return;
+      const rows = res.data?.data ?? [];
+      setAccountOptions(
+        rows.map((item) => ({
+          label: ` ${item.id}-${item.accountLabel || item.accountName}`,
+          value: item.id,
+        })),
+      );
+    });
+  }, []);
 
   // ── 明细表 ────────────────────────────────────────────────────────────────
   const [detailLoading, setDetailLoading] = useState(false);
@@ -164,14 +179,17 @@ const AdRevenuePage: React.FC = () => {
             onChange={(v) => { setPlatform(v); setDetailPage(1); }}
           />
           <span>账号 ID：</span>
-          <Input
+          <Select
             size="small"
-            style={{ width: 100 }}
-            placeholder="账号 ID"
+            style={{ width: 220 }}
+            placeholder="选择账号"
             allowClear
-            onChange={(e) => {
-              const v = e.target.value ? Number(e.target.value) : undefined;
-              setAccountId(v);
+            options={accountOptions}
+            value={accountId}
+            showSearch
+            optionFilterProp="label"
+            onChange={(v) => {
+              setAccountId(v as number | undefined);
               setDetailPage(1);
             }}
           />
