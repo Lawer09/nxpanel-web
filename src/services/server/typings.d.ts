@@ -43,13 +43,39 @@ declare namespace API {
   interface ServerNodeMetrics {
     uptime: number;
     goroutines: number;
+    active_connections?: number;
+    tcp_connections?: number;
     total_users: number;
     active_users: number;
+    total_connections?: number;
     inbound_speed: number;
     outbound_speed: number;
     cpu_per_core: number[];
     load: number[];
+    kernel_status?: any;
     updated_at: number;
+  }
+
+  interface ServerNodeOnlineConnHistory {
+    updated_at: number;
+    active_connections: number;
+    tcp_connections: number;
+  }
+
+  interface ServerNodeHistoryItem {
+    server_id: number;
+    server_name: string;
+    server_type: string;
+    load_status_history: ServerNodeLoadStatus[];
+    metrics_history: ServerNodeMetrics[];
+    online_conn_history: ServerNodeOnlineConnHistory[];
+  }
+
+  interface ServerNodeHistoryPageData {
+    data: ServerNodeHistoryItem[];
+    total: number;
+    page: number;
+    pageSize: number;
   }
 
   // ── 节点 ─────────────────────────────────────────────────────────────────────

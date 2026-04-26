@@ -80,7 +80,18 @@ const colRecordCount: ColumnsType<API.AggregatedPerformanceItem>[number] = {
 /* ── 各维度列定义 ──────────────────────────────────────────────────────── */
 
 const nodeColumns: ColumnsType<API.AggregatedPerformanceItem> = [
-  { title: '节点 ID', dataIndex: 'nodeId', key: 'nodeId', width: 100 },
+  {
+    title: '节点',
+    key: 'node',
+    width: 180,
+    render: (_, r) => (
+      <Space size={4}>
+        <Text type="secondary">{r.nodeId}</Text>
+        {r.nodeName && <Text>{r.nodeName}</Text>}
+        {r.nodeType && <Tag style={{ marginLeft: 2 }}>{r.nodeType}</Tag>}
+      </Space>
+    ),
+  },
   colAvgSuccessRate,
   colAvgDelay,
   colTotalCount,

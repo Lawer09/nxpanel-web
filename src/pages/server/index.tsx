@@ -78,6 +78,7 @@ const ServerManagePage: React.FC = () => {
     [routeRows],
   );
 
+
   const nodeColumns: ProColumns<API.ServerNode>[] = [
     {
       title: 'ID',

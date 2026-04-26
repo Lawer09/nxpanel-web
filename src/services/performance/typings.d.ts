@@ -109,6 +109,8 @@ declare namespace API {
     hour?: number;
     minute?: number;
     nodeId?: number;
+    nodeName?: string;
+    nodeType?: string;
     clientCountry?: string;
     clientCity?: string;
     clientIsp?: string;
@@ -282,5 +284,17 @@ declare namespace API {
     dau: ActiveUsersMetric;
     wau: ActiveUsersMetric;
     mau: ActiveUsersMetric;
+  }
+
+  interface UserHourlyStatItem {
+    time: string;
+    newUsers: number;
+    activeUsers: number;
+  }
+
+  interface UserHourlyStatsData {
+    data: UserHourlyStatItem[];
+    start: string;
+    end: string;
   }
 }

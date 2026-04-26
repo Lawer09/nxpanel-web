@@ -133,6 +133,17 @@ export async function getServerOnlineUsers(
   });
 }
 
+export async function getServerHistory(
+  params?: { id?: number; page?: number; pageSize?: number },
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.ServerNodeHistoryPageData>>('/v3/server/manage/history', {
+    method: 'GET',
+    params,
+    ...(options || {}),
+  });
+}
+
 export async function switchServerDomain(
   body: API.SwitchServerDomainParams,
   options?: { [key: string]: any },

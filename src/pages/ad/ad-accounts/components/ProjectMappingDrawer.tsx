@@ -114,7 +114,7 @@ const ProjectMappingDrawer: React.FC<Props> = ({ open, account, onClose }) => {
       open={open}
       onClose={onClose}
       width={820}
-      destroyOnClose
+      destroyOnHidden
       extra={
         <Space>
           <Upload

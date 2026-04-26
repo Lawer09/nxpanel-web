@@ -127,3 +127,15 @@ export async function getActiveUsersSummary(
     { method: 'GET', params, ...(options || {}) },
   );
 }
+
+// ── 最近 24 小时用户新增与活跃 ───────────────────────────────────────────
+
+export async function getUserHourlyStats(
+  params: { appId?: string; platform?: string; appVersion?: string; clientCountry?: string },
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.UserHourlyStatsData>>(
+    '/v3/performance/userHourlyStats',
+    { method: 'GET', params, ...(options || {}) },
+  );
+}
