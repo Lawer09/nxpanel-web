@@ -12,7 +12,6 @@ import {
   SelectLang,
 } from '@/components';
 import VersionNoticeModal from '@/components/VersionNoticeModal';
-import VersionNoticeModal from '@/components/VersionNoticeModal';
 import defaultSettings from '../config/defaultSettings';
 import { errorConfig } from './requestErrorConfig';
 import '@ant-design/v5-patch-for-react-19';

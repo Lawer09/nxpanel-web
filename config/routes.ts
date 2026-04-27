@@ -147,6 +147,11 @@ export default [
         component: './report/user-report-daily',
       },
       {
+        path: '/report/user-report-realtime',
+        name: 'user-report-realtime',
+        component: './report/user-report-realtime',
+      },
+      {
         path: '/report/app-traffic',
         name: 'app-traffic',
         component: './report/app-traffic',

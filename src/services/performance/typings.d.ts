@@ -171,6 +171,23 @@ declare namespace API {
     appVersion?: string;
   }
 
+  // ── 用户上报实时数据 ─────────────────────────────────────────────────────
+
+  interface UserReportRealtimeParams {
+    appId?: string;
+    page?: number;
+    pageSize?: number;
+  }
+
+  interface UserReportRealtimeItem {
+    user_id: number;
+    ip: string;
+    created_at: string;
+    metadata?: Record<string, any>;
+    user_default?: Record<string, any>;
+    reports?: Record<string, any>;
+  }
+
   // ── 分布查询公共参数 ──────────────────────────────────────────────────────
 
   interface DistributionParams {
@@ -257,6 +274,7 @@ declare namespace API {
     periodStart?: string;
     periodEnd?: string;
     activeUsers: number;
+    newUsers: number;
     totalReports: number;
   }
 

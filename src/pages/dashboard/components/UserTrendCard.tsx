@@ -1,8 +1,8 @@
-import { Line } from '@ant-design/charts';
+import { Column, Line } from '@ant-design/charts';
 import { SettingOutlined } from '@ant-design/icons';
 import { Card, DatePicker, Select, Space, Table, Typography } from 'antd';
 import dayjs from 'dayjs';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 
 const { Text } = Typography;
 
@@ -31,16 +31,36 @@ const UserTrendCard: React.FC<UserTrendCardProps> = ({
 }) => {
   const [showActiveTrend, setShowActiveTrend] = useState(false);
 
+  // 最近一小时数据
+  const latestHour = useMemo(() => {
+    if (!hourlyData.length) return null;
+    const last = hourlyData[hourlyData.length - 1];
+    return {
+      time: dayjs(last.time).format('MM-DD HH'),
+      newUsers: last.newUsers,
+      activeUsers: last.activeUsers,
+    };
+  }, [hourlyData]);
+
   return (
     <>
       <Card
-        title="用户趋势"
+        title={
+          <Space>
+            <span>用户趋势</span>
+            {latestHour && (
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                {latestHour.time}  新增：{latestHour.newUsers.toLocaleString()}  活跃：{latestHour.activeUsers.toLocaleString()}
+              </Text>
+            )}
+          </Space>
+        }
         loading={hourlyLoading}
         style={{ marginBottom: 16 }}
         extra={
           <Space>
             <a onClick={() => setShowActiveTrend((v) => !v)}>
-              {showActiveTrend ? '收起活跃趋势' : '展开活跃趋势'}
+              {showActiveTrend ? '收起总览' : '展开总览'}
             </a>
             {onOpenSettings && (
               <SettingOutlined
@@ -69,7 +89,7 @@ const UserTrendCard: React.FC<UserTrendCardProps> = ({
 
       {showActiveTrend && (
         <Card
-          title="活跃用户趋势"
+          title="总览"
           loading={activeLoading}
           style={{ marginBottom: 16 }}
           extra={
@@ -99,38 +119,31 @@ const UserTrendCard: React.FC<UserTrendCardProps> = ({
             </Space>
           }
         >
-          <Table<API.ActiveUsersTrendItem>
-            size="small"
-            rowKey="period"
-            dataSource={activeData}
-            pagination={false}
-            scroll={{ x: 600 }}
-            bordered
-            columns={[
+          <Column
+            data={activeData.flatMap((item) => [
               {
-                title: '周期',
-                dataIndex: 'period',
-                width: 120,
-                render: (_, record) =>
-                  record.periodStart && record.periodEnd && record.periodStart !== record.periodEnd
-                    ? `${record.periodStart} ~ ${record.periodEnd}`
-                    : record.period,
+                period: item.periodStart && item.periodEnd && item.periodStart !== item.periodEnd
+                  ? `${item.periodStart}~${item.periodEnd}`
+                  : item.period,
+                value: item.activeUsers,
+                series: '活跃用户',
               },
               {
-                title: '活跃用户',
-                dataIndex: 'activeUsers',
-                width: 120,
-                sorter: (a, b) => a.activeUsers - b.activeUsers,
-                render: (v: number) => <Text strong>{v.toLocaleString()}</Text>,
+                period: item.periodStart && item.periodEnd && item.periodStart !== item.periodEnd
+                  ? `${item.periodStart}~${item.periodEnd}`
+                  : item.period,
+                value: item.newUsers,
+                series: '新增用户',
               },
-              {
-                title: '总上报次数',
-                dataIndex: 'totalReports',
-                width: 130,
-                sorter: (a, b) => a.totalReports - b.totalReports,
-                render: (v: number) => v.toLocaleString(),
-              },
-            ]}
+            ])}
+            xField="period"
+            yField="value"
+            colorField="series"
+            group
+            height={300}
+            axis={{ y: { labelFormatter: (v: number) => v.toLocaleString() } }}
+            tooltip={{ items: [{ field: 'value', valueFormatter: (v: number) => v.toLocaleString() }] }}
+            legend={{ position: 'top-right' as const }}
           />
         </Card>
       )}

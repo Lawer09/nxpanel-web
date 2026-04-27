@@ -92,6 +92,18 @@ export async function getUserReportDaily(
   );
 }
 
+// ── 用户上报实时数据 ─────────────────────────────────────────────────────
+
+export async function getUserReportRealtime(
+  params: API.UserReportRealtimeParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.PageResult<API.UserReportRealtimeItem>>>(
+    '/v3/userReport/realtime',
+    { method: 'GET', params, ...(options || {}) },
+  );
+}
+
 // ── 用户留存分析 ─────────────────────────────────────────────────────────────
 
 export async function getRetention(
