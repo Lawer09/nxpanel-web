@@ -1,5 +1,5 @@
 import { PageContainer } from '@ant-design/pro-components';
-import { App, DatePicker, Form, Input, Space } from 'antd';
+import { App, DatePicker, Form, Input } from 'antd';
 import dayjs from 'dayjs';
 import React from 'react';
 import UniversalReportTable from '@/components/report/UniversalReportTable';
@@ -42,37 +42,15 @@ const METRIC_OPTIONS = [
   { label: '匹配', value: 'matchedRequests', column: { title: '匹配', dataIndex: 'matchedRequests', width: 100 }, formatter: fmtNumber },
 ];
 
-const SUMMARY_KEYS = [
-  'reportNewUsers',
-  'dauUsers',
-  'registerNewUsers',
-  'revenue',
-  'adSpendCost',
-  'trafficUsageGb',
-  'trafficCost',
-  'grossProfit',
-  'roi',
-  'cpi',
-  'ecpm',
-  'fbEcpm',
-  'ctr',
-  'matchRate',
-  'showRate',
-  'impressions',
-  'clicks',
-  'adRequests',
-  'matchedRequests',
-];
-
-const ProjectAggregatesPage: React.FC = () => {
+const UniversalReportDemoPage: React.FC = () => {
   const { message: messageApi } = App.useApp();
   const today = dayjs().format('YYYY-MM-DD');
 
   return (
     <PageContainer>
       <UniversalReportTable<API.ProjectAggregatesDailyItem, QueryState>
-        storageKey="report.projectAggregates"
-        title="项目聚合报表"
+        storageKey="devtest.universalReportDemo"
+        title="通用报表组件 Demo"
         rowKey="id"
         defaultQuery={{
           dateRange: [today, today],
@@ -175,19 +153,35 @@ const ProjectAggregatesPage: React.FC = () => {
             return {};
           }
           const rows = res.data ?? [];
-          return SUMMARY_KEYS.reduce<Record<string, number>>((acc, key) => {
+          const keys = [
+            'reportNewUsers',
+            'dauUsers',
+            'registerNewUsers',
+            'revenue',
+            'adSpendCost',
+            'trafficUsageGb',
+            'trafficCost',
+            'grossProfit',
+            'roi',
+            'cpi',
+            'ecpm',
+            'fbEcpm',
+            'ctr',
+            'matchRate',
+            'showRate',
+            'impressions',
+            'clicks',
+            'adRequests',
+            'matchedRequests',
+          ];
+          return keys.reduce<Record<string, number>>((acc, key) => {
             acc[key] = rows.reduce((sum, row) => sum + Number((row as any)[key] ?? 0), 0);
             return acc;
           }, {});
         }}
       />
-
-      <Space direction="vertical" size={4} style={{ color: '#999', marginTop: 12 }}>
-        <div>已增强：查询条件本地记忆、维度动态列、当前页合计、总数据合计。</div>
-        <div>建议：后端可补充 summary 返回单条总计字段，避免前端二次求和的精度误差。</div>
-      </Space>
     </PageContainer>
   );
 };
 
-export default ProjectAggregatesPage;
+export default UniversalReportDemoPage;
