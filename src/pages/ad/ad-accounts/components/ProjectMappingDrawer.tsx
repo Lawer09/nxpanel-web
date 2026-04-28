@@ -40,7 +40,7 @@ const ProjectMappingDrawer: React.FC<Props> = ({ open, account, onClose }) => {
     try {
       const res = await getProjectMappings({ accountId: account.id });
       if (res.code === 0) {
-        setData(Array.isArray(res.data) ? res.data : []);
+        setData(res.data?.data ?? []);
       }
     } finally {
       setLoading(false);

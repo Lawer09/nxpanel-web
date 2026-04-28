@@ -275,6 +275,7 @@ declare namespace API {
     periodEnd?: string;
     activeUsers: number;
     newUsers: number;
+    regUsers?: number;
     totalReports: number;
   }
 

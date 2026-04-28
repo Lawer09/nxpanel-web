@@ -161,6 +161,11 @@ export default [
         name: 'perf-group-analysis',
         component: './report/perf-group-analysis',
       },
+      {
+        path: '/report/project-aggregates',
+        name: 'project-aggregates',
+        component: './report/project-aggregates',
+      },
     ],
   },
   {
@@ -239,6 +244,110 @@ export default [
     name: 'ticket',
     icon: 'customerService',
     component: './ticket',
+  },
+  {
+    path: '/traffic-platform',
+    name: 'traffic-platform',
+    icon: 'cloudServer',
+    routes: [
+      {
+        path: '/traffic-platform',
+        redirect: '/traffic-platform/platforms',
+      },
+      {
+        path: '/traffic-platform/platforms',
+        name: 'platforms',
+        component: './traffic-platform/platforms',
+      },
+      {
+        path: '/traffic-platform/accounts',
+        name: 'accounts',
+        component: './traffic-platform/accounts',
+      },
+      {
+        path: '/traffic-platform/hourly',
+        name: 'hourly',
+        component: './traffic-platform/hourly',
+      },
+      {
+        path: '/traffic-platform/daily',
+        name: 'daily',
+        component: './traffic-platform/daily',
+      },
+      {
+        path: '/traffic-platform/monthly',
+        name: 'monthly',
+        component: './traffic-platform/monthly',
+      },
+      {
+        path: '/traffic-platform/trend',
+        name: 'trend',
+        component: './traffic-platform/trend',
+      },
+      {
+        path: '/traffic-platform/ranking',
+        name: 'ranking',
+        component: './traffic-platform/ranking',
+      },
+      {
+        path: '/traffic-platform/sync-jobs',
+        name: 'sync-jobs',
+        component: './traffic-platform/sync-jobs',
+      },
+    ],
+  },
+  {
+    path: '/ad-spend',
+    name: 'ad-spend',
+    icon: 'pieChart',
+    routes: [
+      {
+        path: '/ad-spend',
+        redirect: '/ad-spend/accounts',
+      },
+      {
+        path: '/ad-spend/accounts',
+        name: 'accounts',
+        component: './ad-spend/accounts',
+      },
+      {
+        path: '/ad-spend/sync-jobs',
+        name: 'sync-jobs',
+        component: './ad-spend/sync-jobs',
+      },
+      {
+        path: '/ad-spend/reports',
+        name: 'reports',
+        component: './ad-spend/reports',
+      },
+    ],
+  },
+  {
+    path: '/project',
+    name: 'project',
+    icon: 'project',
+    routes: [
+      {
+        path: '/project',
+        redirect: '/project/list',
+      },
+      {
+        path: '/project/list',
+        name: 'list',
+        component: './project/list',
+      },
+      {
+        path: '/project/app-mappings',
+        name: 'app-mappings',
+        component: './ad/project-mappings',
+      },
+      {
+        path: '/project/:id',
+        name: 'detail',
+        component: './project/detail',
+        hideInMenu: true,
+      },
+    ],
   },
   
   {

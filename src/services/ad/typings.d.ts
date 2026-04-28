@@ -58,8 +58,22 @@ declare namespace API {
     accountId: number;
     providerAppId: string;
     status: string;
+    account?: {
+      id: number;
+      accountName: string;
+      sourcePlatform: string;
+    };
     createdAt: string;
     updatedAt: string;
+  }
+
+  interface ProjectMappingQuery {
+    projectId?: number;
+    sourcePlatform?: string;
+    accountId?: number;
+    status?: 'enabled' | 'disabled';
+    page?: number;
+    pageSize?: number;
   }
 
   interface ProjectMappingUpsertRequest {

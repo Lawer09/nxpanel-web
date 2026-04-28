@@ -135,6 +135,13 @@ const UserTrendCard: React.FC<UserTrendCardProps> = ({
                 value: item.newUsers,
                 series: '新增用户',
               },
+              {
+                period: item.periodStart && item.periodEnd && item.periodStart !== item.periodEnd
+                  ? `${item.periodStart}~${item.periodEnd}`
+                  : item.period,
+                value: item.regUsers ?? 0,
+                series: '注册用户',
+              },
             ])}
             xField="period"
             yField="value"

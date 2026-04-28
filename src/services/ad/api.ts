@@ -51,8 +51,8 @@ export async function batchAssignServer(data: API.BatchAssignServerRequest) {
 
 // ── 项目映射 ──────────────────────────────────────────────────────────────────
 
-export async function getProjectMappings(params?: { accountId?: number }) {
-  return request<API.ApiResponse<API.ProjectMapping[]>>('/v3/project-app-mappings', {
+export async function getProjectMappings(params?: API.ProjectMappingQuery) {
+  return request<API.ApiResponse<API.PageResult<API.ProjectMapping>>>('/v3/project-app-mappings', {
     method: 'GET',
     params,
   });

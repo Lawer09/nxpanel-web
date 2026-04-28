@@ -87,6 +87,7 @@ const DashboardPage: React.FC = () => {
             options={[
               { label: 'com.rocket.space.vpn', value: 'com.rocket.space.vpn' },
               { label: 'com.rocket.hsjd.vpn.jsw', value: 'com.rocket.hsjd.vpn.jsw' },
+              { label: 'com.jkcl.zwx.vpn', value: 'com.jkcl.zwx.vpn' },
               { label: 'com.geektreeone.ddmo.GeekStreeNOOne', value: 'com.geektreeone.ddmo.GeekStreeNOOne' },
             ]}
           />

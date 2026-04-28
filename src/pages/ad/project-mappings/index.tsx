@@ -37,7 +37,7 @@ const ProjectMappingsPage: React.FC = () => {
       messageApi.error(res.msg || '获取列表失败');
       return;
     }
-    setData(Array.isArray(res.data) ? res.data : []);
+    setData(res.data?.data ?? []);
   };
 
   useEffect(() => {
