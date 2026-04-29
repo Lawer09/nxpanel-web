@@ -138,13 +138,11 @@ export default [
       },
       {
         path: '/report/user-report-count',
-        name: 'user-report-count',
-        component: './report/user-report-count',
+        redirect: '/report/user-report-realtime',
       },
       {
         path: '/report/user-report-daily',
-        name: 'user-report-daily',
-        component: './report/user-report-daily',
+        redirect: '/report/user-report-realtime',
       },
       {
         path: '/report/user-report-realtime',

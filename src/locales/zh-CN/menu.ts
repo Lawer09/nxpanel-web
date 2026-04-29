@@ -66,8 +66,6 @@ export default {
   'menu.report.performance': '用户节点报告',
   'menu.report.user-stat': '用户流量报表',
   'menu.report.server-stat': '节点流量报表',
-  'menu.report.user-report-count': '用户上报统计',
-  'menu.report.user-report-daily': '用户上报日汇总',
   'menu.report.user-report-realtime': '用户上报实时数据',
   'menu.report.perf-distribution': '性能分布分析',
   'menu.report.failed-nodes': '失败节点报表',

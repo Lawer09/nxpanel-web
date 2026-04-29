@@ -16,30 +16,79 @@ type QueryState = {
   adCountry?: string;
 };
 
-const fmtNumber = (v: number) => Number(v ?? 0).toLocaleString();
-const fmtMoney = (v: number) => Number(v ?? 0).toFixed(2);
-const fmtRate = (v: number) => `${Number(v ?? 0).toFixed(4)}`;
+const toSafeNumber = (v: number | string | undefined | null) => {
+  const n = Number(v ?? 0);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const fmtNumber = (v: number | string) => toSafeNumber(v).toLocaleString();
+const fmtFixed2 = (v: number | string) => toSafeNumber(v).toFixed(2);
+const fmtPercent = (v: number | string) => {
+  const n = toSafeNumber(v);
+  const percentValue = Math.abs(n) <= 1 ? n * 100 : n;
+  return `${percentValue.toFixed(2)}%`;
+};
 
 const METRIC_OPTIONS = [
   { label: '上报新增', value: 'reportNewUsers', column: { title: '上报新增', dataIndex: 'reportNewUsers', width: 90 }, formatter: fmtNumber },
   { label: '日活', value: 'dauUsers', column: { title: '日活', dataIndex: 'dauUsers', width: 90 }, formatter: fmtNumber },
   { label: '注册新增', value: 'registerNewUsers', column: { title: '注册新增', dataIndex: 'registerNewUsers', width: 90 }, formatter: fmtNumber },
-  { label: '收入', value: 'revenue', column: { title: '收入', dataIndex: 'revenue', width: 100 }, formatter: fmtMoney },
-  { label: '投放成本', value: 'adSpendCost', column: { title: '投放成本', dataIndex: 'adSpendCost', width: 100 }, formatter: fmtMoney },
-  { label: '流量 GB', value: 'trafficUsageGb', column: { title: '流量 GB', dataIndex: 'trafficUsageGb', width: 100 }, formatter: fmtMoney },
-  { label: '流量成本', value: 'trafficCost', column: { title: '流量成本', dataIndex: 'trafficCost', width: 100 }, formatter: fmtMoney },
-  { label: '毛利', value: 'grossProfit', column: { title: '毛利', dataIndex: 'grossProfit', width: 100 }, formatter: fmtMoney },
-  { label: 'ROI', value: 'roi', column: { title: 'ROI', dataIndex: 'roi', width: 90 }, formatter: fmtRate },
-  { label: 'CPI', value: 'cpi', column: { title: 'CPI', dataIndex: 'cpi', width: 90 }, formatter: fmtRate },
-  { label: 'eCPM', value: 'ecpm', column: { title: 'eCPM', dataIndex: 'ecpm', width: 90 }, formatter: fmtRate },
-  { label: 'FB eCPM', value: 'fbEcpm', column: { title: 'FB eCPM', dataIndex: 'fbEcpm', width: 90 }, formatter: fmtRate },
-  { label: 'CTR', value: 'ctr', column: { title: 'CTR', dataIndex: 'ctr', width: 90 }, formatter: fmtRate },
-  { label: '匹配率', value: 'matchRate', column: { title: '匹配率', dataIndex: 'matchRate', width: 90 }, formatter: fmtRate },
-  { label: '展示率', value: 'showRate', column: { title: '展示率', dataIndex: 'showRate', width: 90 }, formatter: fmtRate },
+  {
+    label: '收入',
+    value: 'revenue',
+    column: { title: '收入', dataIndex: 'revenue', width: 100, render: (v: number | string) => fmtFixed2(v) },
+    formatter: fmtFixed2,
+  },
+  {
+    label: '投放成本',
+    value: 'adSpendCost',
+    column: { title: '投放成本', dataIndex: 'adSpendCost', width: 100, render: (v: number | string) => fmtFixed2(v) },
+    formatter: fmtFixed2,
+  },
+  {
+    label: '流量 GB',
+    value: 'trafficUsageGb',
+    column: { title: '流量 GB', dataIndex: 'trafficUsageGb', width: 100, render: (v: number | string) => fmtFixed2(v) },
+    formatter: fmtFixed2,
+  },
+  {
+    label: '流量成本',
+    value: 'trafficCost',
+    column: { title: '流量成本', dataIndex: 'trafficCost', width: 100, render: (v: number | string) => fmtFixed2(v) },
+    formatter: fmtFixed2,
+  },
+  {
+    label: '毛利',
+    value: 'grossProfit',
+    column: { title: '毛利', dataIndex: 'grossProfit', width: 100, render: (v: number | string) => fmtFixed2(v) },
+    formatter: fmtFixed2,
+  },
+  {
+    label: 'ROI',
+    value: 'roi',
+    column: { title: 'ROI', dataIndex: 'roi', width: 90, render: (v: number | string) => fmtPercent(v) },
+    formatter: fmtPercent,
+  },
+  { label: 'CPI', value: 'cpi', column: { title: 'CPI', dataIndex: 'cpi', width: 90, render: (v: number | string) => fmtFixed2(v) }, formatter: fmtFixed2 },
+  { label: 'eCPM', value: 'ecpm', column: { title: 'eCPM', dataIndex: 'ecpm', width: 90, render: (v: number | string) => fmtFixed2(v) }, formatter: fmtFixed2 },
+  { label: 'FB eCPM', value: 'fbEcpm', column: { title: 'FB eCPM', dataIndex: 'fbEcpm', width: 90, render: (v: number | string) => fmtFixed2(v) }, formatter: fmtFixed2 },
+  { label: 'CTR', value: 'ctr', column: { title: 'CTR', dataIndex: 'ctr', width: 90, render: (v: number | string) => fmtPercent(v) }, formatter: fmtPercent },
+  { label: '匹配率', value: 'matchRate', column: { title: '匹配率', dataIndex: 'matchRate', width: 90, render: (v: number | string) => fmtPercent(v) }, formatter: fmtPercent },
+  { label: '展示率', value: 'showRate', column: { title: '展示率', dataIndex: 'showRate', width: 90, render: (v: number | string) => fmtPercent(v) }, formatter: fmtPercent },
   { label: '展示', value: 'impressions', column: { title: '展示', dataIndex: 'impressions', width: 100 }, formatter: fmtNumber },
   { label: '点击', value: 'clicks', column: { title: '点击', dataIndex: 'clicks', width: 90 }, formatter: fmtNumber },
   { label: '请求', value: 'adRequests', column: { title: '请求', dataIndex: 'adRequests', width: 100 }, formatter: fmtNumber },
-  { label: '匹配', value: 'matchedRequests', column: { title: '匹配', dataIndex: 'matchedRequests', width: 100 }, formatter: fmtNumber },
+  {
+    label: '匹配',
+    value: 'matchedRequests',
+    column: {
+      title: '匹配',
+      dataIndex: 'matchedRequests',
+      width: 140,
+      render: (v: number | string, row: API.ProjectAggregatesDailyItem) => `${fmtNumber(v)}(${fmtPercent(row.matchRate)})`,
+    },
+    formatter: fmtNumber,
+  },
 ];
 
 const SUMMARY_KEYS = [
@@ -63,6 +112,18 @@ const SUMMARY_KEYS = [
   'adRequests',
   'matchedRequests',
 ];
+
+const resolveDailyGroupBy = (dimensions: string[]): API.ProjectAggregatesDailyGroupField[] => {
+  const hasDate = dimensions.includes('date');
+  const hasProject = dimensions.includes('project');
+  const hasCountry = dimensions.includes('country');
+
+  const groupBy: API.ProjectAggregatesDailyGroupField[] = [];
+  if (hasDate) groupBy.push('reportDate');
+  if (hasProject) groupBy.push('projectCode');
+  if (hasCountry) groupBy.push('adCountry');
+  return groupBy;
+};
 
 const ProjectAggregatesPage: React.FC = () => {
   const { message: messageApi } = App.useApp();
@@ -114,12 +175,12 @@ const ProjectAggregatesPage: React.FC = () => {
               <RangePicker
                 value={[dayjs(query.dateRange[0]), dayjs(query.dateRange[1])]}
                 onChange={(dates) => {
-                  if (dates && dates[0] && dates[1]) {
-                    setQuery((prev) => ({
-                      ...prev,
-                      dateRange: [dates[0].format('YYYY-MM-DD'), dates[1].format('YYYY-MM-DD')],
-                    }));
-                  }
+                  const [start, end] = dates ?? [];
+                  if (!start || !end) return;
+                  setQuery((prev) => ({
+                    ...prev,
+                    dateRange: [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')],
+                  }));
                 }}
               />
             </Form.Item>
@@ -142,24 +203,29 @@ const ProjectAggregatesPage: React.FC = () => {
           </Form>
         )}
         fetchData={async ({ query, page, pageSize, dimensions }) => {
-          const firstDimension = dimensions[0] || 'project';
+          const groupBy = resolveDailyGroupBy(dimensions);
           const res = await getProjectAggregatesDaily({
             startDate: query.dateRange[0],
             endDate: query.dateRange[1],
             projectCode: query.projectCode,
             adCountry: query.adCountry,
+            groupBy,
+            groupby: groupBy,
             page,
             pageSize,
-            orderBy: firstDimension === 'date' ? 'reportDate' : 'revenue',
+            orderBy: 'reportDate',
             orderDir: 'desc',
           });
           if (res.code !== 0) {
             messageApi.error(res.msg || '获取项目聚合日报失败');
             return { list: [], total: 0 };
           }
+          const payload = (res.data as any)?.data ?? res.data;
+          const list = Array.isArray(payload) ? payload : (payload?.list ?? []);
+          const total = typeof payload?.total === 'number' ? payload.total : list.length;
           return {
-            list: res.data?.list ?? [],
-            total: res.data?.total ?? 0,
+            list,
+            total,
           };
         }}
         fetchGrandTotals={async ({ query, dimensions }) => {

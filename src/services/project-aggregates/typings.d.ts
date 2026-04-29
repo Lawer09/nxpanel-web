@@ -1,4 +1,6 @@
 declare namespace API {
+  type ProjectAggregatesDailyGroupField = 'reportDate' | 'projectCode' | 'adCountry';
+
   interface ProjectAggregatesAggregateRequest {
     startDate: string;
     endDate: string;
@@ -25,6 +27,8 @@ declare namespace API {
     endDate: string;
     projectCode?: string;
     adCountry?: string;
+    groupBy?: ProjectAggregatesDailyGroupField[];
+    groupby?: ProjectAggregatesDailyGroupField[];
     page?: number;
     pageSize?: number;
     orderBy?: string;
@@ -48,7 +52,7 @@ declare namespace API {
   }
 
   interface ProjectAggregatesDailyItem {
-    id: number;
+    id?: number;
     reportDate: string;
     projectCode: string;
     adCountry: string;

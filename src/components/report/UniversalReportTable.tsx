@@ -1,3 +1,5 @@
+import { ProTable } from '@ant-design/pro-components';
+import type { ProColumns } from '@ant-design/pro-components';
 import { ReloadOutlined, SaveOutlined, SearchOutlined } from '@ant-design/icons';
 import { Button, Card, Input, Select, Space, Table, Typography, message } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
@@ -6,6 +8,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 type AnyRecord = Record<string, any>;
 
 type MetricFormatter = (value: number) => React.ReactNode;
+type FixedPosition = 'left' | 'right';
+type ColumnState = { show?: boolean; fixed?: FixedPosition; order?: number };
+type ColumnStateMap = Record<string, ColumnState>;
 
 interface SummaryMetric {
   key: string;
@@ -25,6 +30,15 @@ interface SavedView<Q extends AnyRecord> {
   query: Q;
   dimensions: string[];
   metrics: string[];
+  columnsStateMap?: ColumnStateMap;
+}
+
+interface ActiveColumn<T> {
+  id: string;
+  kind: 'dimension' | 'metric';
+  value: string;
+  label: string;
+  column: ColumnsType<T>[number];
 }
 
 interface DimensionOption<T> {
@@ -76,6 +90,7 @@ function readLocalState<Q extends AnyRecord>(storageKey: string, fallback: Q, de
         pageSize: defaultPageSize,
         metrics: [],
         savedViews: [],
+        columnsStateMap: {},
       };
     }
     const parsed = JSON.parse(raw) as {
@@ -85,16 +100,17 @@ function readLocalState<Q extends AnyRecord>(storageKey: string, fallback: Q, de
       metrics?: string[];
       pageSize?: number;
       savedViews?: SavedView<Q>[];
+      columnsStateMap?: ColumnStateMap;
     };
-    const dimensions =
-      parsed.dimensions ??
-      (parsed.dimension ? [parsed.dimension] : defaultDimensions);
+    const dimensions = parsed.dimensions ?? (parsed.dimension ? [parsed.dimension] : defaultDimensions);
+    const metrics = parsed.metrics ?? [];
     return {
       query: parsed.query ?? fallback,
       dimensions,
-      metrics: parsed.metrics ?? [],
+      metrics,
       pageSize: parsed.pageSize ?? defaultPageSize,
       savedViews: parsed.savedViews ?? [],
+      columnsStateMap: parsed.columnsStateMap ?? {},
     };
   } catch {
     return {
@@ -103,6 +119,7 @@ function readLocalState<Q extends AnyRecord>(storageKey: string, fallback: Q, de
       metrics: [],
       pageSize: defaultPageSize,
       savedViews: [],
+      columnsStateMap: {},
     };
   }
 }
@@ -114,10 +131,11 @@ function writeLocalState<Q extends AnyRecord>(
   metrics: string[],
   pageSize: number,
   savedViews: SavedView<Q>[],
+  columnsStateMap: ColumnStateMap,
 ) {
   localStorage.setItem(
     storageKey,
-    JSON.stringify({ query, dimensions, metrics, pageSize, savedViews }),
+    JSON.stringify({ query, dimensions, metrics, pageSize, savedViews, columnsStateMap }),
   );
 }
 
@@ -147,6 +165,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     persisted.metrics.length ? persisted.metrics : defaultMetrics,
   );
   const [savedViews, setSavedViews] = useState<SavedView<Q>[]>(persisted.savedViews ?? []);
+  const [columnsStateMap, setColumnsStateMap] = useState<ColumnStateMap>(persisted.columnsStateMap ?? {});
   const [selectedViewId, setSelectedViewId] = useState<string>();
   const [viewName, setViewName] = useState('');
   const [data, setData] = useState<T[]>([]);
@@ -157,8 +176,8 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   const [grandTotals, setGrandTotals] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    writeLocalState(storageKey, query, dimensions, metrics, pageSize, savedViews);
-  }, [storageKey, query, dimensions, metrics, pageSize, savedViews]);
+    writeLocalState(storageKey, query, dimensions, metrics, pageSize, savedViews, columnsStateMap);
+  }, [storageKey, query, dimensions, metrics, pageSize, savedViews, columnsStateMap]);
 
   useEffect(() => {
     let alive = true;
@@ -199,23 +218,70 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     };
   }, [fetchGrandTotals, appliedQuery, dimensions]);
 
-  const dimColumns = useMemo(
+  const dimColumns = useMemo<ActiveColumn<T>[]>(
     () =>
       dimensions
-        .map((value) => dimensionOptions.find((item) => item.value === value)?.column)
-        .filter(Boolean) as ColumnsType<T>,
+        .map((value) => {
+          const option = dimensionOptions.find((item) => item.value === value);
+          if (!option) return null;
+          return {
+            id: `d:${value}`,
+            kind: 'dimension' as const,
+            value,
+            label: option.label,
+            column: option.column,
+          };
+        })
+        .filter(Boolean) as ActiveColumn<T>[],
     [dimensions, dimensionOptions],
   );
 
-  const tableColumns = useMemo(
+  const metricColumns = useMemo<ActiveColumn<T>[]>(
     () => {
-      const selectedMetricColumns = metricOptions
+      return metricOptions
         .filter((item) => metrics.includes(item.value))
-        .map((item) => item.column);
-      return [...dimColumns, ...selectedMetricColumns];
+        .map((item) => ({
+          id: `m:${item.value}`,
+          kind: 'metric' as const,
+          value: item.value,
+          label: item.label,
+          column: item.column,
+        }));
     },
-    [dimColumns, metricOptions, metrics],
+    [metricOptions, metrics],
   );
+
+  const activeColumns = useMemo(() => [...dimColumns, ...metricColumns], [dimColumns, metricColumns]);
+
+  const tableColumns = useMemo<ProColumns<T>[]>(
+    () =>
+      activeColumns.map((item) => {
+        const key = String((item.column as any).key ?? item.id);
+        return {
+          ...(item.column as ProColumns<T>),
+          key,
+        };
+      }),
+    [activeColumns],
+  );
+
+  const visibleOrderedColumns = useMemo(() => {
+    return activeColumns
+      .map((item, index) => {
+        const key = String((item.column as any).key ?? item.id);
+        const state = columnsStateMap[key];
+        return { ...item, index, key, order: state?.order, show: state?.show };
+      })
+      .filter((item) => item.show !== false)
+      .sort((a, b) => {
+        const hasA = typeof a.order === 'number';
+        const hasB = typeof b.order === 'number';
+        if (hasA && hasB) return (a.order as number) - (b.order as number);
+        if (hasA) return -1;
+        if (hasB) return 1;
+        return a.index - b.index;
+      });
+  }, [activeColumns, columnsStateMap]);
 
   const summaryMetrics = useMemo<SummaryMetric[]>(() => {
     return metricOptions
@@ -231,10 +297,11 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   }, [data, summaryMetrics]);
 
   const metricMap = useMemo(
-    () => summaryMetrics.reduce<Record<string, SummaryMetric>>((acc, item) => {
-      acc[item.key] = item;
-      return acc;
-    }, {}),
+    () =>
+      summaryMetrics.reduce<Record<string, SummaryMetric>>((acc, item) => {
+        acc[item.key] = item;
+        return acc;
+      }, {}),
     [summaryMetrics],
   );
 
@@ -248,6 +315,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     setAppliedQuery(defaultQuery);
     setDimensions(defaultDimensions);
     setMetrics(defaultMetrics);
+    setColumnsStateMap({});
     setCurrent(1);
     setPageSize(defaultPageSize);
   };
@@ -258,18 +326,21 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
       message.warning('请输入视图名称');
       return;
     }
+    const existed = savedViews.find((item) => item.name === name);
     const nextView: SavedView<Q> = {
-      id: `${Date.now()}`,
+      id: existed?.id ?? `${Date.now()}`,
       name,
       query,
       dimensions,
       metrics,
+      columnsStateMap,
     };
-    const nextViews = [nextView, ...savedViews].slice(0, 20);
+    const rest = savedViews.filter((item) => item.name !== name);
+    const nextViews = [nextView, ...rest].slice(0, 20);
     setSavedViews(nextViews);
     setSelectedViewId(nextView.id);
     setViewName('');
-    message.success('视图已保存');
+    message.success(existed ? '已覆盖同名视图' : '视图已保存');
   };
 
   const handleApplyView = (id: string) => {
@@ -280,11 +351,9 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     setAppliedQuery(target.query);
     setDimensions(target.dimensions);
     setMetrics(target.metrics);
+    setColumnsStateMap(target.columnsStateMap ?? {});
     setCurrent(1);
   };
-
-  const dimensionCount = Math.max(1, dimColumns.length);
-  const metricTableColumns = tableColumns.slice(dimColumns.length);
 
   const pagination: TablePaginationConfig = {
     current,
@@ -302,12 +371,8 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
 
   return (
     <Space direction="vertical" style={{ width: '100%' }} size={16}>
-      <Card title={`${title} - 1. 筛选条件`}>
-        {renderFilters({ query, setQuery })}
-      </Card>
-
       <Card
-        title="2. 维度与统计字段"
+        title={title}
         extra={
           <Space>
             <Button icon={<SearchOutlined />} type="primary" onClick={handleSearch}>
@@ -319,6 +384,12 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
           </Space>
         }
       >
+        <Typography.Text type="secondary">筛选条件</Typography.Text>
+        <div style={{ marginTop: 8 }}>{renderFilters({ query, setQuery })}</div>
+
+        <Typography.Text type="secondary" style={{ display: 'block', marginTop: 16 }}>
+          维度与统计字段
+        </Typography.Text>
         <Space wrap>
           <span>维度</span>
           <Select
@@ -371,52 +442,75 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
             <Button icon={<SaveOutlined />} onClick={handleSaveView}>
               保存视图
             </Button>
-            <Typography.Text type="secondary">视图保存内容：筛选条件 + 维度 + 统计字段</Typography.Text>
+            <Typography.Text type="secondary">视图保存内容：筛选条件 + 维度 + 统计字段 + 列顺序/固定</Typography.Text>
           </Space>
         </div>
       </Card>
 
-      <Card title="3. 表格展示">
-        <Table<T>
+      <Card title="表格展示">
+        <ProTable<T>
           rowKey={rowKey as any}
           columns={tableColumns}
           dataSource={data}
           loading={loading}
+          search={false}
+          toolBarRender={false}
+          options={{ reload: false, density: false, fullScreen: false, setting: { draggable: true } }}
+          columnsState={{
+            value: columnsStateMap,
+            onChange: (map) => setColumnsStateMap((map || {}) as ColumnStateMap),
+          }}
           pagination={pagination}
           scroll={{ x: 'max-content' }}
           summary={() => (
             <Table.Summary>
               <Table.Summary.Row>
-                <Table.Summary.Cell index={0} colSpan={dimensionCount}>当前页合计</Table.Summary.Cell>
-                {metricTableColumns.map((col, idx) => {
-                  const key = typeof col.dataIndex === 'string' ? col.dataIndex : '';
-                  const metric = metricMap[key];
-                  const raw = currentTotals[key];
-                  const content = metric
-                    ? metric.formatter
-                      ? metric.formatter(raw)
-                      : raw.toLocaleString()
-                    : '-';
+                {visibleOrderedColumns.map((col, idx) => {
+                  if (idx === 0) {
+                    return (
+                      <Table.Summary.Cell index={idx} key={`curr-${col.key}`}>
+                        当前页合计
+                      </Table.Summary.Cell>
+                    );
+                  }
+                  if (col.kind !== 'metric') {
+                    return (
+                      <Table.Summary.Cell index={idx} key={`curr-${col.key}`}>
+                        -
+                      </Table.Summary.Cell>
+                    );
+                  }
+                  const metric = metricMap[col.value];
+                  const raw = currentTotals[col.value] ?? 0;
+                  const content = metric?.formatter ? metric.formatter(raw) : raw.toLocaleString();
                   return (
-                    <Table.Summary.Cell index={idx + 1} key={`curr-${String(col.key || key || idx)}`}>
+                    <Table.Summary.Cell index={idx} key={`curr-${col.key}`}>
                       {content}
                     </Table.Summary.Cell>
                   );
                 })}
               </Table.Summary.Row>
               <Table.Summary.Row>
-                <Table.Summary.Cell index={0} colSpan={dimensionCount}>总数据合计</Table.Summary.Cell>
-                {metricTableColumns.map((col, idx) => {
-                  const key = typeof col.dataIndex === 'string' ? col.dataIndex : '';
-                  const metric = metricMap[key];
-                  const raw = grandTotals[key] ?? 0;
-                  const content = metric
-                    ? metric.formatter
-                      ? metric.formatter(raw)
-                      : raw.toLocaleString()
-                    : '-';
+                {visibleOrderedColumns.map((col, idx) => {
+                  if (idx === 0) {
+                    return (
+                      <Table.Summary.Cell index={idx} key={`grand-${col.key}`}>
+                        总数据合计
+                      </Table.Summary.Cell>
+                    );
+                  }
+                  if (col.kind !== 'metric') {
+                    return (
+                      <Table.Summary.Cell index={idx} key={`grand-${col.key}`}>
+                        -
+                      </Table.Summary.Cell>
+                    );
+                  }
+                  const metric = metricMap[col.value];
+                  const raw = grandTotals[col.value] ?? 0;
+                  const content = metric?.formatter ? metric.formatter(raw) : raw.toLocaleString();
                   return (
-                    <Table.Summary.Cell index={idx + 1} key={`grand-${String(col.key || key || idx)}`}>
+                    <Table.Summary.Cell index={idx} key={`grand-${col.key}`}>
                       {content}
                     </Table.Summary.Cell>
                   );

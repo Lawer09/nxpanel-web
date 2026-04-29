@@ -23,7 +23,7 @@ export async function triggerProjectAggregatesAsync(data: API.ProjectAggregatesA
 }
 
 export async function getProjectAggregatesDaily(params: API.ProjectAggregatesDailyQuery) {
-  return request<API.ApiResponse<{ list: API.ProjectAggregatesDailyItem[]; total: number; page: number; pageSize: number }>>(
+  return request<API.ApiResponse<API.PageResult<API.ProjectAggregatesDailyItem>>>(
     '/v3/project-aggregates/daily',
     { method: 'GET', params },
   );
