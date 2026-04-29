@@ -48,8 +48,6 @@ export default {
   'menu.report.app-traffic': 'App Traffic',
   'menu.report.perf-group-analysis': 'Performance Group Analysis',
   'menu.report.project-aggregates': 'Project Aggregate Reports',
-  'menu.dev-test': 'Dev Test',
-  'menu.dev-test.universal-report-demo': 'Universal Report Demo',
   'menu.invite-gift-card': 'Invite Gift Cards',
   'menu.invite-gift-card.invite-gift-card-rules': 'Rule Management',
   'menu.invite-gift-card.invite-gift-card-logs': 'Issue Logs',

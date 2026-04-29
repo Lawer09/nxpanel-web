@@ -72,8 +72,6 @@ export default {
   'menu.report.app-traffic': 'App 流量报表',
   'menu.report.perf-group-analysis': '性能维度聚合',
   'menu.report.project-aggregates': '项目聚合报表',
-  'menu.dev-test': '开发测试',
-  'menu.dev-test.universal-report-demo': '通用报表 Demo',
   'menu.invite-gift-card': '邀请礼品卡',
   'menu.invite-gift-card.invite-gift-card-rules': '规则管理',
   'menu.invite-gift-card.invite-gift-card-logs': '发放日志',

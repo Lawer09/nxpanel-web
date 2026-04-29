@@ -1,7 +1,7 @@
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { ReloadOutlined, SaveOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, Input, Select, Space, Table, Typography, message } from 'antd';
+import { Button, Card, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import React, { useEffect, useMemo, useState } from 'react';
 
@@ -65,6 +65,7 @@ interface UniversalReportTableProps<T extends AnyRecord, Q extends AnyRecord> {
   renderFilters: (args: {
     query: Q;
     setQuery: React.Dispatch<React.SetStateAction<Q>>;
+    dimensions: string[];
   }) => React.ReactNode;
   fetchData: (args: {
     query: Q;
@@ -371,90 +372,95 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
 
   return (
     <Space direction="vertical" style={{ width: '100%' }} size={16}>
-      <Card
-        title={title}
-        extra={
-          <Space>
-            <Button icon={<SearchOutlined />} type="primary" onClick={handleSearch}>
-              查询
-            </Button>
-            <Button icon={<ReloadOutlined />} onClick={handleReset}>
-              重置
-            </Button>
+      <Card>
+        <Space direction="vertical" size={10} style={{ width: '100%' }}>
+          <Space wrap>
+            <Typography.Text type="secondary">维度</Typography.Text>
+            {dimensionOptions.map((item) => (
+              <Tag.CheckableTag
+                key={item.value}
+                checked={dimensions.includes(item.value)}
+                onChange={(checked) => {
+                  const next = checked ? [...dimensions, item.value] : dimensions.filter((v) => v !== item.value);
+                  setDimensions(next.length ? Array.from(new Set(next)) : defaultDimensions);
+                  setCurrent(1);
+                }}
+              >
+                {item.label}
+              </Tag.CheckableTag>
+            ))}
           </Space>
-        }
-      >
-        <Typography.Text type="secondary">筛选条件</Typography.Text>
-        <div style={{ marginTop: 8 }}>{renderFilters({ query, setQuery })}</div>
-
-        <Typography.Text type="secondary" style={{ display: 'block', marginTop: 16 }}>
-          维度与统计字段
-        </Typography.Text>
-        <Space wrap>
-          <span>维度</span>
-          <Select
-            mode="multiple"
-            value={dimensions}
-            style={{ width: 160 }}
-            options={dimensionOptions.map((item) => ({ label: item.label, value: item.value }))}
-            onChange={(values) => {
-              setDimensions(values.length ? values : defaultDimensions);
-              setCurrent(1);
-            }}
-          />
-          <span>统计字段</span>
-          <Select
-            mode="multiple"
-            value={metrics}
-            style={{ minWidth: 420 }}
-            options={metricOptions.map((item) => ({ label: item.label, value: item.value }))}
-            onChange={(values) => {
-              setMetrics(values);
-              setCurrent(1);
-            }}
-            maxTagCount={4}
-          />
+          <Space wrap>
+            <Typography.Text type="secondary">统计字段</Typography.Text>
+            {metricOptions.map((item) => (
+              <Tag.CheckableTag
+                key={item.value}
+                checked={metrics.includes(item.value)}
+                onChange={(checked) => {
+                  const next = checked ? [...metrics, item.value] : metrics.filter((v) => v !== item.value);
+                  setMetrics(Array.from(new Set(next)));
+                  setCurrent(1);
+                }}
+              >
+                {item.label}
+              </Tag.CheckableTag>
+            ))}
+          </Space>
         </Space>
 
-        <div style={{ marginTop: 12 }}>
-          <Space wrap>
-            <Typography.Text type="secondary">查询视图</Typography.Text>
-            <Select
-              value={selectedViewId}
-              style={{ width: 260 }}
-              allowClear
-              placeholder="选择已保存视图"
-              options={savedViews.map((view) => ({ label: view.name, value: view.id }))}
-              onChange={(id) => {
-                if (!id) {
-                  setSelectedViewId(undefined);
-                  return;
-                }
-                handleApplyView(id);
-              }}
-            />
-            <Input
-              value={viewName}
-              style={{ width: 220 }}
-              placeholder="输入视图名称"
-              onChange={(e) => setViewName(e.target.value)}
-            />
-            <Button icon={<SaveOutlined />} onClick={handleSaveView}>
-              保存视图
-            </Button>
-            <Typography.Text type="secondary">视图保存内容：筛选条件 + 维度 + 统计字段 + 列顺序/固定</Typography.Text>
-          </Space>
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dashed #f0f0f0' }}>
+          {renderFilters({ query, setQuery, dimensions })}
+        </div>
+
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dashed #f0f0f0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <Space wrap>
+              <Typography.Text type="secondary">查询视图</Typography.Text>
+              <Select
+                value={selectedViewId}
+                style={{ width: 260 }}
+                allowClear
+                placeholder="选择已保存视图"
+                options={savedViews.map((view) => ({ label: view.name, value: view.id }))}
+                onChange={(id) => {
+                  if (!id) {
+                    setSelectedViewId(undefined);
+                    return;
+                  }
+                  handleApplyView(id);
+                }}
+              />
+              <Input
+                value={viewName}
+                style={{ width: 220 }}
+                placeholder="输入视图名称"
+                onChange={(e) => setViewName(e.target.value)}
+              />
+              <Button icon={<SaveOutlined />} onClick={handleSaveView}>
+                保存视图
+              </Button>
+            </Space>
+
+            <Space>
+              <Button icon={<ReloadOutlined />} onClick={handleReset}>
+                重置
+              </Button>
+              <Button icon={<SearchOutlined />} type="primary" onClick={handleSearch}>
+                查询
+              </Button>
+            </Space>
+          </div>
         </div>
       </Card>
 
-      <Card title="表格展示">
+      <Card>
         <ProTable<T>
           rowKey={rowKey as any}
           columns={tableColumns}
           dataSource={data}
           loading={loading}
           search={false}
-          toolBarRender={false}
+          toolBarRender={() => []}
           options={{ reload: false, density: false, fullScreen: false, setting: { draggable: true } }}
           columnsState={{
             value: columnsStateMap,

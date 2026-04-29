@@ -1,5 +1,5 @@
 import { PageContainer } from '@ant-design/pro-components';
-import { App, DatePicker, Form, Input, Space } from 'antd';
+import { App, DatePicker, Form, Input } from 'antd';
 import dayjs from 'dayjs';
 import React from 'react';
 import UniversalReportTable from '@/components/report/UniversalReportTable';
@@ -9,6 +9,21 @@ import {
 } from '@/services/project-aggregates/api';
 
 const { RangePicker } = DatePicker;
+
+const DATE_PRESETS = [
+  {
+    label: '今天',
+    value: [dayjs(), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs],
+  },
+  {
+    label: '最近一周',
+    value: [dayjs().subtract(6, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs],
+  },
+  {
+    label: '最近一个月',
+    value: [dayjs().subtract(29, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs],
+  },
+];
 
 type QueryState = {
   dateRange: [string, string];
@@ -169,11 +184,12 @@ const ProjectAggregatesPage: React.FC = () => {
           },
         ]}
         metricOptions={METRIC_OPTIONS}
-        renderFilters={({ query, setQuery }) => (
+        renderFilters={({ query, setQuery, dimensions }) => (
           <Form layout="inline">
             <Form.Item label="日期范围">
               <RangePicker
                 value={[dayjs(query.dateRange[0]), dayjs(query.dateRange[1])]}
+                presets={DATE_PRESETS}
                 onChange={(dates) => {
                   const [start, end] = dates ?? [];
                   if (!start || !end) return;
@@ -184,22 +200,26 @@ const ProjectAggregatesPage: React.FC = () => {
                 }}
               />
             </Form.Item>
-            <Form.Item label="项目代号">
-              <Input
-                value={query.projectCode}
-                onChange={(e) => setQuery((prev) => ({ ...prev, projectCode: e.target.value || undefined }))}
-                placeholder="如 A003"
-                style={{ width: 140 }}
-              />
-            </Form.Item>
-            <Form.Item label="广告国家">
-              <Input
-                value={query.adCountry}
-                onChange={(e) => setQuery((prev) => ({ ...prev, adCountry: e.target.value || undefined }))}
-                placeholder="如 US"
-                style={{ width: 120 }}
-              />
-            </Form.Item>
+            {dimensions.includes('project') ? (
+              <Form.Item label="项目代号">
+                <Input
+                  value={query.projectCode}
+                  onChange={(e) => setQuery((prev) => ({ ...prev, projectCode: e.target.value || undefined }))}
+                  placeholder="如 A003"
+                  style={{ width: 140 }}
+                />
+              </Form.Item>
+            ) : null}
+            {dimensions.includes('country') ? (
+              <Form.Item label="广告国家">
+                <Input
+                  value={query.adCountry}
+                  onChange={(e) => setQuery((prev) => ({ ...prev, adCountry: e.target.value || undefined }))}
+                  placeholder="如 US"
+                  style={{ width: 120 }}
+                />
+              </Form.Item>
+            ) : null}
           </Form>
         )}
         fetchData={async ({ query, page, pageSize, dimensions }) => {
@@ -207,8 +227,8 @@ const ProjectAggregatesPage: React.FC = () => {
           const res = await getProjectAggregatesDaily({
             startDate: query.dateRange[0],
             endDate: query.dateRange[1],
-            projectCode: query.projectCode,
-            adCountry: query.adCountry,
+            projectCode: dimensions.includes('project') ? query.projectCode : undefined,
+            adCountry: dimensions.includes('country') ? query.adCountry : undefined,
             groupBy,
             groupby: groupBy,
             page,
@@ -233,8 +253,8 @@ const ProjectAggregatesPage: React.FC = () => {
           const res = await getProjectAggregatesSummary({
             startDate: query.dateRange[0],
             endDate: query.dateRange[1],
-            projectCode: query.projectCode,
-            adCountry: query.adCountry,
+            projectCode: dimensions.includes('project') ? query.projectCode : undefined,
+            adCountry: dimensions.includes('country') ? query.adCountry : undefined,
             groupBy: (firstDimension as 'project' | 'country' | 'date') || 'project',
           });
           if (res.code !== 0) {
@@ -248,10 +268,6 @@ const ProjectAggregatesPage: React.FC = () => {
         }}
       />
 
-      <Space direction="vertical" size={4} style={{ color: '#999', marginTop: 12 }}>
-        <div>已增强：查询条件本地记忆、维度动态列、当前页合计、总数据合计。</div>
-        <div>建议：后端可补充 summary 返回单条总计字段，避免前端二次求和的精度误差。</div>
-      </Space>
     </PageContainer>
   );
 };

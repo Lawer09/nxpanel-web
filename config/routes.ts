@@ -167,22 +167,6 @@ export default [
     ],
   },
   {
-    path: '/dev-test',
-    name: 'dev-test',
-    icon: 'experiment',
-    routes: [
-      {
-        path: '/dev-test',
-        redirect: '/dev-test/universal-report-demo',
-      },
-      {
-        path: '/dev-test/universal-report-demo',
-        name: 'universal-report-demo',
-        component: './dev-test/universal-report-demo',
-      },
-    ],
-  },
-  {
     path: '/invite-gift-card',
     name: 'invite-gift-card',
     icon: 'gift',
