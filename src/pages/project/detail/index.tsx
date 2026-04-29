@@ -6,6 +6,7 @@ import { getProjectDetail } from '@/services/project/api';
 import TrafficAccountsTab from './components/TrafficAccountsTab';
 import AdAccountsTab from './components/AdAccountsTab';
 import AdSpendTab from './components/AdSpendTab';
+import UserAppsTab from './components/UserAppsTab';
 
 const STATUS_MAP: Record<string, { color: string; text: string }> = {
   active: { color: 'success', text: '活跃' },
@@ -47,6 +48,11 @@ const ProjectDetailPage: React.FC = () => {
       children: <AdAccountsTab projectId={Number(id)} />,
     },
     {
+      key: 'user-apps',
+      label: '用户 AppId 关联',
+      children: <UserAppsTab projectId={Number(id)} />,
+    },
+    {
       key: 'ad-spend',
       label: '投放消耗',
       children: project?.projectCode ? (
@@ -66,7 +72,8 @@ const ProjectDetailPage: React.FC = () => {
           <Descriptions.Item label="项目代号">{project?.projectCode}</Descriptions.Item>
           <Descriptions.Item label="项目名称">{project?.projectName}</Descriptions.Item>
           <Descriptions.Item label="所属人">
-            {project?.ownerName} (ID: {project?.ownerId})
+            {project?.ownerName}
+            {project?.ownerId ? ` (ID: ${project.ownerId})` : ''}
           </Descriptions.Item>
           <Descriptions.Item label="部门">{project?.department}</Descriptions.Item>
           <Descriptions.Item label="状态">

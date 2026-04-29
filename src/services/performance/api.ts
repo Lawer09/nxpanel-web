@@ -151,3 +151,35 @@ export async function getUserHourlyStats(
     { method: 'GET', params, ...(options || {}) },
   );
 }
+
+// ── 节点探测错误分析 ─────────────────────────────────────────────────────
+
+export async function getProbeErrors(
+  params: API.ProbeErrorsQuery,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.ProbeErrorsResp>>(
+    '/v3/performance/probeErrors',
+    { method: 'GET', params, ...(options || {}) },
+  );
+}
+
+export async function getNodeFailureRank(
+  params: API.NodeFailureRankQuery,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.NodeFailureRankResp>>(
+    '/v3/performance/nodeFailureRank',
+    { method: 'GET', params, ...(options || {}) },
+  );
+}
+
+export async function getPseudoSuccess(
+  params: API.PseudoSuccessQuery,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.PseudoSuccessResp>>(
+    '/v3/performance/pseudoSuccess',
+    { method: 'GET', params, ...(options || {}) },
+  );
+}

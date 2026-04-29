@@ -82,13 +82,13 @@ const PerformancePage: React.FC = () => {
 
   const { data: geoData, loading: geoLoading } = useRequest(
     () =>
-      getPerformanceGeoDistribution({ days: statsDays, node_id: geoNodeId }),
+      getPerformanceGeoDistribution({ days: statsDays, nodeId: geoNodeId }),
     { refreshDeps: [statsDays, geoNodeId] },
   );
 
   const { data: platformData, loading: platformLoading } = useRequest(
     () =>
-      getPerformancePlatformStats({ days: statsDays, node_id: platformNodeId }),
+      getPerformancePlatformStats({ days: statsDays, nodeId: platformNodeId }),
     { refreshDeps: [statsDays, platformNodeId] },
   );
 
@@ -96,7 +96,7 @@ const PerformancePage: React.FC = () => {
     () =>
       trendNodeId
         ? getPerformanceTrend({
-            node_id: trendNodeId,
+            nodeId: trendNodeId,
             days: trendDays,
             granularity: trendGranularity,
           })
@@ -117,11 +117,11 @@ const PerformancePage: React.FC = () => {
       width: 180,
       render: (_, record) =>
         record.user ? (
-          <Tooltip title={`ID: ${record.user_id}`}>
+          <Tooltip title={`ID: ${record.nodeId}`}>
             <Text>{record.user.email}</Text>
           </Tooltip>
         ) : (
-          `#${record.user_id}`
+          `#${record.nodeId}`
         ),
       search: false,
     },
@@ -141,11 +141,11 @@ const PerformancePage: React.FC = () => {
     },
     {
       title: '成功率',
-      dataIndex: 'success_rate',
+      dataIndex: 'successRate',
       width: 100,
       search: false,
-      render: (_, record) => successRateTag(record.success_rate),
-      sorter: (a, b) => a.success_rate - b.success_rate,
+      render: (_, record) => successRateTag(record.successRate),
+      sorter: (a, b) => a.successRate - b.successRate,
     },
     {
       title: '平台',
@@ -163,48 +163,48 @@ const PerformancePage: React.FC = () => {
     },
     {
       title: '客户端国家',
-      dataIndex: 'client_country',
+      dataIndex: 'clientCountry',
       width: 110,
       search: false,
-      render: (_, record) => record.client_country || '-',
+      render: (_, record) => record.clientCountry || '-',
     },
     {
       title: '客户端城市',
-      dataIndex: 'client_city',
+      dataIndex: 'clientCity',
       width: 110,
       search: false,
-      render: (_, record) => record.client_city || '-',
+      render: (_, record) => record.clientCity || '-',
     },
     {
       title: 'ISP',
-      dataIndex: 'client_isp',
+      dataIndex: 'clientIsp',
       width: 150,
       search: false,
       ellipsis: true,
-      render: (_, record) => record.client_isp || '-',
+      render: (_, record) => record.clientIsp || '-',
     },
-    {
-      title: '客户端IP',
-      dataIndex: 'client_ip',
-      width: 130,
-      search: false,
-      render: (_, record) => record.client_ip || '-',
-    },
+    // {
+    //   title: '客户端IP',
+    //   dataIndex: 'clientIp',
+    //   width: 130,
+    //   search: false,
+    //   render: (_, record) => record.clientIp || '-',
+    // },
     {
       title: '版本',
-      dataIndex: 'app_version',
+      dataIndex: 'appVersion',
       width: 90,
       search: false,
-      render: (_, record) => record.app_version || '-',
+      render: (_, record) => record.appVersion || '-',
     },
     {
       title: '上报时间',
-      dataIndex: 'created_at',
+      dataIndex: 'createdAt',
       width: 160,
       search: false,
       render: (_, record) =>
-        record.created_at
-          ? dayjs.unix(record.created_at).format('YYYY-MM-DD HH:mm:ss')
+        record.createdAt
+          ? dayjs.unix(record.createdAt).format('YYYY-MM-DD HH:mm:ss')
           : '-',
     },
   ];
@@ -218,7 +218,7 @@ const PerformancePage: React.FC = () => {
       sorter: (
         a: API.PerformanceNodeStatItem,
         b: API.PerformanceNodeStatItem,
-      ) => a.report_count - b.report_count,
+      ) => a.reportCount - b.reportCount,
     },
     {
       title: '平均延迟',
@@ -228,7 +228,7 @@ const PerformancePage: React.FC = () => {
       sorter: (
         a: API.PerformanceNodeStatItem,
         b: API.PerformanceNodeStatItem,
-      ) => a.avg_delay - b.avg_delay,
+      ) => a.avgDelay - b.avgDelay,
     },
     {
       title: '最低延迟',
@@ -244,13 +244,13 @@ const PerformancePage: React.FC = () => {
     },
     {
       title: '平均成功率',
-      dataIndex: 'avg_success_rate',
-      key: 'avg_success_rate',
+      dataIndex: 'avg_successRate',
+      key: 'avg_successRate',
       render: (v: number) => successRateTag(Math.round(v * 10) / 10),
       sorter: (
         a: API.PerformanceNodeStatItem,
         b: API.PerformanceNodeStatItem,
-      ) => a.avg_success_rate - b.avg_success_rate,
+      ) => a.avgSuccessRate - b.avgSuccessRate,
     },
     {
       title: '独立用户',
@@ -259,7 +259,7 @@ const PerformancePage: React.FC = () => {
       sorter: (
         a: API.PerformanceNodeStatItem,
         b: API.PerformanceNodeStatItem,
-      ) => a.unique_users - b.unique_users,
+      ) => a.uniqueUsers - b.uniqueUsers,
     },
     {
       title: '操作',
@@ -267,7 +267,7 @@ const PerformancePage: React.FC = () => {
       render: (_: any, record: API.PerformanceNodeStatItem) => (
         <a
           onClick={() => {
-            setTrendNodeId(record.node_id);
+            setTrendNodeId(record.nodeId);
             setTrendOpen(true);
           }}
         >
@@ -278,7 +278,7 @@ const PerformancePage: React.FC = () => {
   ];
 
   const geoColumns = [
-    { title: '国家', dataIndex: 'client_country', key: 'client_country' },
+    { title: '国家', dataIndex: 'clientCountry', key: 'clientCountry' },
     { title: '上报次数', dataIndex: 'report_count', key: 'report_count' },
     { title: '独立用户', dataIndex: 'unique_users', key: 'unique_users' },
     {
@@ -289,8 +289,8 @@ const PerformancePage: React.FC = () => {
     },
     {
       title: '平均成功率',
-      dataIndex: 'avg_success_rate',
-      key: 'avg_success_rate',
+      dataIndex: 'avg_successRate',
+      key: 'avg_successRate',
       render: (v: number) => successRateTag(Math.round(v * 10) / 10),
     },
   ];
@@ -314,8 +314,8 @@ const PerformancePage: React.FC = () => {
     },
     {
       title: '平均成功率',
-      dataIndex: 'avg_success_rate',
-      key: 'avg_success_rate',
+      dataIndex: 'avg_successRate',
+      key: 'avg_successRate',
       render: (v: number) => successRateTag(Math.round(v * 10) / 10),
     },
   ];
@@ -343,8 +343,8 @@ const PerformancePage: React.FC = () => {
     },
     {
       title: '平均成功率',
-      dataIndex: 'avg_success_rate',
-      key: 'avg_success_rate',
+      dataIndex: 'avg_successRate',
+      key: 'avg_successRate',
       render: (v: number) => successRateTag(Math.round(v * 10) / 10),
     },
   ];
@@ -542,14 +542,14 @@ const PerformancePage: React.FC = () => {
           columns={recordColumns}
           request={async (params) => {
             const res = await fetchPerformance({
-              node_id: nodeFilter,
-              user_id: userFilter,
+              nodeId: nodeFilter,
+              userId: userFilter,
               platform: platformFilter as any,
-              client_country: countryFilter,
-              start_at: timeRange?.[0],
-              end_at: timeRange?.[1],
+              clientCountry: countryFilter,
+              startAt: timeRange?.[0],
+              endAt: timeRange?.[1],
               page: params.current,
-              page_size: params.pageSize,
+              pageSize: params.pageSize,
             });
             return {
               data: res?.data?.data || [],

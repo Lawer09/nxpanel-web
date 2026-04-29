@@ -160,6 +160,11 @@ export default [
         component: './report/perf-group-analysis',
       },
       {
+        path: '/report/node-probe-analysis',
+        name: 'node-probe-analysis',
+        component: './report/node-probe-analysis',
+      },
+      {
         path: '/report/project-aggregates',
         name: 'project-aggregates',
         component: './report/project-aggregates',
@@ -247,52 +252,43 @@ export default [
     path: '/traffic-platform',
     name: 'traffic-platform',
     icon: 'cloudServer',
-    routes: [
-      {
-        path: '/traffic-platform',
-        redirect: '/traffic-platform/platforms',
-      },
-      {
-        path: '/traffic-platform/platforms',
-        name: 'platforms',
-        component: './traffic-platform/platforms',
-      },
-      {
-        path: '/traffic-platform/accounts',
-        name: 'accounts',
-        component: './traffic-platform/accounts',
-      },
-      {
-        path: '/traffic-platform/hourly',
-        name: 'hourly',
-        component: './traffic-platform/hourly',
-      },
-      {
-        path: '/traffic-platform/daily',
-        name: 'daily',
-        component: './traffic-platform/daily',
-      },
-      {
-        path: '/traffic-platform/monthly',
-        name: 'monthly',
-        component: './traffic-platform/monthly',
-      },
-      {
-        path: '/traffic-platform/trend',
-        name: 'trend',
-        component: './traffic-platform/trend',
-      },
-      {
-        path: '/traffic-platform/ranking',
-        name: 'ranking',
-        component: './traffic-platform/ranking',
-      },
-      {
-        path: '/traffic-platform/sync-jobs',
-        name: 'sync-jobs',
-        component: './traffic-platform/sync-jobs',
-      },
-    ],
+    component: './traffic-platform/dashboard',
+  },
+  {
+    path: '/traffic-platform/dashboard',
+    redirect: '/traffic-platform',
+  },
+  {
+    path: '/traffic-platform/platforms',
+    redirect: '/traffic-platform',
+  },
+  {
+    path: '/traffic-platform/accounts',
+    redirect: '/traffic-platform',
+  },
+  {
+    path: '/traffic-platform/hourly',
+    redirect: '/traffic-platform',
+  },
+  {
+    path: '/traffic-platform/daily',
+    redirect: '/traffic-platform',
+  },
+  {
+    path: '/traffic-platform/monthly',
+    redirect: '/traffic-platform',
+  },
+  {
+    path: '/traffic-platform/trend',
+    redirect: '/traffic-platform',
+  },
+  {
+    path: '/traffic-platform/ranking',
+    redirect: '/traffic-platform',
+  },
+  {
+    path: '/traffic-platform/sync-jobs',
+    redirect: '/traffic-platform',
   },
   {
     path: '/ad-spend',
@@ -324,28 +320,17 @@ export default [
     path: '/project',
     name: 'project',
     icon: 'project',
-    routes: [
-      {
-        path: '/project',
-        redirect: '/project/list',
-      },
-      {
-        path: '/project/list',
-        name: 'list',
-        component: './project/list',
-      },
-      {
-        path: '/project/app-mappings',
-        name: 'app-mappings',
-        component: './ad/project-mappings',
-      },
-      {
-        path: '/project/:id',
-        name: 'detail',
-        component: './project/detail',
-        hideInMenu: true,
-      },
-    ],
+    component: './project/list',
+  },
+  {
+    path: '/project/list',
+    redirect: '/project',
+  },
+  {
+    path: '/project/:id',
+    name: 'project.detail',
+    component: './project/detail',
+    hideInMenu: true,
   },
   
   {

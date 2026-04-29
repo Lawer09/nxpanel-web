@@ -45,7 +45,7 @@ const TopRankTable: React.FC<TopRankTableProps> = ({ filters }) => {
         limit,
       });
       if (res.code === 0 && res.data) {
-        setData(res.data.items || []);
+        setData(res.data.data || []);
       }
     } finally {
       setLoading(false);

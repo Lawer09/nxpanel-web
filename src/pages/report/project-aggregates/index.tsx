@@ -1,8 +1,9 @@
 import { PageContainer } from '@ant-design/pro-components';
-import { App, DatePicker, Form, Input } from 'antd';
+import { App, DatePicker, Form, Input, Select } from 'antd';
 import dayjs from 'dayjs';
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import UniversalReportTable from '@/components/report/UniversalReportTable';
+import { getProjects } from '@/services/project/api';
 import {
   getProjectAggregatesDaily,
   getProjectAggregatesSummary,
@@ -29,6 +30,8 @@ type QueryState = {
   dateRange: [string, string];
   projectCode?: string;
   adCountry?: string;
+  spendCountry?: string;
+  userCountry?: string;
 };
 
 const toSafeNumber = (v: number | string | undefined | null) => {
@@ -132,28 +135,68 @@ const resolveDailyGroupBy = (dimensions: string[]): API.ProjectAggregatesDailyGr
   const hasDate = dimensions.includes('date');
   const hasProject = dimensions.includes('project');
   const hasCountry = dimensions.includes('country');
+  const hasSpendCountry = dimensions.includes('spendCountry');
+  const hasUserCountry = dimensions.includes('userCountry');
 
   const groupBy: API.ProjectAggregatesDailyGroupField[] = [];
   if (hasDate) groupBy.push('reportDate');
   if (hasProject) groupBy.push('projectCode');
   if (hasCountry) groupBy.push('adCountry');
+  if (hasSpendCountry) groupBy.push('spendCountry');
+  if (hasUserCountry) groupBy.push('userCountry');
   return groupBy;
 };
 
 const ProjectAggregatesPage: React.FC = () => {
   const { message: messageApi } = App.useApp();
   const today = dayjs().format('YYYY-MM-DD');
+  const [projectOptions, setProjectOptions] = useState<string[]>([]);
+
+  const refreshProjectCodes = useCallback(async (keyword?: string) => {
+    const res = await getProjects({
+      keyword,
+      page: 1,
+      pageSize: 200,
+    });
+    if (res.code !== 0) {
+      messageApi.error(res.msg || '获取项目代号失败');
+      return;
+    }
+    const options = (res.data?.data ?? [])
+      .map((item) => item.projectCode)
+      .filter((item): item is string => Boolean(item));
+    setProjectOptions(Array.from(new Set(options)));
+  }, [messageApi]);
+
+  useEffect(() => {
+    refreshProjectCodes();
+  }, [refreshProjectCodes]);
 
   return (
     <PageContainer>
       <UniversalReportTable<API.ProjectAggregatesDailyItem, QueryState>
         storageKey="report.projectAggregates"
         title="项目聚合报表"
-        rowKey="id"
+        rowKey={(record) => {
+          if (record.id !== undefined && record.id !== null) {
+            return String(record.id);
+          }
+          return [
+            record.reportDate,
+            record.projectCode,
+            record.adCountry,
+            record.spendCountry,
+            record.userCountry,
+          ]
+            .filter((item) => Boolean(item))
+            .join('|');
+        }}
         defaultQuery={{
           dateRange: [today, today],
           projectCode: undefined,
           adCountry: undefined,
+          spendCountry: undefined,
+          userCountry: undefined,
         }}
         defaultDimensions={["project"]}
         defaultMetrics={[
@@ -176,6 +219,16 @@ const ProjectAggregatesPage: React.FC = () => {
             label: '国家',
             value: 'country',
             column: { title: '广告国家', dataIndex: 'adCountry', width: 100 },
+          },
+          {
+            label: '投放国家',
+            value: 'spendCountry',
+            column: { title: '投放国家', dataIndex: 'spendCountry', width: 100 },
+          },
+          {
+            label: '用户国家',
+            value: 'userCountry',
+            column: { title: '用户国家', dataIndex: 'userCountry', width: 100 },
           },
           {
             label: '日期',
@@ -202,10 +255,15 @@ const ProjectAggregatesPage: React.FC = () => {
             </Form.Item>
             {dimensions.includes('project') ? (
               <Form.Item label="项目代号">
-                <Input
+                <Select
                   value={query.projectCode}
-                  onChange={(e) => setQuery((prev) => ({ ...prev, projectCode: e.target.value || undefined }))}
-                  placeholder="如 A003"
+                  onChange={(value) => setQuery((prev) => ({ ...prev, projectCode: value || undefined }))}
+                  options={projectOptions.map((item) => ({ label: item, value: item }))}
+                  showSearch
+                  allowClear
+                  placeholder="请选择项目代号"
+                  onSearch={(value) => refreshProjectCodes(value)}
+                  filterOption={false}
                   style={{ width: 140 }}
                 />
               </Form.Item>
@@ -220,6 +278,26 @@ const ProjectAggregatesPage: React.FC = () => {
                 />
               </Form.Item>
             ) : null}
+            {dimensions.includes('spendCountry') ? (
+              <Form.Item label="投放国家">
+                <Input
+                  value={query.spendCountry}
+                  onChange={(e) => setQuery((prev) => ({ ...prev, spendCountry: e.target.value || undefined }))}
+                  placeholder="如 US"
+                  style={{ width: 120 }}
+                />
+              </Form.Item>
+            ) : null}
+            {dimensions.includes('userCountry') ? (
+              <Form.Item label="用户国家">
+                <Input
+                  value={query.userCountry}
+                  onChange={(e) => setQuery((prev) => ({ ...prev, userCountry: e.target.value || undefined }))}
+                  placeholder="如 US / OO"
+                  style={{ width: 120 }}
+                />
+              </Form.Item>
+            ) : null}
           </Form>
         )}
         fetchData={async ({ query, page, pageSize, dimensions }) => {
@@ -229,6 +307,8 @@ const ProjectAggregatesPage: React.FC = () => {
             endDate: query.dateRange[1],
             projectCode: dimensions.includes('project') ? query.projectCode : undefined,
             adCountry: dimensions.includes('country') ? query.adCountry : undefined,
+            spendCountry: dimensions.includes('spendCountry') ? query.spendCountry : undefined,
+            userCountry: dimensions.includes('userCountry') ? query.userCountry : undefined,
             groupBy,
             groupby: groupBy,
             page,
@@ -255,7 +335,11 @@ const ProjectAggregatesPage: React.FC = () => {
             endDate: query.dateRange[1],
             projectCode: dimensions.includes('project') ? query.projectCode : undefined,
             adCountry: dimensions.includes('country') ? query.adCountry : undefined,
-            groupBy: (firstDimension as 'project' | 'country' | 'date') || 'project',
+            spendCountry: dimensions.includes('spendCountry') ? query.spendCountry : undefined,
+            userCountry: dimensions.includes('userCountry') ? query.userCountry : undefined,
+            groupBy:
+              (firstDimension as 'project' | 'country' | 'date' | 'spendCountry' | 'userCountry') ||
+              'project',
           });
           if (res.code !== 0) {
             return {};

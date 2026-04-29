@@ -1,7 +1,7 @@
 import { Line } from '@ant-design/charts';
+import type { ProColumns } from '@ant-design/pro-components';
 import { ProTable } from '@ant-design/pro-components';
 import { App, Card, DatePicker, Form, Input, Select, Space, Tag } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -76,7 +76,7 @@ const AdSpendTab: React.FC<AdSpendTabProps> = ({ projectCode }) => {
     tooltip: { showMarkers: true },
   };
 
-  const dailyColumns = useMemo(
+  const dailyColumns = useMemo<ProColumns<API.ProjectAdSpendDailyItem>[]>(
     () => [
       { title: '日期', dataIndex: 'reportDate', width: 120, search: false },
       { title: '平台', dataIndex: 'platformCode', width: 100, search: false },
@@ -160,7 +160,7 @@ const AdSpendTab: React.FC<AdSpendTabProps> = ({ projectCode }) => {
       <Card title="投放日报明细">
         <ProTable<API.ProjectAdSpendDailyItem>
           rowKey={(r) => `${r.reportDate}_${r.platformAccountId}_${r.country}`}
-          columns={dailyColumns as ColumnsType<API.ProjectAdSpendDailyItem>}
+          columns={dailyColumns}
           search={false}
           request={async (params) => {
             const res = await getProjectAdSpendDaily(projectCode, {

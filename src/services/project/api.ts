@@ -136,6 +136,54 @@ export async function deleteProjectAdAccount(projectId: number, relationId: numb
   );
 }
 
+// ── 项目关联用户 AppId ───────────────────────────────────────────────────────────
+
+export async function getProjectUserApps(
+  projectId: number,
+  params?: API.ProjectUserAppQuery,
+) {
+  return request<API.ApiResponse<API.ProjectUserAppItem[] | { data: API.ProjectUserAppItem[] }>>(
+    `/v3/projects/${projectId}/user-apps`,
+    { method: 'GET', params },
+  );
+}
+
+export async function createProjectUserApp(
+  projectId: number,
+  data: API.ProjectUserAppCreateParams,
+) {
+  return request<API.ApiResponse<{ id: number }>>(
+    `/v3/projects/${projectId}/user-apps`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data,
+    },
+  );
+}
+
+export async function updateProjectUserApp(
+  projectId: number,
+  relationId: number,
+  data: API.ProjectUserAppUpdateParams,
+) {
+  return request<API.ApiResponse<boolean>>(
+    `/v3/projects/${projectId}/user-apps/${relationId}`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      data,
+    },
+  );
+}
+
+export async function deleteProjectUserApp(projectId: number, relationId: number) {
+  return request<API.ApiResponse<boolean>>(
+    `/v3/projects/${projectId}/user-apps/${relationId}`,
+    { method: 'DELETE' },
+  );
+}
+
 // ── 项目投放 ────────────────────────────────────────────────────────────────
 
 export async function getProjectAdSpendSummary(

@@ -316,4 +316,79 @@ declare namespace API {
     start: string;
     end: string;
   }
+
+  // ── 节点探测错误分析 ───────────────────────────────────────────────────────
+
+  type ProbeStage = 'node_connect' | 'post_connect_probe';
+  type ProbeStatus = 'success' | 'failed' | 'timeout' | 'cancelled';
+  type ProbeErrorsGroupBy = 'node' | 'error_code' | 'stage' | 'status' | 'stage_error';
+
+  interface ProbeCommonQuery {
+    dateFrom?: string;
+    dateTo?: string;
+    clientCountry?: string;
+    platform?: string;
+    appId?: string;
+    appVersion?: string;
+    includeExternal?: boolean;
+    pageSize?: number;
+  }
+
+  interface ProbeErrorsQuery extends ProbeCommonQuery {
+    nodeId?: number;
+    probeStage?: ProbeStage | 'tunnel_establish';
+    status?: ProbeStatus;
+    errorCode?: string;
+    groupBy?: ProbeErrorsGroupBy;
+  }
+
+  interface NodeFailureRankQuery extends ProbeCommonQuery {
+    probeStage?: ProbeStage | 'tunnel_establish';
+    minTotal?: number;
+  }
+
+  interface PseudoSuccessQuery extends ProbeCommonQuery {
+    minConnected?: number;
+  }
+
+  interface ProbeErrorsItem {
+    nodeId?: number;
+    nodeIp?: string | null;
+    nodeName?: string | null;
+    errorCode?: string | null;
+    probeStage?: ProbeStage;
+    status?: ProbeStatus;
+    totalCount: number;
+  }
+
+  interface ProbeErrorsResp extends PageResult<ProbeErrorsItem> {
+    groupBy: ProbeErrorsGroupBy;
+  }
+
+  interface NodeFailureRankItem {
+    nodeId: number;
+    nodeIp: string | null;
+    nodeName: string;
+    successCount: number | string;
+    failedCount: number | string;
+    totalCount: number | string;
+    failureRate: number | string;
+  }
+
+  interface NodeFailureRankResp extends PageResult<NodeFailureRankItem> {
+    minTotal: number;
+  }
+
+  interface PseudoSuccessItem {
+    nodeId: number;
+    nodeIp: string | null;
+    nodeName: string;
+    nodeConnectSuccessCount: number | string;
+    postConnectFailedCount: number | string;
+    pseudoSuccessRate: number | string;
+  }
+
+  interface PseudoSuccessResp extends PageResult<PseudoSuccessItem> {
+    minConnected: number;
+  }
 }

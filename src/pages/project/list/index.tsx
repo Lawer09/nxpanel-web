@@ -51,9 +51,16 @@ const ProjectListPage: React.FC = () => {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
+      const payload = {
+        ...values,
+        ownerId:
+          values.ownerId !== undefined && values.ownerId !== null && `${values.ownerId}`.trim() !== ''
+            ? Number(values.ownerId)
+            : undefined,
+      };
       setSubmitLoading(true);
       if (currentRow?.id) {
-        const res = await updateProject(currentRow.id, values);
+        const res = await updateProject(currentRow.id, payload);
         if (res.code !== 0) {
           messageApi.error(res.msg || '修改失败');
           setSubmitLoading(false);
@@ -61,7 +68,7 @@ const ProjectListPage: React.FC = () => {
         }
         messageApi.success('修改成功');
       } else {
-        const res = await createProject(values);
+        const res = await createProject(payload);
         if (res.code !== 0) {
           messageApi.error(res.msg || '新增失败');
           setSubmitLoading(false);
@@ -281,9 +288,8 @@ const ProjectListPage: React.FC = () => {
           <Form.Item
             name="ownerId"
             label="所属人ID"
-            rules={[{ required: true, message: '请输入所属人ID' }]}
           >
-            <Input type="number" placeholder="1001" />
+            <Input type="number" placeholder="1001（可选）" />
           </Form.Item>
           <Form.Item
             name="ownerName"

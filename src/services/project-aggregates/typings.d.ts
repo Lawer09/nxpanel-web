@@ -1,5 +1,10 @@
 declare namespace API {
-  type ProjectAggregatesDailyGroupField = 'reportDate' | 'projectCode' | 'adCountry';
+  type ProjectAggregatesDailyGroupField =
+    | 'reportDate'
+    | 'projectCode'
+    | 'adCountry'
+    | 'spendCountry'
+    | 'userCountry';
 
   interface ProjectAggregatesAggregateRequest {
     startDate: string;
@@ -27,6 +32,8 @@ declare namespace API {
     endDate: string;
     projectCode?: string;
     adCountry?: string;
+    spendCountry?: string;
+    userCountry?: string;
     groupBy?: ProjectAggregatesDailyGroupField[];
     groupby?: ProjectAggregatesDailyGroupField[];
     page?: number;
@@ -40,7 +47,9 @@ declare namespace API {
     endDate: string;
     projectCode?: string;
     adCountry?: string;
-    groupBy?: 'project' | 'country' | 'date';
+    spendCountry?: string;
+    userCountry?: string;
+    groupBy?: 'project' | 'country' | 'date' | 'spendCountry' | 'userCountry';
   }
 
   interface ProjectAggregatesTrendQuery {
@@ -48,6 +57,8 @@ declare namespace API {
     endDate: string;
     projectCode?: string;
     adCountry?: string;
+    spendCountry?: string;
+    userCountry?: string;
     dimension?: 'day' | 'month';
   }
 
@@ -56,6 +67,8 @@ declare namespace API {
     reportDate: string;
     projectCode: string;
     adCountry: string;
+    spendCountry: string;
+    userCountry: string;
     reportNewUsers: number;
     dauUsers: number;
     registerNewUsers: number;
@@ -82,6 +95,8 @@ declare namespace API {
     reportDate?: string;
     projectCode?: string;
     adCountry?: string;
+    spendCountry?: string;
+    userCountry?: string;
     reportNewUsers: number;
     dauUsers: number;
     registerNewUsers: number;

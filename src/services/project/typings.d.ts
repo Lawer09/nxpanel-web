@@ -5,11 +5,11 @@ declare namespace API {
     id: number;
     projectCode: string;
     projectName: string;
-    ownerId: number;
+    ownerId?: number;
     ownerName: string;
     department: string;
     status: 'active' | 'inactive' | 'archived';
-    remark: string;
+    remark?: string;
     createdAt: string;
     updatedAt: string;
   }
@@ -25,7 +25,7 @@ declare namespace API {
   interface ProjectCreateParams {
     projectCode: string;
     projectName: string;
-    ownerId: number;
+    ownerId?: number;
     ownerName: string;
     department: string;
     status?: 'active' | 'inactive' | 'archived';
@@ -115,6 +115,35 @@ declare namespace API {
     externalAppId?: string;
     externalAdUnitId?: string;
     bindType?: 'account' | 'app' | 'ad_unit';
+    enabled?: number;
+    remark?: string;
+  }
+
+  // ── 项目关联用户 AppId ─────────────────────────────────────────────────────────
+
+  interface ProjectUserAppItem {
+    id: number;
+    projectCode: string;
+    appId: string;
+    enabled: number;
+    remark?: string;
+    createdAt: string;
+    updatedAt: string;
+  }
+
+  interface ProjectUserAppQuery {
+    enabled?: number;
+    keyword?: string;
+  }
+
+  interface ProjectUserAppCreateParams {
+    appId: string;
+    enabled?: number;
+    remark?: string;
+  }
+
+  interface ProjectUserAppUpdateParams {
+    appId?: string;
     enabled?: number;
     remark?: string;
   }

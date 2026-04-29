@@ -30,7 +30,7 @@ const AdAccountsTab: React.FC<AdAccountsTabProps> = ({ projectId }) => {
   const [accountOptions, setAccountOptions] = useState<{ label: string; value: number }[]>([]);
 
   useEffect(() => {
-    getAdAccounts({ enabled: 1, page: 1, pageSize: 200 }).then((res) => {
+    getAdAccounts({ status: 'enabled', page: 1, pageSize: 200 }).then((res) => {
       if (res.code === 0 && res.data?.data) {
         setAccountOptions(
           res.data.data.map((a) => ({

@@ -186,8 +186,10 @@ declare namespace API {
     platformCode?: string;
     accountId?: number;
     externalUid?: string;
-    startTime: string;
-    endTime: string;
+    startDate?: string;
+    endDate?: string;
+    startTime?: string;
+    endTime?: string;
     dimension: 'hour' | 'day' | 'month';
   }
 
@@ -203,7 +205,7 @@ declare namespace API {
     accountId?: number;
     startDate: string;
     endDate: string;
-    rankBy: 'account' | 'externalUid' | 'geo';
+    rankBy: 'account' | 'external_uid' | 'geo' | 'externalUid';
     limit?: number;
   }
 
@@ -220,7 +222,7 @@ declare namespace API {
 
   interface TrafficSyncParams {
     accountId: number;
-    platformCode: string;
+    platformCode?: string;
     startDate: string;
     endDate: string;
   }
