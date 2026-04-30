@@ -44,6 +44,10 @@ const fmtPercent = (v: number | string) => {
   const percentValue = Math.abs(n) <= 1 ? n * 100 : n;
   return `${percentValue.toFixed(2)}%`;
 };
+const fmtCountry = (country?: string | null) => {
+  if (!country) return '-';
+  return country.toUpperCase() === 'XX' ? '未知' : country;
+};
 
 const METRIC_OPTIONS = [
   { label: '新增', value: 'newUsers', column: { title: '新增', dataIndex: 'newUsers', width: 90 }, formatter: fmtNumber },
@@ -207,7 +211,7 @@ const ProjectAggregatesPage: React.FC = () => {
           {
             label: '国家',
             value: 'country',
-            column: { title: '国家', dataIndex: 'country', width: 100 },
+            column: { title: '国家', dataIndex: 'country', width: 100, render: (v: string) => fmtCountry(v) },
           },
           {
             label: '日期',
