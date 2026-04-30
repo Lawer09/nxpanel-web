@@ -51,7 +51,11 @@ const ChangeTag: React.FC<{ value?: number }> = ({ value }) => {
   return <Tag color="default">0%</Tag>;
 };
 
-const UserStatPage: React.FC = () => {
+type UserStatPageProps = {
+  embedded?: boolean;
+};
+
+const UserStatPage: React.FC<UserStatPageProps> = ({ embedded }) => {
   const actionRef = useRef<ActionType | null>(null);
 
   // 用户每日流量明细过滤
@@ -190,8 +194,8 @@ const UserStatPage: React.FC = () => {
     },
   ];
 
-  return (
-    <PageContainer>
+  const content = (
+    <>
       {/* 用户流量 Top10 */}
       <Card
         title="用户流量 Top10（环比）"
@@ -290,8 +294,14 @@ const UserStatPage: React.FC = () => {
           bordered
         />
       </Card>
-    </PageContainer>
+    </>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <PageContainer>{content}</PageContainer>;
 };
 
 export default UserStatPage;

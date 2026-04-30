@@ -30,7 +30,11 @@ const normalizePagePayload = (res: any) => {
   return { rows, total };
 };
 
-const NodeProbeAnalysisPage: React.FC = () => {
+type NodeProbeAnalysisPageProps = {
+  embedded?: boolean;
+};
+
+const NodeProbeAnalysisPage: React.FC<NodeProbeAnalysisPageProps> = ({ embedded }) => {
   const today = dayjs().format('YYYY-MM-DD');
   const [activeTab, setActiveTab] = useState<'rank' | 'pseudo' | 'errors'>('rank');
 
@@ -176,8 +180,8 @@ const NodeProbeAnalysisPage: React.FC = () => {
     { title: '数量', dataIndex: 'totalCount', width: 110 },
   ];
 
-  return (
-    <PageContainer title="节点状态排查">
+  const content = (
+    <>
       <Space direction="vertical" style={{ width: '100%' }} size={12}>
         <Space wrap>
           <RangePicker
@@ -399,8 +403,14 @@ const NodeProbeAnalysisPage: React.FC = () => {
           ]}
         />
       </Space>
-    </PageContainer>
+    </>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <PageContainer title="节点状态排查">{content}</PageContainer>;
 };
 
 export default NodeProbeAnalysisPage;

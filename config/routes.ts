@@ -61,6 +61,74 @@ export default [
       },
     ],
   },
+    {
+    path: '/report',
+    name: 'report',
+    icon: 'barChart',
+    routes: [
+       {
+        path: '/report',
+        redirect: '/report/project-aggregates',
+      },
+      {
+        path: '/report/project-aggregates',
+        name: 'project-aggregates',
+        component: './report/project-aggregates',
+      },
+      // {
+      //   path: '/report',
+      //   redirect: '/report/performance',
+      // },
+      // {
+      //   path: '/report/performance',
+      //   name: 'performance',
+      //   component: './report/performance',
+      // },
+      {
+        path: '/report/user-stat',
+        redirect: '/report/traffic?tab=user',
+      },
+      {
+        path: '/report/server-stat',
+        redirect: '/report/traffic?tab=server',
+      },
+      {
+        path: '/report/user-report-count',
+        redirect: '/report/user-report-realtime',
+      },
+      {
+        path: '/report/user-report-daily',
+        redirect: '/report/user-report-realtime',
+      },
+      {
+        path: '/report/user-report-realtime',
+        name: 'user-report-realtime',
+        component: './report/user-report-realtime',
+      },
+      {
+        path: '/report/app-traffic',
+        redirect: '/report/traffic?tab=app',
+      },
+      {
+        path: '/report/traffic',
+        name: 'traffic',
+        component: './report/traffic',
+      },
+      {
+        path: '/report/perf-group-analysis',
+        redirect: '/report/performance-diagnosis?tab=perf-group',
+      },
+      {
+        path: '/report/node-probe-analysis',
+        redirect: '/report/performance-diagnosis?tab=node-probe',
+      },
+      {
+        path: '/report/performance-diagnosis',
+        name: 'performance-diagnosis',
+        component: './report/performance-diagnosis',
+      },
+    ],
+  },
   {
     path: '/resource',
     name: 'resource',
@@ -112,65 +180,7 @@ export default [
       },
     ],
   },
-  {
-    path: '/report',
-    name: 'report',
-    icon: 'barChart',
-    routes: [
-      {
-        path: '/report',
-        redirect: '/report/performance',
-      },
-      {
-        path: '/report/performance',
-        name: 'performance',
-        component: './report/performance',
-      },
-      {
-        path: '/report/user-stat',
-        name: 'user-stat',
-        component: './report/user-stat',
-      },
-      {
-        path: '/report/server-stat',
-        name: 'server-stat',
-        component: './report/server-stat',
-      },
-      {
-        path: '/report/user-report-count',
-        redirect: '/report/user-report-realtime',
-      },
-      {
-        path: '/report/user-report-daily',
-        redirect: '/report/user-report-realtime',
-      },
-      {
-        path: '/report/user-report-realtime',
-        name: 'user-report-realtime',
-        component: './report/user-report-realtime',
-      },
-      {
-        path: '/report/app-traffic',
-        name: 'app-traffic',
-        component: './report/app-traffic',
-      },
-      {
-        path: '/report/perf-group-analysis',
-        name: 'perf-group-analysis',
-        component: './report/perf-group-analysis',
-      },
-      {
-        path: '/report/node-probe-analysis',
-        name: 'node-probe-analysis',
-        component: './report/node-probe-analysis',
-      },
-      {
-        path: '/report/project-aggregates',
-        name: 'project-aggregates',
-        component: './report/project-aggregates',
-      },
-    ],
-  },
+
   {
     path: '/invite-gift-card',
     name: 'invite-gift-card',

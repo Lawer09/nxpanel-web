@@ -37,6 +37,30 @@ const formatBytes = (bytes?: number | null): string => {
   return parseFloat((bytes / k ** i).toFixed(2)) + ' ' + sizes[i];
 };
 
+const renderMetaValue = (
+  value?: string | number | null,
+  maxWidth = 170,
+): React.ReactNode => {
+  if (value == null || value === '') return '-';
+  const text = String(value);
+  return (
+    <Tooltip title={text}>
+      <span
+        style={{
+          display: 'inline-block',
+          maxWidth,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          verticalAlign: 'bottom',
+        }}
+      >
+        {text}
+      </span>
+    </Tooltip>
+  );
+};
+
 const UserManagePage: React.FC = () => {
   const { message: messageApi, modal: modalApi } = App.useApp();
   const actionRef = useRef<ActionType | null>(null);
@@ -196,42 +220,54 @@ const UserManagePage: React.FC = () => {
       render: (_, record) => {
         const meta = record.register_metadata;
         if (!meta?.app_id) return '-';
+        const metaLabelStyle: React.CSSProperties = {
+          width: 74,
+          minWidth: 74,
+          whiteSpace: 'nowrap',
+        };
         const content = (
-          <Descriptions column={2} size="small" bordered style={{ width: 520 }}>
-            <Descriptions.Item label="应用包名">{meta.app_id}</Descriptions.Item>
-            <Descriptions.Item label="应用版本">{meta.app_version ?? '-'}</Descriptions.Item>
-            <Descriptions.Item label="来源">{meta.utm_source ?? '-'}</Descriptions.Item>
-            <Descriptions.Item label="媒介">{meta.utm_medium ?? '-'}</Descriptions.Item>
-            <Descriptions.Item label="渠道">{meta.channel_type ?? '-'}</Descriptions.Item>
-            <Descriptions.Item label="Referrer" span={2}>
-              <Tooltip title={meta.raw_referrer || '-'}>
-                <span
-                  style={{
-                    display: 'inline-block',
-                    maxWidth: 420,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    verticalAlign: 'bottom',
-                  }}
-                >
-                  {meta.raw_referrer ?? '-'}
-                </span>
-              </Tooltip>
+          <Descriptions column={2} size="small" bordered style={{ width: 540, maxWidth: '50vw' }}>
+            <Descriptions.Item label="应用包名" labelStyle={metaLabelStyle}>
+              {renderMetaValue(meta.app_id, 210)}
             </Descriptions.Item>
-            <Descriptions.Item label="安装TS">
-              {meta.install_begin_ts ?? '-'}
+            <Descriptions.Item label="应用版本" labelStyle={metaLabelStyle}>
+              {renderMetaValue(meta.app_version)}
             </Descriptions.Item>
-            <Descriptions.Item label="点击TS">{meta.click_ts ?? '-'}</Descriptions.Item>
-            <Descriptions.Item label="品牌">{meta.brand ?? '-'}</Descriptions.Item>
-            <Descriptions.Item label="平台">{meta.platform ?? '-'}</Descriptions.Item>
-            <Descriptions.Item label="国家">{meta.country ?? '-'}</Descriptions.Item>
-            <Descriptions.Item label="城市">{meta.city ?? '-'}</Descriptions.Item>
+            <Descriptions.Item label="来源" labelStyle={metaLabelStyle}>
+              {renderMetaValue(meta.utm_source)}
+            </Descriptions.Item>
+            <Descriptions.Item label="媒介" labelStyle={metaLabelStyle}>
+              {renderMetaValue(meta.utm_medium)}
+            </Descriptions.Item>
+            <Descriptions.Item label="渠道" labelStyle={metaLabelStyle}>
+              {renderMetaValue(meta.channel_type)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Referrer" span={2} labelStyle={metaLabelStyle}>
+              {renderMetaValue(meta.raw_referrer, 540)}
+            </Descriptions.Item>
+            <Descriptions.Item label="安装TS" labelStyle={metaLabelStyle}>
+              {renderMetaValue(meta.install_begin_ts)}
+            </Descriptions.Item>
+            <Descriptions.Item label="点击TS" labelStyle={metaLabelStyle}>
+              {renderMetaValue(meta.click_ts)}
+            </Descriptions.Item>
+            <Descriptions.Item label="品牌" labelStyle={metaLabelStyle}>
+              {renderMetaValue(meta.brand)}
+            </Descriptions.Item>
+            <Descriptions.Item label="平台" labelStyle={metaLabelStyle}>
+              {renderMetaValue(meta.platform)}
+            </Descriptions.Item>
+            <Descriptions.Item label="国家" labelStyle={metaLabelStyle}>
+              {renderMetaValue(meta.country)}
+            </Descriptions.Item>
+            <Descriptions.Item label="城市" labelStyle={metaLabelStyle}>
+              {renderMetaValue(meta.city)}
+            </Descriptions.Item>
           </Descriptions>
         );
         return (
           <Popover content={content} title="注册设备信息" trigger="click">
-            <Text style={{ cursor: 'pointer', color: '#1677ff' }}>
+            <Text style={{ cursor: 'pointer', color: '#1677ff', maxWidth: 140 }} ellipsis={{ tooltip: meta.app_id }}>
               {meta.app_id}
             </Text>
           </Popover>

@@ -49,7 +49,11 @@ const ChangeTag: React.FC<{ value?: number }> = ({ value }) => {
   return <Tag color="default">0%</Tag>;
 };
 
-const ServerStatPage: React.FC = () => {
+type ServerStatPageProps = {
+  embedded?: boolean;
+};
+
+const ServerStatPage: React.FC<ServerStatPageProps> = ({ embedded }) => {
   const now = dayjs();
 
   // Top10 时间范围
@@ -209,8 +213,8 @@ const ServerStatPage: React.FC = () => {
     },
   ];
 
-  return (
-    <PageContainer>
+  const content = (
+    <>
       {/* 节点流量 Top10 */}
       <Card
         title="节点流量 Top10（环比）"
@@ -301,8 +305,14 @@ const ServerStatPage: React.FC = () => {
           />
         </Card>
       </div>
-    </PageContainer>
+    </>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <PageContainer>{content}</PageContainer>;
 };
 
 export default ServerStatPage;

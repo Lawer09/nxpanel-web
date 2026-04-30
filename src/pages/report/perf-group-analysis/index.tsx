@@ -201,7 +201,11 @@ const groupByOptions: { label: string; value: GroupBy }[] = [
 
 /* ── 页面组件 ──────────────────────────────────────────────────────────── */
 
-const PerfGroupAnalysisPage: React.FC = () => {
+type PerfGroupAnalysisPageProps = {
+  embedded?: boolean;
+};
+
+const PerfGroupAnalysisPage: React.FC<PerfGroupAnalysisPageProps> = ({ embedded }) => {
   const [groupBy, setGroupBy] = useState<GroupBy>('node');
   const today = dayjs().format('YYYY-MM-DD');
   const [dateRange, setDateRange] = useState<[string, string] | undefined>([today, today]);
@@ -241,8 +245,8 @@ const PerfGroupAnalysisPage: React.FC = () => {
   const dataList: API.AggregatedPerformanceItem[] = Array.isArray(payload?.data) ? payload.data : [];
   const total: number = payload?.total || 0;
 
-  return (
-    <PageContainer>
+  const content = (
+    <>
       <Card style={{ marginBottom: 16 }}>
         <Space wrap>
           <Select
@@ -334,8 +338,14 @@ const PerfGroupAnalysisPage: React.FC = () => {
           }}
         />
       </Card>
-    </PageContainer>
+    </>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <PageContainer>{content}</PageContainer>;
 };
 
 export default PerfGroupAnalysisPage;

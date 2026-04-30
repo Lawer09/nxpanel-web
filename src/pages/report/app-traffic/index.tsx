@@ -37,7 +37,11 @@ const TrafficTag: React.FC<{ value: number }> = ({ value }) => (
   <Tag>{formatBytes(value)}</Tag>
 );
 
-const AppTrafficPage: React.FC = () => {
+type AppTrafficPageProps = {
+  embedded?: boolean;
+};
+
+const AppTrafficPage: React.FC<AppTrafficPageProps> = ({ embedded }) => {
   const now = dayjs();
   const [appId, setAppId] = useState<string | undefined>();
   const [appVersion, setAppVersion] = useState<string | undefined>();
@@ -129,8 +133,8 @@ const AppTrafficPage: React.FC = () => {
     { title: '用户数', dataIndex: 'user_count', key: 'user_count', width: 120 },
   ];
 
-  return (
-    <PageContainer>
+  const content = (
+    <>
       <Card style={{ marginBottom: 16 }}>
         <Space wrap>
           <Input
@@ -227,8 +231,14 @@ const AppTrafficPage: React.FC = () => {
           },
         }}
       />
-    </PageContainer>
+    </>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <PageContainer>{content}</PageContainer>;
 };
 
 export default AppTrafficPage;
