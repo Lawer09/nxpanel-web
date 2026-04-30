@@ -29,9 +29,7 @@ const DATE_PRESETS = [
 type QueryState = {
   dateRange: [string, string];
   projectCode?: string;
-  adCountry?: string;
-  spendCountry?: string;
-  userCountry?: string;
+  country?: string;
 };
 
 const toSafeNumber = (v: number | string | undefined | null) => {
@@ -48,13 +46,12 @@ const fmtPercent = (v: number | string) => {
 };
 
 const METRIC_OPTIONS = [
-  { label: '上报新增', value: 'reportNewUsers', column: { title: '上报新增', dataIndex: 'reportNewUsers', width: 90 }, formatter: fmtNumber },
+  { label: '新增', value: 'newUsers', column: { title: '新增', dataIndex: 'newUsers', width: 90 }, formatter: fmtNumber },
   { label: '日活', value: 'dauUsers', column: { title: '日活', dataIndex: 'dauUsers', width: 90 }, formatter: fmtNumber },
-  { label: '注册新增', value: 'registerNewUsers', column: { title: '注册新增', dataIndex: 'registerNewUsers', width: 90 }, formatter: fmtNumber },
   {
-    label: '收入',
-    value: 'revenue',
-    column: { title: '收入', dataIndex: 'revenue', width: 100, render: (v: number | string) => fmtFixed2(v) },
+    label: '广告收入',
+    value: 'adRevenue',
+    column: { title: '广告收入', dataIndex: 'adRevenue', width: 100, render: (v: number | string) => fmtFixed2(v) },
     formatter: fmtFixed2,
   },
   {
@@ -64,9 +61,9 @@ const METRIC_OPTIONS = [
     formatter: fmtFixed2,
   },
   {
-    label: '流量 GB',
-    value: 'trafficUsageGb',
-    column: { title: '流量 GB', dataIndex: 'trafficUsageGb', width: 100, render: (v: number | string) => fmtFixed2(v) },
+    label: '流量 MB',
+    value: 'trafficUsageMb',
+    column: { title: '流量 MB', dataIndex: 'trafficUsageMb', width: 100, render: (v: number | string) => fmtFixed2(v) },
     formatter: fmtFixed2,
   },
   {
@@ -76,9 +73,9 @@ const METRIC_OPTIONS = [
     formatter: fmtFixed2,
   },
   {
-    label: '毛利',
-    value: 'grossProfit',
-    column: { title: '毛利', dataIndex: 'grossProfit', width: 100, render: (v: number | string) => fmtFixed2(v) },
+    label: '利润',
+    value: 'profit',
+    column: { title: '利润', dataIndex: 'profit', width: 100, render: (v: number | string) => fmtFixed2(v) },
     formatter: fmtFixed2,
   },
   {
@@ -87,63 +84,60 @@ const METRIC_OPTIONS = [
     column: { title: 'ROI', dataIndex: 'roi', width: 90, render: (v: number | string) => fmtPercent(v) },
     formatter: fmtPercent,
   },
-  { label: 'CPI', value: 'cpi', column: { title: 'CPI', dataIndex: 'cpi', width: 90, render: (v: number | string) => fmtFixed2(v) }, formatter: fmtFixed2 },
-  { label: 'eCPM', value: 'ecpm', column: { title: 'eCPM', dataIndex: 'ecpm', width: 90, render: (v: number | string) => fmtFixed2(v) }, formatter: fmtFixed2 },
-  { label: 'FB eCPM', value: 'fbEcpm', column: { title: 'FB eCPM', dataIndex: 'fbEcpm', width: 90, render: (v: number | string) => fmtFixed2(v) }, formatter: fmtFixed2 },
-  { label: 'CTR', value: 'ctr', column: { title: 'CTR', dataIndex: 'ctr', width: 90, render: (v: number | string) => fmtPercent(v) }, formatter: fmtPercent },
-  { label: '匹配率', value: 'matchRate', column: { title: '匹配率', dataIndex: 'matchRate', width: 90, render: (v: number | string) => fmtPercent(v) }, formatter: fmtPercent },
-  { label: '展示率', value: 'showRate', column: { title: '展示率', dataIndex: 'showRate', width: 90, render: (v: number | string) => fmtPercent(v) }, formatter: fmtPercent },
-  { label: '展示', value: 'impressions', column: { title: '展示', dataIndex: 'impressions', width: 100 }, formatter: fmtNumber },
-  { label: '点击', value: 'clicks', column: { title: '点击', dataIndex: 'clicks', width: 90 }, formatter: fmtNumber },
+  { label: '投放 CPI', value: 'adSpendCpi', column: { title: '投放 CPI', dataIndex: 'adSpendCpi', width: 90, render: (v: number | string) => fmtFixed2(v) }, formatter: fmtFixed2 },
+  { label: '投放 CPC', value: 'adSpendCpc', column: { title: '投放 CPC', dataIndex: 'adSpendCpc', width: 90, render: (v: number | string) => fmtFixed2(v) }, formatter: fmtFixed2 },
+  { label: '投放 CPM', value: 'adSpendCpm', column: { title: '投放 CPM', dataIndex: 'adSpendCpm', width: 90, render: (v: number | string) => fmtFixed2(v) }, formatter: fmtFixed2 },
+  { label: '广告 eCPM', value: 'adEcpm', column: { title: '广告 eCPM', dataIndex: 'adEcpm', width: 90, render: (v: number | string) => fmtFixed2(v) }, formatter: fmtFixed2 },
+  { label: '广告 CTR', value: 'adCtr', column: { title: '广告 CTR', dataIndex: 'adCtr', width: 90, render: (v: number | string) => fmtPercent(v) }, formatter: fmtPercent },
+  { label: '广告匹配率', value: 'adMatchRate', column: { title: '广告匹配率', dataIndex: 'adMatchRate', width: 100, render: (v: number | string) => fmtPercent(v) }, formatter: fmtPercent },
+  { label: '广告展示率', value: 'adShowRate', column: { title: '广告展示率', dataIndex: 'adShowRate', width: 100, render: (v: number | string) => fmtPercent(v) }, formatter: fmtPercent },
+  { label: '广告展示', value: 'adImpressions', column: { title: '广告展示', dataIndex: 'adImpressions', width: 100 }, formatter: fmtNumber },
+  { label: '广告点击', value: 'adClicks', column: { title: '广告点击', dataIndex: 'adClicks', width: 90 }, formatter: fmtNumber },
   { label: '请求', value: 'adRequests', column: { title: '请求', dataIndex: 'adRequests', width: 100 }, formatter: fmtNumber },
   {
-    label: '匹配',
-    value: 'matchedRequests',
+    label: '广告匹配',
+    value: 'adMatchedRequests',
     column: {
-      title: '匹配',
-      dataIndex: 'matchedRequests',
+      title: '广告匹配',
+      dataIndex: 'adMatchedRequests',
       width: 140,
-      render: (v: number | string, row: API.ProjectAggregatesDailyItem) => `${fmtNumber(v)}(${fmtPercent(row.matchRate)})`,
+      render: (v: number | string, row: API.ProjectAggregatesDailyItem) => `${fmtNumber(v)}(${fmtPercent(row.adMatchRate)})`,
     },
     formatter: fmtNumber,
   },
 ];
 
 const SUMMARY_KEYS = [
-  'reportNewUsers',
+  'newUsers',
   'dauUsers',
-  'registerNewUsers',
-  'revenue',
+  'adRevenue',
   'adSpendCost',
-  'trafficUsageGb',
+  'adSpendCpi',
+  'adSpendCpc',
+  'adSpendCpm',
+  'trafficUsageMb',
   'trafficCost',
-  'grossProfit',
+  'profit',
   'roi',
-  'cpi',
-  'ecpm',
-  'fbEcpm',
-  'ctr',
-  'matchRate',
-  'showRate',
-  'impressions',
-  'clicks',
+  'adEcpm',
+  'adCtr',
+  'adMatchRate',
+  'adShowRate',
+  'adImpressions',
+  'adClicks',
   'adRequests',
-  'matchedRequests',
+  'adMatchedRequests',
 ];
 
 const resolveDailyGroupBy = (dimensions: string[]): API.ProjectAggregatesDailyGroupField[] => {
   const hasDate = dimensions.includes('date');
   const hasProject = dimensions.includes('project');
   const hasCountry = dimensions.includes('country');
-  const hasSpendCountry = dimensions.includes('spendCountry');
-  const hasUserCountry = dimensions.includes('userCountry');
 
   const groupBy: API.ProjectAggregatesDailyGroupField[] = [];
   if (hasDate) groupBy.push('reportDate');
   if (hasProject) groupBy.push('projectCode');
-  if (hasCountry) groupBy.push('adCountry');
-  if (hasSpendCountry) groupBy.push('spendCountry');
-  if (hasUserCountry) groupBy.push('userCountry');
+  if (hasCountry) groupBy.push('country');
   return groupBy;
 };
 
@@ -184,9 +178,7 @@ const ProjectAggregatesPage: React.FC = () => {
           return [
             record.reportDate,
             record.projectCode,
-            record.adCountry,
-            record.spendCountry,
-            record.userCountry,
+            record.country,
           ]
             .filter((item) => Boolean(item))
             .join('|');
@@ -194,19 +186,16 @@ const ProjectAggregatesPage: React.FC = () => {
         defaultQuery={{
           dateRange: [today, today],
           projectCode: undefined,
-          adCountry: undefined,
-          spendCountry: undefined,
-          userCountry: undefined,
+          country: undefined,
         }}
         defaultDimensions={["project"]}
         defaultMetrics={[
-          'reportNewUsers',
+          'newUsers',
           'dauUsers',
-          'registerNewUsers',
-          'revenue',
+          'adRevenue',
           'adSpendCost',
           'trafficCost',
-          'grossProfit',
+          'profit',
           'roi',
         ]}
         dimensionOptions={[
@@ -218,17 +207,7 @@ const ProjectAggregatesPage: React.FC = () => {
           {
             label: '国家',
             value: 'country',
-            column: { title: '广告国家', dataIndex: 'adCountry', width: 100 },
-          },
-          {
-            label: '投放国家',
-            value: 'spendCountry',
-            column: { title: '投放国家', dataIndex: 'spendCountry', width: 100 },
-          },
-          {
-            label: '用户国家',
-            value: 'userCountry',
-            column: { title: '用户国家', dataIndex: 'userCountry', width: 100 },
+            column: { title: '国家', dataIndex: 'country', width: 100 },
           },
           {
             label: '日期',
@@ -269,31 +248,11 @@ const ProjectAggregatesPage: React.FC = () => {
               </Form.Item>
             ) : null}
             {dimensions.includes('country') ? (
-              <Form.Item label="广告国家">
+              <Form.Item label="国家">
                 <Input
-                  value={query.adCountry}
-                  onChange={(e) => setQuery((prev) => ({ ...prev, adCountry: e.target.value || undefined }))}
+                  value={query.country}
+                  onChange={(e) => setQuery((prev) => ({ ...prev, country: e.target.value || undefined }))}
                   placeholder="如 US"
-                  style={{ width: 120 }}
-                />
-              </Form.Item>
-            ) : null}
-            {dimensions.includes('spendCountry') ? (
-              <Form.Item label="投放国家">
-                <Input
-                  value={query.spendCountry}
-                  onChange={(e) => setQuery((prev) => ({ ...prev, spendCountry: e.target.value || undefined }))}
-                  placeholder="如 US"
-                  style={{ width: 120 }}
-                />
-              </Form.Item>
-            ) : null}
-            {dimensions.includes('userCountry') ? (
-              <Form.Item label="用户国家">
-                <Input
-                  value={query.userCountry}
-                  onChange={(e) => setQuery((prev) => ({ ...prev, userCountry: e.target.value || undefined }))}
-                  placeholder="如 US / OO"
                   style={{ width: 120 }}
                 />
               </Form.Item>
@@ -305,12 +264,9 @@ const ProjectAggregatesPage: React.FC = () => {
           const res = await getProjectAggregatesDaily({
             startDate: query.dateRange[0],
             endDate: query.dateRange[1],
-            projectCode: dimensions.includes('project') ? query.projectCode : undefined,
-            adCountry: dimensions.includes('country') ? query.adCountry : undefined,
-            spendCountry: dimensions.includes('spendCountry') ? query.spendCountry : undefined,
-            userCountry: dimensions.includes('userCountry') ? query.userCountry : undefined,
-            groupBy,
-            groupby: groupBy,
+            projectCode: query.projectCode,
+            country: query.country,
+            groupBy: groupBy.length ? groupBy : undefined,
             page,
             pageSize,
             orderBy: 'reportDate',
@@ -333,13 +289,10 @@ const ProjectAggregatesPage: React.FC = () => {
           const res = await getProjectAggregatesSummary({
             startDate: query.dateRange[0],
             endDate: query.dateRange[1],
-            projectCode: dimensions.includes('project') ? query.projectCode : undefined,
-            adCountry: dimensions.includes('country') ? query.adCountry : undefined,
-            spendCountry: dimensions.includes('spendCountry') ? query.spendCountry : undefined,
-            userCountry: dimensions.includes('userCountry') ? query.userCountry : undefined,
+            projectCode: query.projectCode,
+            country: query.country,
             groupBy:
-              (firstDimension as 'project' | 'country' | 'date' | 'spendCountry' | 'userCountry') ||
-              'project',
+              (firstDimension as 'project' | 'country' | 'date') || 'project',
           });
           if (res.code !== 0) {
             return {};

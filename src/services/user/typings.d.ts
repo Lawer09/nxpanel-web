@@ -30,10 +30,16 @@ declare namespace API {
     app_id?: string;
     app_version?: string;
     brand?: string;
+    channel_type?: string;
+    click_ts?: number;
     city?: string;
     country?: string;
+    install_begin_ts?: number;
     platform?: string;
+    raw_referrer?: string;
     timestamp?: string;
+    utm_medium?: string;
+    utm_source?: string;
   }
 
   interface UserItem {

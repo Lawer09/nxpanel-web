@@ -197,9 +197,32 @@ const UserManagePage: React.FC = () => {
         const meta = record.register_metadata;
         if (!meta?.app_id) return '-';
         const content = (
-          <Descriptions column={1} size="small" bordered style={{ width: 320 }}>
+          <Descriptions column={2} size="small" bordered style={{ width: 520 }}>
             <Descriptions.Item label="应用包名">{meta.app_id}</Descriptions.Item>
             <Descriptions.Item label="应用版本">{meta.app_version ?? '-'}</Descriptions.Item>
+            <Descriptions.Item label="来源">{meta.utm_source ?? '-'}</Descriptions.Item>
+            <Descriptions.Item label="媒介">{meta.utm_medium ?? '-'}</Descriptions.Item>
+            <Descriptions.Item label="渠道">{meta.channel_type ?? '-'}</Descriptions.Item>
+            <Descriptions.Item label="Referrer" span={2}>
+              <Tooltip title={meta.raw_referrer || '-'}>
+                <span
+                  style={{
+                    display: 'inline-block',
+                    maxWidth: 420,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    verticalAlign: 'bottom',
+                  }}
+                >
+                  {meta.raw_referrer ?? '-'}
+                </span>
+              </Tooltip>
+            </Descriptions.Item>
+            <Descriptions.Item label="安装TS">
+              {meta.install_begin_ts ?? '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="点击TS">{meta.click_ts ?? '-'}</Descriptions.Item>
             <Descriptions.Item label="品牌">{meta.brand ?? '-'}</Descriptions.Item>
             <Descriptions.Item label="平台">{meta.platform ?? '-'}</Descriptions.Item>
             <Descriptions.Item label="国家">{meta.country ?? '-'}</Descriptions.Item>

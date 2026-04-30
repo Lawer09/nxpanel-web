@@ -1,10 +1,5 @@
 declare namespace API {
-  type ProjectAggregatesDailyGroupField =
-    | 'reportDate'
-    | 'projectCode'
-    | 'adCountry'
-    | 'spendCountry'
-    | 'userCountry';
+  type ProjectAggregatesDailyGroupField = 'reportDate' | 'projectCode' | 'country';
 
   interface ProjectAggregatesAggregateRequest {
     startDate: string;
@@ -31,14 +26,21 @@ declare namespace API {
     startDate: string;
     endDate: string;
     projectCode?: string;
-    adCountry?: string;
-    spendCountry?: string;
-    userCountry?: string;
+    country?: string;
     groupBy?: ProjectAggregatesDailyGroupField[];
-    groupby?: ProjectAggregatesDailyGroupField[];
     page?: number;
     pageSize?: number;
-    orderBy?: string;
+    orderBy?:
+      | 'reportDate'
+      | 'projectCode'
+      | 'country'
+      | 'adRevenue'
+      | 'adSpendCost'
+      | 'trafficCost'
+      | 'profit'
+      | 'roi'
+      | 'adSpendCpi'
+      | 'updatedAt';
     orderDir?: 'asc' | 'desc';
   }
 
@@ -46,19 +48,15 @@ declare namespace API {
     startDate: string;
     endDate: string;
     projectCode?: string;
-    adCountry?: string;
-    spendCountry?: string;
-    userCountry?: string;
-    groupBy?: 'project' | 'country' | 'date' | 'spendCountry' | 'userCountry';
+    country?: string;
+    groupBy?: 'project' | 'country' | 'date';
   }
 
   interface ProjectAggregatesTrendQuery {
     startDate: string;
     endDate: string;
     projectCode?: string;
-    adCountry?: string;
-    spendCountry?: string;
-    userCountry?: string;
+    country?: string;
     dimension?: 'day' | 'month';
   }
 
@@ -66,69 +64,64 @@ declare namespace API {
     id?: number;
     reportDate: string;
     projectCode: string;
-    adCountry: string;
-    spendCountry: string;
-    userCountry: string;
-    reportNewUsers: number;
+    country: string;
     dauUsers: number;
-    registerNewUsers: number;
-    revenue: string;
+    newUsers: number;
+    adRevenue: string;
     adRequests: number;
-    matchedRequests: number;
-    impressions: number;
-    clicks: number;
-    ecpm: string;
-    ctr: string;
-    matchRate: string;
-    showRate: string;
+    adMatchedRequests: number;
+    adImpressions: number;
+    adClicks: number;
+    adEcpm: string;
+    adCtr: string;
+    adMatchRate: string;
+    adShowRate: string;
     adSpendCost: string;
-    trafficUsageGb: string;
+    adSpendCpi: string;
+    adSpendCpc: string;
+    adSpendCpm: string;
+    trafficUsageMb: string;
     trafficCost: string;
-    grossProfit: string;
+    profit: string;
     roi: string;
-    cpi: string;
-    fbEcpm: string;
     updatedAt: string;
   }
 
   interface ProjectAggregatesSummaryItem {
     reportDate?: string;
     projectCode?: string;
-    adCountry?: string;
-    spendCountry?: string;
-    userCountry?: string;
-    reportNewUsers: number;
+    country?: string;
     dauUsers: number;
-    registerNewUsers: number;
-    revenue: string;
+    newUsers: number;
+    adRevenue: string;
     adRequests: number;
-    matchedRequests: number;
-    impressions: number;
-    clicks: number;
-    ecpm: string;
-    ctr: string;
-    matchRate: string;
-    showRate: string;
+    adMatchedRequests: number;
+    adImpressions: number;
+    adClicks: number;
+    adEcpm: string;
+    adCtr: string;
+    adMatchRate: string;
+    adShowRate: string;
     adSpendCost: string;
-    trafficUsageGb: string;
+    adSpendCpi: string;
+    adSpendCpc: string;
+    adSpendCpm: string;
+    trafficUsageMb: string;
     trafficCost: string;
-    grossProfit: string;
+    profit: string;
     roi: string;
-    cpi: string;
-    fbEcpm: string;
   }
 
   interface ProjectAggregatesTrendItem {
     time: string;
-    reportNewUsers: number;
     dauUsers: number;
-    registerNewUsers: number;
-    revenue: string;
+    newUsers: number;
+    adRevenue: string;
     adSpendCost: string;
-    trafficUsageGb: string;
+    trafficUsageMb: string;
     trafficCost: string;
-    grossProfit: string;
+    profit: string;
     roi: string;
-    cpi: string;
+    adSpendCpi: string;
   }
 }
