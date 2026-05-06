@@ -67,6 +67,7 @@ declare namespace API {
     country: string;
     dauUsers: number;
     newUsers: number;
+    reportNewUsers: number;
     adRevenue: string;
     adRequests: number;
     adMatchedRequests: number;
@@ -93,6 +94,7 @@ declare namespace API {
     country?: string;
     dauUsers: number;
     newUsers: number;
+    reportNewUsers: number;
     adRevenue: string;
     adRequests: number;
     adMatchedRequests: number;
@@ -116,6 +118,7 @@ declare namespace API {
     time: string;
     dauUsers: number;
     newUsers: number;
+    reportNewUsers: number;
     adRevenue: string;
     adSpendCost: string;
     trafficUsageMb: string;

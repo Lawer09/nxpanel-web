@@ -51,6 +51,12 @@ const fmtCountry = (country?: string | null) => {
 
 const METRIC_OPTIONS = [
   { label: '新增', value: 'newUsers', column: { title: '新增', dataIndex: 'newUsers', width: 90 }, formatter: fmtNumber },
+  {
+    label: '上报新增',
+    value: 'reportNewUsers',
+    column: { title: '上报新增', dataIndex: 'reportNewUsers', width: 100 },
+    formatter: fmtNumber,
+  },
   { label: '日活', value: 'dauUsers', column: { title: '日活', dataIndex: 'dauUsers', width: 90 }, formatter: fmtNumber },
   {
     label: '广告收入',
@@ -113,6 +119,7 @@ const METRIC_OPTIONS = [
 
 const SUMMARY_KEYS = [
   'newUsers',
+  'reportNewUsers',
   'dauUsers',
   'adRevenue',
   'adSpendCost',
@@ -195,6 +202,7 @@ const ProjectAggregatesPage: React.FC = () => {
         defaultDimensions={["project"]}
         defaultMetrics={[
           'newUsers',
+          'reportNewUsers',
           'dauUsers',
           'adRevenue',
           'adSpendCost',
