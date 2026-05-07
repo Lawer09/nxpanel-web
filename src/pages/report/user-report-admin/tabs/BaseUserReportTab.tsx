@@ -77,7 +77,9 @@ const METRIC_FROM_SNAKE: Record<string, string> = {
   traffic_usage: 'trafficUsage',
   traffic_use_time: 'trafficUseTime',
   compute_count: 'computeCount',
+  success_count: 'successCount',
   fail_count: 'failCount',
+  success_rate: 'successRate',
   last_report_at_ms: 'lastReportAtMs',
 };
 

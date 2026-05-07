@@ -9,8 +9,13 @@ const AdSpendPage: React.FC = () => {
   return (
     <PageContainer>
       <Tabs
-        defaultActiveKey="accounts"
+        defaultActiveKey="reports"
         items={[
+          {
+            key: 'reports',
+            label: '投放报表',
+            children: <ReportsPage embedded />,
+          },
           {
             key: 'accounts',
             label: '投放账号',
@@ -20,11 +25,6 @@ const AdSpendPage: React.FC = () => {
             key: 'sync-jobs',
             label: '同步任务',
             children: <SyncJobsPage embedded />,
-          },
-          {
-            key: 'reports',
-            label: '投放日报',
-            children: <ReportsPage embedded />,
           },
         ]}
       />

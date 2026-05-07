@@ -96,32 +96,44 @@ declare namespace API {
 
   // ── 投放日报 ────────────────────────────────────────────────────────────────
 
+  type AdSpendDailyGroupField =
+    | 'date'
+    | 'platform_code'
+    | 'platform_account_id'
+    | 'project_code'
+    | 'country';
+
+  interface AdSpendDailyFilters {
+    platformCodes?: string[];
+    accountIds?: number[];
+    projectCodes?: string[];
+    countries?: string[];
+  }
+
   interface AdSpendDailyQuery {
-    platformCode?: string;
-    accountId?: number;
-    projectCode?: string;
-    country?: string;
-    startDate: string;
-    endDate: string;
+    dateFrom?: string;
+    dateTo?: string;
+    groupBy?: AdSpendDailyGroupField[];
+    filters?: AdSpendDailyFilters;
     page?: number;
     pageSize?: number;
   }
 
   interface AdSpendDailyItem {
-    id: number;
-    reportDate: string;
-    platformAccountId: number;
-    platformCode: string;
-    accountName: string;
-    projectCode: string;
-    country: string;
-    impressions: number;
-    clicks: number;
-    spend: string;
-    ctr: string;
-    cpm: string;
-    cpc: string;
-    updatedAt: string;
+    id?: number;
+    date?: string;
+    platformAccountId?: number;
+    platformCode?: string;
+    accountName?: string;
+    projectCode?: string;
+    country?: string;
+    impressions?: number;
+    clicks?: number;
+    spend?: string;
+    ctr?: string;
+    cpm?: string;
+    cpc?: string;
+    updatedAt?: string;
   }
 
   interface AdSpendSummaryQuery {

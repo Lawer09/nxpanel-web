@@ -76,7 +76,34 @@ export async function getAdSpendSyncJobDetail(id: number) {
 export async function getAdSpendDaily(params: API.AdSpendDailyQuery) {
   return request<API.ApiResponse<API.PageResult<API.AdSpendDailyItem>>>(
     '/v3/ad-spend-platform/reports/daily',
-    { method: 'GET', params },
+    {
+      method: 'GET',
+      params,
+      paramsSerializer: (query) => {
+        const searchParams = new URLSearchParams();
+        const appendArray = (key: string, values?: Array<string | number>) => {
+          if (!Array.isArray(values)) return;
+          values.forEach((v) => {
+            if (v !== undefined && v !== null && `${v}` !== '') {
+              searchParams.append(key, `${v}`);
+            }
+          });
+        };
+
+        if (query.dateFrom) searchParams.append('dateFrom', `${query.dateFrom}`);
+        if (query.dateTo) searchParams.append('dateTo', `${query.dateTo}`);
+        if (query.page !== undefined) searchParams.append('page', `${query.page}`);
+        if (query.pageSize !== undefined) searchParams.append('pageSize', `${query.pageSize}`);
+
+        appendArray('groupBy[]', query.groupBy);
+        appendArray('filters.platformCodes[]', query.filters?.platformCodes);
+        appendArray('filters.accountIds[]', query.filters?.accountIds);
+        appendArray('filters.projectCodes[]', query.filters?.projectCodes);
+        appendArray('filters.countries[]', query.filters?.countries);
+
+        return searchParams.toString();
+      },
+    },
   );
 }
 

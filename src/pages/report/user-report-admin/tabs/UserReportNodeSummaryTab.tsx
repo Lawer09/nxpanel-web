@@ -3,6 +3,13 @@ import React from 'react';
 import { queryUserReportNodeSummary } from '@/services/report/api';
 import BaseUserReportTab, { toSnakeGroupBy } from './BaseUserReportTab';
 
+const fmtPercent = (v: number) => {
+  const n = Number(v ?? 0);
+  if (!Number.isFinite(n)) return '0.00%';
+  const percentValue = Math.abs(n) <= 1 ? n * 100 : n;
+  return `${percentValue.toFixed(2)}%`;
+};
+
 const DIMENSIONS = [
   { label: '日期', value: 'date' },
   { label: '小时', value: 'hour' },
@@ -17,6 +24,9 @@ const METRICS = [
   { label: '流量用量', value: 'trafficUsage' },
   { label: '流量时长', value: 'trafficUseTime' },
   { label: '计算次数', value: 'computeCount' },
+  { label: '成功次数', value: 'successCount' },
+  { label: '失败次数', value: 'failCount' },
+  { label: '成功率', value: 'successRate', render: fmtPercent, formatter: fmtPercent },
 ];
 
 const UserReportNodeSummaryTab: React.FC = () => {
@@ -26,7 +36,15 @@ const UserReportNodeSummaryTab: React.FC = () => {
     <BaseUserReportTab
       storageKey="report.userReport.nodeSummary"
       defaultDimensions={['date', 'hour', 'nodeId', 'probeStage']}
-      defaultMetrics={['avgDelay', 'trafficUsage', 'trafficUseTime', 'computeCount']}
+      defaultMetrics={[
+        'avgDelay',
+        'trafficUsage',
+        'trafficUseTime',
+        'computeCount',
+        'successCount',
+        'failCount',
+        'successRate',
+      ]}
       dimensionOptions={DIMENSIONS}
       metricOptions={METRICS}
       renderExtraFilters={({ query, setQuery, dimensions }) => (

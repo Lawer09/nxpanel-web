@@ -75,6 +75,7 @@ export default {
   'menu.report.node-main-report': '节点主报表',
   'menu.report.node-subtable-report': '节点子表校对',
   'menu.report.project-aggregates': '项目聚合报表',
+  'menu.report.ad-spend-report': '投放报表',
   'menu.invite-gift-card': '邀请礼品卡',
   'menu.invite-gift-card.invite-gift-card-rules': '规则管理',
   'menu.invite-gift-card.invite-gift-card-logs': '发放日志',

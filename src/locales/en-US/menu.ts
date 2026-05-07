@@ -51,6 +51,7 @@ export default {
   'menu.report.node-main-report': 'Node Main Report',
   'menu.report.node-subtable-report': 'Node Subtable Check',
   'menu.report.project-aggregates': 'Project Aggregate Reports',
+  'menu.report.ad-spend-report': 'Ad Spend Report',
   'menu.invite-gift-card': 'Invite Gift Cards',
   'menu.invite-gift-card.invite-gift-card-rules': 'Rule Management',
   'menu.invite-gift-card.invite-gift-card-logs': 'Issue Logs',

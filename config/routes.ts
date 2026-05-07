@@ -75,6 +75,11 @@ export default [
         name: 'project-aggregates',
         component: './report/project-aggregates',
       },
+      {
+        path: '/report/ad-spend-report',
+        name: 'ad-spend-report',
+        component: './ad-spend',
+      },
       // {
       //   path: '/report',
       //   redirect: '/report/performance',
@@ -317,21 +322,19 @@ export default [
   },
   {
     path: '/ad-spend',
-    name: 'ad-spend',
-    icon: 'pieChart',
-    component: './ad-spend',
+    redirect: '/report/ad-spend-report',
   },
   {
     path: '/ad-spend/accounts',
-    redirect: '/ad-spend',
+    redirect: '/report/ad-spend-report',
   },
   {
     path: '/ad-spend/sync-jobs',
-    redirect: '/ad-spend',
+    redirect: '/report/ad-spend-report',
   },
   {
     path: '/ad-spend/reports',
-    redirect: '/ad-spend',
+    redirect: '/report/ad-spend-report',
   },
   {
     path: '/project',
