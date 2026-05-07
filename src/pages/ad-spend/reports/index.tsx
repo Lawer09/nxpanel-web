@@ -11,12 +11,16 @@ import {
 
 const { RangePicker } = DatePicker;
 
-const ReportsPage: React.FC = () => {
+interface ReportsPageProps {
+  embedded?: boolean;
+}
+
+export const ReportsPage: React.FC<ReportsPageProps> = ({ embedded = false }) => {
   const { message: messageApi } = App.useApp();
   const actionRef = useRef<ActionType | null>(null);
   const today = dayjs().format('YYYY-MM-DD');
   const [dateRange, setDateRange] = useState<[string, string]>([today, today]);
-  const [platformCode, setPlatformCode] = useState<string>('adsmakeup');
+  const [platformCode, setPlatformCode] = useState<string | undefined>();
   const [accountId, setAccountId] = useState<number | undefined>();
   const [projectCode, setProjectCode] = useState<string | undefined>();
   const [country, setCountry] = useState<string | undefined>();
@@ -117,15 +121,15 @@ const ReportsPage: React.FC = () => {
     },
   ];
 
-  return (
-    <PageContainer>
+  const content = (
+    <>
       <Card style={{ marginBottom: 16 }}>
         <Form layout="inline">
           <Form.Item label="平台">
             <Input
               value={platformCode}
-              onChange={(e) => setPlatformCode(e.target.value)}
-              placeholder="adsmakeup"
+              onChange={(e) => setPlatformCode(e.target.value || undefined)}
+              placeholder="空表示全部"
               style={{ width: 140 }}
             />
           </Form.Item>
@@ -179,7 +183,7 @@ const ReportsPage: React.FC = () => {
           columns={columns}
           request={async (params) => {
             const res = await getAdSpendDaily({
-              platformCode: platformCode,
+              platformCode,
               accountId: params.accountId ? Number(params.accountId) : accountId,
               projectCode: projectCode,
               country: country,
@@ -203,8 +207,14 @@ const ReportsPage: React.FC = () => {
           search={false}
         />
       </Card>
-    </PageContainer>
+    </>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <PageContainer>{content}</PageContainer>;
 };
 
 export default ReportsPage;

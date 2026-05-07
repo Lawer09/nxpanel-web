@@ -18,7 +18,11 @@ const STATUS_MAP: Record<string, { color: string; text: string }> = {
   failed: { color: 'error', text: '失败' },
 };
 
-const SyncJobsPage: React.FC = () => {
+interface SyncJobsPageProps {
+  embedded?: boolean;
+}
+
+export const SyncJobsPage: React.FC<SyncJobsPageProps> = ({ embedded = false }) => {
   const { message: messageApi } = App.useApp();
   const actionRef = useRef<ActionType | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -121,8 +125,8 @@ const SyncJobsPage: React.FC = () => {
     },
   ];
 
-  return (
-    <PageContainer>
+  const content = (
+    <>
       <ProTable<API.AdSpendSyncJobItem>
         rowKey="id"
         actionRef={actionRef}
@@ -205,8 +209,14 @@ const SyncJobsPage: React.FC = () => {
           </Descriptions>
         )}
       </Drawer>
-    </PageContainer>
+    </>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <PageContainer>{content}</PageContainer>;
 };
 
 export default SyncJobsPage;

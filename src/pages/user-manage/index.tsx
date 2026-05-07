@@ -37,6 +37,14 @@ const formatBytes = (bytes?: number | null): string => {
   return parseFloat((bytes / k ** i).toFixed(2)) + ' ' + sizes[i];
 };
 
+const formatReportTrafficMb = (value?: number | string | null): string => {
+  if (value === undefined || value === null || value === '') return '-';
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '-';
+  const mb = num > 1024 * 1024 ? num / (1024 * 1024) : num;
+  return `${mb.toFixed(2)} MB`;
+};
+
 const renderMetaValue = (
   value?: string | number | null,
   maxWidth = 170,
@@ -275,12 +283,11 @@ const UserManagePage: React.FC = () => {
       },
     },
     {
-      title: '注册版本',
-      dataIndex: ['register_metadata', 'app_version'],
-      width: 100,
+      title: '上报流量',
+      dataIndex: 'report_traffic',
+      width: 120,
       search: false,
-      render: (_, record) =>
-        record.register_metadata?.app_version ?? '-',
+      render: (_, record) => formatReportTrafficMb(record.report_traffic),
     },
     {
       title: '操作',

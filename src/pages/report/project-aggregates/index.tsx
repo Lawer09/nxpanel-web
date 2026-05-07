@@ -13,15 +13,19 @@ const { RangePicker } = DatePicker;
 
 const DATE_PRESETS = [
   {
-    label: '今天',
+    label: '今日',
     value: [dayjs(), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs],
   },
   {
-    label: '最近一周',
+    label: '近三天',
+    value: [dayjs().subtract(2, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs],
+  },
+  {
+    label: '近一周',
     value: [dayjs().subtract(6, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs],
   },
   {
-    label: '最近一个月',
+    label: '近一月',
     value: [dayjs().subtract(29, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs],
   },
 ];

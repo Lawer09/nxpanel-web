@@ -11,7 +11,11 @@ import {
   testAdSpendAccount,
 } from '@/services/ad-spend-platform/api';
 
-const AccountsPage: React.FC = () => {
+interface AccountsPageProps {
+  embedded?: boolean;
+}
+
+export const AccountsPage: React.FC<AccountsPageProps> = ({ embedded = false }) => {
   const { message: messageApi } = App.useApp();
   const actionRef = useRef<ActionType | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -162,8 +166,8 @@ const AccountsPage: React.FC = () => {
     },
   ];
 
-  return (
-    <PageContainer>
+  const content = (
+    <>
       <ProTable<API.AdSpendAccountItem>
         rowKey="id"
         actionRef={actionRef}
@@ -259,8 +263,14 @@ const AccountsPage: React.FC = () => {
           </Descriptions>
         )}
       </Drawer>
-    </PageContainer>
+    </>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <PageContainer>{content}</PageContainer>;
 };
 
 export default AccountsPage;

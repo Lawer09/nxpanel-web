@@ -1,9 +1,9 @@
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { ReloadOutlined, SaveOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, Input, Select, Space, Switch, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 type AnyRecord = Record<string, any>;
 
@@ -62,6 +62,9 @@ interface UniversalReportTableProps<T extends AnyRecord, Q extends AnyRecord> {
   dimensionOptions: DimensionOption<T>[];
   metricOptions: MetricOption<T>[];
   defaultPageSize?: number;
+  normalizeDimensionValue?: (value: string) => string;
+  normalizeMetricValue?: (value: string) => string;
+  hideSummaryRows?: boolean;
   renderFilters: (args: {
     query: Q;
     setQuery: React.Dispatch<React.SetStateAction<Q>>;
@@ -74,6 +77,48 @@ interface UniversalReportTableProps<T extends AnyRecord, Q extends AnyRecord> {
     dimensions: string[];
   }) => Promise<ReportFetchResult<T>>;
   fetchGrandTotals?: (args: { query: Q; dimensions: string[] }) => Promise<Record<string, number>>;
+}
+
+function normalizeDimensionValues(
+  rawValues: string[],
+  validValues: Set<string>,
+  fallbackValues: string[],
+  normalizeValue?: (value: string) => string,
+) {
+  const uniq: string[] = [];
+  const pushIfValid = (value: string) => {
+    const normalized = normalizeValue ? normalizeValue(value) : value;
+    if (!validValues.has(normalized) || uniq.includes(normalized)) return;
+    uniq.push(normalized);
+  };
+
+  rawValues.forEach((item) => pushIfValid(item));
+  if (uniq.length) return uniq;
+  fallbackValues.forEach((item) => pushIfValid(item));
+  return uniq;
+}
+
+function normalizeMetricValues(
+  rawValues: string[],
+  validValues: Set<string>,
+  fallbackValues: string[],
+  normalizeValue?: (value: string) => string,
+) {
+  const uniq: string[] = [];
+  const pushIfValid = (value: string) => {
+    const normalized = normalizeValue ? normalizeValue(value) : value;
+    if (!validValues.has(normalized) || uniq.includes(normalized)) return;
+    uniq.push(normalized);
+  };
+
+  rawValues.forEach((value) => {
+    pushIfValid(value);
+  });
+  if (uniq.length) return uniq;
+  fallbackValues.forEach((value) => {
+    pushIfValid(value);
+  });
+  return uniq;
 }
 
 function safeNumber(v: any) {
@@ -92,6 +137,8 @@ function readLocalState<Q extends AnyRecord>(storageKey: string, fallback: Q, de
         metrics: [],
         savedViews: [],
         columnsStateMap: {},
+        showCurrentSummary: true,
+        showGrandSummary: true,
       };
     }
     const parsed = JSON.parse(raw) as {
@@ -102,6 +149,8 @@ function readLocalState<Q extends AnyRecord>(storageKey: string, fallback: Q, de
       pageSize?: number;
       savedViews?: SavedView<Q>[];
       columnsStateMap?: ColumnStateMap;
+      showCurrentSummary?: boolean;
+      showGrandSummary?: boolean;
     };
     const dimensions = parsed.dimensions ?? (parsed.dimension ? [parsed.dimension] : defaultDimensions);
     const metrics = parsed.metrics ?? [];
@@ -112,6 +161,8 @@ function readLocalState<Q extends AnyRecord>(storageKey: string, fallback: Q, de
       pageSize: parsed.pageSize ?? defaultPageSize,
       savedViews: parsed.savedViews ?? [],
       columnsStateMap: parsed.columnsStateMap ?? {},
+      showCurrentSummary: parsed.showCurrentSummary ?? true,
+      showGrandSummary: parsed.showGrandSummary ?? true,
     };
   } catch {
     return {
@@ -121,6 +172,8 @@ function readLocalState<Q extends AnyRecord>(storageKey: string, fallback: Q, de
       pageSize: defaultPageSize,
       savedViews: [],
       columnsStateMap: {},
+      showCurrentSummary: true,
+      showGrandSummary: true,
     };
   }
 }
@@ -133,10 +186,21 @@ function writeLocalState<Q extends AnyRecord>(
   pageSize: number,
   savedViews: SavedView<Q>[],
   columnsStateMap: ColumnStateMap,
+  showCurrentSummary: boolean,
+  showGrandSummary: boolean,
 ) {
   localStorage.setItem(
     storageKey,
-    JSON.stringify({ query, dimensions, metrics, pageSize, savedViews, columnsStateMap }),
+    JSON.stringify({
+      query,
+      dimensions,
+      metrics,
+      pageSize,
+      savedViews,
+      columnsStateMap,
+      showCurrentSummary,
+      showGrandSummary,
+    }),
   );
 }
 
@@ -151,19 +215,40 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     dimensionOptions,
     metricOptions,
     defaultPageSize = 50,
+    normalizeDimensionValue,
+    normalizeMetricValue,
+    hideSummaryRows = false,
     renderFilters,
     fetchData,
     fetchGrandTotals,
   } = props;
 
   const persisted = readLocalState(storageKey, defaultQuery, defaultDimensions, defaultPageSize);
+  const validDimensionValues = useMemo(() => new Set(dimensionOptions.map((item) => item.value)), [dimensionOptions]);
+  const validMetricValues = useMemo(() => new Set(metricOptions.map((item) => item.value)), [metricOptions]);
+
+  const normalizeDimensions = useCallback(
+    (rawValues: string[]) =>
+      normalizeDimensionValues(rawValues, validDimensionValues, defaultDimensions, normalizeDimensionValue),
+    [validDimensionValues, defaultDimensions, normalizeDimensionValue],
+  );
+
+  const normalizeMetrics = useCallback(
+    (rawValues: string[]) =>
+      normalizeMetricValues(rawValues, validMetricValues, defaultMetrics, normalizeMetricValue),
+    [validMetricValues, defaultMetrics, normalizeMetricValue],
+  );
+
+  const initialDimensions = normalizeDimensions(persisted.dimensions.length ? persisted.dimensions : defaultDimensions);
+  const initialMetrics = persisted.metrics.length
+    ? normalizeMetrics(persisted.metrics)
+    : normalizeMetrics(defaultMetrics);
+
   const [query, setQuery] = useState<Q>(persisted.query);
   const [appliedQuery, setAppliedQuery] = useState<Q>(persisted.query);
-  const [dimensions, setDimensions] = useState<string[]>(
-    persisted.dimensions.length ? persisted.dimensions : defaultDimensions,
-  );
+  const [dimensions, setDimensions] = useState<string[]>(initialDimensions.length ? initialDimensions : defaultDimensions);
   const [metrics, setMetrics] = useState<string[]>(
-    persisted.metrics.length ? persisted.metrics : defaultMetrics,
+    initialMetrics.length ? initialMetrics : normalizeMetrics(defaultMetrics),
   );
   const [savedViews, setSavedViews] = useState<SavedView<Q>[]>(persisted.savedViews ?? []);
   const [columnsStateMap, setColumnsStateMap] = useState<ColumnStateMap>(persisted.columnsStateMap ?? {});
@@ -175,10 +260,32 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   const [pageSize, setPageSize] = useState(persisted.pageSize);
   const [total, setTotal] = useState(0);
   const [grandTotals, setGrandTotals] = useState<Record<string, number>>({});
+  const [showCurrentSummary, setShowCurrentSummary] = useState<boolean>(persisted.showCurrentSummary ?? true);
+  const [showGrandSummary, setShowGrandSummary] = useState<boolean>(persisted.showGrandSummary ?? true);
 
   useEffect(() => {
-    writeLocalState(storageKey, query, dimensions, metrics, pageSize, savedViews, columnsStateMap);
-  }, [storageKey, query, dimensions, metrics, pageSize, savedViews, columnsStateMap]);
+    writeLocalState(
+      storageKey,
+      query,
+      dimensions,
+      metrics,
+      pageSize,
+      savedViews,
+      columnsStateMap,
+      showCurrentSummary,
+      showGrandSummary,
+    );
+  }, [
+    storageKey,
+    query,
+    dimensions,
+    metrics,
+    pageSize,
+    savedViews,
+    columnsStateMap,
+    showCurrentSummary,
+    showGrandSummary,
+  ]);
 
   useEffect(() => {
     let alive = true;
@@ -314,9 +421,12 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   const handleReset = () => {
     setQuery(defaultQuery);
     setAppliedQuery(defaultQuery);
-    setDimensions(defaultDimensions);
-    setMetrics(defaultMetrics);
+    const nextDefaultDimensions = normalizeDimensions(defaultDimensions);
+    setDimensions(nextDefaultDimensions.length ? nextDefaultDimensions : defaultDimensions);
+    setMetrics(normalizeMetrics(defaultMetrics));
     setColumnsStateMap({});
+    setShowCurrentSummary(true);
+    setShowGrandSummary(true);
     setCurrent(1);
     setPageSize(defaultPageSize);
   };
@@ -350,8 +460,10 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     setSelectedViewId(id);
     setQuery(target.query);
     setAppliedQuery(target.query);
-    setDimensions(target.dimensions);
-    setMetrics(target.metrics);
+    const nextDimensions = normalizeDimensions(target.dimensions);
+    const nextMetrics = normalizeMetrics(target.metrics);
+    setDimensions(nextDimensions.length ? nextDimensions : defaultDimensions);
+    setMetrics(nextMetrics.length ? nextMetrics : normalizeMetrics(defaultMetrics));
     setColumnsStateMap(target.columnsStateMap ?? {});
     setCurrent(1);
   };
@@ -398,7 +510,8 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
                 checked={metrics.includes(item.value)}
                 onChange={(checked) => {
                   const next = checked ? [...metrics, item.value] : metrics.filter((v) => v !== item.value);
-                  setMetrics(Array.from(new Set(next)));
+                  const normalizedMetrics = normalizeMetrics(Array.from(new Set(next)));
+                  setMetrics(normalizedMetrics.length ? normalizedMetrics : normalizeMetrics(defaultMetrics));
                   setCurrent(1);
                 }}
               >
@@ -442,6 +555,18 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
             </Space>
 
             <Space>
+              {hideSummaryRows ? null : (
+                <Space>
+                  <Typography.Text type="secondary">当前页合计</Typography.Text>
+                  <Switch size="small" checked={showCurrentSummary} onChange={setShowCurrentSummary} />
+                </Space>
+              )}
+              {hideSummaryRows ? null : (
+                <Space>
+                  <Typography.Text type="secondary">总数据合计</Typography.Text>
+                  <Switch size="small" checked={showGrandSummary} onChange={setShowGrandSummary} />
+                </Space>
+              )}
               <Button icon={<ReloadOutlined />} onClick={handleReset}>
                 重置
               </Button>
@@ -468,60 +593,64 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
           }}
           pagination={pagination}
           scroll={{ x: 'max-content' }}
-          summary={() => (
+          summary={hideSummaryRows ? undefined : () => (
             <Table.Summary>
-              <Table.Summary.Row>
-                {visibleOrderedColumns.map((col, idx) => {
-                  if (idx === 0) {
+              {showCurrentSummary ? (
+                <Table.Summary.Row>
+                  {visibleOrderedColumns.map((col, idx) => {
+                    if (idx === 0) {
+                      return (
+                        <Table.Summary.Cell index={idx} key={`curr-${col.key}`}>
+                          当前页合计
+                        </Table.Summary.Cell>
+                      );
+                    }
+                    if (col.kind !== 'metric') {
+                      return (
+                        <Table.Summary.Cell index={idx} key={`curr-${col.key}`}>
+                          -
+                        </Table.Summary.Cell>
+                      );
+                    }
+                    const metric = metricMap[col.value];
+                    const raw = currentTotals[col.value] ?? 0;
+                    const content = metric?.formatter ? metric.formatter(raw) : raw.toLocaleString();
                     return (
                       <Table.Summary.Cell index={idx} key={`curr-${col.key}`}>
-                        当前页合计
+                        {content}
                       </Table.Summary.Cell>
                     );
-                  }
-                  if (col.kind !== 'metric') {
-                    return (
-                      <Table.Summary.Cell index={idx} key={`curr-${col.key}`}>
-                        -
-                      </Table.Summary.Cell>
-                    );
-                  }
-                  const metric = metricMap[col.value];
-                  const raw = currentTotals[col.value] ?? 0;
-                  const content = metric?.formatter ? metric.formatter(raw) : raw.toLocaleString();
-                  return (
-                    <Table.Summary.Cell index={idx} key={`curr-${col.key}`}>
-                      {content}
-                    </Table.Summary.Cell>
-                  );
-                })}
-              </Table.Summary.Row>
-              <Table.Summary.Row>
-                {visibleOrderedColumns.map((col, idx) => {
-                  if (idx === 0) {
-                    return (
-                      <Table.Summary.Cell index={idx} key={`grand-${col.key}`}>
-                        总数据合计
-                      </Table.Summary.Cell>
-                    );
-                  }
-                  if (col.kind !== 'metric') {
+                  })}
+                </Table.Summary.Row>
+              ) : null}
+              {showGrandSummary ? (
+                <Table.Summary.Row>
+                  {visibleOrderedColumns.map((col, idx) => {
+                    if (idx === 0) {
+                      return (
+                        <Table.Summary.Cell index={idx} key={`grand-${col.key}`}>
+                          总数据合计
+                        </Table.Summary.Cell>
+                      );
+                    }
+                    if (col.kind !== 'metric') {
+                      return (
+                        <Table.Summary.Cell index={idx} key={`grand-${col.key}`}>
+                          -
+                        </Table.Summary.Cell>
+                      );
+                    }
+                    const metric = metricMap[col.value];
+                    const raw = grandTotals[col.value] ?? 0;
+                    const content = metric?.formatter ? metric.formatter(raw) : raw.toLocaleString();
                     return (
                       <Table.Summary.Cell index={idx} key={`grand-${col.key}`}>
-                        -
+                        {content}
                       </Table.Summary.Cell>
                     );
-                  }
-                  const metric = metricMap[col.value];
-                  const raw = grandTotals[col.value] ?? 0;
-                  const content = metric?.formatter ? metric.formatter(raw) : raw.toLocaleString();
-                  return (
-                    <Table.Summary.Cell index={idx} key={`grand-${col.key}`}>
-                      {content}
-                    </Table.Summary.Cell>
-                  );
-                })}
-              </Table.Summary.Row>
+                  })}
+                </Table.Summary.Row>
+              ) : null}
             </Table.Summary>
           )}
         />

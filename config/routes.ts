@@ -127,6 +127,21 @@ export default [
         name: 'performance-diagnosis',
         component: './report/performance-diagnosis',
       },
+      {
+        path: '/report/user-report-admin',
+        name: 'user-report-admin',
+        component: './report/user-report-admin',
+      },
+      {
+        path: '/report/node-main-report',
+        name: 'node-main-report',
+        component: './report/node-main-report',
+      },
+      {
+        path: '/report/node-subtable-report',
+        name: 'node-subtable-report',
+        component: './report/node-subtable-report',
+      },
     ],
   },
   {
@@ -304,27 +319,19 @@ export default [
     path: '/ad-spend',
     name: 'ad-spend',
     icon: 'pieChart',
-    routes: [
-      {
-        path: '/ad-spend',
-        redirect: '/ad-spend/accounts',
-      },
-      {
-        path: '/ad-spend/accounts',
-        name: 'accounts',
-        component: './ad-spend/accounts',
-      },
-      {
-        path: '/ad-spend/sync-jobs',
-        name: 'sync-jobs',
-        component: './ad-spend/sync-jobs',
-      },
-      {
-        path: '/ad-spend/reports',
-        name: 'reports',
-        component: './ad-spend/reports',
-      },
-    ],
+    component: './ad-spend',
+  },
+  {
+    path: '/ad-spend/accounts',
+    redirect: '/ad-spend',
+  },
+  {
+    path: '/ad-spend/sync-jobs',
+    redirect: '/ad-spend',
+  },
+  {
+    path: '/ad-spend/reports',
+    redirect: '/ad-spend',
   },
   {
     path: '/project',

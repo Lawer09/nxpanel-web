@@ -69,6 +69,7 @@ declare namespace API {
     remarks?: string | null;
     subscribe_url?: string;
     created_at?: number;
+    report_traffic?: number | string;
     updated_at?: number;
     plan?: UserPlanLite;
     invite_user?: UserInviteLite;
