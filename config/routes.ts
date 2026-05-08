@@ -141,14 +141,63 @@ export default [
         component: './report/user-report-admin',
       },
       {
+        path: '/report/report-log',
+        name: 'report-log',
+        hideInMenu: true,
+        routes: [
+          {
+            path: '/report/report-log',
+            redirect: '/report/report-log/user-realtime',
+          },
+          {
+            path: '/report/report-log/user-realtime',
+            name: 'user-realtime',
+            component: './report/report-log/user-realtime',
+          },
+          {
+            path: '/report/report-log/node-realtime',
+            name: 'node-realtime',
+            component: './report/report-log/node-realtime',
+          },
+        ],
+      },
+      {
+        path: '/report/node-report-admin',
+        name: 'node-report-admin',
+        component: './report/node-report-admin',
+      },
+      {
         path: '/report/node-main-report',
         name: 'node-main-report',
+        hideInMenu: true,
         component: './report/node-main-report',
       },
       {
         path: '/report/node-subtable-report',
         name: 'node-subtable-report',
+        hideInMenu: true,
         component: './report/node-subtable-report',
+      },
+    ],
+  },
+  {
+    path: '/report-log',
+    name: 'report-log',
+    icon: 'fileText',
+    routes: [
+      {
+        path: '/report-log',
+        redirect: '/report-log/user-realtime',
+      },
+      {
+        path: '/report-log/user-realtime',
+        name: 'user-realtime',
+        component: './report/report-log/user-realtime',
+      },
+      {
+        path: '/report-log/node-realtime',
+        name: 'node-realtime',
+        component: './report/report-log/node-realtime',
       },
     ],
   },

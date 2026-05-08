@@ -1,4 +1,3 @@
-import { PageContainer } from '@ant-design/pro-components';
 import { App, DatePicker, Form, Input, InputNumber, Select } from 'antd';
 import dayjs from 'dayjs';
 import React, { useMemo } from 'react';
@@ -143,8 +142,7 @@ const NodeSubtableReportPage: React.FC = () => {
   );
 
   return (
-    <PageContainer>
-      <UniversalReportTable<Record<string, any>, QueryState>
+    <UniversalReportTable<Record<string, any>, QueryState>
         storageKey="report.nodeSubtable"
         title="节点子表校对"
         rowKey={(record) =>
@@ -308,7 +306,6 @@ const NodeSubtableReportPage: React.FC = () => {
           return { list, total };
         }}
       />
-    </PageContainer>
   );
 };
 

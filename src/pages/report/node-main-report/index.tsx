@@ -1,4 +1,3 @@
-import { PageContainer } from '@ant-design/pro-components';
 import { App, DatePicker, Form, Input, InputNumber, Select, Switch } from 'antd';
 import dayjs from 'dayjs';
 import React from 'react';
@@ -126,8 +125,7 @@ const NodeMainReportPage: React.FC = () => {
   const today = dayjs().format('YYYY-MM-DD');
 
   return (
-    <PageContainer>
-      <UniversalReportTable<Record<string, any>, QueryState>
+    <UniversalReportTable<Record<string, any>, QueryState>
         storageKey="report.nodeMain"
         title="节点主报表"
         rowKey={(record) =>
@@ -277,7 +275,6 @@ const NodeMainReportPage: React.FC = () => {
           return { list, total };
         }}
       />
-    </PageContainer>
   );
 };
 

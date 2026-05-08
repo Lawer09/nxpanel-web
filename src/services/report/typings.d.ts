@@ -63,6 +63,95 @@ declare namespace API {
 
   type NodeSubtableItem = Record<string, any>;
 
+  interface NodeServerRealtimeQuery {
+    page?: number;
+    pageSize?: number;
+  }
+
+  type NodeServerRealtimeItem = Record<string, any>;
+
+  interface NodeServerRealtimeResult {
+    data: NodeServerRealtimeItem[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }
+
+  interface NodeServerReportNodeQuery {
+    dateFrom?: string;
+    dateTo?: string;
+    hourFrom?: number;
+    hourTo?: number;
+    groupBy?: Array<'date' | 'hour' | 'node_id' | 'node_type' | 'node_host' | 'node_public_ip'>;
+    filters?: {
+      nodeIds?: number[];
+      nodeTypes?: string[];
+      nodeHosts?: string[];
+      nodePublicIps?: string[];
+    };
+    page?: number;
+    pageSize?: number;
+    orderBy?: string;
+    orderDirection?: 'asc' | 'desc';
+  }
+
+  interface NodeServerReportNodeItem {
+    date?: string;
+    hour?: number;
+    nodeId?: number;
+    nodeType?: string;
+    nodeHost?: string;
+    nodePublicIp?: string;
+    trafficUpload?: number;
+    trafficDownload?: number;
+    avgCpuUsage?: number;
+    avgMemUsage?: number;
+    maxCpuUsage?: number;
+    maxMemUsage?: number;
+    avgDiskUsage?: number;
+    avgInboundSpeed?: number;
+    avgOutboundSpeed?: number;
+    maxInboundSpeed?: number;
+    maxOutboundSpeed?: number;
+    avgTcpConnections?: number;
+    maxTcpConnections?: number;
+    avgAliveUsers?: number;
+    maxAliveUsers?: number;
+    computeCount?: number;
+  }
+
+  interface NodeServerReportUserQuery {
+    dateFrom?: string;
+    dateTo?: string;
+    hourFrom?: number;
+    hourTo?: number;
+    groupBy?: Array<'date' | 'hour' | 'node_id' | 'user_id' | 'app_id' | 'app_version' | 'country'>;
+    filters?: {
+      nodeIds?: number[];
+      userIds?: number[];
+      appIds?: string[];
+      appVersions?: string[];
+      countries?: string[];
+    };
+    page?: number;
+    pageSize?: number;
+    orderBy?: string;
+    orderDirection?: 'asc' | 'desc';
+  }
+
+  interface NodeServerReportUserItem {
+    date?: string;
+    hour?: number;
+    nodeId?: number;
+    userId?: number;
+    appId?: string;
+    appVersion?: string;
+    country?: string;
+    trafficUpload?: number;
+    trafficDownload?: number;
+    computeCount?: number;
+  }
+
   interface UserReportCommonQuery {
     dateFrom?: string;
     dateTo?: string;

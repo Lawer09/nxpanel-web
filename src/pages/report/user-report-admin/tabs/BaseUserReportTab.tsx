@@ -266,13 +266,6 @@ const BaseUserReportTab: React.FC<BaseUserReportTabProps> = ({
             }
           : undefined;
 
-        debugUserReportSortLog('before-fetcher', {
-          storageKey,
-          rawSorter: sorter,
-          mappedSorter,
-          orderDirection: toOrderDirection(sorter?.order),
-        });
-
         return fetcher({
           query,
           page,

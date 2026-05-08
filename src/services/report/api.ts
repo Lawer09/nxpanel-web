@@ -20,6 +20,36 @@ export async function queryNodeSubtable(data: API.NodeSubtableQuery) {
   );
 }
 
+export async function queryNodeServerRealtime(data: API.NodeServerRealtimeQuery) {
+  return request<API.ApiResponse<API.NodeServerRealtimeResult>>(
+    '/v3/report/nodeServer/realtime',
+    {
+      method: 'POST',
+      data,
+    },
+  );
+}
+
+export async function queryNodeServerReportNode(data: API.NodeServerReportNodeQuery) {
+  return request<API.ApiResponse<API.ReportPageResult<API.NodeServerReportNodeItem>>>(
+    '/v3/report/nodeServerReport/node/query',
+    {
+      method: 'POST',
+      data,
+    },
+  );
+}
+
+export async function queryNodeServerReportUser(data: API.NodeServerReportUserQuery) {
+  return request<API.ApiResponse<API.ReportPageResult<API.NodeServerReportUserItem>>>(
+    '/v3/report/nodeServerReport/user/query',
+    {
+      method: 'POST',
+      data,
+    },
+  );
+}
+
 export async function queryUserReportSummary(data: API.UserReportSummaryQuery) {
   return request<API.ApiResponse<API.ReportPageResult<API.UserReportRow>>>(
     '/v3/report/userReport/summary/query',
