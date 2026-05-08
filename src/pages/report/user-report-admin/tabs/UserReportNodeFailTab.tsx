@@ -1,7 +1,7 @@
 import { App, Form, Input, InputNumber } from 'antd';
 import React from 'react';
 import { queryUserReportNodeFail } from '@/services/report/api';
-import BaseUserReportTab, { toSnakeGroupBy } from './BaseUserReportTab';
+import BaseUserReportTab, { toOrderDirection, toSnakeGroupBy } from './BaseUserReportTab';
 
 const DIMENSIONS = [
   { label: '日期', value: 'date' },
@@ -29,9 +29,9 @@ const UserReportNodeFailTab: React.FC = () => {
       defaultMetrics={['failCount', 'lastReportAtMs']}
       dimensionOptions={DIMENSIONS}
       metricOptions={METRICS}
-      renderExtraFilters={({ query, setQuery, dimensions }) => (
+      renderExtraFilters={({ query, setQuery, visibleFilterDimensions }) => (
         <>
-          {dimensions.includes('nodeId') ? (
+          {visibleFilterDimensions.includes('nodeId') ? (
             <Form.Item label="节点ID">
               <InputNumber
                 value={query.nodeId}
@@ -41,7 +41,7 @@ const UserReportNodeFailTab: React.FC = () => {
               />
             </Form.Item>
           ) : null}
-          {dimensions.includes('nodeHost') ? (
+          {visibleFilterDimensions.includes('nodeHost') ? (
             <Form.Item label="节点Host">
               <Input
                 value={query.nodeHost}
@@ -50,7 +50,7 @@ const UserReportNodeFailTab: React.FC = () => {
               />
             </Form.Item>
           ) : null}
-          {dimensions.includes('probeStage') ? (
+          {visibleFilterDimensions.includes('probeStage') ? (
             <Form.Item label="探测阶段">
               <Input
                 value={query.probeStage}
@@ -59,7 +59,7 @@ const UserReportNodeFailTab: React.FC = () => {
               />
             </Form.Item>
           ) : null}
-          {dimensions.includes('errorCode') ? (
+          {visibleFilterDimensions.includes('errorCode') ? (
             <Form.Item label="错误码">
               <Input
                 value={query.errorCode}
@@ -70,21 +70,20 @@ const UserReportNodeFailTab: React.FC = () => {
           ) : null}
         </>
       )}
-      fetcher={async ({ query, page, pageSize, dimensions }) => {
+      fetcher={async ({ query, page, pageSize, dimensions, sorter }) => {
         const res = await queryUserReportNodeFail({
           dateFrom: query.dateRange[0],
           dateTo: query.dateRange[1],
-          hourFrom: dimensions.includes('hour') ? query.hourFrom : undefined,
-          hourTo: dimensions.includes('hour') ? query.hourTo : undefined,
+          hourFrom: query.hourFrom,
+          hourTo: query.hourTo,
           groupBy: toSnakeGroupBy(dimensions),
+          orderBy: sorter?.field || sorter?.columnKey,
+          orderDirection: toOrderDirection(sorter?.order),
           filters: {
-            nodeIds: dimensions.includes('nodeId') && query.nodeId ? [query.nodeId] : undefined,
-            nodeHosts: dimensions.includes('nodeHost') && query.nodeHost ? [query.nodeHost] : undefined,
-            probeStages:
-              dimensions.includes('probeStage') && query.probeStage
-                ? [query.probeStage]
-                : undefined,
-            errorCodes: dimensions.includes('errorCode') && query.errorCode ? [query.errorCode] : undefined,
+            nodeIds: query.nodeId ? [query.nodeId] : undefined,
+            nodeHosts: query.nodeHost ? [query.nodeHost] : undefined,
+            probeStages: query.probeStage ? [query.probeStage] : undefined,
+            errorCodes: query.errorCode ? [query.errorCode] : undefined,
           },
           page,
           pageSize,

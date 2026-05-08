@@ -2,6 +2,7 @@ import { DatePicker, Form, InputNumber } from 'antd';
 import dayjs from 'dayjs';
 import React from 'react';
 import UniversalReportTable from '@/components/report/UniversalReportTable';
+import type { SortOrder } from 'antd/es/table/interface';
 
 const { RangePicker } = DatePicker;
 
@@ -25,6 +26,12 @@ type FetchResult = {
   total: number;
 };
 
+type ReportSorter = {
+  field?: string;
+  columnKey?: string;
+  order?: SortOrder;
+};
+
 type BaseUserReportTabProps = {
   storageKey: string;
   hideSummaryRows?: boolean;
@@ -41,12 +48,14 @@ type BaseUserReportTabProps = {
     query: UserReportQueryState;
     setQuery: React.Dispatch<React.SetStateAction<UserReportQueryState>>;
     dimensions: string[];
+    visibleFilterDimensions: string[];
   }) => React.ReactNode;
   fetcher: (args: {
     query: UserReportQueryState;
     page: number;
     pageSize: number;
     dimensions: string[];
+    sorter?: ReportSorter;
   }) => Promise<FetchResult>;
 };
 
@@ -84,6 +93,46 @@ const METRIC_FROM_SNAKE: Record<string, string> = {
 };
 
 const toCamelMetric = (value: string) => METRIC_FROM_SNAKE[value] || value;
+
+const SORT_FIELD_TO_SNAKE: Record<string, string> = {
+  userId: 'user_id',
+  appId: 'app_id',
+  appVersion: 'app_version',
+  nodeId: 'node_id',
+  nodeHost: 'node_host',
+  nodeType: 'node_type',
+  probeStage: 'probe_stage',
+  errorCode: 'error_code',
+  reportCount: 'report_count',
+  avgDelay: 'avg_delay',
+  trafficUsage: 'traffic_usage',
+  trafficUseTime: 'traffic_use_time',
+  computeCount: 'compute_count',
+  successCount: 'success_count',
+  failCount: 'fail_count',
+  successRate: 'success_rate',
+  lastReportAtMs: 'last_report_at_ms',
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
+  reportAtMs: 'report_at_ms',
+};
+
+const toSnakeSortField = (value?: string) => {
+  if (!value) return undefined;
+  return SORT_FIELD_TO_SNAKE[value] || GROUP_BY_TO_SNAKE[value] || value.replace(/([A-Z])/g, '_$1').toLowerCase();
+};
+
+export const toOrderDirection = (order?: SortOrder) => {
+  if (order === 'ascend') return 'asc' as const;
+  if (order === 'descend') return 'desc' as const;
+  return undefined;
+};
+
+function debugUserReportSortLog(scope: string, payload: Record<string, any>) {
+  if (process.env.NODE_ENV !== 'development') return;
+  // eslint-disable-next-line no-console
+  console.log(`[UserReportSort:${scope}]`, payload);
+}
 
 const DATE_PRESETS = [
   { label: '今日', value: [dayjs(), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs] },
@@ -137,6 +186,7 @@ const BaseUserReportTab: React.FC<BaseUserReportTabProps> = ({
       defaultMetrics={defaultMetrics}
       normalizeDimensionValue={toCamelDimension}
       normalizeMetricValue={toCamelMetric}
+      enableServerSort
       dimensionOptions={dimensionOptions.map((item) => ({
         label: item.label,
         value: item.value,
@@ -165,8 +215,8 @@ const BaseUserReportTab: React.FC<BaseUserReportTabProps> = ({
         },
         formatter: item.formatter,
       }))}
-      renderFilters={({ query, setQuery, dimensions }) => (
-        <Form layout="inline">
+      renderFilters={({ query, setQuery, dimensions, visibleFilterDimensions }) => (
+        <Form layout="inline" style={{ rowGap: 4 }}>
           <Form.Item label="日期范围">
             <RangePicker
               value={[dayjs(query.dateRange[0]), dayjs(query.dateRange[1])]}
@@ -181,7 +231,7 @@ const BaseUserReportTab: React.FC<BaseUserReportTabProps> = ({
               }}
             />
           </Form.Item>
-          {dimensions.includes('hour') ? (
+          {visibleFilterDimensions.includes('hour') ? (
             <Form.Item label="起始小时">
               <InputNumber
                 min={0}
@@ -192,7 +242,7 @@ const BaseUserReportTab: React.FC<BaseUserReportTabProps> = ({
               />
             </Form.Item>
           ) : null}
-          {dimensions.includes('hour') ? (
+          {visibleFilterDimensions.includes('hour') ? (
             <Form.Item label="结束小时">
               <InputNumber
                 min={0}
@@ -203,10 +253,34 @@ const BaseUserReportTab: React.FC<BaseUserReportTabProps> = ({
               />
             </Form.Item>
           ) : null}
-          {renderExtraFilters?.({ query, setQuery, dimensions })}
+          {renderExtraFilters?.({ query, setQuery, dimensions, visibleFilterDimensions })}
         </Form>
       )}
-      fetchData={({ query, page, pageSize, dimensions }) => fetcher({ query, page, pageSize, dimensions })}
+      fetchData={({ query, page, pageSize, dimensions, sorter }) => {
+        const mappedSorter = sorter
+          ? {
+              ...sorter,
+              field: toSnakeSortField(sorter?.field),
+              columnKey: toSnakeSortField(sorter?.columnKey),
+              order: sorter?.order,
+            }
+          : undefined;
+
+        debugUserReportSortLog('before-fetcher', {
+          storageKey,
+          rawSorter: sorter,
+          mappedSorter,
+          orderDirection: toOrderDirection(sorter?.order),
+        });
+
+        return fetcher({
+          query,
+          page,
+          pageSize,
+          dimensions,
+          sorter: mappedSorter,
+        });
+      }}
     />
   );
 };

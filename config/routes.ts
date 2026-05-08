@@ -68,12 +68,12 @@ export default [
     routes: [
        {
         path: '/report',
-        redirect: '/report/project-aggregates',
+        redirect: '/report/project',
       },
       {
-        path: '/report/project-aggregates',
-        name: 'project-aggregates',
-        component: './report/project-aggregates',
+        path: '/report/project',
+        name: 'project',
+        component: './report/project',
       },
       {
         path: '/report/ad-spend-report',
@@ -108,6 +108,7 @@ export default [
       {
         path: '/report/user-report-realtime',
         name: 'user-report-realtime',
+        hideInMenu: true,
         component: './report/user-report-realtime',
       },
       {
@@ -117,6 +118,7 @@ export default [
       {
         path: '/report/traffic',
         name: 'traffic',
+        hideInMenu: true,
         component: './report/traffic',
       },
       {
@@ -130,6 +132,7 @@ export default [
       {
         path: '/report/performance-diagnosis',
         name: 'performance-diagnosis',
+        hideInMenu: true,
         component: './report/performance-diagnosis',
       },
       {

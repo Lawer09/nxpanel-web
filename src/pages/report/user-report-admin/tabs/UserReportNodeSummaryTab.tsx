@@ -1,7 +1,7 @@
 import { App, Form, Input, InputNumber } from 'antd';
 import React from 'react';
 import { queryUserReportNodeSummary } from '@/services/report/api';
-import BaseUserReportTab, { toSnakeGroupBy } from './BaseUserReportTab';
+import BaseUserReportTab, { toOrderDirection, toSnakeGroupBy } from './BaseUserReportTab';
 
 const fmtPercent = (v: number) => {
   const n = Number(v ?? 0);
@@ -47,9 +47,9 @@ const UserReportNodeSummaryTab: React.FC = () => {
       ]}
       dimensionOptions={DIMENSIONS}
       metricOptions={METRICS}
-      renderExtraFilters={({ query, setQuery, dimensions }) => (
+      renderExtraFilters={({ query, setQuery, visibleFilterDimensions }) => (
         <>
-          {dimensions.includes('nodeId') ? (
+          {visibleFilterDimensions.includes('nodeId') ? (
             <Form.Item label="节点ID">
               <InputNumber
                 value={query.nodeId}
@@ -59,7 +59,7 @@ const UserReportNodeSummaryTab: React.FC = () => {
               />
             </Form.Item>
           ) : null}
-          {dimensions.includes('nodeHost') ? (
+          {visibleFilterDimensions.includes('nodeHost') ? (
             <Form.Item label="节点Host">
               <Input
                 value={query.nodeHost}
@@ -68,7 +68,7 @@ const UserReportNodeSummaryTab: React.FC = () => {
               />
             </Form.Item>
           ) : null}
-          {dimensions.includes('nodeType') ? (
+          {visibleFilterDimensions.includes('nodeType') ? (
             <Form.Item label="节点类型">
               <Input
                 value={query.nodeType}
@@ -77,7 +77,7 @@ const UserReportNodeSummaryTab: React.FC = () => {
               />
             </Form.Item>
           ) : null}
-          {dimensions.includes('probeStage') ? (
+          {visibleFilterDimensions.includes('probeStage') ? (
             <Form.Item label="探测阶段">
               <Input
                 value={query.probeStage}
@@ -88,21 +88,20 @@ const UserReportNodeSummaryTab: React.FC = () => {
           ) : null}
         </>
       )}
-      fetcher={async ({ query, page, pageSize, dimensions }) => {
+      fetcher={async ({ query, page, pageSize, dimensions, sorter }) => {
         const res = await queryUserReportNodeSummary({
           dateFrom: query.dateRange[0],
           dateTo: query.dateRange[1],
-          hourFrom: dimensions.includes('hour') ? query.hourFrom : undefined,
-          hourTo: dimensions.includes('hour') ? query.hourTo : undefined,
+          hourFrom: query.hourFrom,
+          hourTo: query.hourTo,
           groupBy: toSnakeGroupBy(dimensions),
+          orderBy: sorter?.field || sorter?.columnKey,
+          orderDirection: toOrderDirection(sorter?.order),
           filters: {
-            nodeIds: dimensions.includes('nodeId') && query.nodeId ? [query.nodeId] : undefined,
-            nodeHosts: dimensions.includes('nodeHost') && query.nodeHost ? [query.nodeHost] : undefined,
-            probeStages:
-              dimensions.includes('probeStage') && query.probeStage
-                ? [query.probeStage]
-                : undefined,
-            nodeTypes: dimensions.includes('nodeType') && query.nodeType ? [query.nodeType] : undefined,
+            nodeIds: query.nodeId ? [query.nodeId] : undefined,
+            nodeHosts: query.nodeHost ? [query.nodeHost] : undefined,
+            probeStages: query.probeStage ? [query.probeStage] : undefined,
+            nodeTypes: query.nodeType ? [query.nodeType] : undefined,
           },
           page,
           pageSize,

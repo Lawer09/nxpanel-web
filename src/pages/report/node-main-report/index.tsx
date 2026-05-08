@@ -163,8 +163,8 @@ const NodeMainReportPage: React.FC = () => {
           },
           formatter: item.formatter,
         }))}
-        renderFilters={({ query, setQuery, dimensions }) => (
-          <Form layout="inline">
+        renderFilters={({ query, setQuery, visibleFilterDimensions }) => (
+          <Form layout="inline" style={{ rowGap: 4 }}>
             <Form.Item label="日期范围">
               <RangePicker
                 value={[dayjs(query.dateRange[0]), dayjs(query.dateRange[1])]}
@@ -179,7 +179,7 @@ const NodeMainReportPage: React.FC = () => {
                 }}
               />
             </Form.Item>
-            {dimensions.includes('nodeId') ? (
+            {visibleFilterDimensions.includes('nodeId') ? (
               <Form.Item label="节点ID">
                 <InputNumber
                   value={query.nodeId}
@@ -189,7 +189,7 @@ const NodeMainReportPage: React.FC = () => {
                 />
               </Form.Item>
             ) : null}
-            {dimensions.includes('appId') ? (
+            {visibleFilterDimensions.includes('appId') ? (
               <Form.Item label="应用ID">
                 <Input
                   value={query.appId}
@@ -198,7 +198,7 @@ const NodeMainReportPage: React.FC = () => {
                 />
               </Form.Item>
             ) : null}
-            {dimensions.includes('platform') ? (
+            {visibleFilterDimensions.includes('platform') ? (
               <Form.Item label="平台">
                 <Input
                   value={query.platform}
@@ -207,7 +207,7 @@ const NodeMainReportPage: React.FC = () => {
                 />
               </Form.Item>
             ) : null}
-            {dimensions.includes('clientCountry') ? (
+            {visibleFilterDimensions.includes('clientCountry') ? (
               <Form.Item label="客户端国家">
                 <Input
                   value={query.clientCountry}
@@ -218,7 +218,7 @@ const NodeMainReportPage: React.FC = () => {
                 />
               </Form.Item>
             ) : null}
-            {dimensions.includes('nodeProtocol') ? (
+            {visibleFilterDimensions.includes('nodeProtocol') ? (
               <Form.Item label="协议">
                 <Select
                   value={query.nodeProtocol}
@@ -254,17 +254,11 @@ const NodeMainReportPage: React.FC = () => {
             dateTo: query.dateRange[1],
             groupBy: groupBy.length ? groupBy : ['date'],
             filters: {
-              nodeIds: dimensions.includes('nodeId') && query.nodeId ? [query.nodeId] : undefined,
-              appIds: dimensions.includes('appId') && query.appId ? [query.appId] : undefined,
-              platforms: dimensions.includes('platform') && query.platform ? [query.platform] : undefined,
-              clientCountries:
-                dimensions.includes('clientCountry') && query.clientCountry
-                  ? [query.clientCountry]
-                  : undefined,
-              nodeProtocols:
-                dimensions.includes('nodeProtocol') && query.nodeProtocol
-                  ? [query.nodeProtocol]
-                  : undefined,
+              nodeIds: query.nodeId ? [query.nodeId] : undefined,
+              appIds: query.appId ? [query.appId] : undefined,
+              platforms: query.platform ? [query.platform] : undefined,
+              clientCountries: query.clientCountry ? [query.clientCountry] : undefined,
+              nodeProtocols: query.nodeProtocol ? [query.nodeProtocol] : undefined,
               includeExternal: query.includeExternal,
             },
             fillUnknown: query.fillUnknown,

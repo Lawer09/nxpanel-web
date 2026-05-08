@@ -70,6 +70,8 @@ declare namespace API {
     hourTo?: number;
     page?: number;
     pageSize?: number;
+    orderBy?: string;
+    orderDirection?: 'asc' | 'desc';
   }
 
   interface UserReportSummaryQuery extends UserReportCommonQuery {
@@ -111,6 +113,24 @@ declare namespace API {
       errorCodes?: string[];
     };
   }
+
+  type ProjectReportDimension = 'reportDate' | 'projectCode' | 'country';
+
+  interface ProjectReportQuery {
+    dateFrom?: string;
+    dateTo?: string;
+    groupBy?: ProjectReportDimension[];
+    filters?: {
+      projectCodes?: string[];
+      countries?: string[];
+    };
+    page?: number;
+    pageSize?: number;
+    orderBy?: string;
+    orderDirection?: 'asc' | 'desc';
+  }
+
+  type ProjectReportItem = Record<string, any>;
 
   type UserReportRow = Record<string, any>;
 }

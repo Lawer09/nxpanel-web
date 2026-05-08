@@ -160,8 +160,8 @@ const NodeSubtableReportPage: React.FC = () => {
         defaultMetrics={defaultMetrics}
         dimensionOptions={dimensionOptions}
         metricOptions={metricOptions}
-        renderFilters={({ query, setQuery, dimensions }) => (
-          <Form layout="inline">
+        renderFilters={({ query, setQuery, visibleFilterDimensions }) => (
+          <Form layout="inline" style={{ rowGap: 4 }}>
             <Form.Item label="子表">
               <Select
                 value={query.subTable}
@@ -185,7 +185,7 @@ const NodeSubtableReportPage: React.FC = () => {
                 }}
               />
             </Form.Item>
-            {dimensions.includes('hour') ? (
+            {visibleFilterDimensions.includes('hour') ? (
               <Form.Item label="小时">
                 <InputNumber
                   value={query.hour}
@@ -196,7 +196,7 @@ const NodeSubtableReportPage: React.FC = () => {
                 />
               </Form.Item>
             ) : null}
-            {dimensions.includes('minute') ? (
+            {visibleFilterDimensions.includes('minute') ? (
               <Form.Item label="分钟">
                 <InputNumber
                   value={query.minute}
@@ -207,7 +207,7 @@ const NodeSubtableReportPage: React.FC = () => {
                 />
               </Form.Item>
             ) : null}
-            {dimensions.includes('node_id') ? (
+            {visibleFilterDimensions.includes('node_id') ? (
               <Form.Item label="节点ID">
                 <InputNumber
                   value={query.nodeId}
@@ -217,7 +217,7 @@ const NodeSubtableReportPage: React.FC = () => {
                 />
               </Form.Item>
             ) : null}
-            {dimensions.includes('app_id') ? (
+            {visibleFilterDimensions.includes('app_id') ? (
               <Form.Item label="应用ID">
                 <Input
                   value={query.appId}
@@ -226,7 +226,7 @@ const NodeSubtableReportPage: React.FC = () => {
                 />
               </Form.Item>
             ) : null}
-            {dimensions.includes('platform') ? (
+            {visibleFilterDimensions.includes('platform') ? (
               <Form.Item label="平台">
                 <Input
                   value={query.platform}
@@ -235,7 +235,7 @@ const NodeSubtableReportPage: React.FC = () => {
                 />
               </Form.Item>
             ) : null}
-            {dimensions.includes('client_country') ? (
+            {visibleFilterDimensions.includes('client_country') ? (
               <Form.Item label="国家">
                 <Input
                   value={query.clientCountry}
@@ -246,7 +246,7 @@ const NodeSubtableReportPage: React.FC = () => {
                 />
               </Form.Item>
             ) : null}
-            {dimensions.includes('status') ? (
+            {visibleFilterDimensions.includes('status') ? (
               <Form.Item label="状态">
                 <Input
                   value={query.status}
@@ -255,7 +255,7 @@ const NodeSubtableReportPage: React.FC = () => {
                 />
               </Form.Item>
             ) : null}
-            {dimensions.includes('probe_stage') ? (
+            {visibleFilterDimensions.includes('probe_stage') ? (
               <Form.Item label="阶段">
                 <Input
                   value={query.probeStage}
@@ -266,7 +266,7 @@ const NodeSubtableReportPage: React.FC = () => {
                 />
               </Form.Item>
             ) : null}
-            {dimensions.includes('error_code') ? (
+            {visibleFilterDimensions.includes('error_code') ? (
               <Form.Item label="错误码">
                 <Input
                   value={query.errorCode}
@@ -285,22 +285,13 @@ const NodeSubtableReportPage: React.FC = () => {
             minute: query.minute,
             groupBy: dimensions,
             filters: {
-              nodeIds: dimensions.includes('node_id') && query.nodeId ? [query.nodeId] : undefined,
-              appIds: dimensions.includes('app_id') && query.appId ? [query.appId] : undefined,
-              platforms: dimensions.includes('platform') && query.platform ? [query.platform] : undefined,
-              clientCountries:
-                dimensions.includes('client_country') && query.clientCountry
-                  ? [query.clientCountry]
-                  : undefined,
-              statuses: dimensions.includes('status') && query.status ? [query.status] : undefined,
-              probeStages:
-                dimensions.includes('probe_stage') && query.probeStage
-                  ? [query.probeStage]
-                  : undefined,
-              errorCodes:
-                dimensions.includes('error_code') && query.errorCode
-                  ? [query.errorCode]
-                  : undefined,
+              nodeIds: query.nodeId ? [query.nodeId] : undefined,
+              appIds: query.appId ? [query.appId] : undefined,
+              platforms: query.platform ? [query.platform] : undefined,
+              clientCountries: query.clientCountry ? [query.clientCountry] : undefined,
+              statuses: query.status ? [query.status] : undefined,
+              probeStages: query.probeStage ? [query.probeStage] : undefined,
+              errorCodes: query.errorCode ? [query.errorCode] : undefined,
             },
             page,
             pageSize,

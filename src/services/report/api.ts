@@ -59,3 +59,13 @@ export async function queryUserReportNodeFail(data: API.UserReportNodeFailQuery)
     },
   );
 }
+
+export async function queryProjectReport(data: API.ProjectReportQuery) {
+  return request<API.ApiResponse<API.ReportPageResult<API.ProjectReportItem>>>(
+    '/v3/report/project/query',
+    {
+      method: 'POST',
+      data,
+    },
+  );
+}

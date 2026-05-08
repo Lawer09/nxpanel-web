@@ -1,8 +1,9 @@
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
-import { ReloadOutlined, SaveOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, Input, Select, Space, Switch, Table, Tag, Typography, message } from 'antd';
+import { DeleteOutlined, FunnelPlotOutlined, ReloadOutlined, SaveOutlined, SearchOutlined, SyncOutlined } from '@ant-design/icons';
+import { Button, Card, Input, Popconfirm, Select, Space, Table, Tag, Tooltip, Typography, message } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
+import type { SortOrder } from 'antd/es/table/interface';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 type AnyRecord = Record<string, any>;
@@ -29,6 +30,7 @@ interface SavedView<Q extends AnyRecord> {
   name: string;
   query: Q;
   dimensions: string[];
+  visibleFilterDimensions: string[];
   metrics: string[];
   columnsStateMap?: ColumnStateMap;
 }
@@ -52,10 +54,16 @@ interface ReportFetchResult<T> {
   total: number;
 }
 
+interface ReportSorter {
+  field?: string;
+  columnKey?: string;
+  order?: SortOrder;
+}
+
 interface UniversalReportTableProps<T extends AnyRecord, Q extends AnyRecord> {
   storageKey: string;
   title: string;
-  rowKey: string | ((record: T) => string);
+  rowKey: string | ((record: T) => React.Key);
   defaultQuery: Q;
   defaultDimensions: string[];
   defaultMetrics: string[];
@@ -65,18 +73,23 @@ interface UniversalReportTableProps<T extends AnyRecord, Q extends AnyRecord> {
   normalizeDimensionValue?: (value: string) => string;
   normalizeMetricValue?: (value: string) => string;
   hideSummaryRows?: boolean;
+  showCurrentSummary?: boolean;
+  showGrandSummary?: boolean;
+  enableServerSort?: boolean;
   renderFilters: (args: {
     query: Q;
     setQuery: React.Dispatch<React.SetStateAction<Q>>;
     dimensions: string[];
+    visibleFilterDimensions: string[];
   }) => React.ReactNode;
   fetchData: (args: {
     query: Q;
     page: number;
     pageSize: number;
     dimensions: string[];
+    sorter?: ReportSorter;
   }) => Promise<ReportFetchResult<T>>;
-  fetchGrandTotals?: (args: { query: Q; dimensions: string[] }) => Promise<Record<string, number>>;
+  fetchGrandTotals?: (args: { query: Q; dimensions: string[]; sorter?: ReportSorter }) => Promise<Record<string, number>>;
 }
 
 function normalizeDimensionValues(
@@ -126,6 +139,58 @@ function safeNumber(v: any) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function normalizePageSize(value: unknown, fallback: number) {
+  if (typeof value !== 'number') return fallback;
+  if (!Number.isFinite(value) || value <= 0) return fallback;
+  return Math.floor(value);
+}
+
+function toSnakeCase(value: string) {
+  return value.replace(/([A-Z])/g, '_$1').toLowerCase();
+}
+
+function getDataIndexValue(record: AnyRecord, dataIndex: unknown) {
+  if (Array.isArray(dataIndex)) {
+    return dataIndex.reduce<any>((acc, key) => {
+      if (acc === undefined || acc === null) return undefined;
+      return acc[key as keyof typeof acc];
+    }, record);
+  }
+  if (typeof dataIndex === 'string' || typeof dataIndex === 'number') {
+    return record[dataIndex as keyof AnyRecord];
+  }
+  return undefined;
+}
+
+function getColumnSortField(column: ProColumns<any>, fallbackKey: string) {
+  const dataIndex = (column as any).dataIndex;
+  if (Array.isArray(dataIndex)) {
+    return dataIndex.map((item) => String(item)).join('.');
+  }
+  if (typeof dataIndex === 'string' || typeof dataIndex === 'number') {
+    return String(dataIndex);
+  }
+  return fallbackKey;
+}
+
+function normalizeSorter(input: any): ReportSorter | undefined {
+  const source = Array.isArray(input)
+    ? [...input].reverse().find((item) => item?.order)
+    : input;
+  if (!source || !source.order) return undefined;
+  const order = source.order as SortOrder;
+  if (order !== 'ascend' && order !== 'descend') return undefined;
+  return {
+    field: source.field ? String(source.field) : undefined,
+    columnKey: source.columnKey ? String(source.columnKey) : undefined,
+    order,
+  };
+}
+
+function isSameSorter(a?: ReportSorter, b?: ReportSorter) {
+  return a?.field === b?.field && a?.columnKey === b?.columnKey && a?.order === b?.order;
+}
+
 function readLocalState<Q extends AnyRecord>(storageKey: string, fallback: Q, defaultDimensions: string[], defaultPageSize: number) {
   try {
     const raw = localStorage.getItem(storageKey);
@@ -133,47 +198,71 @@ function readLocalState<Q extends AnyRecord>(storageKey: string, fallback: Q, de
       return {
         query: fallback,
         dimensions: defaultDimensions,
+        visibleFilterDimensions: [],
         pageSize: defaultPageSize,
         metrics: [],
         savedViews: [],
         columnsStateMap: {},
-        showCurrentSummary: true,
-        showGrandSummary: true,
       };
     }
     const parsed = JSON.parse(raw) as {
       query?: Q;
       dimension?: string;
       dimensions?: string[];
+      visibleFilterDimensions?: string[];
       metrics?: string[];
       pageSize?: number;
       savedViews?: SavedView<Q>[];
       columnsStateMap?: ColumnStateMap;
-      showCurrentSummary?: boolean;
-      showGrandSummary?: boolean;
     };
-    const dimensions = parsed.dimensions ?? (parsed.dimension ? [parsed.dimension] : defaultDimensions);
-    const metrics = parsed.metrics ?? [];
+    const dimensions = Array.isArray(parsed.dimensions)
+      ? parsed.dimensions
+      : parsed.dimension
+        ? [parsed.dimension]
+        : defaultDimensions;
+    const sanitizeSavedView = (item: any): SavedView<Q> | null => {
+      if (!item || typeof item !== 'object') return null;
+      return {
+        id: String(item.id ?? Date.now()),
+        name: String(item.name ?? '未命名视图'),
+        query: (item.query ?? fallback) as Q,
+        dimensions: Array.isArray(item.dimensions) ? item.dimensions : defaultDimensions,
+        visibleFilterDimensions: Array.isArray(item.visibleFilterDimensions)
+          ? item.visibleFilterDimensions
+          : [],
+        metrics: Array.isArray(item.metrics) ? item.metrics : [],
+        columnsStateMap:
+          item.columnsStateMap && typeof item.columnsStateMap === 'object'
+            ? item.columnsStateMap
+            : {},
+      };
+    };
+    const visibleFilterDimensions = Array.isArray(parsed.visibleFilterDimensions)
+      ? parsed.visibleFilterDimensions
+      : [];
+    const metrics = Array.isArray(parsed.metrics) ? parsed.metrics : [];
+    const savedViews = Array.isArray(parsed.savedViews)
+      ? parsed.savedViews.map((item) => sanitizeSavedView(item)).filter(Boolean) as SavedView<Q>[]
+      : [];
+    const pageSize = normalizePageSize(parsed.pageSize, defaultPageSize);
     return {
       query: parsed.query ?? fallback,
       dimensions,
+      visibleFilterDimensions,
       metrics,
-      pageSize: parsed.pageSize ?? defaultPageSize,
-      savedViews: parsed.savedViews ?? [],
+      pageSize,
+      savedViews,
       columnsStateMap: parsed.columnsStateMap ?? {},
-      showCurrentSummary: parsed.showCurrentSummary ?? true,
-      showGrandSummary: parsed.showGrandSummary ?? true,
     };
   } catch {
     return {
       query: fallback,
       dimensions: defaultDimensions,
+      visibleFilterDimensions: [],
       metrics: [],
       pageSize: defaultPageSize,
       savedViews: [],
       columnsStateMap: {},
-      showCurrentSummary: true,
-      showGrandSummary: true,
     };
   }
 }
@@ -182,24 +271,22 @@ function writeLocalState<Q extends AnyRecord>(
   storageKey: string,
   query: Q,
   dimensions: string[],
+  visibleFilterDimensions: string[],
   metrics: string[],
   pageSize: number,
   savedViews: SavedView<Q>[],
   columnsStateMap: ColumnStateMap,
-  showCurrentSummary: boolean,
-  showGrandSummary: boolean,
 ) {
   localStorage.setItem(
     storageKey,
     JSON.stringify({
       query,
       dimensions,
+      visibleFilterDimensions,
       metrics,
       pageSize,
       savedViews,
       columnsStateMap,
-      showCurrentSummary,
-      showGrandSummary,
     }),
   );
 }
@@ -218,6 +305,9 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     normalizeDimensionValue,
     normalizeMetricValue,
     hideSummaryRows = false,
+    showCurrentSummary = false,
+    showGrandSummary = false,
+    enableServerSort = false,
     renderFilters,
     fetchData,
     fetchGrandTotals,
@@ -240,6 +330,9 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   );
 
   const initialDimensions = normalizeDimensions(persisted.dimensions.length ? persisted.dimensions : defaultDimensions);
+  const initialVisibleFilterDimensions = normalizeDimensions(
+    persisted.visibleFilterDimensions?.length ? persisted.visibleFilterDimensions : dimensionOptions.map((item) => item.value),
+  );
   const initialMetrics = persisted.metrics.length
     ? normalizeMetrics(persisted.metrics)
     : normalizeMetrics(defaultMetrics);
@@ -247,10 +340,20 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   const [query, setQuery] = useState<Q>(persisted.query);
   const [appliedQuery, setAppliedQuery] = useState<Q>(persisted.query);
   const [dimensions, setDimensions] = useState<string[]>(initialDimensions.length ? initialDimensions : defaultDimensions);
+  const [appliedDimensions, setAppliedDimensions] = useState<string[]>(
+    initialDimensions.length ? initialDimensions : defaultDimensions,
+  );
+  const [visibleFilterDimensions, setVisibleFilterDimensions] = useState<string[]>(
+    initialVisibleFilterDimensions.length
+      ? initialVisibleFilterDimensions
+      : normalizeDimensions(dimensionOptions.map((item) => item.value)),
+  );
   const [metrics, setMetrics] = useState<string[]>(
     initialMetrics.length ? initialMetrics : normalizeMetrics(defaultMetrics),
   );
-  const [savedViews, setSavedViews] = useState<SavedView<Q>[]>(persisted.savedViews ?? []);
+  const [savedViews, setSavedViews] = useState<SavedView<Q>[]>(
+    Array.isArray(persisted.savedViews) ? persisted.savedViews : [],
+  );
   const [columnsStateMap, setColumnsStateMap] = useState<ColumnStateMap>(persisted.columnsStateMap ?? {});
   const [selectedViewId, setSelectedViewId] = useState<string>();
   const [viewName, setViewName] = useState('');
@@ -260,32 +363,21 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   const [pageSize, setPageSize] = useState(persisted.pageSize);
   const [total, setTotal] = useState(0);
   const [grandTotals, setGrandTotals] = useState<Record<string, number>>({});
-  const [showCurrentSummary, setShowCurrentSummary] = useState<boolean>(persisted.showCurrentSummary ?? true);
-  const [showGrandSummary, setShowGrandSummary] = useState<boolean>(persisted.showGrandSummary ?? true);
+  const [reloadToken, setReloadToken] = useState(0);
+  const [sorter, setSorter] = useState<ReportSorter | undefined>(undefined);
 
   useEffect(() => {
     writeLocalState(
       storageKey,
       query,
       dimensions,
+      visibleFilterDimensions,
       metrics,
       pageSize,
       savedViews,
       columnsStateMap,
-      showCurrentSummary,
-      showGrandSummary,
     );
-  }, [
-    storageKey,
-    query,
-    dimensions,
-    metrics,
-    pageSize,
-    savedViews,
-    columnsStateMap,
-    showCurrentSummary,
-    showGrandSummary,
-  ]);
+  }, [storageKey, query, dimensions, visibleFilterDimensions, metrics, pageSize, savedViews, columnsStateMap]);
 
   useEffect(() => {
     let alive = true;
@@ -295,8 +387,9 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
         const result = await fetchData({
           query: appliedQuery,
           page: current,
-          pageSize,
-          dimensions,
+          pageSize: normalizePageSize(pageSize, defaultPageSize),
+          dimensions: appliedDimensions,
+          sorter: enableServerSort ? sorter : undefined,
         });
         if (!alive) return;
         setData(result.list || []);
@@ -309,13 +402,23 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     return () => {
       alive = false;
     };
-  }, [fetchData, appliedQuery, current, pageSize, dimensions]);
+  }, [enableServerSort, fetchData, appliedQuery, current, pageSize, appliedDimensions, sorter, reloadToken, defaultPageSize]);
 
   useEffect(() => {
-    if (!fetchGrandTotals) return;
+    if (!enableServerSort && sorter) {
+      setSorter(undefined);
+    }
+  }, [enableServerSort, sorter]);
+
+  useEffect(() => {
+    if (!showGrandSummary || !fetchGrandTotals) return;
     let alive = true;
     const run = async () => {
-      const totals = await fetchGrandTotals({ query: appliedQuery, dimensions });
+      const totals = await fetchGrandTotals({
+        query: appliedQuery,
+        dimensions: appliedDimensions,
+        sorter: enableServerSort ? sorter : undefined,
+      });
       if (alive) {
         setGrandTotals(totals || {});
       }
@@ -324,11 +427,11 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     return () => {
       alive = false;
     };
-  }, [fetchGrandTotals, appliedQuery, dimensions]);
+  }, [showGrandSummary, fetchGrandTotals, appliedQuery, appliedDimensions, sorter, reloadToken, enableServerSort]);
 
   const dimColumns = useMemo<ActiveColumn<T>[]>(
     () =>
-      dimensions
+      appliedDimensions
         .map((value) => {
           const option = dimensionOptions.find((item) => item.value === value);
           if (!option) return null;
@@ -341,7 +444,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
           };
         })
         .filter(Boolean) as ActiveColumn<T>[],
-    [dimensions, dimensionOptions],
+    [appliedDimensions, dimensionOptions],
   );
 
   const metricColumns = useMemo<ActiveColumn<T>[]>(
@@ -361,16 +464,85 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
 
   const activeColumns = useMemo(() => [...dimColumns, ...metricColumns], [dimColumns, metricColumns]);
 
+  const resolveBaseRowKey = useCallback(
+    (record: T) => {
+      const dimensionValues = dimColumns
+        .map((item) => {
+          const columnDataIndex = (item.column as any).dataIndex;
+          const fromDataIndex = getDataIndexValue(record, columnDataIndex);
+          if (fromDataIndex !== undefined && fromDataIndex !== null && fromDataIndex !== '') {
+            return String(fromDataIndex);
+          }
+          const fromDimension = record[item.value as keyof T];
+          if (fromDimension !== undefined && fromDimension !== null && fromDimension !== '') {
+            return String(fromDimension);
+          }
+          const fromSnakeDimension = record[toSnakeCase(item.value) as keyof T];
+          if (fromSnakeDimension !== undefined && fromSnakeDimension !== null && fromSnakeDimension !== '') {
+            return String(fromSnakeDimension);
+          }
+          return '';
+        })
+        .filter(Boolean);
+
+      if (dimensionValues.length) {
+        return dimensionValues.join('|');
+      }
+
+      if (typeof rowKey === 'function') {
+        const key = rowKey(record);
+        if (key !== undefined && key !== null && key !== '') {
+          return String(key);
+        }
+      } else {
+        const key = record[rowKey as keyof T];
+        if (key !== undefined && key !== null && key !== '') {
+          return String(key);
+        }
+      }
+
+      return 'row-fallback';
+    },
+    [dimColumns, rowKey],
+  );
+
+  const rowKeyMap = useMemo(() => {
+    const map = new WeakMap<T, string>();
+    const duplicatedCountMap = new Map<string, number>();
+
+    data.forEach((record) => {
+      const baseKey = resolveBaseRowKey(record);
+      const currentCount = duplicatedCountMap.get(baseKey) ?? 0;
+      duplicatedCountMap.set(baseKey, currentCount + 1);
+      const uniqueKey = currentCount === 0 ? baseKey : `${baseKey}__${currentCount + 1}`;
+      map.set(record, uniqueKey);
+    });
+
+    return map;
+  }, [data, resolveBaseRowKey]);
+
+  const resolvedRowKey = useCallback((record: T) => rowKeyMap.get(record) || resolveBaseRowKey(record), [rowKeyMap, resolveBaseRowKey]);
+
   const tableColumns = useMemo<ProColumns<T>[]>(
     () =>
-      activeColumns.map((item) => {
-        const key = String((item.column as any).key ?? item.id);
+      activeColumns.map((item, index) => {
+        const fallbackKey = String((item.column as any).key ?? item.id);
+        const originalColumn = item.column as ProColumns<T>;
+        const sortField = getColumnSortField(originalColumn, fallbackKey);
+        const key = sortField || `${fallbackKey}-${index}`;
+        const isCurrentSortColumn =
+          sorter?.columnKey === key ||
+          sorter?.columnKey === sortField ||
+          sorter?.field === sortField ||
+          sorter?.field === key;
         return {
-          ...(item.column as ProColumns<T>),
+          ...originalColumn,
           key,
+          sorter: enableServerSort ? originalColumn.sorter ?? true : undefined,
+          sortOrder: enableServerSort && isCurrentSortColumn ? sorter?.order : undefined,
         };
       }),
-    [activeColumns],
+    [activeColumns, enableServerSort, sorter],
   );
 
   const visibleOrderedColumns = useMemo(() => {
@@ -416,6 +588,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   const handleSearch = () => {
     setCurrent(1);
     setAppliedQuery(query);
+    setAppliedDimensions(dimensions);
   };
 
   const handleReset = () => {
@@ -423,10 +596,11 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     setAppliedQuery(defaultQuery);
     const nextDefaultDimensions = normalizeDimensions(defaultDimensions);
     setDimensions(nextDefaultDimensions.length ? nextDefaultDimensions : defaultDimensions);
+    setAppliedDimensions(nextDefaultDimensions.length ? nextDefaultDimensions : defaultDimensions);
+    setVisibleFilterDimensions(normalizeDimensions(dimensionOptions.map((item) => item.value)));
     setMetrics(normalizeMetrics(defaultMetrics));
+    setSorter(undefined);
     setColumnsStateMap({});
-    setShowCurrentSummary(true);
-    setShowGrandSummary(true);
     setCurrent(1);
     setPageSize(defaultPageSize);
   };
@@ -443,6 +617,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
       name,
       query,
       dimensions,
+      visibleFilterDimensions,
       metrics,
       columnsStateMap,
     };
@@ -458,28 +633,78 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     const target = savedViews.find((item) => item.id === id);
     if (!target) return;
     setSelectedViewId(id);
+    setViewName(target.name);
     setQuery(target.query);
     setAppliedQuery(target.query);
     const nextDimensions = normalizeDimensions(target.dimensions);
+    const nextVisibleFilterDimensions = target.visibleFilterDimensions?.length
+      ? normalizeDimensions(target.visibleFilterDimensions)
+      : normalizeDimensions(dimensionOptions.map((item) => item.value));
     const nextMetrics = normalizeMetrics(target.metrics);
     setDimensions(nextDimensions.length ? nextDimensions : defaultDimensions);
+    setAppliedDimensions(nextDimensions.length ? nextDimensions : defaultDimensions);
+    setVisibleFilterDimensions(
+      nextVisibleFilterDimensions.length
+        ? nextVisibleFilterDimensions
+        : normalizeDimensions(dimensionOptions.map((item) => item.value)),
+    );
     setMetrics(nextMetrics.length ? nextMetrics : normalizeMetrics(defaultMetrics));
+    setSorter(undefined);
     setColumnsStateMap(target.columnsStateMap ?? {});
     setCurrent(1);
   };
 
+  const handleUpdateView = () => {
+    if (!selectedViewId) {
+      message.warning('请先选择要更新的视图');
+      return;
+    }
+    const target = savedViews.find((item) => item.id === selectedViewId);
+    if (!target) {
+      message.warning('未找到要更新的视图');
+      return;
+    }
+
+    const nextName = viewName.trim() || target.name;
+    const duplicated = savedViews.some((item) => item.name === nextName && item.id !== selectedViewId);
+    if (duplicated) {
+      message.warning('视图名称已存在，请更换名称');
+      return;
+    }
+
+    const updatedView: SavedView<Q> = {
+      ...target,
+      name: nextName,
+      query,
+      dimensions,
+      visibleFilterDimensions,
+      metrics,
+      columnsStateMap,
+    };
+
+    const nextViews = savedViews.map((item) => (item.id === selectedViewId ? updatedView : item));
+    setSavedViews(nextViews);
+    setViewName('');
+    message.success('视图已更新');
+  };
+
+  const handleDeleteView = () => {
+    if (!selectedViewId) {
+      message.warning('请先选择要删除的视图');
+      return;
+    }
+    const nextViews = savedViews.filter((item) => item.id !== selectedViewId);
+    setSavedViews(nextViews);
+    setSelectedViewId(undefined);
+    setViewName('');
+    message.success('视图已删除');
+  };
+
   const pagination: TablePaginationConfig = {
     current,
-    pageSize,
+    pageSize: normalizePageSize(pageSize, defaultPageSize),
     total,
     showSizeChanger: true,
-    onChange: (nextPage, nextPageSize) => {
-      setCurrent(nextPage);
-      if (nextPageSize && nextPageSize !== pageSize) {
-        setPageSize(nextPageSize);
-        setCurrent(1);
-      }
-    },
   };
 
   return (
@@ -488,19 +713,44 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
         <Space direction="vertical" size={10} style={{ width: '100%' }}>
           <Space wrap>
             <Typography.Text type="secondary">维度</Typography.Text>
-            {dimensionOptions.map((item) => (
-              <Tag.CheckableTag
-                key={item.value}
-                checked={dimensions.includes(item.value)}
-                onChange={(checked) => {
-                  const next = checked ? [...dimensions, item.value] : dimensions.filter((v) => v !== item.value);
-                  setDimensions(next.length ? Array.from(new Set(next)) : defaultDimensions);
-                  setCurrent(1);
-                }}
-              >
-                {item.label}
-              </Tag.CheckableTag>
-            ))}
+            {dimensionOptions.map((item) => {
+              const dimSelected = dimensions.includes(item.value);
+              const filterVisible = visibleFilterDimensions.includes(item.value);
+              return (
+              <span key={item.value} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                <Tag.CheckableTag
+                  checked={dimSelected}
+                  style={{ marginInlineEnd: 0 }}
+                  onChange={(checked) => {
+                    const next = checked ? [...dimensions, item.value] : dimensions.filter((v) => v !== item.value);
+                    const normalized = next.length ? Array.from(new Set(next)) : defaultDimensions;
+                    setDimensions(normalized);
+                  }}
+                >
+                  {item.label}
+                </Tag.CheckableTag>
+                <Tag.CheckableTag
+                  checked={filterVisible}
+                  style={{
+                    marginInlineEnd: 0,
+                    color: filterVisible ? '#ffffff' : 'rgba(0,0,0,0.65)',
+                    background: filterVisible ? '#fa8c16' : 'transparent',
+                    border: 'none',
+                  }}
+                  onChange={(checked) => {
+                    if (checked) {
+                      setVisibleFilterDimensions((prev) => Array.from(new Set([...prev, item.value])));
+                      return;
+                    }
+                    setVisibleFilterDimensions((prev) => prev.filter((value) => value !== item.value));
+                  }}
+                >
+                  <Tooltip title="筛选">
+                    <FunnelPlotOutlined />
+                  </Tooltip>
+                </Tag.CheckableTag>
+              </span>
+            );})}
           </Space>
           <Space wrap>
             <Typography.Text type="secondary">统计字段</Typography.Text>
@@ -521,8 +771,10 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
           </Space>
         </Space>
 
-        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dashed #f0f0f0' }}>
-          {renderFilters({ query, setQuery, dimensions })}
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dashed #f0f0f0', lineHeight: '28px' }}>
+          <div style={{ marginTop: 4 }}>
+            {renderFilters({ query, setQuery, dimensions, visibleFilterDimensions })}
+          </div>
         </div>
 
         <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dashed #f0f0f0' }}>
@@ -538,6 +790,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
                 onChange={(id) => {
                   if (!id) {
                     setSelectedViewId(undefined);
+                    setViewName('');
                     return;
                   }
                   handleApplyView(id);
@@ -549,24 +802,20 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
                 placeholder="输入视图名称"
                 onChange={(e) => setViewName(e.target.value)}
               />
-              <Button icon={<SaveOutlined />} onClick={handleSaveView}>
-                保存视图
-              </Button>
-            </Space>
+               <Button icon={<SaveOutlined />} onClick={handleSaveView}>
+                 保存视图
+               </Button>
+               <Button icon={<SyncOutlined />} onClick={handleUpdateView} disabled={!selectedViewId}>
+                 更新视图
+               </Button>
+               <Popconfirm title="确认删除当前视图？" okText="删除" cancelText="取消" onConfirm={handleDeleteView}>
+                 <Button icon={<DeleteOutlined />} danger disabled={!selectedViewId}>
+                   删除视图
+                 </Button>
+               </Popconfirm>
+             </Space>
 
             <Space>
-              {hideSummaryRows ? null : (
-                <Space>
-                  <Typography.Text type="secondary">当前页合计</Typography.Text>
-                  <Switch size="small" checked={showCurrentSummary} onChange={setShowCurrentSummary} />
-                </Space>
-              )}
-              {hideSummaryRows ? null : (
-                <Space>
-                  <Typography.Text type="secondary">总数据合计</Typography.Text>
-                  <Switch size="small" checked={showGrandSummary} onChange={setShowGrandSummary} />
-                </Space>
-              )}
               <Button icon={<ReloadOutlined />} onClick={handleReset}>
                 重置
               </Button>
@@ -580,20 +829,57 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
 
       <Card>
         <ProTable<T>
-          rowKey={rowKey as any}
+          rowKey={resolvedRowKey as any}
           columns={tableColumns}
           dataSource={data}
           loading={loading}
           search={false}
           toolBarRender={() => []}
-          options={{ reload: false, density: false, fullScreen: false, setting: { draggable: true } }}
+          options={{
+            reload: () => {
+              setAppliedDimensions(dimensions);
+              setReloadToken((value) => value + 1);
+            },
+            density: false,
+            fullScreen: false,
+            setting: { draggable: true },
+          }}
           columnsState={{
             value: columnsStateMap,
             onChange: (map) => setColumnsStateMap((map || {}) as ColumnStateMap),
           }}
           pagination={pagination}
           scroll={{ x: 'max-content' }}
-          summary={hideSummaryRows ? undefined : () => (
+          onChange={(nextPagination, _filters, nextSorter) => {
+            const nextPageSize = normalizePageSize(nextPagination?.pageSize, defaultPageSize);
+            const pageSizeChanged = nextPageSize !== pageSize;
+
+            if (pageSizeChanged) {
+              setPageSize(nextPageSize);
+              setCurrent(1);
+            }
+
+            if (enableServerSort) {
+              const normalizedSorter = normalizeSorter(nextSorter);
+              if (!isSameSorter(sorter, normalizedSorter)) {
+                setSorter(normalizedSorter);
+                setCurrent(1);
+                return;
+              }
+            }
+
+            const nextPage = nextPagination?.current ?? 1;
+            if (!pageSizeChanged && nextPage !== current) {
+              setCurrent(nextPage);
+            }
+          }}
+          key={JSON.stringify(
+            tableColumns.map((col) => ({
+              key: String((col as any).key ?? ''),
+              sortField: String((col as any).dataIndex ?? (col as any).key ?? ''),
+            })),
+          )}
+          summary={hideSummaryRows || (!showCurrentSummary && !showGrandSummary) ? undefined : () => (
             <Table.Summary>
               {showCurrentSummary ? (
                 <Table.Summary.Row>

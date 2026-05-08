@@ -1,7 +1,7 @@
 import { App, Form, Input, InputNumber } from 'antd';
 import React from 'react';
 import { queryUserReportSummary } from '@/services/report/api';
-import BaseUserReportTab, { toSnakeGroupBy } from './BaseUserReportTab';
+import BaseUserReportTab, { toOrderDirection, toSnakeGroupBy } from './BaseUserReportTab';
 
 const DIMENSIONS = [
   { label: '日期', value: 'date' },
@@ -24,9 +24,9 @@ const UserReportSummaryTab: React.FC = () => {
       defaultMetrics={['reportCount']}
       dimensionOptions={DIMENSIONS}
       metricOptions={METRICS}
-      renderExtraFilters={({ query, setQuery, dimensions }) => (
+      renderExtraFilters={({ query, setQuery, visibleFilterDimensions }) => (
         <>
-          {dimensions.includes('userId') ? (
+          {visibleFilterDimensions.includes('userId') ? (
             <Form.Item label="用户ID">
               <InputNumber
                 value={query.userId}
@@ -36,7 +36,7 @@ const UserReportSummaryTab: React.FC = () => {
               />
             </Form.Item>
           ) : null}
-          {dimensions.includes('appId') ? (
+          {visibleFilterDimensions.includes('appId') ? (
             <Form.Item label="应用ID">
               <Input
                 value={query.appId}
@@ -45,7 +45,7 @@ const UserReportSummaryTab: React.FC = () => {
               />
             </Form.Item>
           ) : null}
-          {dimensions.includes('appVersion') ? (
+          {visibleFilterDimensions.includes('appVersion') ? (
             <Form.Item label="应用版本">
               <Input
                 value={query.appVersion}
@@ -54,7 +54,7 @@ const UserReportSummaryTab: React.FC = () => {
               />
             </Form.Item>
           ) : null}
-          {dimensions.includes('country') ? (
+          {visibleFilterDimensions.includes('country') ? (
             <Form.Item label="国家">
               <Input
                 value={query.country}
@@ -65,21 +65,20 @@ const UserReportSummaryTab: React.FC = () => {
           ) : null}
         </>
       )}
-      fetcher={async ({ query, page, pageSize, dimensions }) => {
+      fetcher={async ({ query, page, pageSize, dimensions, sorter }) => {
         const res = await queryUserReportSummary({
           dateFrom: query.dateRange[0],
           dateTo: query.dateRange[1],
-          hourFrom: dimensions.includes('hour') ? query.hourFrom : undefined,
-          hourTo: dimensions.includes('hour') ? query.hourTo : undefined,
+          hourFrom: query.hourFrom,
+          hourTo: query.hourTo,
           groupBy: toSnakeGroupBy(dimensions),
+          orderBy: sorter?.field || sorter?.columnKey,
+          orderDirection: toOrderDirection(sorter?.order),
           filters: {
-            userIds: dimensions.includes('userId') && query.userId ? [query.userId] : undefined,
-            appIds: dimensions.includes('appId') && query.appId ? [query.appId] : undefined,
-            appVersions:
-              dimensions.includes('appVersion') && query.appVersion
-                ? [query.appVersion]
-                : undefined,
-            countries: dimensions.includes('country') && query.country ? [query.country] : undefined,
+            userIds: query.userId ? [query.userId] : undefined,
+            appIds: query.appId ? [query.appId] : undefined,
+            appVersions: query.appVersion ? [query.appVersion] : undefined,
+            countries: query.country ? [query.country] : undefined,
           },
           page,
           pageSize,
