@@ -39,27 +39,13 @@ export default [
     path: '/ad',
     name: 'ad',
     icon: 'fundOutlined',
-    routes: [
-      {
-        path: '/ad',
-        redirect: '/ad/ad-accounts',
-      },
-      {
-        path: '/ad/ad-accounts',
-        name: 'ad-accounts',
-        component: './ad/ad-accounts',
-      },
-      {
-        path: '/ad/sync-servers',
-        name: 'sync-servers',
-        component: './ad/sync-servers',
-      },
-      {
-        path: '/ad/ad-revenue',
-        name: 'ad-revenue',
-        component: './ad/ad-revenue',
-      },
-    ],
+    component: './ad/ad-revenue',
+  },
+  {
+    path: '/ad-spend',
+    name: 'ad-spend',
+    icon: 'fundOutlined',
+    component: './ad-spend',
   },
     {
     path: '/report',
@@ -84,11 +70,6 @@ export default [
         path: '/report/user-summary-report',
         name: 'user-summary-report',
         component: './report/user-summary-report',
-      },
-      {
-        path: '/report/ad-spend-report',
-        name: 'ad-spend-report',
-        component: './ad-spend',
       },
       {
         path: '/report/user-stat',
@@ -142,53 +123,11 @@ export default [
         component: './report/user-report-admin',
       },
       {
-        path: '/report/report-log',
-        name: 'report-log',
-        hideInMenu: true,
-        routes: [
-          {
-            path: '/report/report-log',
-            redirect: '/report/report-log/user-realtime',
-          },
-          {
-            path: '/report/report-log/user-realtime',
-            name: 'user-realtime',
-            component: './report/report-log/user-realtime',
-          },
-          {
-            path: '/report/report-log/node-realtime',
-            name: 'node-realtime',
-            component: './report/report-log/node-realtime',
-          },
-        ],
-      },
-      {
         path: '/report/node-report-admin',
         name: 'node-report-admin',
         component: './report/node-report-admin',
       },
       
-    ],
-  },
-  {
-    path: '/report-log',
-    name: 'report-log',
-    icon: 'fileText',
-    routes: [
-      {
-        path: '/report-log',
-        redirect: '/report-log/user-realtime',
-      },
-      {
-        path: '/report-log/user-realtime',
-        name: 'user-realtime',
-        component: './report/report-log/user-realtime',
-      },
-      {
-        path: '/report-log/node-realtime',
-        name: 'node-realtime',
-        component: './report/report-log/node-realtime',
-      },
     ],
   },
   {
@@ -362,22 +301,7 @@ export default [
     path: '/traffic-platform/sync-jobs',
     redirect: '/traffic-platform',
   },
-  {
-    path: '/ad-spend',
-    redirect: '/report/ad-spend-report',
-  },
-  {
-    path: '/ad-spend/accounts',
-    redirect: '/report/ad-spend-report',
-  },
-  {
-    path: '/ad-spend/sync-jobs',
-    redirect: '/report/ad-spend-report',
-  },
-  {
-    path: '/ad-spend/reports',
-    redirect: '/report/ad-spend-report',
-  },
+
   {
     path: '/project',
     name: 'project',

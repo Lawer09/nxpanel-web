@@ -1,9 +1,10 @@
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
-import { DeleteOutlined, FunnelPlotOutlined, ReloadOutlined, SaveOutlined, SearchOutlined, SyncOutlined } from '@ant-design/icons';
-import { Button, Card, Input, Popconfirm, Select, Space, Table, Tag, Tooltip, Typography, message } from 'antd';
+import { FunnelPlotOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { Button, Card, Space, Table, Tag, Tooltip, Typography, message } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { SortOrder } from 'antd/es/table/interface';
+import ViewManager from './ViewManager';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 type AnyRecord = Record<string, any>;
@@ -363,7 +364,10 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   );
   const [columnsStateMap, setColumnsStateMap] = useState<ColumnStateMap>(persisted.columnsStateMap ?? {});
   const [selectedViewId, setSelectedViewId] = useState<string>();
-  const [viewName, setViewName] = useState('');
+  const [saveViewName, setSaveViewName] = useState('');
+  const [renameModalOpen, setRenameModalOpen] = useState(false);
+  const [renameModalName, setRenameModalName] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(false);
   const [current, setCurrent] = useState(1);
@@ -617,7 +621,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   };
 
   const handleSaveView = () => {
-    const name = viewName.trim();
+    const name = saveViewName.trim();
     if (!name) {
       message.warning('请输入视图名称');
       return;
@@ -636,7 +640,8 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     const nextViews = [nextView, ...rest].slice(0, 20);
     setSavedViews(nextViews);
     setSelectedViewId(nextView.id);
-    setViewName('');
+    setSaveViewName('');
+    setIsAdding(false);
     message.success(existed ? '已覆盖同名视图' : '视图已保存');
   };
 
@@ -644,7 +649,6 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     const target = savedViews.find((item) => item.id === id);
     if (!target) return;
     setSelectedViewId(id);
-    setViewName(target.name);
     setQuery(target.query);
     setAppliedQuery(target.query);
     const nextDimensions = normalizeDimensions(target.dimensions);
@@ -665,38 +669,24 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     setCurrent(1);
   };
 
-  const handleUpdateView = () => {
-    if (!selectedViewId) {
-      message.warning('请先选择要更新的视图');
+  const handleRenameView = () => {
+    if (!selectedViewId) return;
+    const name = renameModalName.trim();
+    if (!name) {
+      message.warning('请输入视图名称');
       return;
     }
-    const target = savedViews.find((item) => item.id === selectedViewId);
-    if (!target) {
-      message.warning('未找到要更新的视图');
-      return;
-    }
-
-    const nextName = viewName.trim() || target.name;
-    const duplicated = savedViews.some((item) => item.name === nextName && item.id !== selectedViewId);
+    const duplicated = savedViews.some((item) => item.name === name && item.id !== selectedViewId);
     if (duplicated) {
-      message.warning('视图名称已存在，请更换名称');
+      message.warning('视图名称已存在');
       return;
     }
-
-    const updatedView: SavedView<Q> = {
-      ...target,
-      name: nextName,
-      query,
-      dimensions,
-      visibleFilterDimensions,
-      metrics,
-      columnsStateMap,
-    };
-
-    const nextViews = savedViews.map((item) => (item.id === selectedViewId ? updatedView : item));
+    const nextViews = savedViews.map((item) =>
+      item.id === selectedViewId ? { ...item, name } : item,
+    );
     setSavedViews(nextViews);
-    setViewName('');
-    message.success('视图已更新');
+    setRenameModalOpen(false);
+    message.success('视图已重命名');
   };
 
   const handleDeleteView = () => {
@@ -707,7 +697,6 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     const nextViews = savedViews.filter((item) => item.id !== selectedViewId);
     setSavedViews(nextViews);
     setSelectedViewId(undefined);
-    setViewName('');
     message.success('视图已删除');
   };
 
@@ -791,40 +780,37 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
         <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dashed #f0f0f0' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <Space wrap>
-              <Typography.Text type="secondary">查询视图</Typography.Text>
-              <Select
-                value={selectedViewId}
-                style={{ width: 260 }}
-                allowClear
-                placeholder="选择已保存视图"
-                options={savedViews.map((view) => ({ label: view.name, value: view.id }))}
-                onChange={(id) => {
+              <ViewManager
+                views={savedViews.map(({ id, name }) => ({ id, name }))}
+                selectedId={selectedViewId}
+                saveInputValue={saveViewName}
+                renameModalOpen={renameModalOpen}
+                renameInputValue={renameModalName}
+                isAdding={isAdding}
+                onStartAdd={() => setIsAdding(true)}
+                onCancelAdd={() => { setIsAdding(false); setSaveViewName(''); }}
+                onSelect={(id) => {
                   if (!id) {
                     setSelectedViewId(undefined);
-                    setViewName('');
                     return;
                   }
+                  setIsAdding(false);
+                  setSaveViewName('');
                   handleApplyView(id);
                 }}
+                onSave={handleSaveView}
+                onSaveInputChange={setSaveViewName}
+                onOpenRename={() => {
+                  const target = savedViews.find((v) => v.id === selectedViewId);
+                  setRenameModalName(target?.name || '');
+                  setRenameModalOpen(true);
+                }}
+                onRenameInputChange={setRenameModalName}
+                onRenameConfirm={handleRenameView}
+                onRenameCancel={() => setRenameModalOpen(false)}
+                onDelete={handleDeleteView}
               />
-              <Input
-                value={viewName}
-                style={{ width: 220 }}
-                placeholder="输入视图名称"
-                onChange={(e) => setViewName(e.target.value)}
-              />
-               <Button icon={<SaveOutlined />} onClick={handleSaveView}>
-                 保存视图
-               </Button>
-               <Button icon={<SyncOutlined />} onClick={handleUpdateView} disabled={!selectedViewId}>
-                 更新视图
-               </Button>
-               <Popconfirm title="确认删除当前视图？" okText="删除" cancelText="取消" onConfirm={handleDeleteView}>
-                 <Button icon={<DeleteOutlined />} danger disabled={!selectedViewId}>
-                   删除视图
-                 </Button>
-               </Popconfirm>
-             </Space>
+            </Space>
 
             <Space>
               <Button icon={<ReloadOutlined />} onClick={handleReset}>
