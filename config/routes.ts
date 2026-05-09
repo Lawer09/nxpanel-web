@@ -66,7 +66,7 @@ export default [
     name: 'report',
     icon: 'barChart',
     routes: [
-       {
+      {
         path: '/report',
         redirect: '/report/project',
       },
@@ -76,19 +76,20 @@ export default [
         component: './report/project',
       },
       {
+        path: '/report/node-summary-report',
+        name: 'node-summary-report',
+        component: './report/node-summary-report',
+      },
+      {
+        path: '/report/user-summary-report',
+        name: 'user-summary-report',
+        component: './report/user-summary-report',
+      },
+      {
         path: '/report/ad-spend-report',
         name: 'ad-spend-report',
         component: './ad-spend',
       },
-      // {
-      //   path: '/report',
-      //   redirect: '/report/performance',
-      // },
-      // {
-      //   path: '/report/performance',
-      //   name: 'performance',
-      //   component: './report/performance',
-      // },
       {
         path: '/report/user-stat',
         redirect: '/report/traffic?tab=user',
@@ -166,18 +167,7 @@ export default [
         name: 'node-report-admin',
         component: './report/node-report-admin',
       },
-      {
-        path: '/report/node-main-report',
-        name: 'node-main-report',
-        hideInMenu: true,
-        component: './report/node-main-report',
-      },
-      {
-        path: '/report/node-subtable-report',
-        name: 'node-subtable-report',
-        hideInMenu: true,
-        component: './report/node-subtable-report',
-      },
+      
     ],
   },
   {

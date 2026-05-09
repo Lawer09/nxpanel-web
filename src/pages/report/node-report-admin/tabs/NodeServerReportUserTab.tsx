@@ -16,7 +16,7 @@ const DIMENSIONS = [
 const METRICS = [
   { label: '上传流量(bytes)', value: 'trafficUpload' },
   { label: '下载流量(bytes)', value: 'trafficDownload' },
-  { label: '样本数', value: 'computeCount' },
+  { label: '上报数', value: 'computeCount' },
 ];
 
 const DIMENSION_TO_BACKEND = DIMENSIONS.reduce<Record<string, string>>((acc, item) => {

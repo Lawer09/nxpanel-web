@@ -173,6 +173,11 @@ function getColumnSortField(column: ProColumns<any>, fallbackKey: string) {
   return fallbackKey;
 }
 
+function normalizeSortKey(value?: string) {
+  if (!value) return undefined;
+  return value.replace(/^(d:|m:)/, '');
+}
+
 function normalizeSorter(input: any): ReportSorter | undefined {
   const source = Array.isArray(input)
     ? [...input].reverse().find((item) => item?.order)
@@ -180,9 +185,11 @@ function normalizeSorter(input: any): ReportSorter | undefined {
   if (!source || !source.order) return undefined;
   const order = source.order as SortOrder;
   if (order !== 'ascend' && order !== 'descend') return undefined;
+  const normalizedField = normalizeSortKey(source.field ? String(source.field) : undefined);
+  const normalizedColumnKey = normalizeSortKey(source.columnKey ? String(source.columnKey) : undefined);
   return {
-    field: source.field ? String(source.field) : undefined,
-    columnKey: source.columnKey ? String(source.columnKey) : undefined,
+    field: normalizedField || normalizedColumnKey,
+    columnKey: normalizedColumnKey || normalizedField,
     order,
   };
 }
@@ -530,11 +537,15 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
         const originalColumn = item.column as ProColumns<T>;
         const sortField = getColumnSortField(originalColumn, fallbackKey);
         const key = sortField || `${fallbackKey}-${index}`;
+        const normalizedKey = normalizeSortKey(key);
+        const normalizedSortField = normalizeSortKey(sortField);
+        const normalizedSorterField = normalizeSortKey(sorter?.field);
+        const normalizedSorterColumnKey = normalizeSortKey(sorter?.columnKey);
         const isCurrentSortColumn =
-          sorter?.columnKey === key ||
-          sorter?.columnKey === sortField ||
-          sorter?.field === sortField ||
-          sorter?.field === key;
+          normalizedSorterColumnKey === normalizedKey ||
+          normalizedSorterColumnKey === normalizedSortField ||
+          normalizedSorterField === normalizedSortField ||
+          normalizedSorterField === normalizedKey;
         return {
           ...originalColumn,
           key,

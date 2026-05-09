@@ -152,6 +152,91 @@ declare namespace API {
     computeCount?: number;
   }
 
+  interface NodeReportHourlyQuery {
+    dateFrom?: string;
+    dateTo?: string;
+    hourFrom?: number;
+    hourTo?: number;
+    groupBy?: Array<'date' | 'hour' | 'node_id' | 'node_type' | 'node_host' | 'node_public_ip' | 'probe_stage'>;
+    filters?: {
+      nodeIds?: number[];
+      nodeTypes?: string[];
+      nodeHosts?: string[];
+      nodePublicIps?: string[];
+      probeStages?: string[];
+    };
+    page?: number;
+    pageSize?: number;
+    orderBy?: string;
+    orderDirection?: 'asc' | 'desc';
+  }
+
+  interface NodeReportHourlyItem {
+    date?: string;
+    hour?: number;
+    nodeId?: number;
+    nodeType?: string;
+    nodeHost?: string;
+    nodePublicIp?: string;
+    probeStage?: string;
+    trafficUpload?: number;
+    trafficDownload?: number;
+    avgCpuUsage?: number;
+    avgMemUsage?: number;
+    maxCpuUsage?: number;
+    maxMemUsage?: number;
+    avgDiskUsage?: number;
+    avgInboundSpeed?: number;
+    avgOutboundSpeed?: number;
+    maxInboundSpeed?: number;
+    maxOutboundSpeed?: number;
+    avgTcpConnections?: number;
+    maxTcpConnections?: number;
+    avgAliveUsers?: number;
+    maxAliveUsers?: number;
+    avgDelay?: number;
+    trafficUsage?: number;
+    trafficUseTime?: number;
+    successCount?: number;
+    failCount?: number;
+    successRate?: number;
+    reportCountNode?: number;
+    reportCountUser?: number;
+  }
+
+  interface UserReportHourlyQuery {
+    dateFrom?: string;
+    dateTo?: string;
+    hourFrom?: number;
+    hourTo?: number;
+    groupBy?: Array<'date' | 'hour' | 'user_id' | 'app_id' | 'app_version' | 'country'>;
+    filters?: {
+      userIds?: number[];
+      appIds?: string[];
+      appVersions?: string[];
+      countries?: string[];
+    };
+    page?: number;
+    pageSize?: number;
+    orderBy?: string;
+    orderDirection?: 'asc' | 'desc';
+  }
+
+  interface UserReportHourlyItem {
+    date?: string;
+    hour?: number;
+    userId?: number;
+    appId?: string;
+    appVersion?: string;
+    country?: string;
+    trafficUsage?: number;
+    trafficUseTime?: number;
+    trafficUpload?: number;
+    trafficDownload?: number;
+    reportCountUser?: number;
+    reportCountNode?: number;
+  }
+
   interface UserReportCommonQuery {
     dateFrom?: string;
     dateTo?: string;

@@ -50,6 +50,26 @@ export async function queryNodeServerReportUser(data: API.NodeServerReportUserQu
   );
 }
 
+export async function queryNodeReportHourly(data: API.NodeReportHourlyQuery) {
+  return request<API.ApiResponse<API.ReportPageResult<API.NodeReportHourlyItem>>>(
+    '/v3/report/nodeReport/query',
+    {
+      method: 'POST',
+      data,
+    },
+  );
+}
+
+export async function queryUserReportHourly(data: API.UserReportHourlyQuery) {
+  return request<API.ApiResponse<API.ReportPageResult<API.UserReportHourlyItem>>>(
+    '/v3/report/userReport/query',
+    {
+      method: 'POST',
+      data,
+    },
+  );
+}
+
 export async function queryUserReportSummary(data: API.UserReportSummaryQuery) {
   return request<API.ApiResponse<API.ReportPageResult<API.UserReportRow>>>(
     '/v3/report/userReport/summary/query',

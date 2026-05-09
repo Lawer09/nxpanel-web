@@ -27,7 +27,7 @@ const METRICS = [
   { label: '最大TCP连接', value: 'maxTcpConnections' },
   { label: '平均活跃用户', value: 'avgAliveUsers' },
   { label: '最大活跃用户', value: 'maxAliveUsers' },
-  { label: '样本数', value: 'computeCount' },
+  { label: '上报数', value: 'computeCount' },
 ];
 
 const DIMENSION_TO_BACKEND = DIMENSIONS.reduce<Record<string, string>>((acc, item) => {
