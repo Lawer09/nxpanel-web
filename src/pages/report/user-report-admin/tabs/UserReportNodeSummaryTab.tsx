@@ -17,6 +17,8 @@ const DIMENSIONS = [
   { label: '节点Host', value: 'nodeHost' },
   { label: '节点类型', value: 'nodeType' },
   { label: '探测阶段', value: 'probeStage' },
+  { label: '应用ID', value: 'appId' },
+  { label: '应用版本', value: 'appVersion' },
 ];
 
 const METRICS = [
@@ -86,6 +88,24 @@ const UserReportNodeSummaryTab: React.FC = () => {
               />
             </Form.Item>
           ) : null}
+          {visibleFilterDimensions.includes('appId') ? (
+            <Form.Item label="应用ID">
+              <Input
+                value={query.appId}
+                style={{ width: 160 }}
+                onChange={(e) => setQuery((prev) => ({ ...prev, appId: e.target.value || undefined }))}
+              />
+            </Form.Item>
+          ) : null}
+          {visibleFilterDimensions.includes('appVersion') ? (
+            <Form.Item label="应用版本">
+              <Input
+                value={query.appVersion}
+                style={{ width: 130 }}
+                onChange={(e) => setQuery((prev) => ({ ...prev, appVersion: e.target.value || undefined }))}
+              />
+            </Form.Item>
+          ) : null}
         </>
       )}
       fetcher={async ({ query, page, pageSize, dimensions, sorter }) => {
@@ -94,7 +114,7 @@ const UserReportNodeSummaryTab: React.FC = () => {
           dateTo: query.dateRange[1],
           hourFrom: query.hourFrom,
           hourTo: query.hourTo,
-          groupBy: toSnakeGroupBy(dimensions),
+          groupBy: toSnakeGroupBy(dimensions) as API.UserReportNodeSummaryQuery['groupBy'],
           orderBy: sorter?.field || sorter?.columnKey,
           orderDirection: toOrderDirection(sorter?.order),
           filters: {
@@ -102,6 +122,8 @@ const UserReportNodeSummaryTab: React.FC = () => {
             nodeHosts: query.nodeHost ? [query.nodeHost] : undefined,
             probeStages: query.probeStage ? [query.probeStage] : undefined,
             nodeTypes: query.nodeType ? [query.nodeType] : undefined,
+            appIds: query.appId ? [query.appId] : undefined,
+            appVersions: query.appVersion ? [query.appVersion] : undefined,
           },
           page,
           pageSize,

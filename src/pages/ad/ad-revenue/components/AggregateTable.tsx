@@ -33,9 +33,10 @@ function fmtUtc8Date(v?: string | null) {
 
 interface AggregateTableProps {
   filters: API.AdRevenueQuery;
+  refreshKey: number;
 }
 
-const AggregateTable: React.FC<AggregateTableProps> = ({ filters }) => {
+const AggregateTable: React.FC<AggregateTableProps> = ({ filters, refreshKey }) => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<API.AdRevenueItem[]>([]);
   const [groupBy, setGroupBy] = useState<API.AdRevenueGroupBy[]>(['reportDate']);
@@ -58,7 +59,7 @@ const AggregateTable: React.FC<AggregateTableProps> = ({ filters }) => {
 
   useEffect(() => {
     fetchData();
-  }, [filters, groupBy]);
+  }, [filters, groupBy, refreshKey]);
 
   // 动态列：根据 groupBy 生成维度列
   const dimColumns: ColumnsType<API.AdRevenueItem> = groupBy.map((g) => {

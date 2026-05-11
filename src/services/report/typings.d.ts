@@ -82,12 +82,14 @@ declare namespace API {
     dateTo?: string;
     hourFrom?: number;
     hourTo?: number;
-    groupBy?: Array<'date' | 'hour' | 'node_id' | 'node_type' | 'node_host' | 'node_public_ip'>;
+    groupBy?: Array<'date' | 'hour' | 'node_id' | 'node_type' | 'node_host' | 'node_public_ip' | 'app_id' | 'app_version'>;
     filters?: {
       nodeIds?: number[];
       nodeTypes?: string[];
       nodeHosts?: string[];
       nodePublicIps?: string[];
+      appIds?: string[];
+      appVersions?: string[];
     };
     page?: number;
     pageSize?: number;
@@ -102,6 +104,8 @@ declare namespace API {
     nodeType?: string;
     nodeHost?: string;
     nodePublicIp?: string;
+    appId?: string;
+    appVersion?: string;
     trafficUpload?: number;
     trafficDownload?: number;
     avgCpuUsage?: number;
@@ -157,13 +161,15 @@ declare namespace API {
     dateTo?: string;
     hourFrom?: number;
     hourTo?: number;
-    groupBy?: Array<'date' | 'hour' | 'node_id' | 'node_type' | 'node_host' | 'node_public_ip' | 'probe_stage'>;
+    groupBy?: Array<'date' | 'hour' | 'node_id' | 'node_type' | 'node_host' | 'node_public_ip' | 'probe_stage' | 'app_id' | 'app_version'>;
     filters?: {
       nodeIds?: number[];
       nodeTypes?: string[];
       nodeHosts?: string[];
       nodePublicIps?: string[];
       probeStages?: string[];
+      appIds?: string[];
+      appVersions?: string[];
     };
     page?: number;
     pageSize?: number;
@@ -179,6 +185,8 @@ declare namespace API {
     nodeHost?: string;
     nodePublicIp?: string;
     probeStage?: string;
+    appId?: string;
+    appVersion?: string;
     trafficUpload?: number;
     trafficDownload?: number;
     avgCpuUsage?: number;
@@ -259,12 +267,14 @@ declare namespace API {
   }
 
   interface UserReportNodeSummaryQuery extends UserReportCommonQuery {
-    groupBy?: string[];
+    groupBy?: Array<'date' | 'hour' | 'node_id' | 'node_host' | 'probe_stage' | 'node_type' | 'app_id' | 'app_version'>;
     filters?: {
       nodeIds?: number[];
       nodeHosts?: string[];
       probeStages?: string[];
       nodeTypes?: string[];
+      appIds?: string[];
+      appVersions?: string[];
     };
   }
 

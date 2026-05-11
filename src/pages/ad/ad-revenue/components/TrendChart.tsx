@@ -19,9 +19,10 @@ function fmtUtc8Date(v?: string | null) {
 
 interface TrendChartProps {
   filters: API.AdRevenueQuery;
+  refreshKey: number;
 }
 
-const TrendChart: React.FC<TrendChartProps> = ({ filters }) => {
+const TrendChart: React.FC<TrendChartProps> = ({ filters, refreshKey }) => {
   const [loading, setLoading] = useState(false);
   const [trendData, setTrendData] = useState<API.AdRevenueTrendResponse>({ current: [] });
   const [compareRange, setCompareRange] = useState<[string, string] | null>(null);
@@ -49,7 +50,7 @@ const TrendChart: React.FC<TrendChartProps> = ({ filters }) => {
     if (filters.dateFrom && filters.dateTo) {
       fetchTrend();
     }
-  }, [filters, compareRange]);
+  }, [filters, compareRange, refreshKey]);
 
   const chartData = useMemo(() => {
     const result: { date: string; value: number; series: string }[] = [];

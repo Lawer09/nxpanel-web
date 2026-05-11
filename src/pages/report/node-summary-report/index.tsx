@@ -24,6 +24,8 @@ type QueryState = {
   nodeHost?: string;
   nodePublicIp?: string;
   probeStage?: string;
+  appId?: string;
+  appVersion?: string;
 };
 
 type ReportSorter = {
@@ -40,6 +42,8 @@ const DIMENSIONS = [
   { label: '节点Host', value: 'nodeHost', backendField: 'node_host' },
   { label: '公网IP', value: 'nodePublicIp', backendField: 'node_public_ip' },
   { label: '探测阶段', value: 'probeStage', backendField: 'probe_stage' },
+  { label: '应用ID', value: 'appId', backendField: 'app_id' },
+  { label: '应用版本', value: 'appVersion', backendField: 'app_version' },
 ];
 
 const METRICS = [
@@ -121,7 +125,7 @@ const NodeSummaryReportPage: React.FC = () => {
         storageKey="report.nodeSummary"
         title="节点汇总"
         rowKey={(record) =>
-          [record.date, record.hour, record.nodeId, record.nodeHost, record.probeStage]
+          [record.date, record.hour, record.nodeId, record.nodeHost, record.probeStage, record.appId, record.appVersion]
             .filter((item) => item !== undefined && item !== null && item !== '')
             .join('|')
         }
@@ -202,6 +206,16 @@ const NodeSummaryReportPage: React.FC = () => {
                 <Input value={query.probeStage} style={{ width: 160 }} onChange={(e) => setQuery((prev) => ({ ...prev, probeStage: e.target.value || undefined }))} />
               </Form.Item>
             ) : null}
+            {visibleFilterDimensions.includes('appId') ? (
+              <Form.Item label="应用ID">
+                <Input value={query.appId} style={{ width: 160 }} onChange={(e) => setQuery((prev) => ({ ...prev, appId: e.target.value || undefined }))} />
+              </Form.Item>
+            ) : null}
+            {visibleFilterDimensions.includes('appVersion') ? (
+              <Form.Item label="应用版本">
+                <Input value={query.appVersion} style={{ width: 140 }} onChange={(e) => setQuery((prev) => ({ ...prev, appVersion: e.target.value || undefined }))} />
+              </Form.Item>
+            ) : null}
           </Form>
         )}
         fetchData={async ({ query, page, pageSize, dimensions, sorter }) => {
@@ -225,6 +239,8 @@ const NodeSummaryReportPage: React.FC = () => {
               nodeHosts: query.nodeHost ? [query.nodeHost] : undefined,
               nodePublicIps: query.nodePublicIp ? [query.nodePublicIp] : undefined,
               probeStages: query.probeStage ? [query.probeStage] : undefined,
+              appIds: query.appId ? [query.appId] : undefined,
+              appVersions: query.appVersion ? [query.appVersion] : undefined,
             },
             page,
             pageSize,

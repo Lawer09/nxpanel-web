@@ -1,3 +1,4 @@
+import { Form, Input } from 'antd';
 import React from 'react';
 import { queryNodeServerReportNode } from '@/services/report/api';
 import BaseNodeServerReportTab, { toOrderDirection } from './BaseNodeServerReportTab';
@@ -9,6 +10,8 @@ const DIMENSIONS = [
   { label: '节点类型', value: 'nodeType', backendField: 'node_type' },
   { label: '节点Host', value: 'nodeHost', backendField: 'node_host' },
   { label: '公网IP', value: 'nodePublicIp', backendField: 'node_public_ip' },
+  { label: '应用ID', value: 'appId', backendField: 'app_id' },
+  { label: '应用版本', value: 'appVersion', backendField: 'app_version' },
 ];
 
 const METRICS = [
@@ -44,6 +47,20 @@ const NodeServerReportNodeTab: React.FC = () => {
       defaultMetrics={['trafficUpload', 'trafficDownload', 'computeCount']}
       dimensionOptions={DIMENSIONS}
       metricOptions={METRICS}
+      renderExtraFilters={({ query, setQuery, visibleFilterDimensions }) => (
+        <>
+          {visibleFilterDimensions.includes('appId') ? (
+            <Form.Item label="应用ID">
+              <Input value={query.appId} style={{ width: 160 }} onChange={(e) => setQuery((prev) => ({ ...prev, appId: e.target.value || undefined }))} />
+            </Form.Item>
+          ) : null}
+          {visibleFilterDimensions.includes('appVersion') ? (
+            <Form.Item label="应用版本">
+              <Input value={query.appVersion} style={{ width: 140 }} onChange={(e) => setQuery((prev) => ({ ...prev, appVersion: e.target.value || undefined }))} />
+            </Form.Item>
+          ) : null}
+        </>
+      )}
       fetcher={async ({ query, page, pageSize, dimensions, sorter }) => {
         const res = await queryNodeServerReportNode({
           dateFrom: query.dateRange[0],
@@ -56,6 +73,8 @@ const NodeServerReportNodeTab: React.FC = () => {
             nodeTypes: query.nodeType ? [query.nodeType] : undefined,
             nodeHosts: query.nodeHost ? [query.nodeHost] : undefined,
             nodePublicIps: query.nodePublicIp ? [query.nodePublicIp] : undefined,
+            appIds: query.appId ? [query.appId] : undefined,
+            appVersions: query.appVersion ? [query.appVersion] : undefined,
           },
           page,
           pageSize,

@@ -553,10 +553,10 @@ const AdRevenuePage: React.FC = () => {
       </Spin>
 
       {/* 趋势图 */}
-      <TrendChart key={refreshKey} filters={filters} />
+      <TrendChart refreshKey={refreshKey} filters={filters} />
 
       {/* 聚合分析 */}
-      <AggregateTable key={refreshKey} filters={filters} />
+      <AggregateTable refreshKey={refreshKey} filters={filters} />
 
       {/* Top 排行 */}
       {/* <TopRankTable filters={filters} /> */}
