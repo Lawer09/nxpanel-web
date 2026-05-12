@@ -1,5 +1,5 @@
 import { PageContainer } from '@ant-design/pro-components';
-import { App, DatePicker, Form, Input, Select } from 'antd';
+import { App, DatePicker, Form, Select } from 'antd';
 import type { SortOrder } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -26,6 +26,38 @@ const DATE_PRESETS = [
     label: '近一月',
     value: [dayjs().subtract(29, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs],
   },
+];
+
+const COMMON_COUNTRY_OPTIONS = [
+  'US',
+  'JP',
+  'KR',
+  'SG',
+  'HK',
+  'TW',
+  'GB',
+  'DE',
+  'FR',
+  'IT',
+  'ES',
+  'NL',
+  'SE',
+  'CA',
+  'AU',
+  'NZ',
+  'IN',
+  'ID',
+  'TH',
+  'VN',
+  'MY',
+  'PH',
+  'BR',
+  'MX',
+  'TR',
+  'AE',
+  'SA',
+  'ZA',
+  'RU',
 ];
 
 type QueryState = {
@@ -119,6 +151,12 @@ const METRIC_OPTIONS = [
     formatter: (v: number) => fmtInt(v),
   },
   {
+    label: '人均展示',
+    value: 'impressionsPerUser',
+    column: { title: '人均展示', dataIndex: 'impressionsPerUser', width: 110, render: fmtFixed2 },
+    formatter: (v: unknown) => fmtFixed2(v),
+  },
+  {
     label: '广告点击数',
     value: 'adClicks',
     column: { title: '广告点击数', dataIndex: 'adClicks', width: 120 },
@@ -129,6 +167,12 @@ const METRIC_OPTIONS = [
     value: 'adEcpm',
     column: { title: '广告 eCPM', dataIndex: 'adEcpm', width: 110, render: fmtCurrency },
     formatter: (v: number) => fmtCurrency(v),
+  },
+  {
+    label: 'ARPU',
+    value: 'arpu',
+    column: { title: 'ARPU', dataIndex: 'arpu', width: 110, render: fmtCurrency },
+    formatter: (v: unknown) => fmtCurrency(v),
   },
   {
     label: '广告 CTR',
@@ -347,17 +391,23 @@ const ProjectAggregatesPage: React.FC = () => {
             ) : null}
             {visibleFilterDimensions.includes('country') ? (
               <Form.Item label="国家">
-                <Input
-                  value={(query.countries ?? []).join(',')}
-                  onChange={(e) => {
-                    const values = e.target.value
-                      .split(/[，,\s]+/)
+                <Select
+                  mode="tags"
+                  allowClear
+                  maxTagCount="responsive"
+                  style={{ width: 220 }}
+                  placeholder="请选择国家，支持输入"
+                  tokenSeparators={[',', '，', ' ']}
+                  value={query.countries}
+                  options={COMMON_COUNTRY_OPTIONS.map((code) => ({ label: code, value: code }))}
+                  onChange={(value) => {
+                    const normalized = (value || [])
+                      .map((item) => `${item}`.trim().toUpperCase())
                       .map((item) => item.trim())
                       .filter(Boolean);
-                    setQuery((prev) => ({ ...prev, countries: values.length ? values : undefined }));
+                    const deduped = Array.from(new Set(normalized));
+                    setQuery((prev) => ({ ...prev, countries: deduped.length ? deduped : undefined }));
                   }}
-                  placeholder="如 US, JP"
-                  style={{ width: 220 }}
                 />
               </Form.Item>
             ) : null}

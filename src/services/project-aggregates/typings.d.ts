@@ -41,6 +41,8 @@ declare namespace API {
       | 'roi'
       | 'adSpendCpi'
       | 'totalCost'
+      | 'impressionsPerUser'
+      | 'arpu'
       | 'updatedAt';
     orderDir?: 'asc' | 'desc';
   }
@@ -73,6 +75,8 @@ declare namespace API {
     adRequests: number;
     adMatchedRequests: number;
     adImpressions: number;
+    impressionsPerUser: string;
+    arpu: string;
     adClicks: number;
     adEcpm: string;
     adCtr: string;
@@ -101,6 +105,8 @@ declare namespace API {
     adRequests: number;
     adMatchedRequests: number;
     adImpressions: number;
+    impressionsPerUser: string;
+    arpu: string;
     adClicks: number;
     adEcpm: string;
     adCtr: string;
@@ -123,6 +129,8 @@ declare namespace API {
     newUsers: number;
     reportNewUsers: number;
     adRevenue: string;
+    impressionsPerUser: string;
+    arpu: string;
     adSpendCost: string;
     trafficUsageMb: string;
     trafficCost: string;
