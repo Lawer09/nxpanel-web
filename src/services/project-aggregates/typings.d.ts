@@ -40,6 +40,7 @@ declare namespace API {
       | 'profit'
       | 'roi'
       | 'adSpendCpi'
+      | 'totalCost'
       | 'updatedAt';
     orderDir?: 'asc' | 'desc';
   }
@@ -83,6 +84,7 @@ declare namespace API {
     adSpendCpm: string;
     trafficUsageMb: string;
     trafficCost: string;
+    totalCost: string | null;
     profit: string;
     roi: string;
     updatedAt: string;
@@ -110,6 +112,7 @@ declare namespace API {
     adSpendCpm: string;
     trafficUsageMb: string;
     trafficCost: string;
+    totalCost: string | null;
     profit: string;
     roi: string;
   }
@@ -123,6 +126,7 @@ declare namespace API {
     adSpendCost: string;
     trafficUsageMb: string;
     trafficCost: string;
+    totalCost: string | null;
     profit: string;
     roi: string;
     adSpendCpi: string;

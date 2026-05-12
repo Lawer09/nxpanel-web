@@ -15,19 +15,21 @@ import {
   Switch,
   Table,
   Tag,
+  Tooltip,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   getAdAccounts,
+  getAdRevenueApps,
   getAdRevenueFetch,
   getAdRevenueSummary,
   getSyncServers,
   toggleAdAccountStatus,
   testAdAccountCredential,
 } from '@/services/ad/api';
-import { ReloadOutlined } from '@ant-design/icons';
+import { ClockCircleOutlined, ExclamationCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import { formatUtc8 } from '../utils/time';
 import TrendChart from './components/TrendChart';
 import AggregateTable from './components/AggregateTable';
@@ -307,6 +309,95 @@ const AdRevenuePage: React.FC = () => {
     }
   }, [syncModalOpen]);
 
+  // ── APP 弹窗 ──────────────────────────────────────────────────────────────
+  const [appsModalOpen, setAppsModalOpen] = useState(false);
+  const [appsData, setAppsData] = useState<API.AdRevenueAppItem[]>([]);
+  const [appsTotal, setAppsTotal] = useState(0);
+  const [appsLoading, setAppsLoading] = useState(false);
+  const [appsPage, setAppsPage] = useState(1);
+  const [appsSize, setAppsSize] = useState(20);
+  const [appsPlatform, setAppsPlatform] = useState<string>();
+  const [appsKeyword, setAppsKeyword] = useState<string>();
+
+  const fetchApps = async () => {
+    setAppsLoading(true);
+    try {
+      const res = await getAdRevenueApps({
+        sourcePlatform: appsPlatform,
+        keyword: appsKeyword,
+        page: appsPage,
+        pageSize: appsSize,
+      });
+      if (res.code === 0 && res.data) {
+        setAppsData(res.data.data ?? []);
+        setAppsTotal(res.data.total ?? 0);
+      } else {
+        messageApi.error(res.msg || '获取 APP 列表失败');
+      }
+    } finally {
+      setAppsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (appsModalOpen) {
+      fetchApps();
+    }
+  }, [appsModalOpen, appsPage, appsSize]);
+
+  const appsColumns: ColumnsType<API.AdRevenueAppItem> = [
+    { title: 'ID', dataIndex: 'id', width: 50 },
+    {
+      title: '应用',
+      key: 'app',
+      width: 200,
+      render: (_, r) => (
+        <div>
+          <Space size={4}>
+            <span>{r.providerAppName || '-'}</span>
+            <Tooltip title={r.providerAppId}>
+              <ExclamationCircleOutlined style={{ color: '#1890ff', cursor: 'pointer', fontSize: 13 }} />
+            </Tooltip>
+          </Space>
+          <div style={{ fontSize: 12, color: '#999', lineHeight: '18px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.appStoreId || '-'}</div>
+        </div>
+      ),
+    },
+    {
+      title: '账号',
+      key: 'account',
+      width: 220,
+      render: (_, r) => (
+        <div>
+          <Space size={4}>
+            <Tag style={{ fontSize: 12, lineHeight: '18px', padding: '0 4px', margin: 0 }}>{r.sourcePlatform}</Tag>
+            <Tooltip title={r.accountName || '-'}>
+              <span style={{ fontSize: 13 }}>{r.accountId}{r.accountLabel ? ` ${r.accountLabel}` : ''}</span>
+            </Tooltip>
+          </Space>
+          <div style={{ fontSize: 12, color: '#999', lineHeight: '22px' }}>
+            <Tooltip title="更新时间">
+              <span>
+                <ClockCircleOutlined style={{ marginRight: 4 }} />
+                {formatUtc8(r.updatedAt)}
+              </span>
+            </Tooltip>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: '设备',
+      dataIndex: 'devicePlatform',
+      width: 80,
+    },
+    {
+      title: '审核',
+      dataIndex: 'appApprovalState',
+      width: 80,
+    },
+  ];
+
   // ── 同步节点表单弹窗 ──────────────────────────────────────────────────────────
   const [syncFormOpen, setSyncFormOpen] = useState(false);
   const [syncCurrentRecord, setSyncCurrentRecord] = useState<API.SyncServer | undefined>();
@@ -535,7 +626,18 @@ const AdRevenuePage: React.FC = () => {
             </Card>
           </Col>
           <Col span={3}>
-            <Card size="small">
+            <Card
+              size="small"
+              hoverable
+              style={{ cursor: 'pointer' }}
+              onClick={() => {
+                setAppsPage(1);
+                setAppsSize(20);
+                setAppsPlatform(undefined);
+                setAppsKeyword(undefined);
+                setAppsModalOpen(true);
+              }}
+            >
               <Statistic title="应用数" value={Number(summary?.appCount ?? 0)} />
             </Card>
           </Col>
@@ -704,6 +806,51 @@ const AdRevenuePage: React.FC = () => {
           open={syncDetailOpen}
           server={syncDetailServer}
           onClose={() => setSyncDetailOpen(false)}
+        />
+      </Modal>
+
+      {/* APP 弹窗 */}
+      <Modal
+        title="应用列表"
+        open={appsModalOpen}
+        onCancel={() => setAppsModalOpen(false)}
+        width={960}
+        footer={null}
+        destroyOnHidden
+      >
+        <div style={{ marginBottom: 12, display: 'flex', gap: 8 }}>
+          <Select
+            allowClear
+            placeholder="平台"
+            style={{ width: 120 }}
+            value={appsPlatform}
+            onChange={(v) => { setAppsPlatform(v); setAppsPage(1); }}
+            options={PLATFORM_OPTIONS}
+          />
+          <Input.Search
+            placeholder="搜索应用名称 / 应用 ID / 商店 ID"
+            allowClear
+            style={{ width: 300 }}
+            value={appsKeyword}
+            onChange={(e) => setAppsKeyword(e.target.value)}
+            onSearch={() => { setAppsPage(1); fetchApps(); }}
+          />
+        </div>
+        <Table<API.AdRevenueAppItem>
+          rowKey="id"
+          dataSource={appsData}
+          columns={appsColumns}
+          loading={appsLoading}
+          size="small"
+          scroll={{ x: 1200 }}
+          pagination={{
+            current: appsPage,
+            pageSize: appsSize,
+            total: appsTotal,
+            showSizeChanger: true,
+            showTotal: (t) => `共 ${t} 条`,
+            onChange: (p, s) => { setAppsPage(p); setAppsSize(s); },
+          }}
         />
       </Modal>
     </PageContainer>

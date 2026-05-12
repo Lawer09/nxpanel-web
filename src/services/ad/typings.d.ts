@@ -242,4 +242,29 @@ declare namespace API {
     metric?: string;
     limit?: number;
   }
+
+  // ── APP 列表 ──────────────────────────────────────────────────────────────
+
+  interface AdRevenueAppQuery {
+    sourcePlatform?: string;
+    accountId?: number;
+    keyword?: string;
+    page?: number;
+    pageSize?: number;
+  }
+
+  interface AdRevenueAppItem {
+    id: number;
+    sourcePlatform: string;
+    accountId: number;
+    accountName: string | null;
+    accountLabel: string | null;
+    providerAppId: string;
+    providerAppName: string;
+    devicePlatform: string;
+    appStoreId: string;
+    appApprovalState: string;
+    createdAt: string;
+    updatedAt: string;
+  }
 }

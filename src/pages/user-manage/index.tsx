@@ -121,6 +121,21 @@ const UserManagePage: React.FC = () => {
       hideInTable: true,
     },
     {
+      title: '用户 ID',
+      dataIndex: 'id_search',
+      hideInTable: true,
+    },
+    {
+      title: '注册包名',
+      dataIndex: 'meta_app_id',
+      hideInTable: true,
+    },
+    {
+      title: '注册渠道',
+      dataIndex: 'meta_channel',
+      hideInTable: true,
+    },
+    {
       title: '状态',
       dataIndex: 'banned',
       width: 80,
@@ -462,10 +477,19 @@ const UserManagePage: React.FC = () => {
           if (params.email_search) {
             filter.push({ id: 'email', value: `like:${params.email_search}` });
           }
+          const meta: Record<string, string | number> = {};
+          if (params.meta_app_id) {
+            meta.app_id = params.meta_app_id;
+          }
+          if (params.meta_channel) {
+            meta.channel_type = params.meta_channel;
+          }
           setCurrentFilter(filter);
           const res = await fetchUsers({
+            id: params.id_search || undefined,
             current: params.current,
             pageSize: params.pageSize,
+            meta: Object.keys(meta).length ? meta : undefined,
             filter: filter.length ? filter : undefined,
             sort: [{ id: 'created_at', desc: true }],
           });

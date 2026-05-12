@@ -182,3 +182,10 @@ export async function postAdRevenueTopRank(data: API.AdRevenueTopRankRequest) {
     data,
   });
 }
+
+export async function getAdRevenueApps(params?: API.AdRevenueAppQuery) {
+  return request<API.ApiResponse<API.PageResult<API.AdRevenueAppItem>>>('/v3/ad-revenue/apps', {
+    method: 'GET',
+    params,
+  });
+}

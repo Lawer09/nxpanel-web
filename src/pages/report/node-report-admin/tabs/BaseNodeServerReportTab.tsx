@@ -37,7 +37,7 @@ type BaseNodeServerReportTabProps = {
   defaultDimensions: string[];
   defaultMetrics: string[];
   dimensionOptions: Array<{ label: string; value: string; backendField: string }>;
-  metricOptions: Array<{ label: string; value: string }>;
+  metricOptions: Array<{ label: string; value: string; render?: (value: any) => React.ReactNode }>;
   renderExtraFilters?: (args: {
     query: NodeServerQueryState;
     setQuery: React.Dispatch<React.SetStateAction<NodeServerQueryState>>;
@@ -135,7 +135,12 @@ const BaseNodeServerReportTab: React.FC<BaseNodeServerReportTabProps> = ({
           title: item.label,
           dataIndex: item.value,
           width: 130,
-          render: (v: any) => (RATE_FIELDS.has(item.value) ? fmtFixed2(v) : fmtNumber(v)),
+          render: (v: any) =>
+            item.render
+              ? item.render(v)
+              : RATE_FIELDS.has(item.value)
+                ? fmtFixed2(v)
+                : fmtNumber(v),
         },
       }))}
       renderFilters={({ query, setQuery, visibleFilterDimensions }) => (

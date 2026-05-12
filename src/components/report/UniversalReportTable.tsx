@@ -621,7 +621,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   };
 
   const handleSaveView = () => {
-    const name = saveViewName.trim();
+    const name = saveViewName.trim() || savedViews.find((v) => v.id === selectedViewId)?.name || '';
     if (!name) {
       message.warning('请输入视图名称');
       return;

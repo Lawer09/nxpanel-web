@@ -78,8 +78,10 @@ declare namespace API {
   }
 
   interface UserFetchParams {
+    id?: string;
     current?: number;
     pageSize?: number;
+    meta?: Record<string, string | number>;
     filter?: UserFilter[];
     sort?: UserSort[];
   }
@@ -105,6 +107,7 @@ declare namespace API {
     speed_limit?: number | null;
     device_limit?: number | null;
     invite_user_email?: string;
+    register_metadata?: RegisterMetadata;
   }
 
   interface UserGenerateParams {

@@ -3,6 +3,12 @@ import React from 'react';
 import { queryNodeServerReportUser } from '@/services/report/api';
 import BaseNodeServerReportTab, { toOrderDirection } from './BaseNodeServerReportTab';
 
+const fmtBytesToMB = (v: number) => {
+  const n = Number(v ?? 0);
+  if (!Number.isFinite(n)) return '0.00 MB';
+  return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+};
+
 const DIMENSIONS = [
   { label: '日期', value: 'date', backendField: 'date' },
   { label: '小时', value: 'hour', backendField: 'hour' },
@@ -14,8 +20,8 @@ const DIMENSIONS = [
 ];
 
 const METRICS = [
-  { label: '上传流量(bytes)', value: 'trafficUpload' },
-  { label: '下载流量(bytes)', value: 'trafficDownload' },
+  { label: '上传流量', value: 'trafficUpload', render: fmtBytesToMB },
+  { label: '下载流量', value: 'trafficDownload', render: fmtBytesToMB },
   { label: '上报数', value: 'computeCount' },
 ];
 

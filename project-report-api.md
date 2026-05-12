@@ -121,7 +121,7 @@
 | 国家 | `country` | string/null | ISO 国家码（接口过滤时统一大写） |
 | 新增用户 | `newUsers` | int | 人 |
 | 上报新增用户 | `reportNewUsers` | int | 人 |
-| DAU 用户 | `dauUsers` | int | 人 |
+| 日活用户 | `dauUsers` | int | 人 |
 | 广告收入 | `adRevenue` | string/null | 金额，6 位小数 |
 | 广告请求数 | `adRequests` | int | 次 |
 | 广告匹配请求数 | `adMatchedRequests` | int | 次 |
@@ -131,10 +131,10 @@
 | 广告 CTR | `adCtr` | string/null | 百分比值（0-100），6 位小数 |
 | 广告匹配率 | `adMatchRate` | string/null | 百分比值（0-100），6 位小数 |
 | 广告展示率 | `adShowRate` | string/null | 百分比值（0-100），6 位小数 |
-| 广告花费 | `adSpendCost` | string/null | 金额，6 位小数 |
-| 花费 CPI | `adSpendCpi` | string/null | 金额/新增用户，6 位小数 |
-| 花费 CPC | `adSpendCpc` | string/null | 金额/点击，6 位小数 |
-| 花费 CPM | `adSpendCpm` | string/null | 金额/千次展示，6 位小数 |
+| 投放支出 | `adSpendCost` | string/null | 金额，6 位小数 |
+| 投放 CPI | `adSpendCpi` | string/null | 金额/新增用户，6 位小数 |
+| 投放 CPC | `adSpendCpc` | string/null | 金额/点击，6 位小数 |
+| 投放 CPM | `adSpendCpm` | string/null | 金额/千次展示，6 位小数 |
 | 流量使用量 | `trafficUsageMb` | string/null | MB，6 位小数 |
 | 流量成本 | `trafficCost` | string/null | 金额，6 位小数 |
 | 利润 | `profit` | string/null | 金额，6 位小数 |

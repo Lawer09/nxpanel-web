@@ -47,8 +47,8 @@ const DIMENSIONS = [
 ];
 
 const METRICS = [
-  { label: '上传流量(KB)', value: 'trafficUpload' },
-  { label: '下载流量(KB)', value: 'trafficDownload' },
+  { label: '上传流量', value: 'trafficUpload' },
+  { label: '下载流量', value: 'trafficDownload' },
   { label: '平均CPU', value: 'avgCpuUsage' },
   { label: '平均内存', value: 'avgMemUsage' },
   { label: '最大CPU', value: 'maxCpuUsage' },
@@ -63,7 +63,7 @@ const METRICS = [
   { label: '平均活跃用户', value: 'avgAliveUsers' },
   { label: '最大活跃用户', value: 'maxAliveUsers' },
   { label: '平均延迟', value: 'avgDelay' },
-  { label: '流量用量(KB)', value: 'trafficUsage' },
+  { label: '流量用量', value: 'trafficUsage' },
   { label: '流量时长(s)', value: 'trafficUseTime' },
   { label: '成功数', value: 'successCount' },
   { label: '失败数', value: 'failCount' },
@@ -94,6 +94,8 @@ const FIXED2_FIELDS = new Set([
   'avgDelay',
 ]);
 
+const TRAFFIC_FIELDS = new Set(['trafficUpload', 'trafficDownload', 'trafficUsage']);
+
 const toNumber = (value: any) => {
   const num = Number(value ?? 0);
   return Number.isFinite(num) ? num : 0;
@@ -101,6 +103,7 @@ const toNumber = (value: any) => {
 
 const fmtNumber = (value: any) => toNumber(value).toLocaleString();
 const fmtFixed2 = (value: any) => toNumber(value).toFixed(2);
+const fmtKBtoMB = (value: any) => `${(toNumber(value) / 1024).toFixed(2)} MB`;
 const fmtSuccessRate = (value: any) => {
   const num = toNumber(value);
   const percent = Math.abs(num) <= 1 ? num * 100 : num;
@@ -155,6 +158,7 @@ const NodeSummaryReportPage: React.FC = () => {
             render: (value: any) => {
               if (item.value === 'successRate') return fmtSuccessRate(value);
               if (FIXED2_FIELDS.has(item.value)) return fmtFixed2(value);
+              if (TRAFFIC_FIELDS.has(item.value)) return fmtKBtoMB(value);
               return fmtNumber(value);
             },
           },

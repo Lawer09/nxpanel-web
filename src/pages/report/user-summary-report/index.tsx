@@ -41,10 +41,10 @@ const DIMENSIONS = [
 ];
 
 const METRICS = [
-  { label: '用户上报流量(KB)', value: 'trafficUsage' },
+  { label: '用户上报流量', value: 'trafficUsage' },
   { label: '用户上报时长(s)', value: 'trafficUseTime' },
-  { label: '节点上报上传流量(KB)', value: 'trafficUpload' },
-  { label: '节点上报下载流量(KB)', value: 'trafficDownload' },
+  { label: '节点上报上传流量(MB)', value: 'trafficUpload' },
+  { label: '节点上报下载流量(MB)', value: 'trafficDownload' },
   { label: '用户侧上报数', value: 'reportCountUser' },
   { label: '节点侧上报数', value: 'reportCountNode' },
 ];
@@ -54,12 +54,15 @@ const DIMENSION_TO_BACKEND = DIMENSIONS.reduce<Record<string, string>>((acc, ite
   return acc;
 }, {});
 
+const TRAFFIC_FIELDS = new Set(['trafficUsage', 'trafficUpload', 'trafficDownload']);
+
 const toNumber = (value: any) => {
   const num = Number(value ?? 0);
   return Number.isFinite(num) ? num : 0;
 };
 
 const fmtNumber = (value: any) => toNumber(value).toLocaleString();
+const fmtKBtoMB = (value: any) => `${(toNumber(value) / 1024).toFixed(2)} MB`;
 
 const toSnakeCase = (value: string) => value.replace(/([A-Z])/g, '_$1').toLowerCase();
 
@@ -106,7 +109,10 @@ const UserSummaryReportPage: React.FC = () => {
             title: item.label,
             dataIndex: item.value,
             width: 160,
-            render: fmtNumber,
+            render: (value: any) => {
+              if (TRAFFIC_FIELDS.has(item.value)) return fmtKBtoMB(value);
+              return fmtNumber(value);
+            },
           },
         }))}
         renderFilters={({ query, setQuery, visibleFilterDimensions }) => (

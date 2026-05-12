@@ -56,7 +56,7 @@ function ViewManager({
       }}
       onClick={onSave}
     >
-      保存
+      更新
     </Dropdown.Button>
   ) : isAdding ? (
     <>
