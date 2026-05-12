@@ -1,4 +1,4 @@
-# User Report 排序问题复盘（最终）
+# User Report 排序问题复盘
 
 ## 背景
 
@@ -31,22 +31,6 @@ const key = sortField || `${fallbackKey}-${index}`;
 - 继续按当前 sorter 回填列 `sortOrder`，并通过 `field/columnKey` 匹配当前列。
 - 统一由 `ProTable.onChange` 同步分页与排序状态。
 - 排序调试日志仅用于排查，现已移除。
-
-## 影响文件
-
-- `src/components/report/UniversalReportTable.tsx`
-- `src/pages/report/user-report-admin/tabs/BaseUserReportTab.tsx`
-
-## 验证结果
-
-- 同一列可正常切换：`升序 -> 降序 -> 取消`
-- 表头图标状态与请求参数保持一致
-- userReport 四个 Tab 的服务端排序参数映射正常（camel -> snake）
-
-## 经验结论
-
-- 动态列 + 服务端排序场景下，优先保证“列 key、dataIndex、sorter.field/columnKey”同源或可稳定映射。
-- 请求参数正确不代表交互正确；必须同时验证表头图标状态。 
 
 ## 下次同类问题先回顾
 
