@@ -12,12 +12,47 @@ import {
   SelectLang,
 } from '@/components';
 import VersionNoticeModal from '@/components/VersionNoticeModal';
+import { getLatestVersion } from '@/services/version/api';
 import defaultSettings from '../config/defaultSettings';
 import { errorConfig } from './requestErrorConfig';
 import '@ant-design/v5-patch-for-react-19';
 
 const isDev = process.env.NODE_ENV === 'development';
 const loginPath = '/user/login';
+const RUNTIME_VERSION_KEY = 'nxpanel_runtime_version';
+const VERSION_CHECK_INTERVAL = 60_000;
+
+let lastCheckTime = 0;
+let checking = false;
+
+const checkRuntimeVersionAndReload = async () => {
+  const now = Date.now();
+  if (now - lastCheckTime < VERSION_CHECK_INTERVAL) return;
+  if (typeof window === 'undefined' || checking) return;
+  checking = true;
+  lastCheckTime = now;
+  try {
+    const res = await getLatestVersion();
+    const payload = (res as any)?.data ?? res;
+    const latestVersion = payload?.version;
+    if (!latestVersion || (res as any)?.code !== 0) return;
+
+    const currentVersion = sessionStorage.getItem(RUNTIME_VERSION_KEY);
+    if (!currentVersion) {
+      sessionStorage.setItem(RUNTIME_VERSION_KEY, latestVersion);
+      return;
+    }
+
+    if (currentVersion !== latestVersion) {
+      sessionStorage.setItem(RUNTIME_VERSION_KEY, latestVersion);
+      window.location.reload();
+    }
+  } catch {
+    // ignore network errors
+  } finally {
+    checking = false;
+  }
+};
 
 /**
  * 动态获取 API 基础 URL
@@ -120,6 +155,7 @@ export const layout: RunTimeLayoutConfig = ({
     footerRender: () => <Footer />,
     onPageChange: () => {
       const { location } = history;
+      void checkRuntimeVersionAndReload();
       // 如果没有登录，重定向到 login
       if (!initialState?.currentUser && location.pathname !== loginPath) {
         history.push(loginPath);

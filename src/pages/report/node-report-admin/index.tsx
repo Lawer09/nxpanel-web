@@ -34,8 +34,8 @@ const NodeReportAdminPage: React.FC = () => {
         onCancel={closeRealtimeModal}
         width={800}
         footer={null}
-        destroyOnClose
-        bodyStyle={{ maxHeight: 'calc(100vh - 180px)', overflow: 'auto' }}
+        destroyOnHidden
+        styles={{ body: { maxHeight: 'calc(100vh - 180px)', overflow: 'auto' } }}
       >
         <NodeReportRealtimeTab />
       </Modal>

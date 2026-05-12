@@ -204,7 +204,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ embedded = false }) 
         onCancel={() => setFormOpen(false)}
         onOk={handleSubmit}
         confirmLoading={submitLoading}
-        destroyOnClose
+        destroyOnHidden
         width={560}
       >
         <Form form={form} layout="vertical" preserve={false}>

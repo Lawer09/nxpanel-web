@@ -365,8 +365,8 @@ const AdSpendPage: React.FC = () => {
         }}
         footer={null}
         width={1200}
-        destroyOnClose
-        bodyStyle={{ maxHeight: 'calc(100vh - 180px)', overflow: 'auto' }}
+        destroyOnHidden
+        styles={{ body: { maxHeight: 'calc(100vh - 180px)', overflow: 'auto' } }}
       >
         <AccountsPage embedded />
       </Modal>
@@ -381,8 +381,8 @@ const AdSpendPage: React.FC = () => {
         }}
         footer={null}
         width={1200}
-        destroyOnClose
-        bodyStyle={{ maxHeight: 'calc(100vh - 180px)', overflow: 'auto' }}
+        destroyOnHidden
+        styles={{ body: { maxHeight: 'calc(100vh - 180px)', overflow: 'auto' } }}
       >
         <SyncJobsPage embedded />
       </Modal>

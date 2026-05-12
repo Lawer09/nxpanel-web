@@ -166,7 +166,7 @@ export const SyncJobsPage: React.FC<SyncJobsPageProps> = ({ embedded = false }) 
         onCancel={() => setSyncOpen(false)}
         onOk={handleSync}
         confirmLoading={syncLoading}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={syncForm} layout="vertical" preserve={false}>
           <Form.Item name="accountId" label="账号" rules={[{ required: true, message: '请选择账号' }]}>

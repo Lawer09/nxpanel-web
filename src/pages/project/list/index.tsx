@@ -265,7 +265,7 @@ const ProjectListPage: React.FC = () => {
         onCancel={() => setFormOpen(false)}
         onOk={handleSubmit}
         confirmLoading={submitLoading}
-        destroyOnClose
+        destroyOnHidden
         width={560}
       >
         <Form form={form} layout="vertical" preserve={false}>

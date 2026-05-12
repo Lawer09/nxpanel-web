@@ -419,7 +419,7 @@ const RealtimeUserReportPage: React.FC = () => {
         ]}
       />
 
-      <Drawer title="上报详情" width={760} open={detailOpen} onClose={() => setDetailOpen(false)} destroyOnClose>
+      <Drawer title="上报详情" width={760} open={detailOpen} onClose={() => setDetailOpen(false)} destroyOnHidden>
         <pre
           style={{
             margin: 0,

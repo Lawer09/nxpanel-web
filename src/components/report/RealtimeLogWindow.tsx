@@ -271,7 +271,7 @@ function RealtimeLogWindow<T>(props: RealtimeLogWindowProps<T>) {
           : null}
       </div>
 
-      <Drawer title={detailTitle} width={760} open={detailOpen} onClose={() => setDetailOpen(false)} destroyOnClose>
+      <Drawer title={detailTitle} width={760} open={detailOpen} onClose={() => setDetailOpen(false)} destroyOnHidden>
         <pre
           style={{
             margin: 0,
