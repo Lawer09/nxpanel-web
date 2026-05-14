@@ -183,27 +183,6 @@ export default [
   },
 
   {
-    path: '/invite-gift-card',
-    name: 'invite-gift-card',
-    icon: 'gift',
-    routes: [
-      {
-        path: '/invite-gift-card',
-        redirect: '/invite-gift-card/rules',
-      },
-      {
-        path: '/invite-gift-card/rules',
-        name: 'invite-gift-card-rules',
-        component: './invite-gift-card',
-      },
-      {
-        path: '/invite-gift-card/logs',
-        name: 'invite-gift-card-logs',
-        component: './invite-gift-card/logs',
-      },
-    ],
-  },
-  {
     path: '/system',
     name: 'system',
     icon: 'dashboard',
@@ -230,34 +209,52 @@ export default [
     ],
   },
   {
-    path: '/user-manage',
-    name: 'user-manage',
-    icon: 'user',
-    component: './user-manage',
-  },
-  {
-    path: '/plan',
-    name: 'plan',
-    icon: 'appstoreAdd',
-    component: './plan',
-  },
-  {
-    path: '/order',
-    name: 'order',
-    icon: 'shoppingCart',
-    component: './order',
+    path: '/business',
+    name: 'business',
+    icon: 'solution',
+    routes: [
+      {
+        path: '/business',
+        redirect: '/business/user-manage',
+      },
+      {
+        path: '/business/user-manage',
+        name: 'user-manage',
+        component: './user-manage',
+      },
+      {
+        path: '/business/plan',
+        name: 'plan',
+        component: './plan',
+      },
+      {
+        path: '/business/order',
+        name: 'order',
+        component: './order',
+      },
+      {
+        path: '/business/ticket',
+        name: 'ticket',
+        component: './ticket',
+      },
+      {
+        path: '/business/invite-gift-card',
+        name: 'invite-gift-card',
+        component: './invite-gift-card',
+      },
+      {
+        path: '/business/invite-gift-card/logs',
+        name: 'invite-gift-card-logs',
+        component: './invite-gift-card/logs',
+        hideInMenu: true,
+      },
+    ],
   },
   {
     path: '/dns',
     name: 'dns',
     icon: 'globalOutlined',
     component: './dns',
-  },
-  {
-    path: '/ticket',
-    name: 'ticket',
-    icon: 'customerService',
-    component: './ticket',
   },
   {
     path: '/traffic-platform',
@@ -317,6 +314,52 @@ export default [
     name: 'project.detail',
     component: './project/detail',
     hideInMenu: true,
+  },
+  {
+    path: '/firebase-analytics',
+    name: 'firebase-analytics',
+    icon: 'barChart',
+    routes: [
+      {
+        path: '/firebase-analytics',
+        redirect: '/firebase-analytics/dashboard',
+      },
+      {
+        path: '/firebase-analytics/dashboard',
+        name: 'dashboard',
+        component: './firebase-analytics/Dashboard',
+      },
+      {
+        path: '/firebase-analytics/app-open',
+        name: 'app-open',
+        component: './firebase-analytics/AppOpenAnalysis',
+        hideInMenu: true,
+      },
+      {
+        path: '/firebase-analytics/vpn-session',
+        name: 'vpn-session',
+        component: './firebase-analytics/VpnSessionAnalysis',
+        hideInMenu: true,
+      },
+      {
+        path: '/firebase-analytics/vpn-probe',
+        name: 'vpn-probe',
+        component: './firebase-analytics/VpnProbeAnalysis',
+        hideInMenu: true,
+      },
+      {
+        path: '/firebase-analytics/api-error',
+        name: 'api-error',
+        component: './firebase-analytics/ServerApiErrorAnalysis',
+        hideInMenu: true,
+      },
+      {
+        path: '/firebase-analytics/events',
+        name: 'events',
+        component: './firebase-analytics/EventList',
+        hideInMenu: true,
+      },
+    ],
   },
   
   {

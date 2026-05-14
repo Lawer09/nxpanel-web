@@ -13,6 +13,7 @@ import {
 } from '@/services/invite-gift-card/api';
 import RuleFormModal from './components/RuleFormModal';
 import StatisticsPanel from './components/StatisticsPanel';
+import IssueLogDrawer from './components/IssueLogDrawer';
 
 const formatTimestamp = (timestamp?: number) => {
   if (!timestamp) return '-';
@@ -36,6 +37,15 @@ const InviteGiftCardRulePage: React.FC = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [currentRow, setCurrentRow] = useState<API.InviteGiftCardRule>();
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [logDrawerRuleId, setLogDrawerRuleId] = useState<number>();
+  const [logDrawerRuleName, setLogDrawerRuleName] = useState<string>('');
+  const [logDrawerOpen, setLogDrawerOpen] = useState(false);
+
+  const handleViewLogs = (ruleId: number, ruleName: string) => {
+    setLogDrawerRuleId(ruleId);
+    setLogDrawerRuleName(ruleName);
+    setLogDrawerOpen(true);
+  };
 
   const {
     data: statsData,
@@ -224,7 +234,9 @@ const InviteGiftCardRulePage: React.FC = () => {
         if (!stats) return '-';
         return (
           <Space direction="vertical" size={0}>
-            <span>总计: {stats.total_issued}</span>
+            <a onClick={() => handleViewLogs(record.id, record.name)}>
+              总计: {stats.total_issued}
+            </a>
             <span style={{ fontSize: 12, color: '#999' }}>
               已兑换: {stats.auto_redeemed_count} | 用户: {stats.unique_recipients}
             </span>
@@ -272,7 +284,7 @@ const InviteGiftCardRulePage: React.FC = () => {
 
   return (
     <PageContainer>
-      <StatisticsPanel data={statsData} loading={statsLoading} />
+      <StatisticsPanel data={statsData} loading={statsLoading} onViewLogs={handleViewLogs} />
       <ProTable<API.InviteGiftCardRule>
         rowKey="id"
         actionRef={actionRef}
@@ -340,6 +352,12 @@ const InviteGiftCardRulePage: React.FC = () => {
           actionRef.current?.reload();
           refreshStats();
         }}
+      />
+      <IssueLogDrawer
+        open={logDrawerOpen}
+        ruleId={logDrawerRuleId}
+        ruleName={logDrawerRuleName}
+        onClose={() => setLogDrawerOpen(false)}
       />
     </PageContainer>
   );

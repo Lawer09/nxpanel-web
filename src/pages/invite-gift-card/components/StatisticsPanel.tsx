@@ -7,9 +7,10 @@ import { Area } from '@ant-design/plots';
 interface StatisticsPanelProps {
   data?: API.InviteGiftCardStatistics;
   loading?: boolean;
+  onViewLogs?: (ruleId: number, ruleName: string) => void;
 }
 
-const StatisticsPanel: React.FC<StatisticsPanelProps> = ({ data, loading }) => {
+const StatisticsPanel: React.FC<StatisticsPanelProps> = ({ data, loading, onViewLogs }) => {
   if (!data) return null;
 
   // 趋势图配置
@@ -156,13 +157,17 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({ data, loading }) => {
           </Card>
         </Col>
         <Col xs={24} lg={16}>
-          <Card title="Top 规则" loading={loading}>
+          <Card title="卡片发放记录" loading={loading}>
             <Table
               columns={topRulesColumns}
               dataSource={data.top_rules}
               pagination={false}
               size="small"
               rowKey="id"
+              onRow={(record) => ({
+                onClick: () => onViewLogs?.(record.id, record.name),
+                style: { cursor: 'pointer' },
+              })}
             />
           </Card>
         </Col>

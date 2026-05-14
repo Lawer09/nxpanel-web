@@ -53,7 +53,7 @@
 ### 5. 发版切换规则
 只通过修改顶部 当前开发版本：x.y.z 来切换开发版本。
 切换版本后，上一版本区块自动冻结。
-如果新版本区块不存在，则在文件末尾新增版本模板：
+如果新版本区块不存在，则在文件末尾新增版本模板，参考模板如下：
 ---
 ## [x.y.z] - YYYY-MM-DD
 
@@ -85,3 +85,32 @@
 根据本次改动内容，追加到正确分类
 如果对应版本区块不存在，先创建版本区块
 不得修改非当前版本的任何内容
+
+## 8. 当前版本日志
+
+## [1.2.3] - 2026-05-12
+
+### 新增功能
+
+- 新增业务管理菜单组，将用户管理、套餐管理、订单管理、工单管理归入该组（config/routes.ts, src/locales/zh-CN/menu.ts, src/locales/en-US/menu.ts）
+- 将邀请礼品卡菜单移至业务管理组，合并规则管理和发放日志，规则列表增加卡片发放记录板块，点击数量可查看发放日志（src/pages/invite-gift-card/, config/routes.ts, src/locales/zh-CN/menu.ts, src/locales/en-US/menu.ts）
+- 新增 Firebase 数据分析模块，包含 Dashboard、App 打开分析、VPN 连接分析、节点测速分析、API 错误分析、事件明细查询等 6 个页面（config/routes.ts, src/pages/firebase-analytics/）
+- 实现 Firebase Analytics 通用筛选组件 FilterBar，支持时间范围、多维参数筛选及快键键（src/components/FirebaseAnalytics/FilterBar.tsx）
+- 实现 Firebase Analytics KPI 卡片组件，支持昨日对比趋势显示（src/components/FirebaseAnalytics/KpiCard.tsx）
+- 实现 Firebase Analytics 趋势图组件，集成 Ant Design Charts 折线图（src/components/FirebaseAnalytics/TrendChart.tsx）
+- 实现 Firebase Analytics 基础服务封装，对接后端 v3 接口（src/services/firebase-analytics/api.ts）
+- 实现 Dashboard 总览页面，展示 KPI 数据、事件趋势及 VPN 质量趋势（src/pages/firebase-analytics/Dashboard.tsx）
+- 补全 Dashboard 页面缺失模块：地区质量分布 (RegionQualityPanel)、错误 Top 排行 (ErrorTopPanel) 和节点质量排行 (NodeQualityTable) （src/components/FirebaseAnalytics/, src/pages/firebase-analytics/Dashboard.tsx）
+
+### 优化功能
+- 优化 Dashboard 页面布局，将图表和组件改为左右两列瀑布流排列（事件趋势、VPN连接质量、地区质量分布、错误Top排行），并为长列表单独占满整行（src/pages/firebase-analytics/Dashboard.tsx）
+- 地区质量分布 (RegionQualityPanel) 引入 `echarts` 和 `echarts-for-react`，动态加载 GeoJSON 实现了可交互的事件热力地图渲染（src/components/FirebaseAnalytics/RegionQualityPanel.tsx）
+- 优化 ErrorTopPanel 及 RegionQualityPanel 内部结构，由于缩减为半宽卡片，将其内部排列从左右改为上下堆叠以避免挤压（src/components/FirebaseAnalytics/）
+- 新增前端通用工具类 utils，包含数值、流量、时长、成功率等格式化方法（src/utils/firebase-analytics.ts）
+- 更改侧边菜单及页面名称层级：将 `Firebase 数据分析` 改为 `Firebase`，`总览 Dashboard` 改为 `Dashboard`，同时将其余 5 个详细分析子菜单进行 `hideInMenu: true` 隐藏处理（config/routes.ts, src/locales/zh-CN/menu.ts, src/pages/firebase-analytics/Dashboard.tsx）
+
+### Bug 修复
+- 修复 `FilterBar` 组件 ProForm 使用 `initialValues` 的警告，改为 `request` 异步加载默认值（src/components/FirebaseAnalytics/FilterBar.tsx）
+- 修复 `RegionQualityPanel` 地图组件中使用废弃 API `mapType` 的警告，替换为 `map`（src/components/FirebaseAnalytics/RegionQualityPanel.tsx）
+- 修复各个图表、表格组件中使用 Antd Card 废弃属性 `bordered` 和 `bodyStyle` 的警告，替换为 `variant="borderless"` 和 `styles={{ body: ... }}`（src/components/FirebaseAnalytics/*.tsx）
+- 修正 API 数据结构和字段映射，以对齐实际后端接口契约（docs/api/firebase_analytics.md）：更新 Types、Dashboard 解析逻辑及底层数据组件对应 key（src/services/firebase-analytics/types.ts, src/services/firebase-analytics/api.ts, src/components/FirebaseAnalytics/*）
