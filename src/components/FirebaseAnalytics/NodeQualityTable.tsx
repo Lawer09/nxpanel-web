@@ -17,7 +17,7 @@ const NodeQualityTable: React.FC<NodeQualityTableProps> = ({ filters }) => {
       setLoading(true);
       try {
         const res = await getNodeQualityRank(filters);
-        if (res.data?.list) setData(res.data.list);
+        if (res.data?.items) setData(res.data.items);
       } catch (error) {
         console.error(error);
       } finally {

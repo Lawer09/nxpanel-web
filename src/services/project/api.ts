@@ -1,217 +1,141 @@
 import { request } from '@umijs/max';
+import type * as Types from './types';
 
-// ── 项目 ──────────────────────────────────────────────────────────────────────
-
-export async function getProjects(params?: API.ProjectQuery) {
-  return request<API.ApiResponse<API.PageResult<API.ProjectItem>>>(
-    '/v3/projects',
-    { method: 'GET', params },
-  );
+// Projects
+export async function getProjects(params?: Types.ProjectFetchRequest) {
+  return request<API.ApiResponse<API.PageResult<Types.ProjectItem>>>('/v3/projects/', {
+    method: 'GET',
+    params,
+  });
 }
 
 export async function getProjectDetail(id: number) {
-  return request<API.ApiResponse<API.ProjectItem>>(
-    `/v3/projects/${id}`,
-    { method: 'GET' },
-  );
+  return request<API.ApiResponse<Types.ProjectItem>>(`/v3/projects/detail`, {
+    method: 'GET',
+    params: { id },
+  });
 }
 
-export async function createProject(data: API.ProjectCreateParams) {
-  return request<API.ApiResponse<{ id: number }>>('/v3/projects', {
+export async function createProject(data: Types.ProjectStoreRequest) {
+  return request<API.ApiResponse<any>>('/v3/projects/create', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     data,
   });
 }
 
-export async function updateProject(id: number, data: API.ProjectUpdateParams) {
-  return request<API.ApiResponse<boolean>>(`/v3/projects/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+export async function updateProject(data: Types.ProjectUpdateRequest) {
+  return request<API.ApiResponse<any>>('/v3/projects/update', {
+    method: 'POST',
     data,
   });
 }
 
-export async function updateProjectStatus(id: number, status: string) {
-  return request<API.ApiResponse<boolean>>(`/v3/projects/${id}/status`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    data: { status },
+export async function updateProjectStatus(data: Types.ProjectStatusUpdateRequest) {
+  return request<API.ApiResponse<any>>('/v3/projects/update-status', {
+    method: 'POST',
+    data,
   });
 }
 
-// ── 项目关联流量账号 ──────────────────────────────────────────────────────────────
-
-export async function getProjectTrafficAccounts(
-  projectId: number,
-  params?: API.ProjectTrafficAccountQuery,
-) {
-  return request<API.ApiResponse<{ data: API.ProjectTrafficAccountItem[] }>>(
-    `/v3/projects/${projectId}/traffic-accounts`,
-    { method: 'GET', params },
-  );
+// Traffic Accounts
+export async function getTrafficAccounts(projectId: number) {
+  return request<API.ApiResponse<{ data: Types.ProjectTrafficAccount[] }>>('/v3/projects/traffic-accounts', {
+    method: 'GET',
+    params: { project_id: projectId },
+  });
 }
 
-export async function createProjectTrafficAccount(
-  projectId: number,
-  data: API.ProjectTrafficAccountCreateParams,
-) {
-  return request<API.ApiResponse<{ id: number }>>(
-    `/v3/projects/${projectId}/traffic-accounts`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      data,
-    },
-  );
+export async function createTrafficAccount(data: Types.ProjectTrafficAccountStoreRequest) {
+  return request<API.ApiResponse<any>>('/v3/projects/traffic-accounts/create', {
+    method: 'POST',
+    data,
+  });
 }
 
-export async function updateProjectTrafficAccount(
-  projectId: number,
-  relationId: number,
-  data: API.ProjectTrafficAccountUpdateParams,
-) {
-  return request<API.ApiResponse<boolean>>(
-    `/v3/projects/${projectId}/traffic-accounts/${relationId}`,
-    {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      data,
-    },
-  );
+export async function updateTrafficAccount(data: Types.ProjectTrafficAccountUpdateRequest) {
+  return request<API.ApiResponse<any>>('/v3/projects/traffic-accounts/update', {
+    method: 'POST',
+    data,
+  });
 }
 
-export async function deleteProjectTrafficAccount(projectId: number, relationId: number) {
-  return request<API.ApiResponse<boolean>>(
-    `/v3/projects/${projectId}/traffic-accounts/${relationId}`,
-    { method: 'DELETE' },
-  );
+export async function deleteTrafficAccount(data: Types.ProjectResourceIdRequest) {
+  return request<API.ApiResponse<any>>('/v3/projects/traffic-accounts/delete', {
+    method: 'POST',
+    data,
+  });
 }
 
-// ── 项目关联广告账号 ──────────────────────────────────────────────────────────────
-
-export async function getProjectAdAccounts(
-  projectId: number,
-  params?: API.ProjectAdAccountQuery,
-) {
-  return request<API.ApiResponse<{ data: API.ProjectAdAccountItem[] }>>(
-    `/v3/projects/${projectId}/ad-accounts`,
-    { method: 'GET', params },
-  );
+// Ad Accounts
+export async function getAdAccounts(projectId: number) {
+  return request<API.ApiResponse<{ data: Types.ProjectAdAccount[] }>>('/v3/projects/ad-accounts', {
+    method: 'GET',
+    params: { project_id: projectId },
+  });
 }
 
-export async function createProjectAdAccount(
-  projectId: number,
-  data: API.ProjectAdAccountCreateParams,
-) {
-  return request<API.ApiResponse<{ id: number }>>(
-    `/v3/projects/${projectId}/ad-accounts`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      data,
-    },
-  );
+export async function createAdAccount(data: Types.ProjectAdAccountStoreRequest) {
+  return request<API.ApiResponse<any>>('/v3/projects/ad-accounts/create', {
+    method: 'POST',
+    data,
+  });
 }
 
-export async function updateProjectAdAccount(
-  projectId: number,
-  relationId: number,
-  data: API.ProjectAdAccountUpdateParams,
-) {
-  return request<API.ApiResponse<boolean>>(
-    `/v3/projects/${projectId}/ad-accounts/${relationId}`,
-    {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      data,
-    },
-  );
+export async function updateAdAccount(data: Types.ProjectAdAccountUpdateRequest) {
+  return request<API.ApiResponse<any>>('/v3/projects/ad-accounts/update', {
+    method: 'POST',
+    data,
+  });
 }
 
-export async function deleteProjectAdAccount(projectId: number, relationId: number) {
-  return request<API.ApiResponse<boolean>>(
-    `/v3/projects/${projectId}/ad-accounts/${relationId}`,
-    { method: 'DELETE' },
-  );
+export async function deleteAdAccount(data: Types.ProjectResourceIdRequest) {
+  return request<API.ApiResponse<any>>('/v3/projects/ad-accounts/delete', {
+    method: 'POST',
+    data,
+  });
 }
 
-// ── 项目关联用户 AppId ───────────────────────────────────────────────────────────
-
-export async function getProjectUserApps(
-  projectId: number,
-  params?: API.ProjectUserAppQuery,
-) {
-  return request<API.ApiResponse<API.ProjectUserAppItem[] | { data: API.ProjectUserAppItem[] }>>(
-    `/v3/projects/${projectId}/user-apps`,
-    { method: 'GET', params },
-  );
+// User Apps
+export async function getUserApps(projectId: number) {
+  return request<API.ApiResponse<{ data: Types.ProjectUserApp[] }>>('/v3/projects/user-apps', {
+    method: 'GET',
+    params: { project_id: projectId },
+  });
 }
 
-export async function createProjectUserApp(
-  projectId: number,
-  data: API.ProjectUserAppCreateParams,
-) {
-  return request<API.ApiResponse<{ id: number }>>(
-    `/v3/projects/${projectId}/user-apps`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      data,
-    },
-  );
+export async function createUserApp(data: Types.ProjectUserAppStoreRequest) {
+  return request<API.ApiResponse<any>>('/v3/projects/user-apps/create', {
+    method: 'POST',
+    data,
+  });
 }
 
-export async function updateProjectUserApp(
-  projectId: number,
-  relationId: number,
-  data: API.ProjectUserAppUpdateParams,
-) {
-  return request<API.ApiResponse<boolean>>(
-    `/v3/projects/${projectId}/user-apps/${relationId}`,
-    {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      data,
-    },
-  );
+export async function updateUserApp(data: Types.ProjectUserAppUpdateRequest) {
+  return request<API.ApiResponse<any>>('/v3/projects/user-apps/update', {
+    method: 'POST',
+    data,
+  });
 }
 
-export async function deleteProjectUserApp(projectId: number, relationId: number) {
-  return request<API.ApiResponse<boolean>>(
-    `/v3/projects/${projectId}/user-apps/${relationId}`,
-    { method: 'DELETE' },
-  );
+export async function deleteUserApp(data: Types.ProjectResourceIdRequest) {
+  return request<API.ApiResponse<any>>('/v3/projects/user-apps/delete', {
+    method: 'POST',
+    data,
+  });
 }
 
-// ── 项目投放 ────────────────────────────────────────────────────────────────
-
-export async function getProjectAdSpendSummary(
-  projectCode: string,
-  params: API.ProjectAdSpendSummaryQuery,
-) {
-  return request<API.ApiResponse<API.ProjectAdSpendSummaryItem>>(
-    `/v3/projects/${projectCode}/ad-spend-summary`,
-    { method: 'GET', params },
-  );
+// Aggregation
+export async function aggregateSync(data: Types.AggregateRequest) {
+  return request<API.ApiResponse<any>>('/v3/projects/aggregate', {
+    method: 'POST',
+    data,
+  });
 }
 
-export async function getProjectAdSpendTrend(
-  projectCode: string,
-  params: API.ProjectAdSpendTrendQuery,
-) {
-  return request<API.ApiResponse<API.ProjectAdSpendTrendItem[]>>(
-    `/v3/projects/${projectCode}/ad-spend-trend`,
-    { method: 'GET', params },
-  );
-}
-
-export async function getProjectAdSpendDaily(
-  projectCode: string,
-  params: API.ProjectAdSpendDailyQuery,
-) {
-  return request<API.ApiResponse<API.PageResult<API.ProjectAdSpendDailyItem>>>(
-    `/v3/projects/${projectCode}/ad-spend-daily`,
-    { method: 'GET', params },
-  );
+export async function aggregateAsync(data: Types.AggregateRequest) {
+  // Returns accepted etc directly or wrapped? Based on doc: returns the JSON
+  return request<{ accepted: boolean; triggerId: string; startDate: string; endDate: string; status: string }>('/v3/projects/aggregate-async', {
+    method: 'POST',
+    data,
+  });
 }

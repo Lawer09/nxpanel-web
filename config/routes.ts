@@ -36,18 +36,6 @@ export default [
     component: './dashboard',
   },
   {
-    path: '/ad',
-    name: 'ad',
-    icon: 'fundOutlined',
-    component: './ad/ad-revenue',
-  },
-  {
-    path: '/ad-spend',
-    name: 'ad-spend',
-    icon: 'fundOutlined',
-    component: './ad-spend',
-  },
-    {
     path: '/report',
     name: 'report',
     icon: 'barChart',
@@ -131,6 +119,154 @@ export default [
     ],
   },
   {
+    path: '/ad',
+    name: 'ad',
+    icon: 'fundOutlined',
+    component: './ad/ad-revenue',
+  },
+  {
+    path: '/ad-spend',
+    name: 'ad-spend',
+    icon: 'fundOutlined',
+    component: './ad-spend',
+  },
+  {
+    path: '/traffic-platform',
+    name: 'traffic-platform',
+    icon: 'cloudServer',
+    component: './traffic-platform/dashboard',
+  },
+  {
+    path: '/traffic-platform/dashboard',
+    redirect: '/traffic-platform',
+  },
+  {
+    path: '/traffic-platform/platforms',
+    redirect: '/traffic-platform',
+  },
+  {
+    path: '/traffic-platform/accounts',
+    redirect: '/traffic-platform',
+  },
+  {
+    path: '/traffic-platform/hourly',
+    redirect: '/traffic-platform',
+  },
+  {
+    path: '/traffic-platform/daily',
+    redirect: '/traffic-platform',
+  },
+  {
+    path: '/traffic-platform/monthly',
+    redirect: '/traffic-platform',
+  },
+  {
+    path: '/traffic-platform/trend',
+    redirect: '/traffic-platform',
+  },
+  {
+    path: '/traffic-platform/ranking',
+    redirect: '/traffic-platform',
+  },
+  {
+    path: '/traffic-platform/sync-jobs',
+    redirect: '/traffic-platform',
+  },
+  {
+    path: '/project',
+    name: 'project',
+    icon: 'project',
+    component: './project',
+  },
+  {
+    path: '/firebase-analytics',
+    name: 'firebase-analytics',
+    icon: 'barChart',
+    routes: [
+      {
+        path: '/firebase-analytics',
+        redirect: '/firebase-analytics/dashboard',
+      },
+      {
+        path: '/firebase-analytics/dashboard',
+        name: 'dashboard',
+        component: './firebase-analytics/Dashboard',
+      },
+      {
+        path: '/firebase-analytics/app-open',
+        name: 'app-open',
+        component: './firebase-analytics/AppOpenAnalysis',
+        hideInMenu: true,
+      },
+      {
+        path: '/firebase-analytics/vpn-session',
+        name: 'vpn-session',
+        component: './firebase-analytics/VpnSessionAnalysis',
+        hideInMenu: true,
+      },
+      {
+        path: '/firebase-analytics/vpn-probe',
+        name: 'vpn-probe',
+        component: './firebase-analytics/VpnProbeAnalysis',
+        hideInMenu: true,
+      },
+      {
+        path: '/firebase-analytics/api-error',
+        name: 'api-error',
+        component: './firebase-analytics/ServerApiErrorAnalysis',
+        hideInMenu: true,
+      },
+      {
+        path: '/firebase-analytics/events',
+        name: 'events',
+        component: './firebase-analytics/EventList',
+        hideInMenu: true,
+      },
+    ],
+  },
+  {
+    path: '/business',
+    name: 'business',
+    icon: 'solution',
+    routes: [
+      {
+        path: '/business',
+        redirect: '/business/user-manage',
+      },
+      {
+        path: '/business/user-manage',
+        name: 'user-manage',
+        component: './user-manage',
+      },
+      {
+        path: '/business/plan',
+        name: 'plan',
+        component: './plan',
+      },
+      {
+        path: '/business/order',
+        name: 'order',
+        component: './order',
+      },
+      {
+        path: '/business/ticket',
+        name: 'ticket',
+        component: './ticket',
+      },
+      {
+        path: '/business/invite-gift-card',
+        name: 'invite-gift-card',
+        component: './invite-gift-card',
+      },
+      {
+        path: '/business/invite-gift-card/logs',
+        name: 'invite-gift-card-logs',
+        component: './invite-gift-card/logs',
+        hideInMenu: true,
+      },
+    ],
+  },
+  {
     path: '/resource',
     name: 'resource',
     icon: 'appstore',
@@ -181,7 +317,12 @@ export default [
       },
     ],
   },
-
+  {
+    path: '/dns',
+    name: 'dns',
+    icon: 'globalOutlined',
+    component: './dns',
+  },
   {
     path: '/system',
     name: 'system',
@@ -208,160 +349,6 @@ export default [
       },
     ],
   },
-  {
-    path: '/business',
-    name: 'business',
-    icon: 'solution',
-    routes: [
-      {
-        path: '/business',
-        redirect: '/business/user-manage',
-      },
-      {
-        path: '/business/user-manage',
-        name: 'user-manage',
-        component: './user-manage',
-      },
-      {
-        path: '/business/plan',
-        name: 'plan',
-        component: './plan',
-      },
-      {
-        path: '/business/order',
-        name: 'order',
-        component: './order',
-      },
-      {
-        path: '/business/ticket',
-        name: 'ticket',
-        component: './ticket',
-      },
-      {
-        path: '/business/invite-gift-card',
-        name: 'invite-gift-card',
-        component: './invite-gift-card',
-      },
-      {
-        path: '/business/invite-gift-card/logs',
-        name: 'invite-gift-card-logs',
-        component: './invite-gift-card/logs',
-        hideInMenu: true,
-      },
-    ],
-  },
-  {
-    path: '/dns',
-    name: 'dns',
-    icon: 'globalOutlined',
-    component: './dns',
-  },
-  {
-    path: '/traffic-platform',
-    name: 'traffic-platform',
-    icon: 'cloudServer',
-    component: './traffic-platform/dashboard',
-  },
-  {
-    path: '/traffic-platform/dashboard',
-    redirect: '/traffic-platform',
-  },
-  {
-    path: '/traffic-platform/platforms',
-    redirect: '/traffic-platform',
-  },
-  {
-    path: '/traffic-platform/accounts',
-    redirect: '/traffic-platform',
-  },
-  {
-    path: '/traffic-platform/hourly',
-    redirect: '/traffic-platform',
-  },
-  {
-    path: '/traffic-platform/daily',
-    redirect: '/traffic-platform',
-  },
-  {
-    path: '/traffic-platform/monthly',
-    redirect: '/traffic-platform',
-  },
-  {
-    path: '/traffic-platform/trend',
-    redirect: '/traffic-platform',
-  },
-  {
-    path: '/traffic-platform/ranking',
-    redirect: '/traffic-platform',
-  },
-  {
-    path: '/traffic-platform/sync-jobs',
-    redirect: '/traffic-platform',
-  },
-
-  {
-    path: '/project',
-    name: 'project',
-    icon: 'project',
-    component: './project/list',
-  },
-  {
-    path: '/project/list',
-    redirect: '/project',
-  },
-  {
-    path: '/project/:id',
-    name: 'project.detail',
-    component: './project/detail',
-    hideInMenu: true,
-  },
-  {
-    path: '/firebase-analytics',
-    name: 'firebase-analytics',
-    icon: 'barChart',
-    routes: [
-      {
-        path: '/firebase-analytics',
-        redirect: '/firebase-analytics/dashboard',
-      },
-      {
-        path: '/firebase-analytics/dashboard',
-        name: 'dashboard',
-        component: './firebase-analytics/Dashboard',
-      },
-      {
-        path: '/firebase-analytics/app-open',
-        name: 'app-open',
-        component: './firebase-analytics/AppOpenAnalysis',
-        hideInMenu: true,
-      },
-      {
-        path: '/firebase-analytics/vpn-session',
-        name: 'vpn-session',
-        component: './firebase-analytics/VpnSessionAnalysis',
-        hideInMenu: true,
-      },
-      {
-        path: '/firebase-analytics/vpn-probe',
-        name: 'vpn-probe',
-        component: './firebase-analytics/VpnProbeAnalysis',
-        hideInMenu: true,
-      },
-      {
-        path: '/firebase-analytics/api-error',
-        name: 'api-error',
-        component: './firebase-analytics/ServerApiErrorAnalysis',
-        hideInMenu: true,
-      },
-      {
-        path: '/firebase-analytics/events',
-        name: 'events',
-        component: './firebase-analytics/EventList',
-        hideInMenu: true,
-      },
-    ],
-  },
-  
   {
     path: '/',
     redirect: '/dashboard',

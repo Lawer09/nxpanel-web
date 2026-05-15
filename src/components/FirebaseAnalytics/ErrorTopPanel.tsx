@@ -19,7 +19,7 @@ const ErrorTopPanel: React.FC<ErrorTopPanelProps> = ({ filters }) => {
       setLoading(true);
       try {
         const res = await getErrorTop({ ...filters, error_type: errorType });
-        if (res.data) setData(res.data);
+        if (res.data) setData({ list: (res.data as any).items || [], total: 0 });
       } catch (error) {
         console.error(error);
       } finally {

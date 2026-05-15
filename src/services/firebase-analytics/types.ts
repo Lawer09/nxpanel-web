@@ -55,14 +55,7 @@ export interface FilterOptionsResponse {
   event_names: FilterOption[];
 }
 
-export interface DashboardSummaryResponse {
-  total_events: KpiItem;
-  active_devices: KpiItem;
-  app_open_count: KpiItem;
-  vpn_success_rate: KpiItem;
-  probe_success_rate: KpiItem;
-  api_error_count: KpiItem;
-}
+
 
 export interface EventTrendItem {
   time: string;

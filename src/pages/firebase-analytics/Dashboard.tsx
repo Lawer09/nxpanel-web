@@ -36,21 +36,30 @@ const Dashboard: React.FC = () => {
     searchParams.forEach((value, key) => {
       filters[key] = value;
     });
+    // 恢复 timeRange 结构，供 FilterBar 初始显示使用
+    if (filters.start_time && filters.end_time) {
+      filters.timeRange = [dayjs(filters.start_time), dayjs(filters.end_time)];
+    }
     return filters;
   };
 
   const [filters, setFilters] = useState<any>(getInitialFilters());
 
+  // 统一的参数转换逻辑：剥离 timeRange 避免污染请求，并格式化时间
+  const getApiParams = (currentFilters: any) => {
+    const { timeRange, ...rest } = currentFilters;
+    const params = { ...rest };
+    if (timeRange && timeRange.length === 2) {
+      params.start_time = dayjs(timeRange[0]).format('YYYY-MM-DD HH:mm:ss');
+      params.end_time = dayjs(timeRange[1]).format('YYYY-MM-DD HH:mm:ss');
+    }
+    return params;
+  };
+
   const fetchData = async (currentFilters: any) => {
     setLoading(true);
     try {
-      // 转换时间范围
-      const { timeRange, ...rest } = currentFilters;
-      const params = {
-        ...rest,
-        start_time: timeRange ? dayjs(timeRange[0]).toISOString() : undefined,
-        end_time: timeRange ? dayjs(timeRange[1]).toISOString() : undefined,
-      };
+      const params = getApiParams(currentFilters);
 
       const [summaryRes, eventTrendRes, vpnTrendRes, regionRes] = await Promise.all([
         getDashboardSummary(params),
@@ -95,8 +104,8 @@ const Dashboard: React.FC = () => {
     Object.keys(values).forEach(key => {
       if (values[key]) {
         if (key === 'timeRange') {
-          newParams.start_time = dayjs(values[key][0]).toISOString();
-          newParams.end_time = dayjs(values[key][1]).toISOString();
+          newParams.start_time = dayjs(values[key][0]).format('YYYY-MM-DD HH:mm:ss');
+          newParams.end_time = dayjs(values[key][1]).format('YYYY-MM-DD HH:mm:ss');
         } else {
           newParams[key] = values[key];
         }
@@ -109,11 +118,7 @@ const Dashboard: React.FC = () => {
     fetchData(filters);
   }, [filters]);
 
-  const apiParams = {
-    ...filters,
-    start_time: filters.timeRange ? dayjs(filters.timeRange[0]).toISOString() : undefined,
-    end_time: filters.timeRange ? dayjs(filters.timeRange[1]).toISOString() : undefined,
-  };
+  const apiParams = getApiParams(filters);
 
   return (
     <PageContainer
