@@ -3,6 +3,7 @@ import { ActionType, ProTable, ProColumns, ModalForm, ProFormText, ProFormSelect
 import { Space, Popconfirm, Tag, App } from 'antd';
 import { getUserApps, createUserApp, updateUserApp, deleteUserApp } from '@/services/project/api';
 import type { ProjectUserApp } from '@/services/project/types';
+import { formatUTC8 } from '@/utils/format';
 
 interface UserAppsProps {
   projectId: number;
@@ -40,8 +41,8 @@ const UserApps = forwardRef<ResourceActionRef, UserAppsProps>(({ projectId }, re
       },
     },
     { title: '备注', dataIndex: 'remark', hideInSearch: true },
-    { title: '创建时间', dataIndex: 'createdAt', valueType: 'dateTime', hideInSearch: true },
-    { title: '更新时间', dataIndex: 'updatedAt', valueType: 'dateTime', hideInSearch: true },
+    { title: '创建时间', dataIndex: 'createdAt', hideInSearch: true, render: (_, record) => formatUTC8(record.createdAt) },
+    { title: '更新时间', dataIndex: 'updatedAt', hideInSearch: true, render: (_, record) => formatUTC8(record.updatedAt) },
     {
       title: '操作',
       valueType: 'option',

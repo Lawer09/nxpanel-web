@@ -2,7 +2,7 @@
 
 ## Agent 维护说明（必读）
 
-当前开发版本：`1.2.3`
+当前开发版本：`1.2.5`
 
 请后续 Agent 严格按以下规则维护此文件。
 
@@ -88,7 +88,7 @@
 
 ## 8. 当前版本日志
 
-## [1.2.3] - 2026-05-12
+## [1.2.4] - 2026-05-12
 
 ### 新增功能
 
@@ -123,3 +123,4 @@
 - 修复 ProTable request 返回结构解析错误导致的 `rawData.some is not a function` 崩溃（src/pages/project/components/ResourceTabs/）
 - 修复 ModalForm 内 React Fragment 子元素接收 autoFocus 属性导致的控制台警告（src/pages/project/components/ResourceTabs/）
 - 修复各组件中 message 静态方法无法读取动态主题的警告，统一改用 App.useApp()（src/pages/project/components/）
+- 新增公共的时间格式化方法 `formatUTC8`，修复项目管理页面时间显示问题，将后端 UTC 时间统一转换为东八区显示（src/utils/format.ts, src/pages/project/）

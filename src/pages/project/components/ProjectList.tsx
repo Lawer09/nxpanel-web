@@ -1,10 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { Card, Input, Select, Button, Space, Typography, Tag, List, message } from 'antd';
+import { Card, Input, Select, Button, Space, Typography, Tag, List, message, Pagination } from 'antd';
 import { SearchOutlined, ReloadOutlined, PlusOutlined } from '@ant-design/icons';
 import { useRequest } from 'ahooks';
 import { getProjects } from '@/services/project/api';
 import type { ProjectItem, ProjectFetchRequest } from '@/services/project/types';
 import ProjectForm from './ProjectForm';
+import { formatUTC8 } from '@/utils/format';
 
 const { Text } = Typography;
 
@@ -52,8 +53,12 @@ const ProjectList: React.FC<ProjectListProps> = ({ selectedProject, onSelect }) 
   };
 
   return (
-    <>
-      <Card variant="borderless" styles={{ body: { padding: 16 } }} style={{ marginBottom: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
+      <Card variant="borderless" style={{ flexShrink: 0, marginBottom: 16 }} styles={{ body: { padding: 20 } }}>
         <Space direction="vertical" style={{ width: '100%' }}>
           <Input
             placeholder="关键字 (代号/名称)"
@@ -92,19 +97,11 @@ const ProjectList: React.FC<ProjectListProps> = ({ selectedProject, onSelect }) 
         </Space>
       </Card>
 
-      <List
+      <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '4px' }}>
+        <List
         loading={loading}
         dataSource={projects}
-        pagination={{
-          current: params.page,
-          pageSize: params.pageSize,
-          total: total,
-          onChange: (page, pageSize) => setParams({ ...params, page, pageSize }),
-          size: 'small',
-          showSizeChanger: true,
-          showTotal: (t) => `共 ${t} 条`,
-          style: { padding: '16px 0', margin: 0, position: 'sticky', bottom: 0, background: '#fff', zIndex: 2, borderTop: '1px solid #f0f0f0' },
-        }}
+        pagination={false}
         renderItem={(item) => (
           <List.Item style={{ padding: 0, marginBottom: 16 }}>
             <Card
@@ -113,10 +110,10 @@ const ProjectList: React.FC<ProjectListProps> = ({ selectedProject, onSelect }) 
               style={{
                 width: '100%',
                 borderColor: selectedProject?.id === item.id ? '#1890ff' : undefined,
-                boxShadow: selectedProject?.id === item.id ? '0 0 8px rgba(24,144,255,0.2)' : undefined,
+                boxShadow: selectedProject?.id === item.id ? '0 0 12px rgba(24,144,255,0.25)' : '0 2px 8px rgba(0,0,0,0.04)',
                 cursor: 'pointer'
               }}
-              styles={{ body: { padding: 16 } }}
+              styles={{ body: { padding: 20 } }}
               onClick={() => onSelect(item)}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -125,7 +122,7 @@ const ProjectList: React.FC<ProjectListProps> = ({ selectedProject, onSelect }) 
               </div>
               <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>
                 <div>负责人: {item.ownerName} | 部门: {item.department}</div>
-                <div>更新时间: {item.updatedAt}</div>
+                <div>更新时间: {formatUTC8(item.updatedAt)}</div>
               </div>
               <Space split={<Text type="secondary">|</Text>} size="small" style={{ fontSize: 12 }}>
                 <Text>流量账号: {item.trafficAccounts?.length || 0}</Text>
@@ -136,6 +133,20 @@ const ProjectList: React.FC<ProjectListProps> = ({ selectedProject, onSelect }) 
           </List.Item>
         )}
       />
+      </div>
+
+      <Card variant="borderless" style={{ flexShrink: 0, marginTop: 12 }} styles={{ body: { padding: '12px 16px' } }}>
+        <Pagination
+          current={params.page}
+          pageSize={params.pageSize}
+          total={total}
+          onChange={(page, pageSize) => setParams({ ...params, page, pageSize })}
+          size="small"
+          showSizeChanger
+          showTotal={(t) => `共 ${t} 条`}
+          style={{ display: 'flex', justifyContent: 'center' }}
+        />
+      </Card>
 
       {formVisible && (
         <ProjectForm
@@ -147,7 +158,7 @@ const ProjectList: React.FC<ProjectListProps> = ({ selectedProject, onSelect }) 
           }}
         />
       )}
-    </>
+    </div>
   );
 };
 

@@ -7,6 +7,7 @@ import TrafficAccounts, { ResourceActionRef as TrafficRef } from './ResourceTabs
 import AdAccounts, { ResourceActionRef as AdRef } from './ResourceTabs/AdAccounts';
 import UserApps, { ResourceActionRef as AppRef } from './ResourceTabs/UserApps';
 import DailyAggregation from './DailyAggregation';
+import { formatUTC8 } from '@/utils/format';
 
 interface ProjectDetailProps {
   project: ProjectItem | null;
@@ -207,8 +208,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onProjectUpdate 
             <Descriptions.Item label="项目名称">{project.projectName}</Descriptions.Item>
             <Descriptions.Item label="部门">{project.department || '-'}</Descriptions.Item>
             <Descriptions.Item label="负责人">{project.ownerName || '-'}</Descriptions.Item>
-            <Descriptions.Item label="创建时间">{project.createdAt}</Descriptions.Item>
-            <Descriptions.Item label="更新时间">{project.updatedAt}</Descriptions.Item>
+            <Descriptions.Item label="创建时间">{formatUTC8(project.createdAt)}</Descriptions.Item>
+            <Descriptions.Item label="更新时间">{formatUTC8(project.updatedAt)}</Descriptions.Item>
             <Descriptions.Item label="备注" span={3}>{project.remark || '-'}</Descriptions.Item>
           </Descriptions>
         )}
