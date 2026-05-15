@@ -123,4 +123,5 @@
 - 修复 ProTable request 返回结构解析错误导致的 `rawData.some is not a function` 崩溃（src/pages/project/components/ResourceTabs/）
 - 修复 ModalForm 内 React Fragment 子元素接收 autoFocus 属性导致的控制台警告（src/pages/project/components/ResourceTabs/）
 - 修复各组件中 message 静态方法无法读取动态主题的警告，统一改用 App.useApp()（src/pages/project/components/）
+- 完善同步节点管理功能：在节点列表操作栏补充“测试”和“同步”功能按钮，支持调用测试接口及按日期范围下发同步指令（src/pages/ad/ad-revenue/components/SyncServersModal.tsx）
 - 新增公共的时间格式化方法 `formatUTC8`，修复项目管理页面时间显示问题，将后端 UTC 时间统一转换为东八区显示（src/utils/format.ts, src/pages/project/）

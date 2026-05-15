@@ -120,6 +120,13 @@ export async function testSyncServer(serverId: string) {
   });
 }
 
+export async function syncRevenueByDate(serverId: string, params?: { start_date?: string; end_date?: string }) {
+  return request<API.ApiResponse<any>>(`/v3/sync-servers/${serverId}/sync-revenue`, {
+    method: 'POST',
+    params,
+  });
+}
+
 // ── 同步监控 ──────────────────────────────────────────────────────────────────
 
 export async function getSyncStates(params?: API.SyncStateQuery) {

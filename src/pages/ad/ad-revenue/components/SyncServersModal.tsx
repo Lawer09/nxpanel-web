@@ -1,7 +1,8 @@
 import { App, Button, Modal, Space, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import React, { useCallback, useEffect, useState } from 'react';
-import { getSyncServers } from '@/services/ad/api';
+import { getSyncServers, testSyncServer, syncRevenueByDate } from '@/services/ad/api';
+import { ModalForm, ProFormDateRangePicker } from '@ant-design/pro-components';
 import { formatUtc8 } from '../../utils/time';
 import SyncDetailDrawer from '../../sync-servers/components/SyncDetailDrawer';
 import SyncServerFormModal from '../../sync-servers/components/SyncServerFormModal';
@@ -22,6 +23,29 @@ const SyncServersModal: React.FC<SyncServersModalProps> = ({ open, onClose }) =>
   const [currentRecord, setCurrentRecord] = useState<API.SyncServer | undefined>();
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailServer, setDetailServer] = useState<API.SyncServer | null>(null);
+  const [syncOpen, setSyncOpen] = useState(false);
+  const [syncServerTarget, setSyncServerTarget] = useState<API.SyncServer | undefined>();
+
+  const handleTestSync = async (record: API.SyncServer) => {
+    try {
+      const res = await testSyncServer(record.serverId);
+      if (res.code === 0) {
+        Modal.success({
+          title: '测试同步成功',
+          content: (
+            <div>
+              <p>耗时: {res.data?.body?.elapsed || '-'}</p>
+              <p>信息: {res.data?.body?.message || '-'}</p>
+            </div>
+          ),
+        });
+      } else {
+        messageApi.error(res.msg || '测试同步失败');
+      }
+    } catch (e) {
+      // handled
+    }
+  };
 
   const fetchSyncServers = useCallback(async () => {
     setLoading(true);
@@ -80,7 +104,7 @@ const SyncServersModal: React.FC<SyncServersModalProps> = ({ open, onClose }) =>
     {
       title: '操作',
       key: 'action',
-      width: 120,
+      width: 180,
       fixed: 'right',
       render: (_, record) => (
         <Space>
@@ -99,6 +123,15 @@ const SyncServersModal: React.FC<SyncServersModalProps> = ({ open, onClose }) =>
             }}
           >
             编辑
+          </a>
+          <a onClick={() => handleTestSync(record)}>测试</a>
+          <a
+            onClick={() => {
+              setSyncServerTarget(record);
+              setSyncOpen(true);
+            }}
+          >
+            同步
           </a>
         </Space>
       ),
@@ -153,6 +186,41 @@ const SyncServersModal: React.FC<SyncServersModalProps> = ({ open, onClose }) =>
         server={detailServer}
         onClose={() => setDetailOpen(false)}
       />
+      <ModalForm
+        title="执行同步"
+        open={syncOpen}
+        onOpenChange={setSyncOpen}
+        modalProps={{ destroyOnHidden: true }}
+        onFinish={async (values) => {
+          if (!syncServerTarget) return false;
+          try {
+            const params: any = {};
+            if (values.dateRange && values.dateRange.length === 2) {
+              params.start_date = values.dateRange[0];
+              params.end_date = values.dateRange[1];
+            }
+            const res = await syncRevenueByDate(syncServerTarget.serverId, params);
+            if (res.code === 0) {
+              messageApi.success('同步指令已下发');
+              return true;
+            } else {
+              messageApi.error(res.msg || '同步请求失败');
+              return false;
+            }
+          } catch (e) {
+            return false;
+          }
+        }}
+      >
+        <div style={{ marginBottom: 16 }}>
+          针对节点：<strong>{syncServerTarget?.serverName}</strong>
+        </div>
+        <ProFormDateRangePicker
+          name="dateRange"
+          label="同步日期范围"
+          help="不选择则使用节点默认全量同步策略"
+        />
+      </ModalForm>
     </Modal>
   );
 };
