@@ -1,4 +1,4 @@
-﻿### 过时方法
+### 过时方法
 destroyOnClose 过时， 使用 destroyOnHidden 代替
 bodyStyle 过时，使用 styles.body代替
 
@@ -143,3 +143,61 @@ React 19 类型定义下，`useRef<T>()` 需要显式传入初始值；旧写法
 
 - `src/pages/traffic-platform/dashboard/components/TrafficRankingCard.tsx`
 - `src/pages/traffic-platform/dashboard/components/TrafficTrendChart.tsx`
+
+## 自动化策略弹窗视觉层级不足
+
+### 出现场景
+
+自动化策略配置弹窗已具备功能，但界面层级偏弱，模块切换、规则选择和右侧编辑区辨识度不高，整体观感不够“控制台化”。
+
+### 问题原因
+
+旧版布局偏线性表单，缺少固定区块和信息密度分层；模块区、概览区、规则区和详情区的视觉对比与交互反馈不足。
+
+### 解决方式
+
+重构自动化策略弹窗为卡片化控制台布局：
+- 采用 88vh 固定高度 + 头部/模块/概览/底栏固定。
+- 主体改为左 32% 规则列表、右 68% 详情编辑双滚动结构。
+- 新增模块卡片选择区与模块级概览统计。
+- 右侧详情改为 40/60 双列分组卡片（基础信息、作用范围、条件、动作、执行控制、最近执行记录）。
+- 强化状态色、选中态和失败态视觉反馈。
+
+### 影响范围
+
+全局顶部入口的自动化策略配置弹窗交互与视觉呈现。
+
+### 相关文件
+
+- `src/components/AutomationRulesEntry.tsx`
+
+## 自动化规则接口字段命名兼容
+
+### 出现场景
+
+自动化规则弹窗在加载规则详情和列表时，部分规则显示为空（作用范围、条件、动作丢失），或复制规则后结构不完整。
+
+### 问题原因
+
+`automation-rules` 接口在不同场景下同时存在两套字段命名：
+- 列表/详情可能返回 `targetScopeJson`、`conditionsJson`、`actionsJson`
+- 提交与部分响应使用 `targetScope`、`conditions`、`actions`
+
+前端若只按单一命名读取，会造成回显和编辑不一致。
+
+### 解决方式
+
+在规则数据进入 UI 前统一做归一化：
+- `targetScope = targetScope ?? targetScopeJson ?? {}`
+- `conditions = conditions ?? conditionsJson ?? []`
+- `actions = actions ?? actionsJson ?? []`
+
+并在详情、列表、复制、保存链路复用同一归一化结果。
+
+### 影响范围
+
+自动化策略弹窗的规则回显、编辑、复制和保存稳定性。
+
+### 相关文件
+
+- `src/components/AutomationRulesEntry.tsx`

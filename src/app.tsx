@@ -5,6 +5,7 @@ import type { RequestConfig, RunTimeLayoutConfig } from '@umijs/max';
 import { history, Link } from '@umijs/max';
 import React from 'react';
 import {
+  AutomationRulesEntry,
   AvatarDropdown,
   AvatarName,
   Footer,
@@ -141,6 +142,7 @@ export const layout: RunTimeLayoutConfig = ({
     actionsRender: () => [
       <Question key="doc" />,
       <SelectLang key="SelectLang" />,
+      <AutomationRulesEntry key="AutomationRulesEntry" />,
     ],
     avatarProps: {
       src: initialState?.currentUser?.avatar,

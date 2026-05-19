@@ -40,6 +40,7 @@ import styles from './AutomationRulesEntry.module.less';
 import {
   createAutomationRule,
   getAutomationRuleDetail,
+  getAutomationRuleModels,
   getAutomationRuleExecutions,
   getAutomationRules,
   runAutomationRule,
@@ -50,7 +51,7 @@ import { getTrafficAccounts, getTrafficPlatforms } from '@/services/traffic-plat
 
 const { Paragraph, Text } = Typography;
 
-type ModuleKey = 'traffic_platform' | 'node_status' | 'sync_monitor' | 'account_health';
+type ModuleKey = 'traffic_platform';
 type MetricType = 'number' | 'enum' | 'string';
 type ScopeFieldType = 'multi-select' | 'remote-multi-select' | 'switch';
 
@@ -74,6 +75,8 @@ type ActionConfig = {
   label: string;
   value: string;
   hasTemplate?: boolean;
+  hasRecoverTemplate?: boolean;
+  hasEmailFields?: boolean;
   description?: string;
 };
 
@@ -98,7 +101,15 @@ type RuleFormValues = {
   targetScope: Record<string, any>;
   conditionLogic: 'all' | 'any';
   conditions: Array<{ metric: string; operator: string; value: any }>;
-  actions: Array<{ type: string; template?: string; params?: Record<string, any> }>;
+  actions: Array<{
+    type: string;
+    template?: string;
+    recoverTemplate?: string;
+    subject?: string;
+    recoverSubject?: string;
+    toAdmin?: boolean;
+    recipients?: string[];
+  }>;
   cooldownSeconds: number;
   recoveryEnabled: boolean;
 };
@@ -109,6 +120,48 @@ type ModuleStats = {
   todayExecutions: number;
   failed: number;
   latestTime?: string;
+};
+
+type NumberRangeInputProps = {
+  value?: [number | null | undefined, number | null | undefined];
+  onChange?: (next: [number | null | undefined, number | null | undefined]) => void;
+};
+
+const normalizeRuleItem = (raw: any): API.AutomationRuleItem => {
+  const targetScope = raw?.targetScope ?? raw?.targetScopeJson ?? {};
+  const conditions = raw?.conditions ?? raw?.conditionsJson ?? [];
+  const actions = raw?.actions ?? raw?.actionsJson ?? [];
+  return {
+    ...raw,
+    targetScope,
+    conditions,
+    actions,
+  } as API.AutomationRuleItem;
+};
+
+const NumberRangeInput: React.FC<NumberRangeInputProps> = ({ value, onChange }) => {
+  const start = Array.isArray(value) ? value[0] : undefined;
+  const end = Array.isArray(value) ? value[1] : undefined;
+
+  return (
+    <Input.Group compact>
+      <InputNumber
+        value={start as number | null | undefined}
+        changeOnBlur={false}
+        style={{ width: '47%' }}
+        placeholder="开始值"
+        onChange={(next) => onChange?.([next as number | null | undefined, end])}
+      />
+      <span style={{ display: 'inline-block', width: '6%', textAlign: 'center' }}>~</span>
+      <InputNumber
+        value={end as number | null | undefined}
+        changeOnBlur={false}
+        style={{ width: '47%' }}
+        placeholder="结束值"
+        onChange={(next) => onChange?.([start, next as number | null | undefined])}
+      />
+    </Input.Group>
+  );
 };
 
 const OPERATOR_OPTIONS: Array<{ label: string; value: string }> = [
@@ -138,85 +191,47 @@ const MODULE_CONFIGS: Record<ModuleKey, ModuleConfig> = {
     ],
     metrics: [
       { label: '账户余额', value: 'balance_mb', unit: 'MB', type: 'number', operators: ['lte', 'lt', 'gte', 'gt', 'between'] },
+      { label: '1 小时用量', value: 'usage_1h_mb', unit: 'MB', type: 'number', operators: ['lte', 'lt', 'gte', 'gt', 'between'] },
+      { label: '6 小时用量', value: 'usage_6h_mb', unit: 'MB', type: 'number', operators: ['lte', 'lt', 'gte', 'gt', 'between'] },
+      { label: '小时均用量', value: 'avg_hourly_usage_mb', unit: 'MB', type: 'number', operators: ['lte', 'lt', 'gte', 'gt', 'between'] },
+      { label: '预计耗尽时间', value: 'eta_hours', unit: '小时', type: 'number', operators: ['lte', 'lt', 'gte', 'gt', 'between'] },
       {
         label: '账户状态',
-        value: 'account_status',
+        value: 'enabled',
         type: 'enum',
         operators: ['eq', 'neq', 'in', 'not_in'],
         options: [
-          { label: '启用', value: 'enabled' },
-          { label: '停用', value: 'disabled' },
-          { label: '异常', value: 'error' },
+          { label: '启用', value: 1 },
+          { label: '停用', value: 0 },
         ],
       },
-      { label: '同步失败次数', value: 'sync_failed_count', unit: '次', type: 'number', operators: ['gte', 'gt', 'between'] },
+      { label: '账号 ID', value: 'account_id', type: 'number', operators: ['eq', 'neq', 'in', 'not_in'] },
+      { label: '账号名称', value: 'account_name', type: 'string', operators: ['eq', 'neq', 'in', 'not_in'] },
+      { label: '平台编码', value: 'platform_code', type: 'string', operators: ['eq', 'neq', 'in', 'not_in'] },
       { label: '距离上次同步', value: 'last_sync_minutes', unit: '分钟', type: 'number', operators: ['gte', 'gt'] },
     ],
-    actions: [{ label: 'Telegram 管理员通知', value: 'telegram_admin', hasTemplate: true, description: '触发规则后向管理员发送 Telegram 告警消息' }],
-  },
-  node_status: {
-    label: '节点状态',
-    module: 'node_status',
-    description: '节点在线 / 延迟 / 负载告警',
-    accent: '#0EA5E9',
-    defaultTargetType: 'node',
-    targetTypes: [{ label: '节点', value: 'node' }],
-    targetScopeSchema: [
-      { key: 'nodeIds', label: '节点范围', type: 'remote-multi-select', source: 'nodes' },
-      { key: 'groupIds', label: '节点分组', type: 'multi-select', source: 'nodeGroups' },
-      { key: 'regions', label: '区域', type: 'multi-select', source: 'regions' },
-      { key: 'includeDisabled', label: '包含停用节点', type: 'switch' },
-    ],
-    metrics: [
-      { label: '离线时长', value: 'offline_minutes', unit: '分钟', type: 'number', operators: ['gte', 'gt'] },
-      { label: '节点延迟', value: 'latency_ms', unit: 'ms', type: 'number', operators: ['gte', 'gt', 'between'] },
-      { label: '节点负载', value: 'load_percent', unit: '%', type: 'number', operators: ['gte', 'gt', 'between'] },
+    actions: [
       {
-        label: '节点状态',
-        value: 'node_status',
-        type: 'enum',
-        operators: ['eq', 'neq', 'in', 'not_in'],
-        options: [
-          { label: '在线', value: 'online' },
-          { label: '离线', value: 'offline' },
-          { label: '维护', value: 'maintenance' },
-        ],
+        label: 'Telegram 管理员通知',
+        value: 'telegram_admin',
+        hasTemplate: true,
+        hasRecoverTemplate: true,
+        description: '触发/恢复时向管理员发送 Telegram 告警消息',
+      },
+      {
+        label: '邮件通知',
+        value: 'email',
+        hasTemplate: true,
+        hasRecoverTemplate: true,
+        hasEmailFields: true,
+        description: '支持主题、恢复主题、管理员收件及自定义收件人',
+      },
+      {
+        label: '禁用账户',
+        value: 'disable_account',
+        description: '命中规则后自动禁用目标账号',
       },
     ],
-    actions: [{ label: 'Telegram 管理员通知', value: 'telegram_admin', hasTemplate: true }],
-  },
-  sync_monitor: {
-    label: '同步监控',
-    module: 'sync_monitor',
-    description: '数据同步 / 任务执行告警',
-    accent: '#7C3AED',
-    defaultTargetType: 'sync_job',
-    targetTypes: [{ label: '同步任务', value: 'sync_job' }],
-    targetScopeSchema: [
-      { key: 'jobTypes', label: '任务类型', type: 'multi-select', source: 'jobTypes' },
-      { key: 'regions', label: '区域', type: 'multi-select', source: 'regions' },
-      { key: 'includeDisabled', label: '包含停用任务', type: 'switch' },
-    ],
-    metrics: [
-      { label: '失败次数', value: 'failed_count', unit: '次', type: 'number', operators: ['gte', 'gt', 'between'] },
-      { label: '排队时长', value: 'queue_minutes', unit: '分钟', type: 'number', operators: ['gte', 'gt', 'between'] },
-    ],
-    actions: [{ label: 'Telegram 管理员通知', value: 'telegram_admin', hasTemplate: true }],
-  },
-  account_health: {
-    label: '账户健康',
-    module: 'account_health',
-    description: '账户异常 / 可用性告警',
-    accent: '#F97316',
-    defaultTargetType: 'account',
-    targetTypes: [{ label: '账户', value: 'account' }],
-    targetScopeSchema: [
-      { key: 'accountIds', label: '账户范围', type: 'remote-multi-select', source: 'trafficPlatformAccounts' },
-      { key: 'regions', label: '区域', type: 'multi-select', source: 'regions' },
-      { key: 'includeDisabled', label: '包含停用账户', type: 'switch' },
-    ],
-    metrics: [{ label: '异常次数', value: 'error_count', unit: '次', type: 'number', operators: ['gte', 'gt', 'between'] }],
-    actions: [{ label: 'Telegram 管理员通知', value: 'telegram_admin', hasTemplate: true }],
   },
 };
 
@@ -274,7 +289,7 @@ const defaultRuleValues = (module: ModuleKey): RuleFormValues => {
     targetScope: { includeDisabled: false },
     conditionLogic: 'all',
     conditions: [{ metric: cfg.metrics[0]?.value, operator: cfg.metrics[0]?.operators[0], value: undefined }],
-    actions: [{ type: cfg.actions[0]?.value ?? 'telegram_admin', template: '' }],
+    actions: [{ type: cfg.actions[0]?.value ?? 'telegram_admin', template: '', recoverTemplate: '' }],
     cooldownSeconds: 3600,
     recoveryEnabled: true,
   };
@@ -292,20 +307,26 @@ const AutomationRulesEntry: React.FC = () => {
   const { message, modal } = App.useApp();
   const [open, setOpen] = useState(false);
   const [moduleKey, setModuleKey] = useState<ModuleKey>('traffic_platform');
+  const moduleConfig = MODULE_CONFIGS[moduleKey];
+  const moduleOptions = MODULE_KEYS.map((key) => ({
+    label: `${MODULE_CONFIGS[key].label} (${MODULE_CONFIGS[key].module})`,
+    value: key,
+  }));
   const [rules, setRules] = useState<API.AutomationRuleItem[]>([]);
   const [rulesTotal, setRulesTotal] = useState(0);
   const [rulesLoading, setRulesLoading] = useState(false);
   const [selectedRule, setSelectedRule] = useState<API.AutomationRuleItem | null>(null);
+  const [isCreatingRule, setIsCreatingRule] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [executions, setExecutions] = useState<API.AutomationRuleExecutionItem[]>([]);
   const [executionLoading, setExecutionLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('detail');
   const [saving, setSaving] = useState(false);
   const [moduleStatsLoading, setModuleStatsLoading] = useState(false);
+  const [modelLoading, setModelLoading] = useState(false);
 
   const [keyword, setKeyword] = useState('');
   const [enabled, setEnabled] = useState<number | undefined>(undefined);
-  const [targetTypeFilter, setTargetTypeFilter] = useState<string | undefined>(undefined);
   const [rulePage, setRulePage] = useState(1);
   const [rulePageSize] = useState(8);
   const [execStatusFilter, setExecStatusFilter] = useState<string | undefined>(undefined);
@@ -314,13 +335,10 @@ const AutomationRulesEntry: React.FC = () => {
   const [sourceOptions, setSourceOptions] = useState(DEFAULT_SCOPE_OPTIONS);
   const [moduleStats, setModuleStats] = useState<Record<ModuleKey, ModuleStats>>({
     traffic_platform: { total: 0, enabled: 0, todayExecutions: 0, failed: 0 },
-    node_status: { total: 0, enabled: 0, todayExecutions: 0, failed: 0 },
-    sync_monitor: { total: 0, enabled: 0, todayExecutions: 0, failed: 0 },
-    account_health: { total: 0, enabled: 0, todayExecutions: 0, failed: 0 },
   });
+  const [targetTypeOptions, setTargetTypeOptions] = useState(moduleConfig.targetTypes);
 
   const [form] = Form.useForm<RuleFormValues>();
-  const moduleConfig = MODULE_CONFIGS[moduleKey];
 
   const loadScopeSources = useCallback(async (search?: string) => {
     try {
@@ -348,12 +366,11 @@ const AutomationRulesEntry: React.FC = () => {
         module: moduleKey,
         keyword: keyword || undefined,
         enabled,
-        targetType: targetTypeFilter,
         page: rulePage,
         pageSize: rulePageSize,
       });
       const { rows, total } = extractRows(res);
-      setRules(rows as API.AutomationRuleItem[]);
+      setRules((rows || []).map((item) => normalizeRuleItem(item)) as API.AutomationRuleItem[]);
       setRulesTotal(total);
     } catch (error) {
       console.error(error);
@@ -361,7 +378,37 @@ const AutomationRulesEntry: React.FC = () => {
     } finally {
       setRulesLoading(false);
     }
-  }, [enabled, keyword, message, moduleKey, open, rulePage, rulePageSize, targetTypeFilter]);
+  }, [enabled, keyword, message, moduleKey, open, rulePage, rulePageSize]);
+
+  const loadRuleModels = useCallback(async () => {
+    if (!open) return;
+    setModelLoading(true);
+    try {
+      const res = await getAutomationRuleModels({ module: moduleKey });
+      const data = (res as any)?.data?.data ?? (res as any)?.data ?? {};
+      const models = Array.isArray(data?.models) ? data.models : [];
+      if (models.length > 0) {
+        const options: Array<{ label: string; value: string }> = models.map((item: API.AutomationRuleModelItem) => ({
+          label: item.name,
+          value: item.model,
+        }));
+        setTargetTypeOptions(options);
+        const defaultModel = models.find((x: API.AutomationRuleModelItem) => x.default)?.model || models[0]?.model;
+        if (defaultModel) {
+          const currentType = form.getFieldValue('targetType');
+          if (!currentType || !options.some((x) => x.value === currentType)) {
+            form.setFieldValue('targetType', defaultModel);
+          }
+        }
+        return;
+      }
+      setTargetTypeOptions(moduleConfig.targetTypes);
+    } catch {
+      setTargetTypeOptions(moduleConfig.targetTypes);
+    } finally {
+      setModelLoading(false);
+    }
+  }, [form, moduleConfig.targetTypes, moduleKey, open]);
 
   const loadExecutions = useCallback(async (ruleId?: number) => {
     if (!open) return;
@@ -387,7 +434,9 @@ const AutomationRulesEntry: React.FC = () => {
     if (!open) return;
     setModuleStatsLoading(true);
     try {
-      const nextStats = { ...moduleStats };
+      const nextStats: Record<ModuleKey, ModuleStats> = {
+        traffic_platform: { total: 0, enabled: 0, todayExecutions: 0, failed: 0 },
+      };
       for (const moduleName of MODULE_KEYS) {
         const [totalRes, enabledRes, execRes] = await Promise.all([
           getAutomationRules({ module: moduleName, page: 1, pageSize: 1 }),
@@ -409,14 +458,14 @@ const AutomationRulesEntry: React.FC = () => {
     } finally {
       setModuleStatsLoading(false);
     }
-  }, [moduleStats, open]);
+  }, [open]);
 
   const loadRuleDetail = useCallback(
     async (ruleId: number) => {
       setDetailLoading(true);
       try {
         const res = await getAutomationRuleDetail({ id: ruleId, module: moduleKey });
-        const data = (res as any)?.data?.data ?? (res as any)?.data ?? res;
+        const data = normalizeRuleItem((res as any)?.data?.data ?? (res as any)?.data ?? res);
         const values: RuleFormValues = {
           module: moduleKey,
           name: data?.name ?? '',
@@ -435,11 +484,12 @@ const AutomationRulesEntry: React.FC = () => {
           actions:
             Array.isArray(data?.actions) && data.actions.length > 0
               ? data.actions
-              : [{ type: moduleConfig.actions[0]?.value ?? 'telegram_admin', template: '' }],
+              : [{ type: moduleConfig.actions[0]?.value ?? 'telegram_admin', template: '', recoverTemplate: '' }],
           cooldownSeconds: Number(data?.cooldownSeconds ?? 0),
           recoveryEnabled: Number(data?.recoveryEnabled ?? 0) === 1,
         };
         setSelectedRule(data as API.AutomationRuleItem);
+        setIsCreatingRule(false);
         form.setFieldsValue(values);
         loadExecutions(ruleId);
       } catch (error) {
@@ -455,18 +505,17 @@ const AutomationRulesEntry: React.FC = () => {
   useEffect(() => {
     if (!open) return;
     setSelectedRule(null);
+    setIsCreatingRule(false);
     form.setFieldsValue(defaultRuleValues(moduleKey));
     setKeyword('');
     setEnabled(undefined);
-    setTargetTypeFilter(undefined);
     setRulePage(1);
     setExecStatusFilter(undefined);
     setExecKeyword('');
     setActiveTab('detail');
-    if (moduleKey === 'traffic_platform' || moduleKey === 'account_health') {
-      void loadScopeSources();
-    }
-  }, [form, loadScopeSources, moduleKey, open]);
+    void loadScopeSources();
+    void loadRuleModels();
+  }, [form, loadRuleModels, loadScopeSources, moduleKey, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -478,7 +527,7 @@ const AutomationRulesEntry: React.FC = () => {
   useEffect(() => {
     if (!open) return;
     void loadRules();
-  }, [enabled, keyword, loadRules, moduleKey, rulePage, targetTypeFilter, open]);
+  }, [enabled, keyword, loadRules, moduleKey, rulePage, open]);
 
   const refreshAll = async () => {
     await Promise.all([
@@ -494,20 +543,6 @@ const AutomationRulesEntry: React.FC = () => {
     if (!values.targetType) throw new Error('目标类型必填');
     if (!Array.isArray(values.conditions) || values.conditions.length < 1) throw new Error('至少配置一个 condition');
     if (!Array.isArray(values.actions) || values.actions.length < 1) throw new Error('至少配置一个 action');
-
-    values.conditions.forEach((c) => {
-      if (!c.metric) throw new Error('condition.metric 必填');
-      if (!c.operator) throw new Error('condition.operator 必填');
-      if (c.operator === 'between') {
-        if (!Array.isArray(c.value) || c.value.length !== 2 || c.value[0] === undefined || c.value[1] === undefined) {
-          throw new Error('between 条件必须填写开始值和结束值');
-        }
-      } else if (c.operator === 'in' || c.operator === 'not_in') {
-        if (!Array.isArray(c.value) || c.value.length === 0) throw new Error('in/not_in 必须填写数组值');
-      } else if (c.value === undefined || c.value === null || c.value === '') {
-        throw new Error('条件值必填');
-      }
-    });
   };
 
   const normalizeScope = (scope: Record<string, any>) => {
@@ -582,7 +617,7 @@ const AutomationRulesEntry: React.FC = () => {
   const runRule = async (ruleId: number, dryRun: boolean) => {
     try {
       const scope = form.getFieldValue(['targetScope']) || {};
-      const targetIds = (scope.accountIds || scope.nodeIds || scope.jobIds || []) as Array<string | number>;
+      const targetIds = (scope.accountIds || []) as Array<string | number>;
       const res = await runAutomationRule({
         module: moduleKey,
         ruleId,
@@ -674,35 +709,30 @@ const AutomationRulesEntry: React.FC = () => {
 
   const getMetric = (value?: string) => moduleConfig.metrics.find((m) => m.value === value);
 
-  const renderConditionValue = (index: number, metric?: MetricConfig, operator?: string) => {
+  const renderConditionValue = (metric?: MetricConfig, operator?: string) => {
     if (!metric || !operator) return <Input placeholder="请输入值" />;
     if (operator === 'between') {
-      return (
-        <Input.Group compact>
-          <Form.Item noStyle name={['conditions', index, 'value', 0]}>
-            <InputNumber style={{ width: '47%' }} placeholder="开始值" />
-          </Form.Item>
-          <span style={{ display: 'inline-block', width: '6%', textAlign: 'center' }}>~</span>
-          <Form.Item noStyle name={['conditions', index, 'value', 1]}>
-            <InputNumber style={{ width: '47%' }} placeholder="结束值" />
-          </Form.Item>
-        </Input.Group>
-      );
+      return <NumberRangeInput />;
     }
     if (operator === 'in' || operator === 'not_in') {
-      if (metric.type === 'enum' && metric.options) return <Select mode="multiple" options={metric.options} />;
+      if (metric.type === 'enum' && metric.options) {
+        return <Select mode="multiple" options={metric.options} />;
+      }
       return <Select mode="tags" tokenSeparators={[',']} placeholder="输入多个值" />;
     }
-    if (metric.type === 'enum' && metric.options) return <Select options={metric.options} />;
-    if (metric.type === 'number') return <InputNumber style={{ width: '100%' }} />;
+    if (metric.type === 'enum' && metric.options) {
+      return <Select options={metric.options} />;
+    }
+    if (metric.type === 'number') {
+      return <InputNumber style={{ width: '100%' }} changeOnBlur={false} />;
+    }
     return <Input />;
   };
 
   return (
     <>
-      <Button icon={<RobotOutlined />} onClick={() => setOpen(true)} className={styles.entryButton}>
-        自动化策略
-      </Button>
+      <RobotOutlined onClick={() => setOpen(true)} className={styles.entryButton}>
+      </RobotOutlined>
       <Modal
         open={open}
         onCancel={() => setOpen(false)}
@@ -718,7 +748,7 @@ const AutomationRulesEntry: React.FC = () => {
               <div>
                 <div className={styles.headerTitle}>自动化策略配置</div>
                 <div className={styles.headerSubtitle}>
-                  统一管理不同业务模块的自动化规则、触发条件、执行动作与执行记录
+                  统一管理自动化规则、触发条件、执行动作与执行记录
                 </div>
               </div>
               <Space>
@@ -742,6 +772,7 @@ const AutomationRulesEntry: React.FC = () => {
                   className={styles.btnPrimary}
                   onClick={() => {
                     setSelectedRule(null);
+                    setIsCreatingRule(true);
                     setActiveTab('detail');
                     form.setFieldsValue(defaultRuleValues(moduleKey));
                   }}
@@ -751,35 +782,6 @@ const AutomationRulesEntry: React.FC = () => {
                 <Button onClick={() => setOpen(false)}>关闭</Button>
               </Space>
             </div>
-          </div>
-
-          <div className={styles.moduleSection}>
-            <div className={styles.moduleSectionTitle}>选择模块</div>
-            <Spin spinning={moduleStatsLoading}>
-              <div className={styles.moduleGrid}>
-                {MODULE_KEYS.map((key) => {
-                  const cfg = MODULE_CONFIGS[key];
-                  const active = key === moduleKey;
-                  const stats = moduleStats[key];
-                  return (
-                    <div
-                      key={key}
-                      onClick={() => setModuleKey(key)}
-                      className={`${styles.moduleCard} ${active ? styles.moduleCardActive : ''}`}
-                      style={{ borderColor: active ? cfg.accent : undefined }}
-                    >
-                      <div className={styles.moduleCardHeader}>
-                        <Text strong className={styles.moduleCardTitle}>{cfg.label}</Text>
-                        <Badge color={cfg.accent} />
-                      </div>
-                      <div className={styles.moduleCardKey}>{cfg.module}</div>
-                      <div className={styles.moduleCardDesc}>{cfg.description}</div>
-                      <div className={styles.moduleCardStats}>规则 {stats.total} · 启用 {stats.enabled}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </Spin>
           </div>
 
           <div className={styles.statsSection}>
@@ -855,9 +857,19 @@ const AutomationRulesEntry: React.FC = () => {
                   void loadRules();
                 }}
               />
-              <Space>
+              <div className={styles.ruleFilterRow}>
                 <Select
-                  style={{ width: 120 }}
+                  className={styles.moduleFilterSelect}
+                  placeholder="选择模块"
+                  value={moduleKey}
+                  options={moduleOptions}
+                  onChange={(value: ModuleKey) => {
+                    setModuleKey(value);
+                    setRulePage(1);
+                  }}
+                />
+                <Select
+                  className={styles.statusFilterSelect}
                   placeholder="全部状态"
                   allowClear
                   value={enabled}
@@ -870,19 +882,8 @@ const AutomationRulesEntry: React.FC = () => {
                     setRulePage(1);
                   }}
                 />
-                <Select
-                  style={{ flex: 1 }}
-                  placeholder="全部目标类型"
-                  allowClear
-                  value={targetTypeFilter}
-                  options={moduleConfig.targetTypes}
-                  onChange={(value) => {
-                    setTargetTypeFilter(value);
-                    setRulePage(1);
-                  }}
-                />
-                <Button icon={<ReloadOutlined />} onClick={() => void loadRules()} />
-              </Space>
+                <Button className={styles.filterRefreshBtn} icon={<ReloadOutlined />} onClick={() => void loadRules()} />
+              </div>
 
               <div className={styles.ruleListContainer}>
                 <Spin spinning={rulesLoading}>
@@ -937,6 +938,7 @@ const AutomationRulesEntry: React.FC = () => {
                                       if (key === 'edit') void loadRuleDetail(Number(rule.id));
                                       if (key === 'copy') {
                                         setSelectedRule(null);
+                                        setIsCreatingRule(true);
                                         form.setFieldsValue({ ...defaultRuleValues(moduleKey), ...rule, enabled: false, name: `${rule.name}-复制` } as any);
                                       }
                                       if (key === 'run') void runRule(Number(rule.id), true);
@@ -996,8 +998,6 @@ const AutomationRulesEntry: React.FC = () => {
                   items={[
                     { key: 'detail', label: '规则详情' },
                     { key: 'executions', label: '执行记录' },
-                    { key: 'history', label: '触发历史' },
-                    { key: 'changes', label: '变更记录' },
                   ]}
                 />
                 <Space size={14}>
@@ -1009,42 +1009,65 @@ const AutomationRulesEntry: React.FC = () => {
               <div className={styles.rightPanelContent}>
                 {activeTab === 'detail' ? (
                   <Spin spinning={detailLoading}>
-                    {!selectedRule && !form.getFieldValue('name') ? (
+                    {!selectedRule && !isCreatingRule ? (
                       <Empty
                         image={Empty.PRESENTED_IMAGE_SIMPLE}
                         description="请选择一条规则进行查看或编辑，也可以点击“新建规则”创建自动化策略"
                       />
                     ) : (
                       <Form<RuleFormValues> form={form} layout="vertical" initialValues={defaultRuleValues(moduleKey)}>
-                        <Row gutter={12}>
-                          <Col span={10}>
-                            <Card size="small" title="基础信息" className={styles.formCard}>
+                        <Card size="small" title="基础信息" className={styles.formCard}>
                               <Form.Item name="name" label="规则名称" rules={[{ required: true, message: '请输入规则名称' }]}>
                                 <Input />
                               </Form.Item>
                               <Form.Item name="description" label="规则描述">
                                 <Input.TextArea rows={2} />
                               </Form.Item>
-                              <Form.Item label="所属模块">
-                                <Input value={`${moduleConfig.module} ${moduleConfig.label}`} disabled />
+                              <Form.Item
+                                name="module"
+                                label="所属模块"
+                                rules={[{ required: true, message: '请选择所属模块' }]}
+                              >
+                                <Select
+                                  options={moduleOptions}
+                                  disabled={!!selectedRule?.id}
+                                  onChange={(value: ModuleKey) => {
+                                    if (!selectedRule?.id && value !== moduleKey) {
+                                      setModuleKey(value);
+                                    }
+                                  }}
+                                />
                               </Form.Item>
                               <Form.Item
                                 name="targetType"
                                 label="目标类型"
                                 rules={[{ required: true, message: '请选择目标类型' }]}
                               >
-                                {moduleConfig.targetTypes.length === 1 ? (
-                                  <Input value={moduleConfig.targetTypes[0].label} disabled />
+                                {targetTypeOptions.length === 1 ? (
+                                  <Input value={targetTypeOptions[0].label} disabled />
                                 ) : (
-                                  <Select options={moduleConfig.targetTypes} />
+                                  <Select options={targetTypeOptions} loading={modelLoading} />
                                 )}
                               </Form.Item>
                               <Form.Item name="enabled" label="当前状态" valuePropName="checked">
                                 <Switch checkedChildren="启用" unCheckedChildren="停用" />
                               </Form.Item>
-                            </Card>
+                        </Card>
 
-                            <Card size="small" title="触发条件" className={styles.formCard}>
+                        <Card size="small" title="作用范围" className={styles.formCard}>
+                          <Row gutter={12}>
+                            {moduleConfig.targetScopeSchema.map((field) => (
+                              <Col span={field.type === 'switch' ? 24 : 12} key={field.key}>
+                                {renderScopeField(field)}
+                              </Col>
+                            ))}
+                          </Row>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            未配置明确范围时，默认作用于当前模块下可用目标。
+                          </Text>
+                        </Card>
+
+                        <Card size="small" title="触发条件" className={styles.formCard}>
                               <Form.Item name="conditionLogic" label="条件关系">
                                 <Segmented
                                   options={[
@@ -1065,7 +1088,6 @@ const AutomationRulesEntry: React.FC = () => {
                                           <Row gutter={8}>
                                             <Col span={8}>
                                               <Form.Item
-                                                {...field}
                                                 name={[field.name, 'metric']}
                                                 label="指标"
                                                 rules={[{ required: true, message: '请选择指标' }]}
@@ -1081,7 +1103,6 @@ const AutomationRulesEntry: React.FC = () => {
                                             </Col>
                                             <Col span={6}>
                                               <Form.Item
-                                                {...field}
                                                 name={[field.name, 'operator']}
                                                 label="操作符"
                                                 rules={[{ required: true, message: '请选择操作符' }]}
@@ -1093,8 +1114,43 @@ const AutomationRulesEntry: React.FC = () => {
                                               </Form.Item>
                                             </Col>
                                             <Col span={8}>
-                                              <Form.Item label={`值${metric?.unit ? ` (${metric.unit})` : ''}`}>
-                                                {renderConditionValue(field.name, metric, operatorValue)}
+                                              <Form.Item
+                                                name={[field.name, 'value']}
+                                                label={`值${metric?.unit ? ` (${metric.unit})` : ''}`}
+                                                rules={[
+                                                  {
+                                                    validator: async (_, value) => {
+                                                      if (operatorValue === 'between') {
+                                                        if (
+                                                          !Array.isArray(value)
+                                                          || value.length !== 2
+                                                          || value[0] === undefined
+                                                          || value[0] === null
+                                                          || value[1] === undefined
+                                                          || value[1] === null
+                                                        ) {
+                                                          throw new Error('请填写开始值和结束值');
+                                                        }
+                                                        return;
+                                                      }
+                                                      if (operatorValue === 'in' || operatorValue === 'not_in') {
+                                                        if (!Array.isArray(value) || value.length === 0) {
+                                                          throw new Error('请至少填写一个值');
+                                                        }
+                                                        return;
+                                                      }
+                                                      if (
+                                                        value === undefined
+                                                        || value === null
+                                                        || (typeof value === 'string' && value.trim() === '')
+                                                      ) {
+                                                        throw new Error('请填写条件值');
+                                                      }
+                                                    },
+                                                  },
+                                                ]}
+                                              >
+                                                {renderConditionValue(metric, operatorValue)}
                                               </Form.Item>
                                             </Col>
                                             <Col span={2}>
@@ -1121,9 +1177,82 @@ const AutomationRulesEntry: React.FC = () => {
                                   </div>
                                 )}
                               </Form.List>
-                            </Card>
+                        </Card>
 
-                            <Card size="small" title="执行控制" className={styles.formCard} style={{ marginBottom: 0 }}>
+                        <Card size="small" title="执行动作" className={styles.formCard}>
+                          <Form.List name="actions">
+                            {(fields, { add, remove }) => (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {fields.map((field) => {
+                                  const type = form.getFieldValue(['actions', field.name, 'type']);
+                                  const actionCfg = moduleConfig.actions.find((x) => x.value === type);
+                                  return (
+                                    <Card key={field.key} size="small" className={styles.conditionCard}>
+                                      <Row gutter={10}>
+                                        <Col span={6}>
+                                          <Form.Item
+                                            name={[field.name, 'type']}
+                                            label="动作类型"
+                                            rules={[{ required: true, message: '请选择动作类型' }]}
+                                          >
+                                            <Select options={moduleConfig.actions.map((x) => ({ label: x.label, value: x.value }))} />
+                                          </Form.Item>
+                                        </Col>
+                                        <Col span={16}>
+                                          {actionCfg?.hasTemplate ? (
+                                            <Form.Item name={[field.name, 'template']} label="触发模板">
+                                              <Input.TextArea rows={2} placeholder="[告警] {target_name} ..." />
+                                            </Form.Item>
+                                          ) : null}
+                                          {actionCfg?.hasRecoverTemplate ? (
+                                            <Form.Item name={[field.name, 'recoverTemplate']} label="恢复模板">
+                                              <Input.TextArea rows={2} placeholder="[恢复] {target_name} ..." />
+                                            </Form.Item>
+                                          ) : null}
+                                          {actionCfg?.hasEmailFields ? (
+                                            <Row gutter={10}>
+                                              <Col span={12}>
+                                                <Form.Item name={[field.name, 'subject']} label="触发邮件主题">
+                                                  <Input placeholder="告警通知" />
+                                                </Form.Item>
+                                              </Col>
+                                              <Col span={12}>
+                                                <Form.Item name={[field.name, 'recoverSubject']} label="恢复邮件主题">
+                                                  <Input placeholder="恢复通知" />
+                                                </Form.Item>
+                                              </Col>
+                                              <Col span={12}>
+                                                <Form.Item name={[field.name, 'toAdmin']} label="抄送管理员" valuePropName="checked">
+                                                  <Switch checkedChildren="是" unCheckedChildren="否" />
+                                                </Form.Item>
+                                              </Col>
+                                              <Col span={12}>
+                                                <Form.Item name={[field.name, 'recipients']} label="收件人列表">
+                                                  <Select mode="tags" tokenSeparators={[',']} placeholder="输入邮箱并回车" />
+                                                </Form.Item>
+                                              </Col>
+                                            </Row>
+                                          ) : null}
+                                        </Col>
+                                        <Col span={2}>
+                                          <Button danger type="link" onClick={() => remove(field.name)}>
+                                            删除
+                                          </Button>
+                                        </Col>
+                                      </Row>
+                                      {actionCfg?.description ? <Text type="secondary">{actionCfg.description}</Text> : null}
+                                    </Card>
+                                  );
+                                })}
+                                <Button type="dashed" icon={<PlusOutlined />} onClick={() => add({ type: moduleConfig.actions[0]?.value })}>
+                                  添加动作
+                                </Button>
+                              </div>
+                            )}
+                          </Form.List>
+                        </Card>
+
+                        <Card size="small" title="执行控制" className={styles.formCard}>
                               <Form.Item
                                 name="cooldownSeconds"
                                 label="冷却时间（秒）"
@@ -1143,113 +1272,8 @@ const AutomationRulesEntry: React.FC = () => {
                                   立即执行
                                 </Button>
                               </Space>
-                            </Card>
-                          </Col>
+                        </Card>
 
-                          <Col span={14}>
-                            <Card size="small" title="作用范围" className={styles.formCard}>
-                              <Row gutter={12}>
-                                {moduleConfig.targetScopeSchema.map((field) => (
-                                  <Col span={field.type === 'switch' ? 24 : 12} key={field.key}>
-                                    {renderScopeField(field)}
-                                  </Col>
-                                ))}
-                              </Row>
-                              <Text type="secondary" style={{ fontSize: 12 }}>
-                                未配置明确范围时，默认作用于当前模块下可用目标。
-                              </Text>
-                            </Card>
-
-                            <Card size="small" title="执行动作" className={styles.formCard}>
-                              <Form.List name="actions">
-                                {(fields, { add, remove }) => (
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                    {fields.map((field) => {
-                                      const type = form.getFieldValue(['actions', field.name, 'type']);
-                                      const actionCfg = moduleConfig.actions.find((x) => x.value === type);
-                                      return (
-                                        <Card key={field.key} size="small" className={styles.conditionCard}>
-                                          <Row gutter={10}>
-                                            <Col span={7}>
-                                              <Form.Item
-                                                {...field}
-                                                name={[field.name, 'type']}
-                                                label="动作类型"
-                                                rules={[{ required: true, message: '请选择动作类型' }]}
-                                              >
-                                                <Select options={moduleConfig.actions.map((x) => ({ label: x.label, value: x.value }))} />
-                                              </Form.Item>
-                                            </Col>
-                                            <Col span={15}>
-                                              <Form.Item {...field} name={[field.name, 'template']} label="通知模板">
-                                                <Input.TextArea rows={2} placeholder="[告警] {target_name} ..." />
-                                              </Form.Item>
-                                            </Col>
-                                            <Col span={2}>
-                                              <Button danger type="link" onClick={() => remove(field.name)}>
-                                                删除
-                                              </Button>
-                                            </Col>
-                                          </Row>
-                                          {actionCfg?.description ? <Text type="secondary">{actionCfg.description}</Text> : null}
-                                        </Card>
-                                      );
-                                    })}
-                                    <Button type="dashed" icon={<PlusOutlined />} onClick={() => add({ type: moduleConfig.actions[0]?.value })}>
-                                      添加动作
-                                    </Button>
-                                  </div>
-                                )}
-                              </Form.List>
-                            </Card>
-
-                            <Card size="small" title="最近执行记录" className={styles.formCard} style={{ marginBottom: 0 }}>
-                              <Space style={{ marginBottom: 10 }}>
-                                <Select
-                                  style={{ width: 160 }}
-                                  placeholder="全部状态"
-                                  allowClear
-                                  value={execStatusFilter}
-                                  options={[
-                                    { label: 'triggered', value: 'triggered' },
-                                    { label: 'recovered', value: 'recovered' },
-                                    { label: 'skipped', value: 'skipped' },
-                                    { label: 'failed', value: 'failed' },
-                                  ]}
-                                  onChange={setExecStatusFilter}
-                                />
-                                <Input
-                                  style={{ width: 220 }}
-                                  allowClear
-                                  placeholder="搜索目标 ID / 名称"
-                                  value={execKeyword}
-                                  onChange={(e) => setExecKeyword(e.target.value)}
-                                />
-                                <Button icon={<ReloadOutlined />} onClick={() => selectedRule?.id && void loadExecutions(Number(selectedRule.id))} />
-                              </Space>
-                              <Spin spinning={executionLoading}>
-                                <List
-                                  size="small"
-                                  dataSource={visibleExecutions.slice(0, 6)}
-                                  renderItem={(item) => (
-                                    <List.Item>
-                                      <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                                        <Space size={10}>
-                                          <Badge color={statusBadgeColor(item.status)} text={item.status || '-'} />
-                                          <Text>{item.target_name || item.targetName || '-'}</Text>
-                                          <Text type="secondary">{item.rule_name || item.ruleName || '-'}</Text>
-                                        </Space>
-                                        <Tooltip title={item.error_message || item.errorMessage || '执行成功'}>
-                                          <Text type="secondary">{formatRelative(item.executed_at || item.executedAt)}</Text>
-                                        </Tooltip>
-                                      </Space>
-                                    </List.Item>
-                                  )}
-                                />
-                              </Spin>
-                            </Card>
-                          </Col>
-                        </Row>
                       </Form>
                     )}
                   </Spin>
@@ -1301,9 +1325,7 @@ const AutomationRulesEntry: React.FC = () => {
                       )}
                     />
                   </Spin>
-                ) : (
-                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="该 Tab 预留扩展中" />
-                )}
+                ) : null}
               </div>
             </Card>
           </div>

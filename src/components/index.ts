@@ -6,7 +6,8 @@
  * 布局组件
  */
 import Footer from './Footer';
+import AutomationRulesEntry from './AutomationRulesEntry';
 import { Question, SelectLang } from './RightContent';
 import { AvatarDropdown, AvatarName } from './RightContent/AvatarDropdown';
 
-export { AvatarDropdown, AvatarName, Footer, Question, SelectLang };
+export { AutomationRulesEntry, AvatarDropdown, AvatarName, Footer, Question, SelectLang };
