@@ -1,0 +1,40 @@
+.dns-tool-page {
+  .overview-card {
+    border: 1px solid #edf0f5;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    width: 100%;
+    height: 100%;
+  }
+
+  .overview-card-active {
+    border-color: #1677ff;
+    box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.12);
+  }
+
+  .dns-detail-card {
+    position: sticky;
+    top: 24px;
+    border-radius: 12px;
+    border: 1px solid #edf0f5;
+    max-height: calc(100vh - 160px);
+    overflow-y: auto;
+  }
+
+  .dns-mini-card {
+    border: 1px solid #edf0f5;
+    border-radius: 8px;
+  }
+
+}
+
+:global {
+  .dns-selected-row td {
+    background: #f5f9ff !important;
+  }
+
+  .dns-pro-list-item-active {
+    background: #f5f9ff;
+    border-radius: 8px;
+  }
+}

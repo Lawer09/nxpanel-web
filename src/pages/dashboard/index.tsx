@@ -2,7 +2,7 @@ import { PageContainer } from '@ant-design/pro-components';
 import { useRequest } from '@umijs/max';
 import { Modal, Select, Space } from 'antd';
 import dayjs from 'dayjs';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import NodeHistoryTab from '@/pages/server/components/NodeHistoryTab';
 import SettingsPanel from '@/components/SettingsPanel';
 import ActiveUserAlertSettings from './components/ActiveUserAlertSettings';
@@ -20,9 +20,11 @@ import {
   getActiveUsersSummary,
   getUserHourlyStats,
 } from '@/services/performance/api';
+import { getEnumAppIds } from '@/services/enum/api';
 
 const DashboardPage: React.FC = () => {
   const { data: statsRes, loading: statsLoading } = useRequest(getStats);
+  const { data: appIdEnumRes, loading: appIdEnumLoading } = useRequest(() => getEnumAppIds());
 
   // ── 留存 & 活跃用户 ──────────────────────────────────────────────────────
   const [appId, setAppId] = useState<string | undefined>();
@@ -73,6 +75,17 @@ const DashboardPage: React.FC = () => {
     ((hourlyRes as any)?.data?.data ?? (hourlyRes as any)?.data) || [];
 
   const stats = (statsRes as any)?.data ?? statsRes as API.StatOverviewData | undefined;
+  const appIdOptions = useMemo(() => {
+    const raw = (appIdEnumRes as any)?.data ?? appIdEnumRes;
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((item) => {
+        const value = String(item?.appId || item?.value || '').trim();
+        if (!value) return null;
+        return { label: value, value };
+      })
+      .filter((item): item is { label: string; value: string } => Boolean(item));
+  }, [appIdEnumRes]);
 
   return (
     <PageContainer
@@ -83,13 +96,9 @@ const DashboardPage: React.FC = () => {
             onChange={setAppId}
             style={{ width: 260 }}
             allowClear
+            loading={appIdEnumLoading}
             placeholder="选择包名"
-            options={[
-              { label: 'com.rocket.space.vpn', value: 'com.rocket.space.vpn' },
-              { label: 'com.rocket.hsjd.vpn.jsw', value: 'com.rocket.hsjd.vpn.jsw' },
-              { label: 'com.jkcl.zwx.vpn', value: 'com.jkcl.zwx.vpn' },
-              { label: 'com.geektreeone.ddmo.GeekStreeNOOne', value: 'com.geektreeone.ddmo.GeekStreeNOOne' },
-            ]}
+            options={appIdOptions}
           />
         </Space>
       }

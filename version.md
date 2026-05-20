@@ -61,6 +61,10 @@
 
 ### 优化功能
 
+- 优化域名管理主视图：将域名列表由 ProTable 升级为 ProList 卡片式展示，合并“域名总数/缺失域名”为域名池统计（总数+可用+缺失），并新增右侧抽屉详情展示域名信息与绑定 IP 列表；同时按区块拆分概览卡片、域名列表、详情抽屉组件（src/pages/dns/index.tsx, src/pages/dns/components/, src/services/dns-tool/typings.d.ts）。
+- 优化域名详情抽屉交互：在绑定 IP 列表内增加就地“解绑”操作，支持直接带入 FQDN 和 IPv4 打开解绑确认弹窗（src/pages/dns/components/DomainDetailDrawer.tsx, src/pages/dns/index.tsx）。
+- 优化域名详情抽屉操作能力：在绑定 IP 列表增加“编辑”操作，可直接打开元信息弹窗修改该绑定记录的 tags 与 note（src/pages/dns/components/DomainDetailDrawer.tsx, src/pages/dns/index.tsx）。
+
 ### Bug 修复
 ---
 后续所有改动记录，只能写入当前开发版本对应区块。
@@ -136,8 +140,31 @@
 
 ### 优化功能
 
+- 优化域名管理交互约束：解绑弹窗与元信息弹窗中的 FQDN、IPv4、域名改为只读文本展示，移除可编辑输入字段，避免误操作修改关键标识；同时补充详情抽屉绑定列表“编辑”快捷入口（src/pages/dns/index.tsx, src/pages/dns/components/DomainDetailDrawer.tsx）。
+- 优化域名概览卡片布局：统一三张统计卡片高度与拉伸行为，修复域名池卡片高度与其它卡片不一致问题（src/pages/dns/components/DomainOverviewCards.tsx, src/pages/dns/index.less）。
+
 ### Bug 修复
+
+- 修复 Dashboard 包名筛选来源不正确：将下拉选项由前端固定值改为 `/v3/enum/app-ids` 动态枚举（`appId`）并接入新的枚举服务封装（src/pages/dashboard/index.tsx, src/services/enum/api.ts, src/services/enum/typings.d.ts）。
 
 - 修复流量平台 Dashboard 趋势图 Tooltip 字段映射错误，改为明确展示日期与流量值，并补充 trafficMb/trafficGb/trafficBytes 数值解析兜底（src/pages/traffic-platform/dashboard/components/TrafficTrendChart.tsx）
 - 修复流量平台 Dashboard 在 React 19 下 useRef 泛型未传初始值导致的 TS2554 编译错误，并统一兼容流量趋势/排行接口数组直返与包装对象两种响应结构（src/pages/traffic-platform/dashboard/components/）
 - 重构自动化策略配置弹窗视觉与布局为控制台风格，新增模块卡片选择区、模块概览统计、左右双滚动主体和右侧双列分组编辑区，提升规则配置可读性与操作效率（src/components/AutomationRulesEntry.tsx）
+
+- 重构域名管理控制台页面：按最新设计文档实现双视图列表、右侧详情面板、执行解析/解绑风险弹窗、配置管理（Provider 与 Provider 账号）及 V3 DNS 接口对接（src/pages/dns/index.tsx, src/pages/dns/index.less, src/services/dns-tool/）。
+
+- 优化域名管理页面交互：移除顶部搜索与操作行、取消域名/IP 绑定 Tab，改为概览卡片驱动的单表格视图切换（域名/活跃绑定/缺失域名/Provider/Provider账号），并在未选中记录时隐藏右侧详情面板以动态扩展表格宽度（src/pages/dns/index.tsx, src/pages/dns/index.less）。
+
+- 修复域名管理卡片切换时列表高度突变：为各模式主表统一设置自适应固定滚动高度（scroll.y），避免因数据量差异造成表格容器收缩/拉伸抖动（src/pages/dns/index.tsx）。
+
+- 修复域名管理页面双请求与首屏高度抖动：移除首屏对主表的手动 reload、移除卡片切换时的冗余 reload，仅在同卡片重复点击时主动刷新；并将表格滚动高度初始值直接按窗口高度计算，避免首次渲染二次跳变（src/pages/dns/index.tsx）。
+
+- 优化域名管理表格布局稳定性：按视口动态设置主表容器最小高度并反推 scroll.y，加载态与空数据态保持固定占位，避免切换/加载时表格先缩短再拉伸，底部区域可持续填充（src/pages/dns/index.tsx, src/pages/dns/index.less）。
+
+- 调整域名管理主表高度计算策略：由固定视口估算改为基于主表卡片在当前视口中的实际 top 位置动态计算可用剩余高度，并预留页脚/底部间距，避免表格过高导致页面整体滚动（src/pages/dns/index.tsx）。
+
+- 调整域名管理主表高度策略：移除页脚与底部间距预留，改为仅按主表卡片到视口底部的剩余高度计算容器高度与 scroll.y（src/pages/dns/index.tsx）。
+
+- 修正域名管理主表高度下限：将主表容器最小高度由 460 下调为 320，scroll.y 下限同步下调，改为更贴合当前剩余可用空间，避免强制撑高导致页面滚动（src/pages/dns/index.tsx）。
+
+- 回退域名管理列表高度策略到抖动修复版本：移除剩余空间自适应与主表容器最小高度占位，仅保留 scroll.y 随窗口变化的固定高度方案（src/pages/dns/index.tsx, src/pages/dns/index.less）。
