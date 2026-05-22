@@ -15,6 +15,7 @@ import UserTrendCard from './components/UserTrendCard';
 import RetentionCard from './components/RetentionCard';
 import { getStats } from '@/services/stat/api';
 import { getProjects } from '@/services/project/api';
+import type * as ProjectTypes from '@/services/project/types';
 import { queryProjectReport } from '@/services/report/api';
 import {
   getRetention,
@@ -56,6 +57,7 @@ const aggregateProjectRows = (rows: API.ProjectReportItem[]): IncomeMetrics => {
 const DashboardPage: React.FC = () => {
   const { data: statsRes, loading: statsLoading } = useRequest(getStats);
   const { data: appIdEnumRes, loading: appIdEnumLoading } = useRequest(() => getEnumAppIds());
+  const { data: projectListRes } = useRequest(() => getProjects({ page: 1, pageSize: 200 }));
 
   // ── 留存 & 活跃用户 ──────────────────────────────────────────────────────
   const [appId, setAppId] = useState<string | undefined>();
@@ -109,6 +111,28 @@ const DashboardPage: React.FC = () => {
     ((hourlyRes as any)?.data?.data ?? (hourlyRes as any)?.data) || [];
 
   const stats = (statsRes as any)?.data ?? statsRes as API.StatOverviewData | undefined;
+  const projectList: ProjectTypes.ProjectItem[] = Array.isArray((projectListRes as any)?.data)
+    ? (projectListRes as any).data
+    : Array.isArray(projectListRes)
+      ? (projectListRes as ProjectTypes.ProjectItem[])
+      : [];
+  const appIdProjectCodeMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    projectList.forEach((project: ProjectTypes.ProjectItem) => {
+      const projectCode = String(project.projectCode || '').trim();
+      if (!projectCode) return;
+      (project.userApps ?? []).forEach((item: ProjectTypes.ProjectUserApp) => {
+        const currentAppId = String(item?.appId || '').trim();
+        if (!currentAppId) return;
+        const current = map.get(currentAppId) ?? [];
+        if (!current.includes(projectCode)) {
+          current.push(projectCode);
+        }
+        map.set(currentAppId, current);
+      });
+    });
+    return map;
+  }, [projectList]);
 
   useEffect(() => {
     let cancelled = false;
@@ -120,17 +144,7 @@ const DashboardPage: React.FC = () => {
 
       let projectCodes: string[] | undefined;
       if (appId) {
-        const projectRes = await getProjects({ page: 1, pageSize: 200 });
-        if (projectRes.code === 0) {
-          const projects = projectRes.data?.data ?? [];
-          const mappedCodes = projects
-            .filter((project) =>
-              (project.userApps ?? []).some((item) => String(item?.appId || '').trim() === appId),
-            )
-            .map((project) => String(project.projectCode || '').trim())
-            .filter(Boolean);
-          projectCodes = Array.from(new Set(mappedCodes));
-        }
+        projectCodes = appIdProjectCodeMap.get(appId) ?? [];
       }
 
       const todayPayload: API.ProjectReportQuery = {
@@ -184,7 +198,7 @@ const DashboardPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [appId]);
+  }, [appId, appIdProjectCodeMap]);
 
   const appIdOptions = useMemo(() => {
     const raw = (appIdEnumRes as any)?.data ?? appIdEnumRes;
@@ -193,10 +207,12 @@ const DashboardPage: React.FC = () => {
       .map((item) => {
         const value = String(item?.appId || item?.value || '').trim();
         if (!value) return null;
-        return { label: value, value };
+        const projectCodes = appIdProjectCodeMap.get(value) ?? [];
+        const prefix = projectCodes.length ? `[${projectCodes.join(',')}] ` : '';
+        return { label: `${prefix}${value}`, value };
       })
       .filter((item): item is { label: string; value: string } => Boolean(item));
-  }, [appIdEnumRes]);
+  }, [appIdEnumRes, appIdProjectCodeMap]);
 
   return (
     <PageContainer
