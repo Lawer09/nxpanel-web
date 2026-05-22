@@ -97,6 +97,13 @@ export async function getDnsDomains(params?: {
   });
 }
 
+export async function syncDnsDomains(params?: { providerAccountId?: number }) {
+  return request<API.ApiResponse<boolean>>('/v3/dns/domains/sync', {
+    method: 'GET',
+    params,
+  });
+}
+
 export async function updateDnsDomainMeta(data: {
   id: number;
   tags?: string;

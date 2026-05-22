@@ -2,7 +2,7 @@ import { PageContainer } from '@ant-design/pro-components';
 import { useRequest } from '@umijs/max';
 import { Modal, Select, Space } from 'antd';
 import dayjs from 'dayjs';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import NodeHistoryTab from '@/pages/server/components/NodeHistoryTab';
 import SettingsPanel from '@/components/SettingsPanel';
 import ActiveUserAlertSettings from './components/ActiveUserAlertSettings';
@@ -14,6 +14,8 @@ import ActiveUsersSummaryCards from './components/ActiveUsersSummaryCards';
 import UserTrendCard from './components/UserTrendCard';
 import RetentionCard from './components/RetentionCard';
 import { getStats } from '@/services/stat/api';
+import { getProjects } from '@/services/project/api';
+import { queryProjectReport } from '@/services/report/api';
 import {
   getRetention,
   getActiveUsers,
@@ -21,6 +23,35 @@ import {
   getUserHourlyStats,
 } from '@/services/performance/api';
 import { getEnumAppIds } from '@/services/enum/api';
+
+type IncomeMetrics = {
+  income: number;
+  revenue: number;
+  expense: number;
+};
+
+const EMPTY_INCOME_METRICS: IncomeMetrics = {
+  income: 0,
+  revenue: 0,
+  expense: 0,
+};
+
+const safeNum = (v: unknown): number => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const aggregateProjectRows = (rows: API.ProjectReportItem[]): IncomeMetrics => {
+  const totals = rows.reduce(
+    (acc, row: any) => {
+      const revenue = safeNum(row?.adRevenue);
+      const expense = safeNum(row?.totalCost) || safeNum(row?.adSpendCost) + safeNum(row?.trafficCost);
+      return { revenue: acc.revenue + revenue, expense: acc.expense + expense };
+    },
+    { revenue: 0, expense: 0 },
+  );
+  return { revenue: totals.revenue, expense: totals.expense, income: totals.revenue - totals.expense };
+};
 
 const DashboardPage: React.FC = () => {
   const { data: statsRes, loading: statsLoading } = useRequest(getStats);
@@ -39,6 +70,9 @@ const DashboardPage: React.FC = () => {
     dayjs().subtract(30, 'day').format('YYYY-MM-DD'),
     dayjs().format('YYYY-MM-DD'),
   ]);
+  const [todayIncomeMetrics, setTodayIncomeMetrics] = useState<IncomeMetrics>(EMPTY_INCOME_METRICS);
+  const [monthIncomeMetrics, setMonthIncomeMetrics] = useState<IncomeMetrics>(EMPTY_INCOME_METRICS);
+  const [incomeLoading, setIncomeLoading] = useState(false);
 
   const { data: summaryRes, loading: summaryLoading } = useRequest(
     () => getActiveUsersSummary({ appId }),
@@ -75,6 +109,83 @@ const DashboardPage: React.FC = () => {
     ((hourlyRes as any)?.data?.data ?? (hourlyRes as any)?.data) || [];
 
   const stats = (statsRes as any)?.data ?? statsRes as API.StatOverviewData | undefined;
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      setIncomeLoading(true);
+      const today = dayjs().format('YYYY-MM-DD');
+      const dateFrom = dayjs().startOf('month').format('YYYY-MM-DD');
+      const dateTo = dayjs().format('YYYY-MM-DD');
+
+      let projectCodes: string[] | undefined;
+      if (appId) {
+        const projectRes = await getProjects({ page: 1, pageSize: 200 });
+        if (projectRes.code === 0) {
+          const projects = projectRes.data?.data ?? [];
+          const mappedCodes = projects
+            .filter((project) =>
+              (project.userApps ?? []).some((item) => String(item?.appId || '').trim() === appId),
+            )
+            .map((project) => String(project.projectCode || '').trim())
+            .filter(Boolean);
+          projectCodes = Array.from(new Set(mappedCodes));
+        }
+      }
+
+      const todayPayload: API.ProjectReportQuery = {
+        dateFrom: today,
+        dateTo: today,
+        groupBy: ['reportDate'],
+        filters: { projectCodes },
+        page: 1,
+        pageSize: 100,
+      };
+      const monthPayload: API.ProjectReportQuery = {
+        dateFrom,
+        dateTo,
+        groupBy: ['reportDate'],
+        filters: { projectCodes },
+        page: 1,
+        pageSize: 100,
+      };
+
+      const [todayRes, monthRes] = await Promise.all([
+        queryProjectReport(todayPayload),
+        queryProjectReport(monthPayload),
+      ]);
+
+      const resolveMetrics = (
+        res: API.ApiResponse<API.ReportPageResult<API.ProjectReportItem>>,
+      ) => {
+        if (res.code !== 0) return EMPTY_INCOME_METRICS;
+        const rows = res.data?.data ?? [];
+        return aggregateProjectRows(rows);
+      };
+
+      const nextToday = resolveMetrics(todayRes);
+      const nextMonth = resolveMetrics(monthRes);
+
+      if (cancelled) return;
+
+      setTodayIncomeMetrics(nextToday);
+      setMonthIncomeMetrics(nextMonth);
+      setIncomeLoading(false);
+    };
+
+    run().catch((error) => {
+      if (!cancelled) {
+        setTodayIncomeMetrics(EMPTY_INCOME_METRICS);
+        setMonthIncomeMetrics(EMPTY_INCOME_METRICS);
+        setIncomeLoading(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [appId]);
+
   const appIdOptions = useMemo(() => {
     const raw = (appIdEnumRes as any)?.data ?? appIdEnumRes;
     if (!Array.isArray(raw)) return [];
@@ -103,7 +214,12 @@ const DashboardPage: React.FC = () => {
         </Space>
       }
     >
-      <StatsOverviewCards stats={stats} loading={statsLoading} />
+      <StatsOverviewCards
+        stats={stats}
+        todayIncomeMetrics={todayIncomeMetrics}
+        monthIncomeMetrics={monthIncomeMetrics}
+        loading={incomeLoading}
+      />
       <TrafficCards stats={stats} loading={statsLoading} />
       <PendingItems stats={stats} />
 

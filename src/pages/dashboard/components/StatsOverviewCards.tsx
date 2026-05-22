@@ -2,7 +2,6 @@ import {
   ArrowDownOutlined,
   ArrowUpOutlined,
   CloudServerOutlined,
-  DollarOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
 import { Card, Col, Row, Statistic, Tag, Typography } from 'antd';
@@ -31,28 +30,40 @@ export { GrowthTag };
 
 interface StatsOverviewCardsProps {
   stats: API.StatOverviewData | undefined;
+  todayIncomeMetrics: { income: number; revenue: number; expense: number };
+  monthIncomeMetrics: { income: number; revenue: number; expense: number };
   loading: boolean;
 }
 
-const StatsOverviewCards: React.FC<StatsOverviewCardsProps> = ({ stats, loading }) => (
+const formatAmount = (value: number) =>
+  value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const CARD_BODY_STYLE = { minHeight: 136 };
+
+const StatsOverviewCards: React.FC<StatsOverviewCardsProps> = ({
+  stats,
+  todayIncomeMetrics,
+  monthIncomeMetrics,
+  loading,
+}) => (
   <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
     <Col xs={24} sm={12} md={6}>
-      <Card loading={loading}>
+      <Card loading={loading} size="small" styles={{ body: CARD_BODY_STYLE }}>
         <Statistic
           title="在线节点"
           value={stats?.onlineNodes ?? '--'}
           prefix={<CloudServerOutlined />}
-          valueStyle={{ color: '#1890ff' }}
+          valueStyle={{ color: '#1890ff', fontSize: 22 }}
         />
       </Card>
     </Col>
     <Col xs={24} sm={12} md={6}>
-      <Card loading={loading}>
+      <Card loading={loading} size="small" styles={{ body: CARD_BODY_STYLE }}>
         <Statistic
           title="在线用户"
           value={stats?.onlineUsers ?? '--'}
           prefix={<TeamOutlined />}
-          valueStyle={{ color: '#52c41a' }}
+          valueStyle={{ color: '#52c41a', fontSize: 22 }}
         />
         {stats?.onlineDevices !== undefined && (
           <Text type="secondary" style={{ fontSize: 12 }}>
@@ -62,31 +73,37 @@ const StatsOverviewCards: React.FC<StatsOverviewCardsProps> = ({ stats, loading 
       </Card>
     </Col>
     <Col xs={24} sm={12} md={6}>
-      <Card loading={loading}>
+      <Card loading={loading} size="small" styles={{ body: CARD_BODY_STYLE }}>
         <Statistic
-          title="今日收入"
-          value={stats?.todayIncome !== undefined ? (stats.todayIncome / 100).toFixed(2) : '--'}
-          prefix={<DollarOutlined />}
-          suffix="元"
-          valueStyle={{ color: '#faad14' }}
+          title="今日收益"
+          value={todayIncomeMetrics.income}
+          precision={2}
+          suffix="$"
+          valueStyle={{ color: '#1677ff', fontSize: 20 }}
         />
-        <GrowthTag value={stats?.dayIncomeGrowth} />
+        <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 6 }}>
+          流水：{formatAmount(todayIncomeMetrics.revenue)} $
+        </Text>
+        <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
+          支出：{formatAmount(todayIncomeMetrics.expense)} $
+        </Text>
       </Card>
     </Col>
     <Col xs={24} sm={12} md={6}>
-      <Card loading={loading}>
+      <Card loading={loading} size="small" styles={{ body: CARD_BODY_STYLE }}>
         <Statistic
-          title="本月收入"
-          value={
-            stats?.currentMonthIncome !== undefined
-              ? (stats.currentMonthIncome / 100).toFixed(2)
-              : '--'
-          }
-          prefix={<DollarOutlined />}
-          suffix="元"
-          valueStyle={{ color: '#722ed1' }}
+          title="本月收益"
+          value={monthIncomeMetrics.income}
+          precision={2}
+          suffix="$"
+          valueStyle={{ color: '#52c41a', fontSize: 20 }}
         />
-        <GrowthTag value={stats?.monthIncomeGrowth} />
+        <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 6 }}>
+          流水：{formatAmount(monthIncomeMetrics.revenue)} $
+        </Text>
+        <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
+          支出：{formatAmount(monthIncomeMetrics.expense)} $
+        </Text>
       </Card>
     </Col>
   </Row>

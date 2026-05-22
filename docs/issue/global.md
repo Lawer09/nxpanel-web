@@ -201,3 +201,29 @@ React 19 类型定义下，`useRef<T>()` 需要显式传入初始值；旧写法
 ### 相关文件
 
 - `src/components/AutomationRulesEntry.tsx`
+
+## Dashboard 收益日志有值但页面显示 0
+
+### 出现场景
+
+Dashboard 顶部“今日收益 / 本月收益”卡片排查时，请求日志中 `response:success` 已返回非 0 聚合结果，但同一时间段 render 日志仍显示 `todayForRender/monthForRender` 为 0。
+
+### 问题原因
+
+收益请求返回与页面渲染不在同一时刻：
+- 请求成功日志代表异步请求函数已完成计算。
+- 页面显示依赖 React state 提交后的下一次 render。
+- 在 state 提交前的中间 render 仍会读取旧值或兜底值（0），开发环境下 StrictMode 会放大该现象。
+
+### 解决方式
+
+- 将今日/月收益请求并入同一 `useEffect` 内，通过 `Promise.all` 同步获取后一次性写入 state，减少分散更新导致的观测错位。
+- 增加请求-渲染链路日志（`request:start`、`response:success`、`state:applied`、`render_values`）并附带 `requestId`，用于确认“哪次请求结果实际进入渲染态”。
+
+### 影响范围
+
+Dashboard 收益卡片的数据可观测性与调试定位效率。
+
+### 相关文件
+
+- `src/pages/dashboard/index.tsx`

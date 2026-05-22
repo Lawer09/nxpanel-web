@@ -29,6 +29,7 @@ import {
   getDnsProviders,
   getDnsRecordsByIp,
   resolveDnsRecord,
+  syncDnsDomains,
   unbindDnsRecord,
   updateDnsDomainMeta,
   updateDnsIpBindingMeta,
@@ -109,6 +110,7 @@ const DnsPage: React.FC = () => {
   const [providerFormLoading, setProviderFormLoading] = useState(false);
   const [accountFormOpen, setAccountFormOpen] = useState(false);
   const [accountFormLoading, setAccountFormLoading] = useState(false);
+  const [syncingAccountId, setSyncingAccountId] = useState<number | null>(null);
 
   const [providerEditing, setProviderEditing] = useState<API.DnsToolProvider | null>(null);
   const [accountEditing, setAccountEditing] = useState<API.DnsToolProviderAccount | null>(null);
@@ -618,42 +620,64 @@ const DnsPage: React.FC = () => {
       },
       {
         title: '操作',
-        width: 140,
+        width: 220,
         fixed: 'right',
         render: (_, record) => (
-          <Button
-            type="link"
-            size="small"
-            onClick={async () => {
-              const res = await getDnsProviderAccountDetail(record.id);
-              if (res.code !== 0) {
-                messageApi.error(res.msg || '获取详情失败');
-                return;
-              }
-              setAccountEditing(record);
-              const config = (res.data.configJson || {}) as Record<string, unknown>;
-              accountForm.setFieldsValue({
-                providerCode: res.data.providerCode,
-                accountName: res.data.accountName,
-                status: res.data.status,
-                configJson: res.data.configJson
-                  ? JSON.stringify(res.data.configJson, null, 2)
-                  : '',
-                apiKey: typeof config.api_key === 'string' ? config.api_key : undefined,
-                apiSecret:
-                  typeof config.api_secret === 'string' ? config.api_secret : undefined,
-                tags: res.data.tags,
-                note: res.data.note,
-              });
-              setAccountFormOpen(true);
-            }}
-          >
-            编辑
-          </Button>
+          <Space size={2}>
+            <Button
+              type="link"
+              size="small"
+              loading={syncingAccountId === record.id}
+              onClick={async () => {
+                setSyncingAccountId(record.id);
+                const res = await syncDnsDomains({ providerAccountId: record.id });
+                setSyncingAccountId(null);
+                if (res.code !== 0) {
+                  messageApi.error(res.msg || '同步失败');
+                  return;
+                }
+                messageApi.success('同步任务已触发');
+                await refreshAll();
+                actionRefDomain.current?.reload();
+                actionRefAccount.current?.reload();
+              }}
+            >
+              同步
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              onClick={async () => {
+                const res = await getDnsProviderAccountDetail(record.id);
+                if (res.code !== 0) {
+                  messageApi.error(res.msg || '获取详情失败');
+                  return;
+                }
+                setAccountEditing(record);
+                const config = (res.data.configJson || {}) as Record<string, unknown>;
+                accountForm.setFieldsValue({
+                  providerCode: res.data.providerCode,
+                  accountName: res.data.accountName,
+                  status: res.data.status,
+                  configJson: res.data.configJson
+                    ? JSON.stringify(res.data.configJson, null, 2)
+                    : '',
+                  apiKey: typeof config.api_key === 'string' ? config.api_key : undefined,
+                  apiSecret:
+                    typeof config.api_secret === 'string' ? config.api_secret : undefined,
+                  tags: res.data.tags,
+                  note: res.data.note,
+                });
+                setAccountFormOpen(true);
+              }}
+            >
+              编辑
+            </Button>
+          </Space>
         ),
       },
     ],
-    [accountForm, messageApi],
+    [accountForm, messageApi, refreshAll, syncingAccountId],
   );
 
   const handleSelectDomain = useCallback(
