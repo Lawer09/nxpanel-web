@@ -10,7 +10,7 @@ export async function getTrafficPlatforms(params?: API.TrafficPlatformQuery) {
 }
 
 export async function createTrafficPlatform(data: API.TrafficPlatformCreateParams) {
-  return request<API.ApiResponse<{ id: number }>>('/v3/traffic-platform/platforms', {
+  return request<API.ApiResponse<{ id: number }>>('/v3/traffic-platform/platforms/create', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data,
@@ -26,7 +26,7 @@ export async function updateTrafficPlatform(id: number, data: API.TrafficPlatfor
 }
 
 export async function toggleTrafficPlatformStatus(id: number, enabled: number) {
-  return request<API.ApiResponse<boolean>>(`/v3/traffic-platform/platforms/${id}/status`, {
+  return request<API.ApiResponse<boolean>>(`/v3/traffic-platform/platforms/${id}/update-status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     data: { enabled },
@@ -50,7 +50,7 @@ export async function getTrafficAccountDetail(id: number) {
 }
 
 export async function createTrafficAccount(data: API.TrafficAccountCreateParams) {
-  return request<API.ApiResponse<{ id: number }>>('/v3/traffic-platform/accounts', {
+  return request<API.ApiResponse<{ id: number }>>('/v3/traffic-platform/accounts/create', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data,
@@ -58,25 +58,29 @@ export async function createTrafficAccount(data: API.TrafficAccountCreateParams)
 }
 
 export async function updateTrafficAccount(id: number, data: API.TrafficAccountUpdateParams) {
-  return request<API.ApiResponse<boolean>>(`/v3/traffic-platform/accounts/${id}`, {
-    method: 'PUT',
+  return request<API.ApiResponse<boolean>>(`/v3/traffic-platform/accounts/update`, {
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    data,
+    data:{ id, ...data },
   });
 }
 
 export async function toggleTrafficAccountStatus(id: number, enabled: number) {
-  return request<API.ApiResponse<boolean>>(`/v3/traffic-platform/accounts/${id}/status`, {
-    method: 'PATCH',
+  return request<API.ApiResponse<boolean>>(`/v3/traffic-platform/accounts/update-status`, {
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    data: { enabled },
+    data: { id, enabled },
   });
 }
 
 export async function testTrafficAccount(id: number) {
   return request<API.ApiResponse<API.TrafficAccountTestResult>>(
-    `/v3/traffic-platform/accounts/${id}/test`,
-    { method: 'POST' },
+    `/v3/traffic-platform/accounts/test`,
+    { 
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: { id }
+    },
   );
 }
 
@@ -136,7 +140,7 @@ export async function getTrafficSyncJobs(params?: API.TrafficSyncJobQuery) {
 
 export async function getTrafficSyncJobDetail(id: number) {
   return request<API.ApiResponse<API.TrafficSyncJobDetail>>(
-    `/v3/traffic-platform/sync-jobs/${id}`,
+    `/v3/traffic-platform/sync-jobs/detail?id=${id}`,
     { method: 'GET' },
   );
 }
