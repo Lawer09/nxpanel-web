@@ -164,6 +164,7 @@
 
 - 优化 Dashboard 顶部卡片布局：将“今日收益/本月收益”与“在线节点/在线用户”统一为同一行四卡片，收敛指标字号并补充次级信息（流水、支出）以提升信息密度（src/pages/dashboard/components/StatsOverviewCards.tsx）。
 - 优化节点管理字段对齐：按后端最新约定将 `rate_limit` 统一按 `Mbps` 直接展示与编辑（不再做字节单位换算）；节点列表显示为 `xx Mbps`，节点新增/编辑表单标签与提示同步为 Mbps，并补充 `rate_limit`、`device_limit` 字段以适配后端接口新增参数（src/pages/server/index.tsx, src/pages/server/components/NodeFormModal.tsx, src/services/server/typings.d.ts）。
+- 通用报表视图保存一致性：视图增加保存并恢复列排序状态（升序/降序/取消），同时为用户上报报表增加 `dateRangePreset` 持久化，确保“今日/近三天/近一周/近一月”按相对时间语义恢复，手动日期范围保持 `custom`（src/components/report/UniversalReportTable.tsx, src/pages/report/user-report-admin/tabs/BaseUserReportTab.tsx）。
 
 ### Bug 修复
 
