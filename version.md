@@ -163,6 +163,7 @@
 ### 优化功能
 
 - 优化 Dashboard 顶部卡片布局：将“今日收益/本月收益”与“在线节点/在线用户”统一为同一行四卡片，收敛指标字号并补充次级信息（流水、支出）以提升信息密度（src/pages/dashboard/components/StatsOverviewCards.tsx）。
+- 优化节点管理字段对齐：按后端最新约定将 `rate_limit` 统一按 `Mbps` 直接展示与编辑（不再做字节单位换算）；节点列表显示为 `xx Mbps`，节点新增/编辑表单标签与提示同步为 Mbps，并补充 `rate_limit`、`device_limit` 字段以适配后端接口新增参数（src/pages/server/index.tsx, src/pages/server/components/NodeFormModal.tsx, src/services/server/typings.d.ts）。
 
 ### Bug 修复
 
@@ -171,3 +172,5 @@
 - 补充 Dashboard 收益链路调试日志：分别记录 today/month 请求入参、失败兜底分支、成功聚合结果，以及 render 层最终使用值，便于定位“接口有数据但页面显示为 0”的状态时序问题（src/pages/dashboard/index.tsx）。
 - 调整 Dashboard 收益报表筛选字段：移除 `filters.appIds`，改为先由包名映射 `projectCode` 集合，再使用 `filters.projectCodes` 查询今日/本月收益（src/pages/dashboard/index.tsx）。
 - 清理 Dashboard 收益排查临时日志：移除 request/render 调试输出与关联辅助状态，保留正式收益计算与筛选逻辑（src/pages/dashboard/index.tsx）。
+- 代理流量接口api调整
+- 修复节点保存参数默认值：`device_limit` 在前端空值场景下由 `null` 调整为 `0` 传递，满足后端默认值约定（src/pages/server/components/NodeFormModal.tsx）。

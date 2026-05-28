@@ -8,6 +8,7 @@ const { RangePicker } = DatePicker;
 
 export type UserReportQueryState = {
   dateRange: [string, string];
+  dateRangePreset?: 'today' | 'last3Days' | 'last7Days' | 'last30Days' | 'custom';
   hourFrom?: number;
   hourTo?: number;
   userId?: number;
@@ -134,12 +135,41 @@ function debugUserReportSortLog(scope: string, payload: Record<string, any>) {
   console.log(`[UserReportSort:${scope}]`, payload);
 }
 
-const DATE_PRESETS = [
-  { label: '今日', value: [dayjs(), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs] },
-  { label: '近三天', value: [dayjs().subtract(2, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs] },
-  { label: '近一周', value: [dayjs().subtract(6, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs] },
-  { label: '近一月', value: [dayjs().subtract(29, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs] },
+const DATE_PRESET_ITEMS: Array<{
+  key: NonNullable<UserReportQueryState['dateRangePreset']>;
+  label: string;
+  getValue: () => [dayjs.Dayjs, dayjs.Dayjs];
+}> = [
+  { key: 'today', label: '今日', getValue: () => [dayjs(), dayjs()] },
+  { key: 'last3Days', label: '近三天', getValue: () => [dayjs().subtract(2, 'day'), dayjs()] },
+  { key: 'last7Days', label: '近一周', getValue: () => [dayjs().subtract(6, 'day'), dayjs()] },
+  { key: 'last30Days', label: '近一月', getValue: () => [dayjs().subtract(29, 'day'), dayjs()] },
 ];
+
+const DATE_PRESETS = DATE_PRESET_ITEMS.map((item) => ({
+  label: item.label,
+  value: item.getValue(),
+}));
+
+const getDateRangeByPreset = (preset?: UserReportQueryState['dateRangePreset']) => {
+  const found = DATE_PRESET_ITEMS.find((item) => item.key === preset);
+  if (!found) return undefined;
+  const [start, end] = found.getValue();
+  return [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')] as [string, string];
+};
+
+const getPresetByDateRange = (dateRange: [string, string]): UserReportQueryState['dateRangePreset'] => {
+  const [start, end] = dateRange;
+  const found = DATE_PRESET_ITEMS.find((item) => {
+    const [presetStart, presetEnd] = item.getValue();
+    return presetStart.format('YYYY-MM-DD') === start && presetEnd.format('YYYY-MM-DD') === end;
+  });
+  return found?.key || 'custom';
+};
+
+const resolveQueryDateRange = (query: UserReportQueryState) => {
+  return getDateRangeByPreset(query.dateRangePreset) || query.dateRange;
+};
 
 const toNumber = (v: any) => {
   const n = Number(v ?? 0);
@@ -181,6 +211,7 @@ const BaseUserReportTab: React.FC<BaseUserReportTabProps> = ({
       }
       defaultQuery={{
         dateRange: [today, today],
+        dateRangePreset: 'today',
       }}
       defaultDimensions={defaultDimensions}
       defaultMetrics={defaultMetrics}
@@ -219,14 +250,19 @@ const BaseUserReportTab: React.FC<BaseUserReportTabProps> = ({
         <Form layout="inline" style={{ rowGap: 4 }}>
           <Form.Item label="日期范围">
             <RangePicker
-              value={[dayjs(query.dateRange[0]), dayjs(query.dateRange[1])]}
+              value={(() => {
+                const [start, end] = resolveQueryDateRange(query);
+                return [dayjs(start), dayjs(end)] as [dayjs.Dayjs, dayjs.Dayjs];
+              })()}
               presets={DATE_PRESETS}
               onChange={(dates) => {
                 const [start, end] = dates ?? [];
                 if (!start || !end) return;
+                const nextDateRange: [string, string] = [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')];
                 setQuery((prev) => ({
                   ...prev,
-                  dateRange: [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')],
+                  dateRange: nextDateRange,
+                  dateRangePreset: getPresetByDateRange(nextDateRange),
                 }));
               }}
             />
@@ -257,6 +293,7 @@ const BaseUserReportTab: React.FC<BaseUserReportTabProps> = ({
         </Form>
       )}
       fetchData={({ query, page, pageSize, dimensions, sorter }) => {
+        const resolvedDateRange = resolveQueryDateRange(query);
         const mappedSorter = sorter
           ? {
               ...sorter,
@@ -267,7 +304,10 @@ const BaseUserReportTab: React.FC<BaseUserReportTabProps> = ({
           : undefined;
 
         return fetcher({
-          query,
+          query: {
+            ...query,
+            dateRange: resolvedDateRange,
+          },
           page,
           pageSize,
           dimensions,

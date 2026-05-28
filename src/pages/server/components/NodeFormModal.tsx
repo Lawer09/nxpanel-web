@@ -50,6 +50,14 @@ const compactValue = (value: any): any => {
   return value;
 };
 
+const formatRateLimitHint = (mbps?: number | null) => {
+  if (!mbps || mbps <= 0) {
+    return '不限制速率';
+  }
+  const text = mbps >= 100 ? mbps.toFixed(0) : mbps >= 10 ? mbps.toFixed(1) : mbps.toFixed(2);
+  return `约 ${text} Mbps`;
+};
+
 const getInitialValues = (node?: API.ServerNode): NodeFormModalValues => {
   if (!node) {
     return {
@@ -61,6 +69,8 @@ const getInitialValues = (node?: API.ServerNode): NodeFormModalValues => {
       port: '',
       server_port: 443,
       online_limit: undefined,
+      rate_limit: undefined,
+      device_limit: undefined,
       machine_id: undefined,
       group_ids: [],
       route_ids: [],
@@ -76,6 +86,8 @@ const getInitialValues = (node?: API.ServerNode): NodeFormModalValues => {
     parent_id: node.parent_id ?? undefined,
     code: node.code ?? undefined,
     online_limit: node.online_limit ?? undefined,
+    rate_limit: node.rate_limit ?? undefined,
+    device_limit: node.device_limit ?? undefined,
     machine_id: node.machine_id ?? undefined,
     group_ids: node.group_ids || [],
     route_ids: node.route_ids || [],
@@ -167,6 +179,8 @@ const NodeFormModal: React.FC<NodeFormModalProps> = ({
       port: detail.port !== null && detail.port !== undefined ? String(detail.port) : undefined,
       server_port: detail.server_port ?? undefined,
       rate: detail.rate ?? undefined,
+      rate_limit: detail.rate_limit ?? undefined,
+      device_limit: detail.device_limit ?? undefined,
       show: detail.show ?? undefined,
       code: detail.code ?? undefined,
       group_ids: detail.group_ids ?? undefined,
@@ -220,7 +234,9 @@ const NodeFormModal: React.FC<NodeFormModalProps> = ({
       route_ids: values.route_ids || [],
       parent_id: values.parent_id,
       code: values.code,
-      online_limit: values.online_limit ?? null,
+      online_limit: values.online_limit ?? 0,
+      rate_limit: values.rate_limit ?? 0,
+      device_limit: values.device_limit ?? 0,
       machine_id: values.machine_id ?? null,
       tags: values.tags || [],
       excludes: values.excludes || [],
@@ -396,6 +412,26 @@ const NodeFormModal: React.FC<NodeFormModalProps> = ({
       <ProFormDigit
         name="online_limit"
         label="在线用户上限"
+        min={1}
+        placeholder="留空则不限制"
+      />
+      <ProFormDigit
+        name="rate_limit"
+        label="速率限制（Mbps）"
+        min={0}
+        fieldProps={{ precision: 0, step: 1 }}
+        placeholder="留空则不限制"
+      />
+      <ProFormDependency name={['rate_limit']}>
+        {({ rate_limit }) => (
+          <div style={{ marginTop: -12, marginBottom: 8, color: 'rgba(0,0,0,0.45)', fontSize: 12 }}>
+            {formatRateLimitHint(rate_limit)}
+          </div>
+        )}
+      </ProFormDependency>
+      <ProFormDigit
+        name="device_limit"
+        label="设备数限制"
         min={1}
         placeholder="留空则不限制"
       />

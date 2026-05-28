@@ -108,6 +108,8 @@ declare namespace API {
     tags?: string[];
     show?: boolean;
     rate: number;
+    rate_limit?: number | null;
+    device_limit?: number | null;
     rate_time_enable?: boolean;
     rate_time_ranges?: ServerNodeRateTimeRange[];
     parent_id?: number | null;
@@ -135,6 +137,8 @@ declare namespace API {
     port: string;
     server_port: number;
     rate: number;
+    rate_limit?: number | null;
+    device_limit?: number | null;
     group_ids?: number[];
     route_ids?: number[];
     parent_id?: number;
@@ -316,6 +320,8 @@ declare namespace API {
     port?: string | number | null;
     server_port?: number | null;
     rate?: number | null;
+    rate_limit?: number | null;
+    device_limit?: number | null;
     show?: boolean | null;
     code?: string | null;
     spectific_key?: string | null;

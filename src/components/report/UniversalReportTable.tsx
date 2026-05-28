@@ -33,6 +33,7 @@ interface SavedView<Q extends AnyRecord> {
   dimensions: string[];
   visibleFilterDimensions: string[];
   metrics: string[];
+  sorter?: ReportSorter;
   columnsStateMap?: ColumnStateMap;
 }
 
@@ -239,6 +240,7 @@ function readLocalState<Q extends AnyRecord>(storageKey: string, fallback: Q, de
           ? item.visibleFilterDimensions
           : [],
         metrics: Array.isArray(item.metrics) ? item.metrics : [],
+        sorter: normalizeSorter(item.sorter),
         columnsStateMap:
           item.columnsStateMap && typeof item.columnsStateMap === 'object'
             ? item.columnsStateMap
@@ -634,6 +636,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
       dimensions,
       visibleFilterDimensions,
       metrics,
+      sorter,
       columnsStateMap,
     };
     const rest = savedViews.filter((item) => item.name !== name);
@@ -664,7 +667,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
         : normalizeDimensions(dimensionOptions.map((item) => item.value)),
     );
     setMetrics(nextMetrics.length ? nextMetrics : normalizeMetrics(defaultMetrics));
-    setSorter(undefined);
+    setSorter(target.sorter ? normalizeSorter(target.sorter) : undefined);
     setColumnsStateMap(target.columnsStateMap ?? {});
     setCurrent(1);
   };

@@ -31,6 +31,13 @@ const formatTimestamp = (timestamp?: number | null) => {
   return new Date(timestamp * 1000).toLocaleString();
 };
 
+const formatRateLimit = (mbps?: number | null) => {
+  if (!mbps || mbps <= 0) {
+    return '不限';
+  }
+  return `${Math.round(mbps)} Mbps`;
+};
+
 const ServerManagePage: React.FC = () => {
   const nodeActionRef = useRef<ActionType | null>(null);
   const groupActionRef = useRef<ActionType | null>(null);
@@ -140,6 +147,13 @@ const ServerManagePage: React.FC = () => {
       dataIndex: 'rate',
       width: 70,
       search: false,
+    },
+    {
+      title: '速率限制',
+      dataIndex: 'rate_limit',
+      width: 100,
+      search: false,
+      render: (_, record) => formatRateLimit(record.rate_limit),
     },
     {
       title: '在线用户',
