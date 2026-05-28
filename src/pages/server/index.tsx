@@ -390,8 +390,8 @@ const ServerManagePage: React.FC = () => {
       render: (_, record) =>
         record.match?.length ? (
           <Space wrap>
-            {record.match.map((item) => (
-              <Tag key={item}>{item}</Tag>
+            {record.match.map((item, idx) => (
+              <Tag key={`${idx}-${item}`}>{item}</Tag>
             ))}
           </Space>
         ) : (

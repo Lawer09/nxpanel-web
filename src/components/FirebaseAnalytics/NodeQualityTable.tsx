@@ -95,7 +95,7 @@ const NodeQualityTable: React.FC<NodeQualityTableProps> = ({ filters }) => {
         dataSource={data} 
         columns={columns} 
         loading={loading}
-        rowKey="node_id"
+        rowKey={(record) => `${record.node_id}-${record.rank}`}
         pagination={{ pageSize: 10 }}
         scroll={{ x: 'max-content' }}
       />

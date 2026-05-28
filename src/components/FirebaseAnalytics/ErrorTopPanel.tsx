@@ -57,10 +57,12 @@ const ErrorTopPanel: React.FC<ErrorTopPanelProps> = ({ filters }) => {
     radius: 0.8,
     innerRadius: 0.64,
     label: {
-      type: 'inner',
-      offset: '-50%',
-      content: '{percentage}',
-      style: { textAlign: 'center' as const, fontSize: 12 },
+      formatter: (item: any) => {
+        if (!item) return '';
+        const total = pieData.reduce((sum: number, d: any) => sum + d.value, 0);
+        return total > 0 ? `${((item.value / total) * 100).toFixed(1)}%` : '0%';
+      },
+      style: { fontSize: 12 },
     },
     statistic: {
       title: false as const,

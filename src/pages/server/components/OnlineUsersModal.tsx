@@ -61,8 +61,8 @@ const OnlineUsersModal: React.FC<OnlineUsersModalProps> = ({
       render: (ips: string[]) =>
         ips?.length ? (
           <Space wrap size={4}>
-            {ips.map((ip) => (
-              <Tag key={ip} icon={<GlobalOutlined />} color="blue" style={{ fontSize: 12 }}>
+            {ips.map((ip, idx) => (
+              <Tag key={`${idx}-${ip}`} icon={<GlobalOutlined />} color="blue" style={{ fontSize: 12 }}>
                 {ip}
               </Tag>
             ))}

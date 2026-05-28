@@ -2,7 +2,7 @@
 
 ## 维护说明（必读）
 
-当前开发版本：`1.2.6`
+当前开发版本：`1.2.7`
 
 请后续严格按以下规则维护此文件。
 
@@ -127,6 +127,10 @@
 - 修复因 `res.data.list` 与 `res.data.data` 解析字段不兼容导致的账号和日流量/月流量统计总数为 0 异常的问题，更新底层 `getPageInfo` 提取逻辑以兼容不规则层级数据。
 - 修复右上角查询过滤组件区域在响应式排列时的右侧按钮组（查询、重置）悬浮问题：重设容器 Flex 布局让重置与查询紧贴右侧对齐。
 - 修复 Firebase 分析页时间筛选器问题：剥离请求中无用的 `timeRange[]` 前端参数，并将时间格式从 `toISOString()` 统一修正为接口要求的 `YYYY-MM-DD HH:mm:ss`，同时修复 URL 时间参数无法回显的缺陷（src/pages/firebase-analytics/Dashboard.tsx）
+- 修复 Dashboard 饼图 `Undefined variable: percentage` 错误：G2 label 模板 `{percentage}` 解析失败，替换为函数计算百分比并格式化（src/components/FirebaseAnalytics/ErrorTopPanel.tsx）
+- 修复节点质量排行 table rowKey 潜在冲突：原 `rowKey="node_id"` 在相同节点对应多条记录时可能重复，改为 `node_id + rank` 复合 key（src/components/FirebaseAnalytics/NodeQualityTable.tsx）
+- 修复 React key 重复警告：`record.match` 中 hostname 直接用作 key 时因重复值导致报错，统一加上数组索引前缀确保唯一性（src/pages/server/index.tsx, src/pages/dns/index.tsx, src/pages/server/components/OnlineUsersModal.tsx）
+- 在 Dashboard 刷新按钮旁增加实时数据展示：使用专用接口 GET /events/recent 轮询 Redis 实时事件队列总数，每 15 秒自动刷新；点击可弹出 Drawer，内嵌 RealtimeLogWindow 组件展示最近接收事件明细日志（src/pages/firebase-analytics/Dashboard.tsx, src/services/firebase-analytics/api.ts）
 - 修复 ProTable request 返回结构解析错误导致的 `rawData.some is not a function` 崩溃（src/pages/project/components/ResourceTabs/）
 - 修复 ModalForm 内 React Fragment 子元素接收 autoFocus 属性导致的控制台警告（src/pages/project/components/ResourceTabs/）
 - 修复各组件中 message 静态方法无法读取动态主题的警告，统一改用 App.useApp()（src/pages/project/components/）

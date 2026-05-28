@@ -246,6 +246,21 @@ export async function getEvents(params: FirebaseAnalyticsFilter & { current?: nu
   });
 }
 
+/** 最近接收事件 GET /v3/firebase-analytics/events/recent */
+export async function getRecentEvents(params: { page?: number; pageSize?: number }) {
+  return request<{
+    data: {
+      page: number;
+      pageSize: number;
+      total: number;
+      items: any[];
+    };
+  }>('/v3/firebase-analytics/events/recent', {
+    method: 'GET',
+    params,
+  });
+}
+
 /** 事件详情 GET /v3/firebase-analytics/events/{event_id} */
 export async function getEventDetail(eventId: string) {
   return request<{

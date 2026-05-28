@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PageContainer } from '@ant-design/pro-components';
-import { Row, Col, Button, Tooltip, message } from 'antd';
+import { Row, Col, Button, Tooltip, message, Drawer } from 'antd';
 import { ReloadOutlined, ExportOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { useSearchParams } from '@umijs/max';
 import dayjs from 'dayjs';
@@ -19,8 +19,10 @@ import {
   getEventTrend,
   getVpnQualityTrend,
   getRegionQuality,
+  getRecentEvents,
 } from '@/services/firebase-analytics/api';
 import { formatNumber, formatRate } from '@/utils/firebase-analytics';
+import RealtimeLogWindow from '@/components/report/RealtimeLogWindow';
 
 const Dashboard: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -44,6 +46,43 @@ const Dashboard: React.FC = () => {
   };
 
   const [filters, setFilters] = useState<any>(getInitialFilters());
+
+  const [realtimeCount, setRealtimeCount] = useState<number | null>(null);
+  const [realtimeLogOpen, setRealtimeLogOpen] = useState(false);
+
+  const fetchRealtimeLog = useCallback(async ({ page, pageSize }: { page: number; pageSize: number }) => {
+    const res = await getRecentEvents({ page, pageSize });
+    if (res.data) {
+      return { rows: res.data.items || [], total: res.data.total || 0, page, pageSize };
+    }
+    return null;
+  }, []);
+
+  const formatEventLine = (row: any) => {
+    const time = row.recv_at ? dayjs(row.recv_at).format('HH:mm:ss.SSS') : '';
+    const name = row.event_name || '';
+    const app = row.app_id || '';
+    const platform = row.platform || '';
+    const device = row.raw?.device_id ? row.raw.device_id.slice(-8) : '';
+    const extra = row.raw ? Object.entries(row.raw).filter(([k]) => !['app_id', 'event_id', 'event_name', 'platform', 'device_id', 'event_time', 'created_at'].includes(k)).map(([k, v]) => `${k}=${v}`).join(' ') : '';
+    return `${time}  [${name}]  ${app}  ${platform}  ${device}${extra ? `  ${extra}` : ''}`;
+  };
+
+  useEffect(() => {
+    const fetchRealtime = async () => {
+      try {
+        const res = await getRecentEvents({ pageSize: 1 });
+        if (res.data?.total != null) {
+          setRealtimeCount(res.data.total);
+        }
+      } catch {
+        // 静默失败，不影响页面
+      }
+    };
+    fetchRealtime();
+    const timer = setInterval(fetchRealtime, 15000);
+    return () => clearInterval(timer);
+  }, []);
 
   // 统一的参数转换逻辑：剥离 timeRange 避免污染请求，并格式化时间
   const getApiParams = (currentFilters: any) => {
@@ -125,6 +164,12 @@ const Dashboard: React.FC = () => {
       header={{
         title: 'Dashboard',
         extra: [
+          realtimeCount != null ? (
+            <span key="realtime" onClick={() => setRealtimeLogOpen(true)} style={{ marginRight: 16, display: 'inline-flex', alignItems: 'center', gap: 6, color: '#6B7280', fontSize: 13, cursor: 'pointer' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#22c55e', display: 'inline-block' }} />
+              实时: <span style={{ fontWeight: 600, color: '#111827', marginLeft: 2 }}>{formatNumber(realtimeCount)}</span> 条
+            </span>
+          ) : null,
           <Button key="refresh" icon={<ReloadOutlined />} onClick={() => fetchData(filters)}>刷新</Button>,
           <Button key="export" icon={<ExportOutlined />}>导出</Button>,
         ],
@@ -227,6 +272,23 @@ const Dashboard: React.FC = () => {
           <NodeQualityTable filters={apiParams} />
         </Col>
       </Row>
+
+      <Drawer
+        title="实时事件日志"
+        placement="right"
+        width="70%"
+        open={realtimeLogOpen}
+        onClose={() => setRealtimeLogOpen(false)}
+        destroyOnHidden
+      >
+        <RealtimeLogWindow
+          fetchData={fetchRealtimeLog}
+          formatLine={formatEventLine}
+          detailTitle="事件详情"
+          initialPageSize={50}
+          autoRefreshInterval={5000}
+        />
+      </Drawer>
 
     </PageContainer>
   );

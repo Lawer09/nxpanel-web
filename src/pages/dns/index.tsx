@@ -482,8 +482,8 @@ const DnsPage: React.FC = () => {
         width: 160,
         render: (_, record) => (
           <Space size={[4, 4]} wrap>
-            {parseTags(record.tags).map((tag) => (
-              <Tag key={tag}>{tag}</Tag>
+            {parseTags(record.tags).map((tag, idx) => (
+              <Tag key={`${idx}-${tag}`}>{tag}</Tag>
             ))}
             {!record.tags && '-'}
           </Space>
