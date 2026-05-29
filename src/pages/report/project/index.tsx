@@ -4,29 +4,19 @@ import type { SortOrder } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
 import React, { useCallback, useEffect, useState } from 'react';
 import UniversalReportTable from '@/components/report/UniversalReportTable';
+import {
+  STANDARD_DATE_PRESET_ITEMS,
+  toRangePickerPresets,
+  getPresetByDateRange,
+  resolveDateRangeByPreset,
+  type DateRangePreset,
+} from '@/components/report/reportDatePreset';
 import { getProjects } from '@/services/project/api';
 import { queryProjectReport } from '@/services/report/api';
 
 const { RangePicker } = DatePicker;
 
-const DATE_PRESETS = [
-  {
-    label: '今日',
-    value: [dayjs(), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs],
-  },
-  {
-    label: '近三天',
-    value: [dayjs().subtract(2, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs],
-  },
-  {
-    label: '近一周',
-    value: [dayjs().subtract(6, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs],
-  },
-  {
-    label: '近一月',
-    value: [dayjs().subtract(29, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs],
-  },
-];
+const DATE_PRESETS = toRangePickerPresets(STANDARD_DATE_PRESET_ITEMS);
 
 const COMMON_COUNTRY_OPTIONS = [
   'US',
@@ -62,6 +52,7 @@ const COMMON_COUNTRY_OPTIONS = [
 
 type QueryState = {
   dateRange: [string, string];
+  dateRangePreset?: DateRangePreset;
   projectCodes?: string[];
   countries?: string[];
 };
@@ -337,6 +328,7 @@ const ProjectAggregatesPage: React.FC = () => {
         }}
         defaultQuery={{
           dateRange: [dayjs().subtract(1, 'day').format('YYYY-MM-DD'), today],
+          dateRangePreset: 'yesterdayToToday',
           projectCodes: undefined,
           countries: undefined,
         }}
@@ -352,20 +344,31 @@ const ProjectAggregatesPage: React.FC = () => {
           'roi',
         ]}
         enableServerSort
+        transformViewQuery={(query) => {
+          const resolved = resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query.dateRangePreset);
+          if (!resolved) return query;
+          return { ...query, dateRange: resolved };
+        }}
         dimensionOptions={DIMENSION_OPTIONS}
         metricOptions={METRIC_OPTIONS}
         renderFilters={({ query, setQuery, visibleFilterDimensions }) => (
           <Form layout="inline" style={{ rowGap: 4 }}>
             <Form.Item label="日期范围">
               <RangePicker
-                value={[dayjs(query.dateRange[0]), dayjs(query.dateRange[1])]}
+                value={(() => {
+                  const resolved = resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query.dateRangePreset);
+                  const [start, end] = resolved || query.dateRange;
+                  return [dayjs(start), dayjs(end)] as [dayjs.Dayjs, dayjs.Dayjs];
+                })()}
                 presets={DATE_PRESETS}
                 onChange={(dates) => {
                   const [start, end] = dates ?? [];
                   if (!start || !end) return;
+                  const nextDateRange: [string, string] = [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')];
                   setQuery((prev) => ({
                     ...prev,
-                    dateRange: [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')],
+                    dateRange: nextDateRange,
+                    dateRangePreset: getPresetByDateRange(STANDARD_DATE_PRESET_ITEMS, nextDateRange),
                   }));
                 }}
               />
@@ -414,9 +417,10 @@ const ProjectAggregatesPage: React.FC = () => {
           </Form>
         )}
         fetchData={async ({ query, page, pageSize, dimensions, sorter }) => {
+          const resolvedDateRange = resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query.dateRangePreset) || query.dateRange;
           const res = await queryProjectReport({
-            dateFrom: query.dateRange[0],
-            dateTo: query.dateRange[1],
+            dateFrom: resolvedDateRange[0],
+            dateTo: resolvedDateRange[1],
             groupBy: dimensions.length ? (dimensions as API.ProjectReportDimension[]) : undefined,
             filters: {
               projectCodes: normalizeProjectCodes(query.projectCodes),

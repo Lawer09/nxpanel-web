@@ -4,19 +4,22 @@ import type { SortOrder } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
 import React from 'react';
 import UniversalReportTable from '@/components/report/UniversalReportTable';
+import {
+  STANDARD_DATE_PRESET_ITEMS,
+  toRangePickerPresets,
+  getPresetByDateRange,
+  resolveDateRangeByPreset,
+  type DateRangePreset,
+} from '@/components/report/reportDatePreset';
 import { queryUserReportHourly } from '@/services/report/api';
 
 const { RangePicker } = DatePicker;
 
-const DATE_PRESETS = [
-  { label: '今日', value: [dayjs(), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs] },
-  { label: '近三天', value: [dayjs().subtract(2, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs] },
-  { label: '近一周', value: [dayjs().subtract(6, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs] },
-  { label: '近一月', value: [dayjs().subtract(29, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs] },
-];
+const DATE_PRESETS = toRangePickerPresets(STANDARD_DATE_PRESET_ITEMS);
 
 type QueryState = {
   dateRange: [string, string];
+  dateRangePreset?: DateRangePreset;
   hourFrom?: number;
   hourTo?: number;
   userId?: number;
@@ -88,10 +91,16 @@ const UserSummaryReportPage: React.FC = () => {
         }
         defaultQuery={{
           dateRange: [today, today],
+          dateRangePreset: 'today',
         }}
         defaultDimensions={['date', 'hour', 'appId', 'country']}
         defaultMetrics={['trafficUsage', 'trafficUseTime', 'trafficUpload', 'trafficDownload', 'reportCountUser', 'reportCountNode']}
         enableServerSort
+        transformViewQuery={(query) => {
+          const resolved = resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query.dateRangePreset);
+          if (!resolved) return query;
+          return { ...query, dateRange: resolved };
+        }}
         dimensionOptions={DIMENSIONS.map((item) => ({
           label: item.label,
           value: item.value,
@@ -119,14 +128,20 @@ const UserSummaryReportPage: React.FC = () => {
           <Form layout="inline" style={{ rowGap: 4 }}>
             <Form.Item label="日期范围">
               <RangePicker
-                value={[dayjs(query.dateRange[0]), dayjs(query.dateRange[1])]}
+                value={(() => {
+                  const resolved = resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query.dateRangePreset);
+                  const [start, end] = resolved || query.dateRange;
+                  return [dayjs(start), dayjs(end)] as [dayjs.Dayjs, dayjs.Dayjs];
+                })()}
                 presets={DATE_PRESETS}
                 onChange={(dates) => {
                   const [start, end] = dates ?? [];
                   if (!start || !end) return;
+                  const nextDateRange: [string, string] = [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')];
                   setQuery((prev) => ({
                     ...prev,
-                    dateRange: [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')],
+                    dateRange: nextDateRange,
+                    dateRangePreset: getPresetByDateRange(STANDARD_DATE_PRESET_ITEMS, nextDateRange),
                   }));
                 }}
               />
@@ -168,9 +183,10 @@ const UserSummaryReportPage: React.FC = () => {
               }
             : undefined;
 
+          const resolvedDateRange = resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query.dateRangePreset) || query.dateRange;
           const res = await queryUserReportHourly({
-            dateFrom: query.dateRange[0],
-            dateTo: query.dateRange[1],
+            dateFrom: resolvedDateRange[0],
+            dateTo: resolvedDateRange[1],
             hourFrom: query.hourFrom,
             hourTo: query.hourTo,
             groupBy: dimensions.map((item) => DIMENSION_TO_BACKEND[item] || item) as API.UserReportHourlyQuery['groupBy'],

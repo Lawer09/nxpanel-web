@@ -2,13 +2,20 @@ import { DatePicker, Form, InputNumber } from 'antd';
 import dayjs from 'dayjs';
 import React from 'react';
 import UniversalReportTable from '@/components/report/UniversalReportTable';
+import {
+  STANDARD_DATE_PRESET_ITEMS,
+  toRangePickerPresets,
+  getPresetByDateRange,
+  resolveDateRangeByPreset,
+  type DateRangePreset,
+} from '@/components/report/reportDatePreset';
 import type { SortOrder } from 'antd/es/table/interface';
 
 const { RangePicker } = DatePicker;
 
 export type UserReportQueryState = {
   dateRange: [string, string];
-  dateRangePreset?: 'today' | 'last3Days' | 'last7Days' | 'last30Days' | 'custom';
+  dateRangePreset?: DateRangePreset;
   hourFrom?: number;
   hourTo?: number;
   userId?: number;
@@ -135,41 +142,13 @@ function debugUserReportSortLog(scope: string, payload: Record<string, any>) {
   console.log(`[UserReportSort:${scope}]`, payload);
 }
 
-const DATE_PRESET_ITEMS: Array<{
-  key: NonNullable<UserReportQueryState['dateRangePreset']>;
-  label: string;
-  getValue: () => [dayjs.Dayjs, dayjs.Dayjs];
-}> = [
-  { key: 'today', label: '今日', getValue: () => [dayjs(), dayjs()] },
-  { key: 'last3Days', label: '近三天', getValue: () => [dayjs().subtract(2, 'day'), dayjs()] },
-  { key: 'last7Days', label: '近一周', getValue: () => [dayjs().subtract(6, 'day'), dayjs()] },
-  { key: 'last30Days', label: '近一月', getValue: () => [dayjs().subtract(29, 'day'), dayjs()] },
-];
+const DATE_PRESETS = toRangePickerPresets(STANDARD_DATE_PRESET_ITEMS);
 
-const DATE_PRESETS = DATE_PRESET_ITEMS.map((item) => ({
-  label: item.label,
-  value: item.getValue(),
-}));
+const getDateRangeByPreset = (preset?: DateRangePreset) =>
+  resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, preset);
 
-const getDateRangeByPreset = (preset?: UserReportQueryState['dateRangePreset']) => {
-  const found = DATE_PRESET_ITEMS.find((item) => item.key === preset);
-  if (!found) return undefined;
-  const [start, end] = found.getValue();
-  return [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')] as [string, string];
-};
-
-const getPresetByDateRange = (dateRange: [string, string]): UserReportQueryState['dateRangePreset'] => {
-  const [start, end] = dateRange;
-  const found = DATE_PRESET_ITEMS.find((item) => {
-    const [presetStart, presetEnd] = item.getValue();
-    return presetStart.format('YYYY-MM-DD') === start && presetEnd.format('YYYY-MM-DD') === end;
-  });
-  return found?.key || 'custom';
-};
-
-const resolveQueryDateRange = (query: UserReportQueryState) => {
-  return getDateRangeByPreset(query.dateRangePreset) || query.dateRange;
-};
+const getPresetKey = (dateRange: [string, string]) =>
+  getPresetByDateRange(STANDARD_DATE_PRESET_ITEMS, dateRange);
 
 const toNumber = (v: any) => {
   const n = Number(v ?? 0);
@@ -218,6 +197,12 @@ const BaseUserReportTab: React.FC<BaseUserReportTabProps> = ({
       normalizeDimensionValue={toCamelDimension}
       normalizeMetricValue={toCamelMetric}
       enableServerSort
+      transformViewQuery={(query) => {
+        if (!query.dateRangePreset || query.dateRangePreset === 'custom') return query;
+        const resolvedDateRange = getDateRangeByPreset(query.dateRangePreset);
+        if (!resolvedDateRange) return query;
+        return { ...query, dateRange: resolvedDateRange };
+      }}
       dimensionOptions={dimensionOptions.map((item) => ({
         label: item.label,
         value: item.value,
@@ -251,7 +236,8 @@ const BaseUserReportTab: React.FC<BaseUserReportTabProps> = ({
           <Form.Item label="日期范围">
             <RangePicker
               value={(() => {
-                const [start, end] = resolveQueryDateRange(query);
+                const resolved = getDateRangeByPreset(query.dateRangePreset);
+                const [start, end] = resolved || query.dateRange;
                 return [dayjs(start), dayjs(end)] as [dayjs.Dayjs, dayjs.Dayjs];
               })()}
               presets={DATE_PRESETS}
@@ -262,7 +248,7 @@ const BaseUserReportTab: React.FC<BaseUserReportTabProps> = ({
                 setQuery((prev) => ({
                   ...prev,
                   dateRange: nextDateRange,
-                  dateRangePreset: getPresetByDateRange(nextDateRange),
+                  dateRangePreset: getPresetKey(nextDateRange),
                 }));
               }}
             />
@@ -293,7 +279,7 @@ const BaseUserReportTab: React.FC<BaseUserReportTabProps> = ({
         </Form>
       )}
       fetchData={({ query, page, pageSize, dimensions, sorter }) => {
-        const resolvedDateRange = resolveQueryDateRange(query);
+        const resolvedDateRange = getDateRangeByPreset(query.dateRangePreset) || query.dateRange;
         const mappedSorter = sorter
           ? {
               ...sorter,

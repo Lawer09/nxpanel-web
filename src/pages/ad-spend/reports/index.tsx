@@ -3,15 +3,18 @@ import { App, DatePicker, Form, Select } from 'antd';
 import dayjs from 'dayjs';
 import React, { useCallback, useEffect, useState } from 'react';
 import UniversalReportTable from '@/components/report/UniversalReportTable';
+import {
+  AD_SPEND_DATE_PRESET_ITEMS,
+  toRangePickerPresets,
+  getPresetByDateRange,
+  resolveDateRangeByPreset,
+  type DateRangePreset,
+} from '@/components/report/reportDatePreset';
 import { getAdSpendAccounts, getAdSpendDaily, getAdSpendProjectCodes } from '@/services/ad-spend-platform/api';
 
 const { RangePicker } = DatePicker;
 
-const DATE_PRESETS = [
-  { label: '昨日到今日', value: [dayjs().subtract(1, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs] },
-  { label: '近一周', value: [dayjs().subtract(6, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs] },
-  { label: '近一月', value: [dayjs().subtract(29, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs] },
-];
+const DATE_PRESETS = toRangePickerPresets(AD_SPEND_DATE_PRESET_ITEMS);
 
 interface ReportsPageProps {
   embedded?: boolean;
@@ -19,6 +22,7 @@ interface ReportsPageProps {
 
 type QueryState = {
   dateRange: [string, string];
+  dateRangePreset?: DateRangePreset;
   platformCodes?: string[];
   accountIds?: number[];
   projectCodes?: string[];
@@ -159,6 +163,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ embedded = false }) =>
       }
       defaultQuery={{
         dateRange: [yesterday, today],
+        dateRangePreset: 'yesterdayToToday',
         platformCodes: undefined,
         accountIds: undefined,
         projectCodes: undefined,
@@ -169,18 +174,32 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ embedded = false }) =>
       dimensionOptions={DIMENSION_OPTIONS}
       metricOptions={METRIC_OPTIONS}
       hideSummaryRows
+      transformViewQuery={(query) => {
+        const resolved = resolveDateRangeByPreset(AD_SPEND_DATE_PRESET_ITEMS, query.dateRangePreset);
+        if (!resolved) return query;
+        return { ...query, dateRange: resolved };
+      }}
       renderFilters={({ query, setQuery }) => (
         <Form layout="inline">
           <Form.Item label="日期范围">
             <RangePicker
-              value={[dayjs(query.dateRange[0]), dayjs(query.dateRange[1])]}
-              presets={DATE_PRESETS}
-              onChange={(dates) => {
-                const [start, end] = dates ?? [];
-                if (!start || !end) return;
-                const nextStart = start.format('YYYY-MM-DD');
-                const nextEnd = end.format('YYYY-MM-DD');
-                setQuery((prev) => ({ ...prev, dateRange: [nextStart, nextEnd] }));
+                value={(() => {
+                  const resolved = resolveDateRangeByPreset(AD_SPEND_DATE_PRESET_ITEMS, query.dateRangePreset);
+                  const [start, end] = resolved || query.dateRange;
+                  return [dayjs(start), dayjs(end)] as [dayjs.Dayjs, dayjs.Dayjs];
+                })()}
+                presets={DATE_PRESETS}
+                onChange={(dates) => {
+                  const [start, end] = dates ?? [];
+                  if (!start || !end) return;
+                  const nextStart = start.format('YYYY-MM-DD');
+                  const nextEnd = end.format('YYYY-MM-DD');
+                  const nextDateRange: [string, string] = [nextStart, nextEnd];
+                  setQuery((prev) => ({
+                    ...prev,
+                    dateRange: nextDateRange,
+                    dateRangePreset: getPresetByDateRange(AD_SPEND_DATE_PRESET_ITEMS, nextDateRange),
+                  }));
                 refreshProjectCodes(undefined, nextStart, nextEnd);
               }}
             />
@@ -246,9 +265,10 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ embedded = false }) =>
         </Form>
       )}
       fetchData={async ({ query, page, pageSize, dimensions }) => {
+        const resolvedDateRange = resolveDateRangeByPreset(AD_SPEND_DATE_PRESET_ITEMS, query.dateRangePreset) || query.dateRange;
         const res = await getAdSpendDaily({
-          dateFrom: query.dateRange[0],
-          dateTo: query.dateRange[1],
+          dateFrom: resolvedDateRange[0],
+          dateTo: resolvedDateRange[1],
           groupBy: dimensions as API.AdSpendDailyGroupField[],
           filters: {
             platformCodes: query.platformCodes,

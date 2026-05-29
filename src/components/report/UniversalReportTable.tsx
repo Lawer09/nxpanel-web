@@ -78,6 +78,11 @@ interface UniversalReportTableProps<T extends AnyRecord, Q extends AnyRecord> {
   showCurrentSummary?: boolean;
   showGrandSummary?: boolean;
   enableServerSort?: boolean;
+  /**
+   * 应用已保存视图时，对 query 做一次变换（例如按 dateRangePreset 重算动态日期）。
+   * 返回变换后的 query，不传则直接使用原始 query。
+   */
+  transformViewQuery?: (query: Q) => Q;
   renderFilters: (args: {
     query: Q;
     setQuery: React.Dispatch<React.SetStateAction<Q>>;
@@ -321,6 +326,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     renderFilters,
     fetchData,
     fetchGrandTotals,
+    transformViewQuery,
   } = props;
 
   const persisted = readLocalState(storageKey, defaultQuery, defaultDimensions, defaultPageSize);
@@ -476,6 +482,22 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   );
 
   const activeColumns = useMemo(() => [...dimColumns, ...metricColumns], [dimColumns, metricColumns]);
+
+  // 只由列结构（哪些列、列的 key/dataIndex）决定，不含 sortOrder，
+  // 避免 sorter 变化时 ProTable key 变化导致整体重新挂载
+  const tableStructureKey = useMemo(
+    () =>
+      JSON.stringify(
+        activeColumns.map((item) => {
+          const col = item.column as any;
+          const fallbackKey = String(col.key ?? item.id);
+          const sortField = getColumnSortField(col, fallbackKey);
+          const key = sortField || fallbackKey;
+          return { key, sortField: String(col.dataIndex ?? key) };
+        }),
+      ),
+    [activeColumns],
+  );
 
   const resolveBaseRowKey = useCallback(
     (record: T) => {
@@ -652,8 +674,9 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     const target = savedViews.find((item) => item.id === id);
     if (!target) return;
     setSelectedViewId(id);
-    setQuery(target.query);
-    setAppliedQuery(target.query);
+    const resolvedQuery = transformViewQuery ? transformViewQuery(target.query) : target.query;
+    setQuery(resolvedQuery);
+    setAppliedQuery(resolvedQuery);
     const nextDimensions = normalizeDimensions(target.dimensions);
     const nextVisibleFilterDimensions = target.visibleFilterDimensions?.length
       ? normalizeDimensions(target.visibleFilterDimensions)
@@ -667,7 +690,16 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
         : normalizeDimensions(dimensionOptions.map((item) => item.value)),
     );
     setMetrics(nextMetrics.length ? nextMetrics : normalizeMetrics(defaultMetrics));
-    setSorter(target.sorter ? normalizeSorter(target.sorter) : undefined);
+    if (target.sorter?.order) {
+      const restoredField = target.sorter.field || target.sorter.columnKey;
+      setSorter({
+        field: restoredField,
+        columnKey: restoredField,
+        order: target.sorter.order,
+      });
+    } else {
+      setSorter(undefined);
+    }
     setColumnsStateMap(target.columnsStateMap ?? {});
     setCurrent(1);
   };
@@ -873,12 +905,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
               setCurrent(nextPage);
             }
           }}
-          key={JSON.stringify(
-            tableColumns.map((col) => ({
-              key: String((col as any).key ?? ''),
-              sortField: String((col as any).dataIndex ?? (col as any).key ?? ''),
-            })),
-          )}
+          key={tableStructureKey}
           summary={hideSummaryRows || (!showCurrentSummary && !showGrandSummary) ? undefined : () => (
             <Table.Summary>
               {showCurrentSummary ? (

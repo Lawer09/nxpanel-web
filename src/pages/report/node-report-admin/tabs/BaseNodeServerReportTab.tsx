@@ -2,6 +2,13 @@ import { DatePicker, Form, Input, InputNumber } from 'antd';
 import dayjs from 'dayjs';
 import React from 'react';
 import UniversalReportTable from '@/components/report/UniversalReportTable';
+import {
+  STANDARD_DATE_PRESET_ITEMS,
+  toRangePickerPresets,
+  getPresetByDateRange,
+  resolveDateRangeByPreset,
+  type DateRangePreset,
+} from '@/components/report/reportDatePreset';
 import type { SortOrder } from 'antd/es/table/interface';
 
 const { RangePicker } = DatePicker;
@@ -14,6 +21,7 @@ type ReportSorter = {
 
 export type NodeServerQueryState = {
   dateRange: [string, string];
+  dateRangePreset?: DateRangePreset;
   hourFrom?: number;
   hourTo?: number;
   nodeId?: number;
@@ -52,12 +60,7 @@ type BaseNodeServerReportTabProps = {
   }) => Promise<FetchResult>;
 };
 
-const DATE_PRESETS = [
-  { label: '今日', value: [dayjs(), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs] },
-  { label: '近三天', value: [dayjs().subtract(2, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs] },
-  { label: '近一周', value: [dayjs().subtract(6, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs] },
-  { label: '近一月', value: [dayjs().subtract(29, 'day'), dayjs()] as [dayjs.Dayjs, dayjs.Dayjs] },
-];
+const DATE_PRESETS = toRangePickerPresets(STANDARD_DATE_PRESET_ITEMS);
 
 const toSnakeCase = (value: string) => value.replace(/([A-Z])/g, '_$1').toLowerCase();
 
@@ -114,10 +117,16 @@ const BaseNodeServerReportTab: React.FC<BaseNodeServerReportTabProps> = ({
       }
       defaultQuery={{
         dateRange: [today, today],
+        dateRangePreset: 'today',
       }}
       defaultDimensions={defaultDimensions}
       defaultMetrics={defaultMetrics}
       enableServerSort
+      transformViewQuery={(query) => {
+        const resolved = resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query.dateRangePreset);
+        if (!resolved) return query;
+        return { ...query, dateRange: resolved };
+      }}
       dimensionOptions={dimensionOptions.map((item) => ({
         label: item.label,
         value: item.value,
@@ -147,16 +156,22 @@ const BaseNodeServerReportTab: React.FC<BaseNodeServerReportTabProps> = ({
         <Form layout="inline" style={{ rowGap: 4 }}>
           <Form.Item label="日期范围">
             <RangePicker
-              value={[dayjs(query.dateRange[0]), dayjs(query.dateRange[1])]}
-              presets={DATE_PRESETS}
-              onChange={(dates) => {
-                const [start, end] = dates ?? [];
-                if (!start || !end) return;
-                setQuery((prev) => ({
-                  ...prev,
-                  dateRange: [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')],
-                }));
-              }}
+                value={(() => {
+                  const resolved = resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query.dateRangePreset);
+                  const [start, end] = resolved || query.dateRange;
+                  return [dayjs(start), dayjs(end)] as [dayjs.Dayjs, dayjs.Dayjs];
+                })()}
+                presets={DATE_PRESETS}
+                onChange={(dates) => {
+                  const [start, end] = dates ?? [];
+                  if (!start || !end) return;
+                  const nextDateRange: [string, string] = [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')];
+                  setQuery((prev) => ({
+                    ...prev,
+                    dateRange: nextDateRange,
+                    dateRangePreset: getPresetByDateRange(STANDARD_DATE_PRESET_ITEMS, nextDateRange),
+                  }));
+                }}
             />
           </Form.Item>
           <Form.Item label="起始小时">
@@ -189,6 +204,7 @@ const BaseNodeServerReportTab: React.FC<BaseNodeServerReportTabProps> = ({
         </Form>
       )}
       fetchData={({ query, page, pageSize, dimensions, sorter }) => {
+        const resolvedDateRange = resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query.dateRangePreset) || query.dateRange;
         const mappedSorter = sorter
           ? {
               ...sorter,
@@ -196,7 +212,7 @@ const BaseNodeServerReportTab: React.FC<BaseNodeServerReportTabProps> = ({
               columnKey: sorter.columnKey ? toSnakeCase(sorter.columnKey) : undefined,
             }
           : undefined;
-        return fetcher({ query, page, pageSize, dimensions, sorter: mappedSorter });
+        return fetcher({ query: { ...query, dateRange: resolvedDateRange }, page, pageSize, dimensions, sorter: mappedSorter });
       }}
     />
   );
