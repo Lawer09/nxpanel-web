@@ -28,6 +28,11 @@ const VersionNoticeModal: React.FC = () => {
 
       const lastSeen = localStorage.getItem(STORAGE_KEY);
       if (lastSeen !== data.version) {
+        // 小版本（含 -）不弹窗，仅记录已读
+        if (data.version && data.version.includes('-')) {
+          localStorage.setItem(STORAGE_KEY, data.version);
+          return;
+        }
         setVersion(data);
         setOpen(true);
       }
