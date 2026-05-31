@@ -179,3 +179,15 @@
 - 清理 Dashboard 收益排查临时日志：移除 request/render 调试输出与关联辅助状态，保留正式收益计算与筛选逻辑（src/pages/dashboard/index.tsx）。
 - 代理流量接口api调整
 - 修复节点保存参数默认值：`device_limit` 在前端空值场景下由 `null` 调整为 `0` 传递，满足后端默认值约定（src/pages/server/components/NodeFormModal.tsx）。
+
+## [1.2.7] - 2026-05-30
+
+### 新增功能
+
+- 在 Firebase Dashboard 顶部刷新按钮旁新增“同步”操作，点击后弹窗选择日期范围并调用 `POST /v3/firebase-analytics/report/sync` 触发聚合重算（src/pages/firebase-analytics/Dashboard.tsx, src/services/firebase-analytics/api.ts）。
+
+### 优化功能
+
+- 补充 Firebase API 文档：新增“日期范围同步”接口说明，明确请求参数 `dateFrom/dateTo` 与返回字段（docs/api/firebase_analytics.md）。
+
+### Bug 修复

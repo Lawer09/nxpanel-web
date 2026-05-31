@@ -61,6 +61,7 @@
 | 事件列表 | GET | /events | 事件明细列表 |
 | 事件详情 | GET | /events/{event_id} | 事件详情 |
 | 最近接收事件 | GET | /events/recent | 实时接收事件列表 |
+| 日期范围同步 | POST | /report/sync | 触发按日期范围重算 |
 | 筛选项 | GET | /filters/options | 前端筛选项 |
 
 ---
@@ -1171,7 +1172,41 @@
 
 ---
 
-### 29. 筛选项
+### 29. 日期范围同步
+
+#### 请求信息
+
+- 请求方法：`POST`
+- 请求路径：`/report/sync`
+- 权限要求：`admin` + `log`
+- 使用场景：按日期范围触发 Firebase 聚合重算
+
+#### 请求参数
+
+| 参数名 | 类型 | 必填 | 默认值 | 说明 |
+|---|---|---|---|---|
+| dateFrom | string | 是 | - | 开始日期，格式 `YYYY-MM-DD` |
+| dateTo | string | 是 | - | 结束日期，格式 `YYYY-MM-DD` |
+
+#### 返回示例
+
+```json
+{
+  "code": 0,
+  "msg": "操作成功",
+  "data": {
+    "success": true,
+    "exitCode": 0,
+    "dateFrom": "2026-05-26",
+    "dateTo": "2026-05-29",
+    "message": "sync done"
+  }
+}
+```
+
+---
+
+### 30. 筛选项
 
 #### 请求信息
 

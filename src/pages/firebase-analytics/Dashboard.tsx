@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { PageContainer } from '@ant-design/pro-components';
-import { Row, Col, Button, Tooltip, message, Drawer } from 'antd';
-import { ReloadOutlined, ExportOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { Row, Col, Button, Tooltip, message, Drawer, Modal } from 'antd';
+import { ReloadOutlined, ExportOutlined, InfoCircleOutlined, SyncOutlined } from '@ant-design/icons';
+import { DatePicker } from 'antd';
 import { useSearchParams } from '@umijs/max';
 import dayjs from 'dayjs';
 
@@ -20,11 +21,13 @@ import {
   getVpnQualityTrend,
   getRegionQuality,
   getRecentEvents,
+  syncReport,
 } from '@/services/firebase-analytics/api';
 import { formatNumber, formatRate } from '@/utils/firebase-analytics';
 import RealtimeLogWindow from '@/components/report/RealtimeLogWindow';
 
 const Dashboard: React.FC = () => {
+  const { RangePicker } = DatePicker;
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<any>({});
@@ -49,6 +52,9 @@ const Dashboard: React.FC = () => {
 
   const [realtimeCount, setRealtimeCount] = useState<number | null>(null);
   const [realtimeLogOpen, setRealtimeLogOpen] = useState(false);
+  const [syncModalOpen, setSyncModalOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncDateRange, setSyncDateRange] = useState<any[]>([]);
 
   const fetchRealtimeLog = useCallback(async ({ page, pageSize }: { page: number; pageSize: number }) => {
     const res = await getRecentEvents({ page, pageSize });
@@ -157,6 +163,36 @@ const Dashboard: React.FC = () => {
     fetchData(filters);
   }, [filters]);
 
+  const handleSyncSubmit = async () => {
+    if (!syncDateRange || syncDateRange.length !== 2) {
+      message.warning('请选择同步日期范围');
+      return;
+    }
+    const [from, to] = syncDateRange;
+    if (!from || !to) {
+      message.warning('请选择同步日期范围');
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      const res = await syncReport({
+        dateFrom: dayjs(from).format('YYYY-MM-DD'),
+        dateTo: dayjs(to).format('YYYY-MM-DD'),
+      });
+      if (res.data?.success) {
+        message.success(`同步任务已触发 (${res.data.dateFrom} ~ ${res.data.dateTo})`);
+        setSyncModalOpen(false);
+      } else {
+        message.error(res.data?.message || '同步触发失败');
+      }
+    } catch (error: any) {
+      message.error(error?.message || '同步触发失败');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const apiParams = getApiParams(filters);
 
   return (
@@ -171,6 +207,7 @@ const Dashboard: React.FC = () => {
             </span>
           ) : null,
           <Button key="refresh" icon={<ReloadOutlined />} onClick={() => fetchData(filters)}>刷新</Button>,
+          <Button key="sync" icon={<SyncOutlined />} onClick={() => setSyncModalOpen(true)}>同步</Button>,
           <Button key="export" icon={<ExportOutlined />}>导出</Button>,
         ],
         subTitle: (
@@ -289,6 +326,29 @@ const Dashboard: React.FC = () => {
           autoRefreshInterval={5000}
         />
       </Drawer>
+
+      <Modal
+        title="按日期范围同步"
+        open={syncModalOpen}
+        onOk={handleSyncSubmit}
+        onCancel={() => {
+          if (!syncing) {
+            setSyncModalOpen(false);
+          }
+        }}
+        confirmLoading={syncing}
+        okText="开始同步"
+        cancelText="取消"
+        destroyOnHidden
+      >
+        <RangePicker
+          style={{ width: '100%' }}
+          value={syncDateRange as any}
+          onChange={(value) => setSyncDateRange(value || [])}
+          format="YYYY-MM-DD"
+          allowClear
+        />
+      </Modal>
 
     </PageContainer>
   );

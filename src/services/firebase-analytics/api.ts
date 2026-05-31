@@ -269,3 +269,19 @@ export async function getEventDetail(eventId: string) {
     method: 'GET',
   });
 }
+
+/** 触发报告同步 POST /v3/firebase-analytics/report/sync */
+export async function syncReport(params: { dateFrom: string; dateTo: string }) {
+  return request<{
+    data: {
+      success: boolean;
+      exitCode: number;
+      dateFrom: string;
+      dateTo: string;
+      message: string;
+    };
+  }>('/v3/firebase-analytics/report/sync', {
+    method: 'POST',
+    data: params,
+  });
+}
