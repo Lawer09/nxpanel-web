@@ -81,6 +81,13 @@ const fmtFixed2 = (v: unknown) => {
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+const fmtTraffic = (v: unknown) => {
+  const n = toSafeNumber(v);
+  if (n === null) return '--';
+  if (n >= 1024) return `${(n / 1024).toFixed(2)} GB`;
+  return `${n.toFixed(2)} MB`;
+}
+
 const fmtPercent = (v: unknown) => {
   const n = toSafeNumber(v);
   if (n === null) return '--';
@@ -216,8 +223,8 @@ const METRIC_OPTIONS = [
   {
     label: '流量使用量',
     value: 'trafficUsageMb',
-    column: { title: '流量使用量(MB)', dataIndex: 'trafficUsageMb', width: 130, render: fmtFixed2 },
-    formatter: (v: number) => fmtFixed2(v),
+    column: { title: '流量使用量', dataIndex: 'trafficUsageMb', width: 130, render: fmtTraffic },
+    formatter: (v: number) => fmtTraffic(v),
   },
   {
     label: '流量支出',

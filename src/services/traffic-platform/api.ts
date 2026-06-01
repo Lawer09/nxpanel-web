@@ -44,8 +44,8 @@ export async function getTrafficAccounts(params?: API.TrafficAccountQuery) {
 
 export async function getTrafficAccountDetail(id: number) {
   return request<API.ApiResponse<API.TrafficAccountDetail>>(
-    `/v3/traffic-platform/accounts/${id}`,
-    { method: 'GET' },
+    `/v3/traffic-platform/accounts/detail`,
+    { method: 'GET', params: { id } },
   );
 }
 
@@ -140,7 +140,7 @@ export async function getTrafficSyncJobs(params?: API.TrafficSyncJobQuery) {
 
 export async function getTrafficSyncJobDetail(id: number) {
   return request<API.ApiResponse<API.TrafficSyncJobDetail>>(
-    `/v3/traffic-platform/sync-jobs/detail?id=${id}`,
-    { method: 'GET' },
+    `/v3/traffic-platform/sync-jobs/detail`,
+    { method: 'POST', data: { id } },
   );
 }

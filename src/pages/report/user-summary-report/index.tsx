@@ -46,8 +46,8 @@ const DIMENSIONS = [
 const METRICS = [
   { label: '用户上报流量', value: 'trafficUsage' },
   { label: '用户上报时长(s)', value: 'trafficUseTime' },
-  { label: '节点上报上传流量(MB)', value: 'trafficUpload' },
-  { label: '节点上报下载流量(MB)', value: 'trafficDownload' },
+  { label: '节点上报上传流量', value: 'trafficUpload' },
+  { label: '节点上报下载流量', value: 'trafficDownload' },
   { label: '用户侧上报数', value: 'reportCountUser' },
   { label: '节点侧上报数', value: 'reportCountNode' },
 ];

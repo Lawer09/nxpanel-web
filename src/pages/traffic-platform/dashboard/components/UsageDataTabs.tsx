@@ -147,7 +147,7 @@ const UsageDataTabs: React.FC = () => {
         </Space>
       </div>
       <ProTable
-        rowKey={(r) => r.id || `${r.platformCode}_${r.statTime || r.statDate || r.statMonth}_${r.externalUid || ''}_${r.geo || ''}`}
+        rowKey={(r) => r.id || `${r.platformAccountId}_${r.statTime || r.statDate || r.statMonth}_${r.externalUid || ''}_${r.geo || ''}`}
         actionRef={actionRef}
         search={false}
         toolBarRender={false}
