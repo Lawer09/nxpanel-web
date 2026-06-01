@@ -8,7 +8,7 @@ import {
   getAdRevenueSummary,
   getSyncServers,
 } from '@/services/ad/api';
-import { ReloadOutlined } from '@ant-design/icons';
+import { ReloadOutlined, RightOutlined } from '@ant-design/icons';
 import { formatUtc8 } from '../utils/time';
 import TrendChart from './components/TrendChart';
 import AggregateTable from './components/AggregateTable';
@@ -252,7 +252,11 @@ const AdRevenuePage: React.FC = () => {
                 setAccountsModalOpen(true);
               }}
             >
-              <Statistic title="账号数" value={Number(summary?.accountCount ?? 0)} />
+              <Statistic
+                title={<span>账号数 <RightOutlined style={{ fontSize: 11, color: '#999' }} /></span>}
+                value={Number(summary?.accountCount ?? 0)}
+                valueStyle={{ color: '#1890ff' }}
+              />
             </Card>
           </Col>
           <Col span={3}>
@@ -264,7 +268,11 @@ const AdRevenuePage: React.FC = () => {
                 setAppsModalOpen(true);
               }}
             >
-              <Statistic title="应用数" value={Number(summary?.appCount ?? 0)} />
+              <Statistic
+                title={<span>应用数 <RightOutlined style={{ fontSize: 11, color: '#999' }} /></span>}
+                value={Number(summary?.appCount ?? 0)}
+                valueStyle={{ color: '#1890ff' }}
+              />
             </Card>
           </Col>
           <Col span={3}>
@@ -274,7 +282,11 @@ const AdRevenuePage: React.FC = () => {
               style={{ cursor: 'pointer' }}
               onClick={() => setSyncModalOpen(true)}
             >
-              <Statistic title="同步节点" value={syncServerCount} />
+              <Statistic
+                title={<span>同步节点 <RightOutlined style={{ fontSize: 11, color: '#999' }} /></span>}
+                value={syncServerCount}
+                valueStyle={{ color: '#1890ff' }}
+              />
             </Card>
           </Col>
         </Row>
