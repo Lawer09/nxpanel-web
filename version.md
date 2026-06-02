@@ -189,5 +189,6 @@
 ### 优化功能
 
 - 补充 Firebase API 文档：新增“日期范围同步”接口说明，明确请求参数 `dateFrom/dateTo` 与返回字段（docs/api/firebase_analytics.md）。
+- 优化自动化策略配置模块能力：新增 `project_aggregate` 模块（项目范围 `projectCodes`、指标集合、动作 `webhook` 扩展字段），并在规则表单中支持 Webhook 地址、请求头 JSON、超时和签名配置提交（src/components/AutomationRulesEntry.tsx, src/services/automation-rules/typings.d.ts, docs/components/automation-rules-entry.md）。
 
 ### Bug 修复

@@ -11,7 +11,7 @@
 ## 使用场景
 
 - 需要跨业务模块统一配置自动化规则时。
-- 需要在同一套 UI 中切换不同 module（如 `traffic_platform`、`node_status`、`sync_monitor`）进行规则管理时。
+- 需要在同一套 UI 中切换不同 module（如 `traffic_platform`、`project_aggregate`）进行规则管理时。
 
 ## Props 说明
 
@@ -34,8 +34,9 @@ actionsRender: () => [
 - 所有请求都依赖当前登录态下的 `secure_path` 与 token 拦截器，不能脱离项目请求封装单独使用。
 - 模块切换后会重置当前选中规则，并按新模块重新查询规则与执行记录。
 - 表单提交会进行通用校验：必填字段、条件/动作数量、条件值结构等。
+- `project_aggregate` 模块下 `targetType` 固定为 `project_daily_aggregate`，作用范围使用 `projectCodes`。
+- `project_aggregate` 的 `actions.type=webhook` 支持扩展字段：`webhookUrl`、`headers`、`timeoutSeconds`、`signing`（启用开关、密钥、请求头名）。
 
 ## 已知限制
 
-- `node_status`、`sync_monitor` 目前按可扩展配置预留，部分作用范围选项为占位数据。
-- “触发历史/变更记录” Tab 为占位区域，后续可在接口就绪后接入。
+- Webhook 的 `headers` 在前端以 JSON 文本输入，需保证 JSON 格式正确。

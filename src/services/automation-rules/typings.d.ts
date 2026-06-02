@@ -20,6 +20,20 @@ declare namespace API {
   interface AutomationRuleAction {
     type: string;
     template?: string;
+    recoverTemplate?: string;
+    subject?: string;
+    recoverSubject?: string;
+    toAdmin?: boolean | number;
+    recipients?: string[];
+    webhookUrl?: string;
+    headers?: Record<string, any>;
+    timeoutSeconds?: number;
+    signing?: {
+      enabled?: number;
+      secret?: string;
+      timestampHeader?: string;
+      signatureHeader?: string;
+    };
     params?: Record<string, any>;
   }
 

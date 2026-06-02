@@ -2,7 +2,7 @@
 
 ## 1. 基础信息
 
-- 接口前缀：`/v3/automation-rules`
+- 接口前缀：`/api/v3/admin/{securePath}/automation-rules`
 - 鉴权：`admin` + `log` 中间件
 - 统一返回：
 
@@ -24,7 +24,7 @@ Query 参数：
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| module | string | 是 | 模块标识，支持 `traffic_platform` 或 `traffic-platform` |
+| module | string | 是 | 模块标识，支持 `traffic_platform` / `traffic-platform` / `project_aggregate` / `project-aggregate` |
 
 示例响应：
 
@@ -246,11 +246,14 @@ traffic_platform 专有解读：
 - `actions[].type` 可用动作（traffic_platform 专有）：
   - `telegram_admin`
   - `email`
+  - `webhook`
   - `disable_account`
 - `actions[]` 可选扩展字段（该模块当前支持）：
   - `template` / `recoverTemplate`
   - `subject` / `recoverSubject`（`email` 使用）
   - `toAdmin` / `recipients`（`email` 使用）
+  - `webhookUrl` / `method` / `headers` / `timeoutSeconds`（`webhook` 使用）
+  - `signing.enabled` / `signing.secret` / `signing.timestampHeader` / `signing.signatureHeader`（`webhook` 可选签名）
 
 Body 示例：
 
@@ -346,6 +349,20 @@ Body 示例：
 }
 ```
 
+返回字段（data）补充：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| ruleCount | int | 本次参与执行的规则数量 |
+| ruleIds | int[] | 本次实际执行的规则 ID 列表 |
+| targetCount | int | 本次命中的目标数量 |
+| targetIds | int[] | 本次实际命中的目标 ID 列表 |
+| triggeredCount | int | 触发告警动作次数 |
+| recoveredCount | int | 触发恢复动作次数 |
+| skippedCount | int | 跳过次数（如冷却中、dryRun、未命中但记录） |
+| failedCount | int | 执行动作失败次数 |
+| dryRun | bool | 是否 dry-run |
+
 ## 9. 执行记录列表（Redis）
 
 - `GET /executions`
@@ -389,3 +406,99 @@ Query 参数：
 
 - `targetType` 固定为 `traffic_platform_account`
 - `metricsSnapshot` 主要包含：`balanceMb`、`usage1hMb`、`usage6hMb`、`avgHourlyUsageMb`、`etaHours`、`lastSyncMinutes`、`enabled` 等字段
+
+`module=project_aggregate` 时：
+
+- `targetType` 固定为 `project_daily_aggregate`
+- `targetId` 为 `projectCode`
+- `metricsSnapshot` 主要包含：`projectCode`、`projectName`、`newUsers`、`reportNewUsers`、`fbNewUsers`、`dauUsers`、`fbDauUsers`、`adRevenue`、`adRequests`、`adMatchedRequests`、`adMatchRate`、`adSpendCost`、`trafficCost`、`profit`、`roi`、`adSpendCpi`、`adEcpm`
+
+## 10. `module=project_aggregate` 专有说明
+
+### 10.1 适用范围
+
+- 按当天项目维度（不区分国家）对 `project_daily_aggregates` 做聚合评估
+- 日期使用应用当前时区（`now()->toDateString()`）
+
+### 10.2 targetScope 专有字段
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| projectCodes | string[] | 否 | 指定项目编码范围；不传表示全项目 |
+
+说明：创建/更新规则时，`targetScope.projectCodes` 会按白名单校验并持久化，用于实际执行范围过滤。
+
+### 10.3 conditions[].metric 可用指标
+
+- `new_users`
+- `report_new_users`
+- `fb_new_users`
+- `dau_users`
+- `fb_dau_users`
+- `ad_revenue`
+- `ad_requests`
+- `ad_matched_requests`
+- `ad_match_rate`
+- `ad_spend_cost`
+- `traffic_cost`
+- `profit`
+- `roi`
+- `ad_spend_cpi`
+- `ad_ecpm`
+
+说明：`ad_ecpm` 按当天项目维度聚合实时重算，公式为 `SUM(ad_revenue)/SUM(ad_impressions)*1000`（保留 6 位小数）。
+
+说明：`ad_match_rate` 按当天项目维度聚合实时重算，公式为 `SUM(ad_matched_requests)/SUM(ad_requests)*100`（百分比值，保留 6 位小数）。
+
+### 10.4 actions[].type 可用动作
+
+- `telegram_admin`
+- `email`
+- `webhook`
+
+`webhook` 动作扩展字段：
+
+- `webhookUrl`：Webhook 地址（必填）
+- `method`：请求方法（可选，支持 `POST`/`PUT`/`PATCH`，默认 `POST`）
+- `template` / `recoverTemplate`：通知内容模板（可选）
+- `headers`：自定义请求头对象（可选）
+- `timeoutSeconds`：请求超时秒数（可选，默认 10）
+- `signing`：签名配置（可选）
+  - `enabled`：`1/0`，默认 `0`
+  - `secret`：签名密钥（你们当前方案可直接传）
+  - `timestampHeader`：时间戳请求头名，默认 `X-Timestamp`
+  - `signatureHeader`：签名请求头名，默认 `X-Signature`
+
+说明：当 `signing.enabled=1` 且有 `secret` 时，会按飞书风格生成签名并追加到请求头。
+
+### 10.5 创建规则示例（project_aggregate）
+
+```json
+{
+  "module": "project_aggregate",
+  "name": "项目当日 eCPM 过低告警",
+  "description": "当天项目聚合 eCPM 低于阈值时告警",
+  "targetType": "project_daily_aggregate",
+  "targetScope": {
+    "projectCodes": ["A003", "A005"]
+  },
+  "conditionLogic": "all",
+  "conditions": [
+    { "metric": "ad_ecpm", "operator": "lt", "value": 2.5 }
+  ],
+  "actions": [
+    {
+      "type": "webhook",
+      "webhookUrl": "https://open.feishu.cn/open-apis/bot/v2/hook/xxxx",
+      "template": "[Project Alert] {rule_name} | {project_name}({project_code}) | ad_ecpm={ad_ecpm}",
+      "signing": {
+        "enabled": 1,
+        "secret": "your-feishu-secret"
+      }
+    }
+  ],
+  "cooldownSeconds": 3600,
+  "recoveryEnabled": 1,
+  "enabled": 1
+}
+```

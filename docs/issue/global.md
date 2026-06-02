@@ -227,3 +227,32 @@ Dashboard 收益卡片的数据可观测性与调试定位效率。
 ### 相关文件
 
 - `src/pages/dashboard/index.tsx`
+
+## 自动化规则 project_aggregate 模块字段约束
+
+### 出现场景
+
+自动化规则新增 `module=project_aggregate` 后，若沿用 `traffic_platform` 的目标范围和动作结构，会导致创建/更新失败或执行行为不符合预期。
+
+### 问题原因
+
+`project_aggregate` 有独立的模块约束：
+- `targetType` 固定为 `project_daily_aggregate`
+- `targetScope` 使用 `projectCodes`（而非 `accountIds/platformCodes`）
+- 可用动作包含 `webhook`，且包含签名/请求头等扩展字段
+
+### 解决方式
+
+在前端模块配置中单独增加 `project_aggregate`：
+- 作用范围切换为项目编码远程多选
+- 条件指标切换为项目聚合指标集合
+- 动作增加 `webhook` 并补齐 `webhookUrl/headers/timeoutSeconds/signing` 表单与提交映射
+
+### 影响范围
+
+自动化策略弹窗中项目报表模块的规则创建、编辑、执行。
+
+### 相关文件
+
+- `src/components/AutomationRulesEntry.tsx`
+- `src/services/automation-rules/typings.d.ts`
