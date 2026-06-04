@@ -83,6 +83,7 @@ export default {
   'menu.business.user-manage': '用户管理',
   'menu.business.plan': '套餐管理',
   'menu.business.order': '订单管理',
+  'menu.business.external-order-receipt': '回执订单',
   'menu.business.ticket': '工单管理',
   'menu.ad': '广告变现',
   'menu.traffic-platform': '代理流量',

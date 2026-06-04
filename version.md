@@ -2,7 +2,7 @@
 
 ## 维护说明（必读）
 
-当前开发版本：`1.2.7`
+当前开发版本：`1.2.8`
 
 请后续严格按以下规则维护此文件。
 
@@ -192,3 +192,15 @@
 - 优化自动化策略配置模块能力：新增 `project_aggregate` 模块（项目范围 `projectCodes`、指标集合、动作 `webhook` 扩展字段），并在规则表单中支持 Webhook 地址、请求头 JSON、超时和签名配置提交（src/components/AutomationRulesEntry.tsx, src/services/automation-rules/typings.d.ts, docs/components/automation-rules-entry.md）。
 
 ### Bug 修复
+
+## [1.2.8] - 2026-06-03
+
+### 新增功能
+
+- 新增全局系统配置入口与 WooCommerce 订单映射配置面板，支持在顶部自动化按钮旁打开双栏设置弹窗，维护 WooCommerce Product ID 到本地套餐和周期的全量映射配置（src/components/SystemConfigEntry.tsx, src/services/woocommerce-order-mapping/, docs/api/woocommerce_order_mapping_api.md, docs/components/system-config-entry.md）。
+- 新增业务管理下的回执订单子菜单，支持按第三方来源、状态、外部订单号、用户、本地订单和交易流水查询回执记录，并在详情抽屉中查看本地订单转换结果与原始回调 payload（config/routes.ts, src/pages/external-order-receipt/, src/services/external-order-receipt/）。
+- 替换系统品牌图标为本地产品图标，统一 ProLayout logo 与浏览器 favicon 引用（public/logo.svg, config/defaultSettings.ts, config/config.ts）。
+
+### 优化功能
+
+- 优化全局系统配置入口与弹窗交互：顶部入口改为纯图标按钮并增加 Tooltip，左侧配置项增加本地模糊搜索，同时移除弹窗 header 内额外关闭按钮以保留右上角默认关闭入口（src/components/SystemConfigEntry.tsx, docs/components/system-config-entry.md）。

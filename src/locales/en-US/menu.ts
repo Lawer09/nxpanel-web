@@ -63,6 +63,7 @@ export default {
   'menu.business.user-manage': 'User Manage',
   'menu.business.plan': 'Plan Manage',
   'menu.business.order': 'Order Manage',
+  'menu.business.external-order-receipt': 'Receipt Orders',
   'menu.dns': 'Domain Management',
   'menu.business.ticket': 'Ticket Manage',
   'menu.profile': 'Profile',

@@ -249,6 +249,11 @@ export default [
         component: './order',
       },
       {
+        path: '/business/external-order-receipt',
+        name: 'external-order-receipt',
+        component: './external-order-receipt',
+      },
+      {
         path: '/business/ticket',
         name: 'ticket',
         component: './ticket',

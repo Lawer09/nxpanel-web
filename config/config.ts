@@ -25,6 +25,7 @@ export default defineConfig({
   hash: true,
 
   publicPath: PUBLIC_PATH,
+  favicons: [join(PUBLIC_PATH, 'logo.svg')],
 
   /**
    * @name 兼容性设置

@@ -1,0 +1,89 @@
+.externalOrderReceiptPage {
+  .summaryBar {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .summaryItem {
+    min-height: 78px;
+    padding: 14px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #ffffff;
+  }
+
+  .summaryLabel {
+    color: #64748b;
+    font-size: 12px;
+    line-height: 18px;
+  }
+
+  .summaryValue {
+    margin-top: 6px;
+    color: #0f172a;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 30px;
+  }
+
+  .summaryHint {
+    margin-top: 2px;
+    color: #94a3b8;
+    font-size: 12px;
+  }
+
+  .tablePanel {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #ffffff;
+    overflow: hidden;
+  }
+
+  .receiptLink {
+    display: inline-flex;
+    max-width: 100%;
+    align-items: center;
+    color: #1677ff;
+  }
+}
+
+.receiptDrawer {
+  .drawerSection {
+    padding: 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #ffffff;
+  }
+
+  .sectionTitle {
+    margin-bottom: 12px;
+    color: #111827;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .payloadBlock {
+    margin-top: 8px;
+    padding: 12px;
+    max-height: 360px;
+    overflow: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: #f8fafc;
+    color: #111827;
+    white-space: pre-wrap;
+    font-family: Consolas, Menlo, monospace;
+    font-size: 12px;
+    line-height: 18px;
+  }
+}
+
+@media (max-width: 960px) {
+  .externalOrderReceiptPage {
+    .summaryBar {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+}

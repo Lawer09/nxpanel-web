@@ -11,6 +11,7 @@ import {
   Footer,
   Question,
   SelectLang,
+  SystemConfigEntry,
 } from '@/components';
 import VersionNoticeModal from '@/components/VersionNoticeModal';
 import { getLatestVersion } from '@/services/version/api';
@@ -143,6 +144,7 @@ export const layout: RunTimeLayoutConfig = ({
       <Question key="doc" />,
       <SelectLang key="SelectLang" />,
       <AutomationRulesEntry key="AutomationRulesEntry" />,
+      <SystemConfigEntry key="SystemConfigEntry" />,
     ],
     avatarProps: {
       src: initialState?.currentUser?.avatar,

@@ -7,7 +7,16 @@
  */
 import Footer from './Footer';
 import AutomationRulesEntry from './AutomationRulesEntry';
+import SystemConfigEntry from './SystemConfigEntry';
 import { Question, SelectLang } from './RightContent';
 import { AvatarDropdown, AvatarName } from './RightContent/AvatarDropdown';
 
-export { AutomationRulesEntry, AvatarDropdown, AvatarName, Footer, Question, SelectLang };
+export {
+  AutomationRulesEntry,
+  AvatarDropdown,
+  AvatarName,
+  Footer,
+  Question,
+  SelectLang,
+  SystemConfigEntry,
+};
