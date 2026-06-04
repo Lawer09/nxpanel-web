@@ -119,8 +119,11 @@ declare namespace API {
   }
 
   interface TrafficHourlyItem {
-    statHour: string;
-    statDate: string;
+    reportHour?: string;
+    reportDate?: string;
+    statHour?: string;
+    statDate?: string;
+    statTime?: string;
     platformAccountId: number;
     platformCode: string;
     accountName: string;
@@ -147,7 +150,8 @@ declare namespace API {
   }
 
   interface TrafficDailyItem {
-    statDate: string;
+    reportDate?: string;
+    statDate?: string;
     platformAccountId: number;
     platformCode: string;
     accountName: string;
@@ -171,7 +175,8 @@ declare namespace API {
   }
 
   interface TrafficMonthlyItem {
-    statMonth: string;
+    reportMonth?: string;
+    statMonth?: string;
     platformAccountId: number;
     platformCode: string;
     accountName: string;

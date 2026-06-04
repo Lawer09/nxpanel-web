@@ -119,6 +119,8 @@
 - 项目资源卡片"新增"改为"关联"并移至统计卡片右上角，点击卡片自动切换并刷新对应资源列表（src/pages/project/components/ProjectDetail.tsx）
 
 ### Bug 修复
+
+- 对齐流量平台日流量汇总、月流量汇总和小时流量字段命名：将前端类型声明、表格列和接口文档从 `statDate/statMonth/statHour` 更新为 `reportDate/reportMonth/reportHour`，并保留旧字段兼容兜底（src/pages/traffic-platform/dashboard/components/UsageDataTabs.tsx, src/services/traffic-platform/typings.d.ts, docs/api/traffic_platform_api.md, docs/api/traffic_platform_platforms_api.md, docs/issue/global.md）。
 - 修复 `FilterBar` 组件 ProForm 使用 `initialValues` 的警告，改为 `request` 异步加载默认值（src/components/FirebaseAnalytics/FilterBar.tsx）
 - 修复 `RegionQualityPanel` 地图组件中使用废弃 API `mapType` 的警告，替换为 `map`（src/components/FirebaseAnalytics/RegionQualityPanel.tsx）
 - 修复各个图表、表格组件中使用 Antd Card 废弃属性 `bordered` 和 `bodyStyle` 的警告，替换为 `variant="borderless"` 和 `styles={{ body: ... }}`（src/components/FirebaseAnalytics/*.tsx）
@@ -214,5 +216,8 @@
 ### 优化功能
 
 - 优化系统队列接口兼容性：补充 `getSendWebhookTasks` 接口封装与类型定义，并对 `wait`、`workload`、`masters` 等不稳定返回结构做宽松解析，避免单组监控数据异常导致整页不可用（src/services/system/api.ts, src/services/system/typings.d.ts, src/pages/system/queue-monitor/index.tsx, docs/issue/global.md）。
+- 优化自动化策略配置模块能力：新增 `project_ad_revenue_hourly` 模块，支持按项目范围与上一完整小时广告收入指标配置告警规则，并对手动执行 `targetIds=projectCodes`、`includeDisabled` 范围过滤和远程项目搜索做兼容（src/components/AutomationRulesEntry.tsx, docs/components/automation-rules-entry.md, docs/issue/global.md）。
 
 ### Bug 修复
+
+- 对齐流量平台日流量汇总、月流量汇总和小时流量字段命名：将前端类型声明、表格列和接口文档从 `statDate/statMonth/statHour` 更新为 `reportDate/reportMonth/reportHour`，并保留旧字段兼容兜底（src/pages/traffic-platform/dashboard/components/UsageDataTabs.tsx, src/services/traffic-platform/typings.d.ts, docs/api/traffic_platform_api.md, docs/api/traffic_platform_platforms_api.md, docs/issue/global.md）。

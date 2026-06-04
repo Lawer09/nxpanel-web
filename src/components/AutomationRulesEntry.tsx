@@ -52,7 +52,7 @@ import { getTrafficAccounts, getTrafficPlatforms } from '@/services/traffic-plat
 
 const { Paragraph, Text } = Typography;
 
-type ModuleKey = 'traffic_platform' | 'project_aggregate';
+type ModuleKey = 'traffic_platform' | 'project_aggregate' | 'project_ad_revenue_hourly';
 type MetricType = 'number' | 'enum' | 'string';
 type ScopeFieldType = 'multi-select' | 'remote-multi-select' | 'switch';
 
@@ -281,6 +281,47 @@ const MODULE_CONFIGS: Record<ModuleKey, ModuleConfig> = {
     ],
     actions: [...COMMON_NOTIFY_ACTIONS],
   },
+  project_ad_revenue_hourly: {
+    label: '项目广告小时收入',
+    module: 'project_ad_revenue_hourly',
+    description: '按项目评估上一完整小时广告收入指标',
+    accent: '#B45309',
+    defaultTargetType: 'project_ad_revenue_hourly',
+    targetTypes: [{ label: '项目广告小时收入', value: 'project_ad_revenue_hourly' }],
+    targetScopeSchema: [
+      { key: 'projectCodes', label: '项目范围', type: 'remote-multi-select', source: 'projectCodes' },
+      { key: 'includeDisabled', label: '包含禁用映射', type: 'switch' },
+    ],
+    metrics: [
+      { label: '项目代号', value: 'project_code', type: 'string', operators: ['eq', 'neq', 'in', 'not_in'] },
+      { label: '项目名称', value: 'project_name', type: 'string', operators: ['eq', 'neq', 'in', 'not_in'] },
+      { label: '上报小时', value: 'report_hour', type: 'string', operators: ['eq', 'neq', 'in', 'not_in'] },
+      {
+        label: '是否有数据',
+        value: 'has_data',
+        type: 'enum',
+        operators: ['eq', 'neq', 'in', 'not_in'],
+        options: [
+          { label: '有数据', value: 1 },
+          { label: '无数据', value: 0 },
+        ],
+      },
+      { label: '明细行数', value: 'row_count', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
+      { label: '广告请求数', value: 'ad_requests', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
+      { label: '匹配请求数', value: 'matched_requests', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
+      { label: '匹配率', value: 'match_rate', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
+      { label: '展示数', value: 'impressions', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
+      { label: '展示率', value: 'show_rate', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
+      { label: '点击数', value: 'clicks', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
+      { label: 'CTR', value: 'ctr', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
+      { label: '预估收入 Micros', value: 'estimated_earnings_micros', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
+      { label: '预估收入', value: 'estimated_earnings', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
+      { label: 'eCPM Micros', value: 'ecpm_micros', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
+      { label: 'eCPM', value: 'ecpm', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
+      { label: '异常数', value: 'anomaly_count', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
+    ],
+    actions: [...COMMON_NOTIFY_ACTIONS],
+  },
 };
 
 const DEFAULT_SCOPE_OPTIONS: Record<string, Array<{ label: string; value: string | number }>> = {
@@ -386,6 +427,7 @@ const AutomationRulesEntry: React.FC = () => {
   const [moduleStats, setModuleStats] = useState<Record<ModuleKey, ModuleStats>>({
     traffic_platform: { total: 0, enabled: 0, todayExecutions: 0, failed: 0 },
     project_aggregate: { total: 0, enabled: 0, todayExecutions: 0, failed: 0 },
+    project_ad_revenue_hourly: { total: 0, enabled: 0, todayExecutions: 0, failed: 0 },
   });
   const [targetTypeOptions, setTargetTypeOptions] = useState(moduleConfig.targetTypes);
 
@@ -498,6 +540,7 @@ const AutomationRulesEntry: React.FC = () => {
       const nextStats: Record<ModuleKey, ModuleStats> = {
         traffic_platform: { total: 0, enabled: 0, todayExecutions: 0, failed: 0 },
         project_aggregate: { total: 0, enabled: 0, todayExecutions: 0, failed: 0 },
+        project_ad_revenue_hourly: { total: 0, enabled: 0, todayExecutions: 0, failed: 0 },
       };
       for (const moduleName of MODULE_KEYS) {
         const [totalRes, enabledRes, execRes] = await Promise.all([
@@ -718,7 +761,7 @@ const AutomationRulesEntry: React.FC = () => {
   const runRule = async (ruleId: number, dryRun: boolean) => {
     try {
       const scope = form.getFieldValue(['targetScope']) || {};
-      const targetIds = moduleKey === 'project_aggregate'
+      const targetIds = moduleKey === 'project_aggregate' || moduleKey === 'project_ad_revenue_hourly'
         ? ((scope.projectCodes || []) as Array<string | number>)
         : ((scope.accountIds || []) as Array<string | number>);
       const res = await runAutomationRule({
@@ -799,7 +842,7 @@ const AutomationRulesEntry: React.FC = () => {
           showSearch={isRemote}
           filterOption={!isRemote}
           onSearch={
-            isRemote && (field.source === 'trafficPlatformAccounts' || field.source === 'accountIds')
+            isRemote
               ? (value) => {
                   void loadScopeSources(value);
                 }

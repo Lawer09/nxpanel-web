@@ -11,7 +11,7 @@
 ## 使用场景
 
 - 需要跨业务模块统一配置自动化规则时。
-- 需要在同一套 UI 中切换不同 module（如 `traffic_platform`、`project_aggregate`）进行规则管理时。
+- 需要在同一套 UI 中切换不同 module（如 `traffic_platform`、`project_aggregate`、`project_ad_revenue_hourly`）进行规则管理时。
 
 ## Props 说明
 
@@ -36,6 +36,8 @@ actionsRender: () => [
 - 表单提交会进行通用校验：必填字段、条件/动作数量、条件值结构等。
 - `project_aggregate` 模块下 `targetType` 固定为 `project_daily_aggregate`，作用范围使用 `projectCodes`。
 - `project_aggregate` 的 `actions.type=webhook` 支持扩展字段：`webhookUrl`、`headers`、`timeoutSeconds`、`signing`（启用开关、密钥、请求头名）。
+- `project_ad_revenue_hourly` 模块下 `targetType` 固定为 `project_ad_revenue_hourly`，作用范围使用 `projectCodes`，并支持 `includeDisabled` 控制是否包含已禁用的项目广告账号映射。
+- `project_ad_revenue_hourly` 的手动运行 `targetIds` 对应 `project_code`，可用于上一完整小时广告收入缺数或异常指标排查。
 
 ## 已知限制
 

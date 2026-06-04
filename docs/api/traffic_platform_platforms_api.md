@@ -312,8 +312,8 @@ data[] 字段说明：
 | platformCode | string | 平台编码 |
 | balance | int | 账号剩余可用流量（MB） |
 | statTime | string | 统计时间 |
-| statDate | string | 统计日期 |
-| statHour | int | 统计小时 |
+| reportDate | string | 统计日期 |
+| reportHour | int | 统计小时 |
 | statMinute | int | 统计分钟 |
 | geo | string | 地区编码（空维度时为空字符串） |
 | region | string | 地区名称（空维度时为空字符串） |
@@ -350,7 +350,7 @@ data[] 字段说明：
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
-| statDate | string | 统计日期 |
+| reportDate | string | 统计日期 |
 | platformAccountId | int | 平台账号 ID |
 | platformCode | string | 平台编码 |
 | geo | string | 地区编码（空维度时为空字符串） |
@@ -388,7 +388,7 @@ data[] 字段说明：
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
-| statMonth | string | 统计月份，格式 `YYYY-MM` |
+| reportMonth | string | 统计月份，格式 `YYYY-MM` |
 | platformAccountId | int | 平台账号 ID |
 | platformCode | string | 平台编码 |
 | trafficBytes | int | 流量字节数（月累计） |

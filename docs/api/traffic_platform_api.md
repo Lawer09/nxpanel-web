@@ -176,8 +176,8 @@ Query 参数：
 - `externalUid`
 - `externalUsername`
 - `statTime`
-- `statDate`
-- `statHour`
+- `reportDate`
+- `reportHour`
 - `statMinute`
 - `geo`
 - `region`
@@ -204,7 +204,7 @@ Query 参数：
 
 返回字段（data 每项）包含：
 
-- `statDate`
+- `reportDate`
 - `platformAccountId`
 - `platformCode`
 - `externalUid`
@@ -234,7 +234,7 @@ Query 参数：
 
 返回字段（data 每项）包含：
 
-- `statMonth`
+- `reportMonth`
 - `platformAccountId`
 - `platformCode`
 - `externalUid`
@@ -525,7 +525,7 @@ GET /v3/traffic-platform/usages/daily
 
 | 列名    | 字段                             |
 | ----- | ------------------------------ |
-| 日期    | statDate                       |
+| 日期    | reportDate                     |
 | 平台    | platformCode                   |
 | 账号    | accountName                    |
 | 子账号   | externalUsername / externalUid |
@@ -542,7 +542,7 @@ GET /v3/traffic-platform/usages/monthly
 
 | 列名    | 字段                             |
 | ----- | ------------------------------ |
-| 月份    | statMonth                      |
+| 月份    | reportMonth                    |
 | 平台    | platformCode                   |
 | 账号    | accountName                    |
 | 子账号   | externalUsername / externalUid |

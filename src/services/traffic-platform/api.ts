@@ -141,6 +141,6 @@ export async function getTrafficSyncJobs(params?: API.TrafficSyncJobQuery) {
 export async function getTrafficSyncJobDetail(id: number) {
   return request<API.ApiResponse<API.TrafficSyncJobDetail>>(
     `/v3/traffic-platform/sync-jobs/detail`,
-    { method: 'POST', data: { id } },
+    { method: 'GET', params: { id } },
   );
 }
