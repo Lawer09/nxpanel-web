@@ -2,7 +2,7 @@
 
 ## 维护说明（必读）
 
-当前开发版本：`1.2.8`
+当前开发版本：`1.2.9`
 
 请后续严格按以下规则维护此文件。
 
@@ -204,3 +204,15 @@
 ### 优化功能
 
 - 优化全局系统配置入口与弹窗交互：顶部入口改为纯图标按钮并增加 Tooltip，左侧配置项增加本地模糊搜索，同时移除弹窗 header 内额外关闭按钮以保留右上角默认关闭入口（src/components/SystemConfigEntry.tsx, docs/components/system-config-entry.md）。
+
+## [1.2.9] - 2026-06-04
+
+### 新增功能
+
+- 新增系统管理下的任务队列监控页面，集中展示调度器 / Horizon 健康状态、队列等待快照、workload、master supervisor、全局失败任务以及 `send_webhook` 专项诊断信息，支持自动刷新与分页排查（config/routes.ts, src/pages/system/queue-monitor/, src/services/system/）。
+
+### 优化功能
+
+- 优化系统队列接口兼容性：补充 `getSendWebhookTasks` 接口封装与类型定义，并对 `wait`、`workload`、`masters` 等不稳定返回结构做宽松解析，避免单组监控数据异常导致整页不可用（src/services/system/api.ts, src/services/system/typings.d.ts, src/pages/system/queue-monitor/index.tsx, docs/issue/global.md）。
+
+### Bug 修复

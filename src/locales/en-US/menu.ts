@@ -57,6 +57,7 @@ export default {
   'menu.business.invite-gift-card-logs': 'Issue Logs',
   'menu.system': 'System',
   'menu.system.monitor': 'System Monitor',
+  'menu.system.queue-monitor': 'Queue Monitor',
   'menu.system.version': 'Version Management',
   'menu.system.app-client': 'App Client',
   'menu.business': 'Business',

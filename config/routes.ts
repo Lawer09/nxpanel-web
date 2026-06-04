@@ -335,12 +335,17 @@ export default [
     routes: [
       {
         path: '/system',
-        redirect: '/system/monitor',
+        redirect: '/system/queue-monitor',
       },
       {
         path: '/system/monitor',
-        name: 'monitor',
-        component: './system',
+        redirect: '/system/queue-monitor',
+        hideInMenu: true,
+      },
+      {
+        path: '/system/queue-monitor',
+        name: 'queue-monitor',
+        component: './system/queue-monitor',
       },
       {
         path: '/system/version',

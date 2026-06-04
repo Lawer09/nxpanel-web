@@ -93,8 +93,22 @@ export async function getQueueWorkload(options?: { [key: string]: any }) {
 }
 
 export async function getQueueMasters(options?: { [key: string]: any }) {
-  return request<API.ApiResponse<any>>('/system/getQueueMasters', {
+  return request<API.ApiResponse<API.QueueMasterSupervisor[] | Record<string, any>>>(
+    '/system/getQueueMasters',
+    {
+      method: 'GET',
+      ...(options || {}),
+    },
+  );
+}
+
+export async function getSendWebhookTasks(
+  params?: { sampleLimit?: number; failedPage?: number; failedPageSize?: number },
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.SendWebhookTasksResponse>>('/system/getSendWebhookTasks', {
     method: 'GET',
+    params,
     ...(options || {}),
   });
 }

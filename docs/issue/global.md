@@ -256,3 +256,36 @@ Dashboard 收益卡片的数据可观测性与调试定位效率。
 
 - `src/components/AutomationRulesEntry.tsx`
 - `src/services/automation-rules/typings.d.ts`
+
+## 系统队列监控接口返回结构不稳定
+
+### 出现场景
+
+系统管理新增任务队列监控页时，需要同时消费 `getQueueStats`、`getQueueWorkload`、`getQueueMasters`、`getHorizonFailedJobs` 和 `getSendWebhookTasks` 多组接口。
+
+### 问题原因
+
+系统接口在文档与项目现有公共类型之间存在差异：
+- 项目大多数接口使用 `code/msg/data`
+- 队列 API 文档描述为 `status/message/data`
+- `wait`、`workload`、`masters` 等字段在不同实现下可能返回对象、数组或嵌套包装结构
+
+如果页面直接按单一结构读取，监控页很容易因为某一组数据形态变化而整块渲染失败。
+
+### 解决方式
+
+在队列监控页中统一增加宽松解析层：
+- 业务成功判断同时兼容 `code===0|200` 与 `status==='success'|'ok'`
+- `wait` 快照统一归一化为 `{ queue, wait }[]`
+- `workload` / `masters` 同时兼容数组直返、`data` 包装和对象映射结构
+- 单接口失败时保留其他已成功数据，并通过页面告警提示“部分监控数据加载失败”
+
+### 影响范围
+
+系统管理下的任务队列监控页面，以及后续复用这些系统监控接口的页面。
+
+### 相关文件
+
+- `src/pages/system/queue-monitor/index.tsx`
+- `src/services/system/api.ts`
+- `src/services/system/typings.d.ts`
