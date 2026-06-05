@@ -346,3 +346,28 @@ Dashboard 收益卡片的数据可观测性与调试定位效率。
 - `src/services/traffic-platform/typings.d.ts`
 - `docs/api/traffic_platform_api.md`
 - `docs/api/traffic_platform_platforms_api.md`
+
+## 项目汇总报表总计行接入 summary 字段
+### 出现场景
+
+项目汇总报表接口 `/api/v3/admin/report/project/query` 在分页数据 `data` 之外新增 `summary` 字段，用于返回当前筛选条件下各统计指标的总计值；如果前端仍只渲染列表数据，就无法展示“总数据合计”行。
+
+### 问题原因
+
+`UniversalReportTable` 之前的总计行能力主要依赖当前页本地汇总或额外的 `fetchGrandTotals` 请求，未直接消费 `fetchData` 返回体中的 `summary`，导致已有项目报表页面不能直接接入后端新增总计字段。
+
+### 解决方式
+
+扩展 `UniversalReportTable` 的 `fetchData` 返回结构，允许页面直接返回 `summary`；在开启 `showGrandSummary` 时优先使用该字段渲染“总数据合计”行，并兼容数值、数值字符串和空值格式化显示。项目汇总报表页同步接入接口返回的 `summary`。
+
+### 影响范围
+
+项目汇总报表页的总计行展示，以及后续复用 `UniversalReportTable` 且接口直接返回总计对象的报表页面。
+
+### 相关文件
+
+- `src/components/report/UniversalReportTable.tsx`
+- `src/pages/report/project/index.tsx`
+- `src/services/report/typings.d.ts`
+- `docs/api/project-report-api.md`
+- `docs/components/universal_report.md`

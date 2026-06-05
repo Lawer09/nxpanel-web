@@ -7,10 +7,13 @@ import dayjs from 'dayjs';
  */
 export type DateRangePreset =
   | 'today'
+  | 'yesterday'
   | 'last3Days'
   | 'last7Days'
   | 'last30Days'
   | 'yesterdayToToday'
+  | 'last3Months'
+  | 'lastYear'
   | 'custom';
 
 export type DatePresetItem = {
@@ -22,16 +25,12 @@ export type DatePresetItem = {
 /** 今日 / 近三天 / 近一周 / 近一月 —— 用于大多数报表页 */
 export const STANDARD_DATE_PRESET_ITEMS: DatePresetItem[] = [
   { key: 'today', label: '今日', getValue: () => [dayjs(), dayjs()] },
+  { key: 'yesterday', label: '昨日', getValue: () => [dayjs().subtract(1, 'day'), dayjs().subtract(1, 'day')] },
   { key: 'last3Days', label: '近三天', getValue: () => [dayjs().subtract(2, 'day'), dayjs()] },
   { key: 'last7Days', label: '近一周', getValue: () => [dayjs().subtract(6, 'day'), dayjs()] },
-  { key: 'last30Days', label: '近一月', getValue: () => [dayjs().subtract(29, 'day'), dayjs()] },
-];
-
-/** 昨日到今日 / 近一周 / 近一月 —— 用于广告消耗报表页 */
-export const AD_SPEND_DATE_PRESET_ITEMS: DatePresetItem[] = [
-  { key: 'yesterdayToToday', label: '昨日到今日', getValue: () => [dayjs().subtract(1, 'day'), dayjs()] },
-  { key: 'last7Days', label: '近一周', getValue: () => [dayjs().subtract(6, 'day'), dayjs()] },
-  { key: 'last30Days', label: '近一月', getValue: () => [dayjs().subtract(29, 'day'), dayjs()] },
+  { key: 'last30Days', label: '近一月', getValue: () => [dayjs().subtract(1, 'month'), dayjs()] },
+  { key: 'last3Months', label: '近三月', getValue: () => [dayjs().subtract(3, 'month'), dayjs()] },
+  { key: 'lastYear', label: '近一年', getValue: () => [dayjs().subtract(1, 'year'), dayjs()] },
 ];
 
 /**

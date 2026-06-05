@@ -54,6 +54,7 @@ interface DimensionOption<T> {
 interface ReportFetchResult<T> {
   list: T[];
   total: number;
+  summary?: Record<string, unknown>;
 }
 
 interface ReportSorter {
@@ -96,7 +97,7 @@ interface UniversalReportTableProps<T extends AnyRecord, Q extends AnyRecord> {
     dimensions: string[];
     sorter?: ReportSorter;
   }) => Promise<ReportFetchResult<T>>;
-  fetchGrandTotals?: (args: { query: Q; dimensions: string[]; sorter?: ReportSorter }) => Promise<Record<string, number>>;
+  fetchGrandTotals?: (args: { query: Q; dimensions: string[]; sorter?: ReportSorter }) => Promise<Record<string, unknown>>;
 }
 
 function normalizeDimensionValues(
@@ -144,6 +145,13 @@ function normalizeMetricValues(
 function safeNumber(v: any) {
   const n = Number(v ?? 0);
   return Number.isFinite(n) ? n : 0;
+}
+
+function renderSummaryValue(raw: unknown, formatter?: MetricFormatter) {
+  if (formatter) return formatter(safeNumber(raw));
+  if (raw === null || raw === undefined || raw === '') return '--';
+  if (typeof raw === 'number') return raw.toLocaleString();
+  return String(raw);
 }
 
 function normalizePageSize(value: unknown, fallback: number) {
@@ -381,7 +389,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   const [current, setCurrent] = useState(1);
   const [pageSize, setPageSize] = useState(persisted.pageSize);
   const [total, setTotal] = useState(0);
-  const [grandTotals, setGrandTotals] = useState<Record<string, number>>({});
+  const [grandTotals, setGrandTotals] = useState<Record<string, unknown>>({});
   const [reloadToken, setReloadToken] = useState(0);
   const [sorter, setSorter] = useState<ReportSorter | undefined>(undefined);
 
@@ -413,6 +421,9 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
         if (!alive) return;
         setData(result.list || []);
         setTotal(result.total || 0);
+        if (showGrandSummary) {
+          setGrandTotals(result.summary || {});
+        }
       } finally {
         if (alive) setLoading(false);
       }
@@ -421,7 +432,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     return () => {
       alive = false;
     };
-  }, [enableServerSort, fetchData, appliedQuery, current, pageSize, appliedDimensions, sorter, reloadToken, defaultPageSize]);
+  }, [enableServerSort, fetchData, appliedQuery, current, pageSize, appliedDimensions, sorter, reloadToken, defaultPageSize, showGrandSummary]);
 
   useEffect(() => {
     if (!enableServerSort && sorter) {
@@ -609,7 +620,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   }, [metricOptions, metrics]);
 
   const currentTotals = useMemo(() => {
-    return summaryMetrics.reduce<Record<string, number>>((acc, item) => {
+    return summaryMetrics.reduce<Record<string, unknown>>((acc, item) => {
       acc[item.key] = data.reduce((sum, row) => sum + safeNumber(row[item.key as keyof T]), 0);
       return acc;
     }, {});
@@ -927,7 +938,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
                     }
                     const metric = metricMap[col.value];
                     const raw = currentTotals[col.value] ?? 0;
-                    const content = metric?.formatter ? metric.formatter(raw) : raw.toLocaleString();
+                    const content = renderSummaryValue(raw, metric?.formatter);
                     return (
                       <Table.Summary.Cell index={idx} key={`curr-${col.key}`}>
                         {content}
@@ -955,7 +966,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
                     }
                     const metric = metricMap[col.value];
                     const raw = grandTotals[col.value] ?? 0;
-                    const content = metric?.formatter ? metric.formatter(raw) : raw.toLocaleString();
+                    const content = renderSummaryValue(raw, metric?.formatter);
                     return (
                       <Table.Summary.Cell index={idx} key={`grand-${col.key}`}>
                         {content}

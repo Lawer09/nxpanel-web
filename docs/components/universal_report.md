@@ -120,6 +120,11 @@ visibleFilterDimensions.includes('yourDimension')
 
 建议默认关闭，通过页面按需开启。
 
+- 开启 `showGrandSummary` 后，`fetchData` 可直接返回 `summary` 作为“总数据合计”行数据
+- `fetchData` 返回结构可为 `return { list, total, summary }`
+- 如果总计数据需要独立接口，也可以继续使用 `fetchGrandTotals`
+- `summary` 支持 `number / string / null`，建议复用指标列 `formatter` 统一展示格式
+
 ## 8. 常见问题
 
 - `pageSize` 异常（如缓存污染成 `[]`）

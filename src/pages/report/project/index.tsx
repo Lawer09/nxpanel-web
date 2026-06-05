@@ -350,6 +350,7 @@ const ProjectAggregatesPage: React.FC = () => {
           'profit',
           'roi',
         ]}
+        showGrandSummary
         enableServerSort
         transformViewQuery={(query) => {
           const resolved = resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query.dateRangePreset);
@@ -446,8 +447,12 @@ const ProjectAggregatesPage: React.FC = () => {
 
           const payload = res.data;
           const list = Array.isArray(payload?.data) ? payload.data : [];
+          const summary =
+            payload?.summary && typeof payload.summary === 'object'
+              ? (payload.summary as Record<string, unknown>)
+              : undefined;
           const total = Number(payload?.total ?? list.length);
-          return { list, total };
+          return { list, total, summary };
         }}
       />
     </PageContainer>

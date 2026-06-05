@@ -218,6 +218,7 @@
 - 优化系统队列接口兼容性：补充 `getSendWebhookTasks` 接口封装与类型定义，并对 `wait`、`workload`、`masters` 等不稳定返回结构做宽松解析，避免单组监控数据异常导致整页不可用（src/services/system/api.ts, src/services/system/typings.d.ts, src/pages/system/queue-monitor/index.tsx, docs/issue/global.md）。
 - 优化自动化策略配置模块能力：新增 `project_ad_revenue_hourly` 模块，支持按项目范围与上一完整小时广告收入指标配置告警规则，并对手动执行 `targetIds=projectCodes`、`includeDisabled` 范围过滤和远程项目搜索做兼容（src/components/AutomationRulesEntry.tsx, docs/components/automation-rules-entry.md, docs/issue/global.md）。
 - 优化自动化策略配置 `project_ad_revenue_hourly` 模块：按最新接口文档移除 `project_code/project_name/report_hour/has_data` 条件指标，并将数值指标操作符扩展为 `eq/neq/gt/gte/lt/lte/in/not_in/between`（src/components/AutomationRulesEntry.tsx, docs/components/automation-rules-entry.md, docs/issue/global.md）。
+- 优化项目汇总报表总计行展示：接入 `/api/v3/admin/report/project/query` 返回的 `summary` 字段作为“总数据合计”行数据，支持按当前筛选条件展示统计字段总计（src/pages/report/project/index.tsx, src/components/report/UniversalReportTable.tsx, src/services/report/typings.d.ts, docs/api/project-report-api.md, docs/components/universal_report.md, docs/issue/global.md）。
 
 ### Bug 修复
 

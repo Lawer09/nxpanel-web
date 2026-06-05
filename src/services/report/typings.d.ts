@@ -1,6 +1,7 @@
 declare namespace API {
   interface ReportPageResult<T> {
     data: T[];
+    summary?: Record<string, unknown>;
     total: number;
     page: number;
     pageSize: number;

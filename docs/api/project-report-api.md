@@ -41,6 +41,7 @@
 顶层：
 
 - `data` `array<object>`
+- `summary` `object|null`，按当前筛选条件和分组方式返回统计字段总计，可用于前端展示“总数据合计”行
 - `total` `int`
 - `page` `int`
 - `pageSize` `int`
@@ -73,6 +74,11 @@
   - `profit` `string|null`（6位小数）
   - `roi` `string|null`（6位小数）
 - 其它字段：`id`（仅明细行可用）、`updatedAt`
+
+`summary` 常见字段：
+
+- 与 `data[]` 中的指标字段保持一致，如 `newUsers/reportNewUsers/dauUsers/adRevenue/adRequests/adMatchedRequests/adImpressions/adClicks/adEcpm/adCtr/adMatchRate/adShowRate/adSpendCost/adSpendCpi/adSpendCpc/adSpendCpm/trafficUsageMb/trafficCost/profit/roi`
+- `summary` 不包含分组维度字段，适用于在分页列表之外展示整份查询结果的汇总值
 
 ## 2. 示例请求
 
