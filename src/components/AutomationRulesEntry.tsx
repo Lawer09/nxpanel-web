@@ -213,6 +213,8 @@ const COMMON_NOTIFY_ACTIONS: ActionConfig[] = [
   },
 ];
 
+const NUMERIC_FULL_OPERATORS = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'in', 'not_in', 'between'];
+
 const MODULE_CONFIGS: Record<ModuleKey, ModuleConfig> = {
   traffic_platform: {
     label: '代理平台',
@@ -293,32 +295,19 @@ const MODULE_CONFIGS: Record<ModuleKey, ModuleConfig> = {
       { key: 'includeDisabled', label: '包含禁用映射', type: 'switch' },
     ],
     metrics: [
-      { label: '项目代号', value: 'project_code', type: 'string', operators: ['eq', 'neq', 'in', 'not_in'] },
-      { label: '项目名称', value: 'project_name', type: 'string', operators: ['eq', 'neq', 'in', 'not_in'] },
-      { label: '上报小时', value: 'report_hour', type: 'string', operators: ['eq', 'neq', 'in', 'not_in'] },
-      {
-        label: '是否有数据',
-        value: 'has_data',
-        type: 'enum',
-        operators: ['eq', 'neq', 'in', 'not_in'],
-        options: [
-          { label: '有数据', value: 1 },
-          { label: '无数据', value: 0 },
-        ],
-      },
-      { label: '明细行数', value: 'row_count', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
-      { label: '广告请求数', value: 'ad_requests', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
-      { label: '匹配请求数', value: 'matched_requests', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
-      { label: '匹配率', value: 'match_rate', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
-      { label: '展示数', value: 'impressions', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
-      { label: '展示率', value: 'show_rate', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
-      { label: '点击数', value: 'clicks', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
-      { label: 'CTR', value: 'ctr', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
-      { label: '预估收入 Micros', value: 'estimated_earnings_micros', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
-      { label: '预估收入', value: 'estimated_earnings', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
-      { label: 'eCPM Micros', value: 'ecpm_micros', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
-      { label: 'eCPM', value: 'ecpm', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
-      { label: '异常数', value: 'anomaly_count', type: 'number', operators: ['eq', 'neq', 'lte', 'lt', 'gte', 'gt', 'between'] },
+      { label: '明细行数', value: 'row_count', type: 'number', operators: NUMERIC_FULL_OPERATORS },
+      { label: '广告请求数', value: 'ad_requests', type: 'number', operators: NUMERIC_FULL_OPERATORS },
+      { label: '匹配请求数', value: 'matched_requests', type: 'number', operators: NUMERIC_FULL_OPERATORS },
+      { label: '匹配率', value: 'match_rate', type: 'number', operators: NUMERIC_FULL_OPERATORS },
+      { label: '展示数', value: 'impressions', type: 'number', operators: NUMERIC_FULL_OPERATORS },
+      { label: '展示率', value: 'show_rate', type: 'number', operators: NUMERIC_FULL_OPERATORS },
+      { label: '点击数', value: 'clicks', type: 'number', operators: NUMERIC_FULL_OPERATORS },
+      { label: 'CTR', value: 'ctr', type: 'number', operators: NUMERIC_FULL_OPERATORS },
+      { label: '预估收入 Micros', value: 'estimated_earnings_micros', type: 'number', operators: NUMERIC_FULL_OPERATORS },
+      { label: '预估收入', value: 'estimated_earnings', type: 'number', operators: NUMERIC_FULL_OPERATORS },
+      { label: 'eCPM Micros', value: 'ecpm_micros', type: 'number', operators: NUMERIC_FULL_OPERATORS },
+      { label: 'eCPM', value: 'ecpm', type: 'number', operators: NUMERIC_FULL_OPERATORS },
+      { label: '异常数', value: 'anomaly_count', type: 'number', operators: NUMERIC_FULL_OPERATORS },
     ],
     actions: [...COMMON_NOTIFY_ACTIONS],
   },

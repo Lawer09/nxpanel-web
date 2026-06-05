@@ -37,6 +37,7 @@ actionsRender: () => [
 - `project_aggregate` 模块下 `targetType` 固定为 `project_daily_aggregate`，作用范围使用 `projectCodes`。
 - `project_aggregate` 的 `actions.type=webhook` 支持扩展字段：`webhookUrl`、`headers`、`timeoutSeconds`、`signing`（启用开关、密钥、请求头名）。
 - `project_ad_revenue_hourly` 模块下 `targetType` 固定为 `project_ad_revenue_hourly`，作用范围使用 `projectCodes`，并支持 `includeDisabled` 控制是否包含已禁用的项目广告账号映射。
+- `project_ad_revenue_hourly` 的条件指标已收敛为统计字段，不再提供 `project_code`、`project_name`、`report_hour`、`has_data` 作为条件项。
 - `project_ad_revenue_hourly` 的手动运行 `targetIds` 对应 `project_code`，可用于上一完整小时广告收入缺数或异常指标排查。
 
 ## 已知限制

@@ -268,14 +268,16 @@ Dashboard 收益卡片的数据可观测性与调试定位效率。
 `project_ad_revenue_hourly` 有独立的模块约束：
 - `targetType` 固定为 `project_ad_revenue_hourly`
 - `targetScope` 使用 `projectCodes`，并额外支持 `includeDisabled`
-- `conditions.metric` 使用上一完整小时广告收入聚合指标，如 `has_data`、`report_hour`、`estimated_earnings`、`ecpm`
+- `conditions.metric` 已收敛为上一完整小时广告收入统计字段，不再提供 `project_code`、`project_name`、`report_hour`、`has_data`
+- 数值类条件操作符较旧版增加，需要同步放宽前端可选集合
 - 手动运行 `targetIds` 对应 `project_code`
 
 ### 解决方式
 
 在前端自动化模块配置中单独增加 `project_ad_revenue_hourly`：
 - 作用范围复用项目编码远程多选，并补充 `includeDisabled`
-- 条件指标切换为 `automation_rules_api.md` 第 11 节定义的小时广告收入指标集合
+- 条件指标切换为 `automation_rules_api.md` 第 11 节定义的小时广告收入统计指标集合
+- 数值指标操作符扩展为 `eq/neq/gt/gte/lt/lte/in/not_in/between`
 - 手动执行时改为从 `targetScope.projectCodes` 生成 `targetIds`
 
 ### 影响范围
