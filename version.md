@@ -2,7 +2,7 @@
 
 ## 维护说明（必读）
 
-当前开发版本：`1.2.9`
+当前开发版本：`1.3.0`
 
 请后续严格按以下规则维护此文件。
 
@@ -91,6 +91,19 @@
 不得修改非当前版本的任何内容
 
 ## 8. 当前版本日志
+
+## [1.3.0] - 2026-06-05
+
+### 新增功能
+
+### 优化功能
+
+- 优化通用报表视图更新交互：在选中视图后增加“视图变更，未保存”提示，并将 `更新` 按钮扩展为覆盖保存当前视图后同步应用未生效的查询条件/维度，避免视图与当前草稿状态脱节（src/components/report/UniversalReportTable.tsx, src/components/report/ViewManager.tsx, docs/components/universal_report.md, docs/issue/report_sorting_issue.md）。
+- 优化通用报表视图操作区展示：在 `更新` 按钮右侧补充当前排序字段与升降序描述，并调整提示布局使排序描述与“视图变更，未保存”始终保持同一行展示，降低视觉突兀感（src/components/report/UniversalReportTable.tsx, src/components/report/ViewManager.tsx, docs/components/universal_report.md）。
+
+### Bug 修复
+
+- 修复通用报表服务端排序图标高亮异常：统一动态列排序标识与受控 `sortOrder` 回填逻辑，确保点击排序和恢复已保存视图排序时，表头高亮与请求参数保持一致（src/components/report/UniversalReportTable.tsx, src/components/report/ViewManager.tsx, docs/components/universal_report.md, docs/issue/report_sorting_issue.md）。
 
 ## [1.2.4] - 2026-05-12
 

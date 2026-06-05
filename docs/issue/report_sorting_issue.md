@@ -2,53 +2,50 @@
 
 ## 背景
 
-- 模块：`用户上报报表`（基于 `UniversalReportTable`）
-- 场景：动态维度/指标列 + 服务端排序（`orderBy` / `orderDirection`）
+- 模块：`用户上报报表`，基于 `UniversalReportTable`
+- 场景：动态维度 / 指标列 + 服务端排序（`orderBy` / `orderDirection`）
 
 ## 问题现象
 
-- 点击列后，请求参数正确（例如 `orderBy: hour, orderDirection: asc`）
-- 但表头排序图标不变色，视觉上仍像“未排序”
-- 再次点击同一列时，常出现仍为 `asc`，看起来像“不能继续切换”
+- 点击列头后，请求参数正确，例如 `orderBy=hour`、`orderDirection=asc`
+- 但表头排序图标没有高亮，看起来像“未排序”
+- 再次点击同一列时，方向切换不稳定，容易表现成一直是 `asc`
 
-## 最终根因
+## 根因
 
-- **列 `key` 与 sorter 标识不一致**。
-- Ant Table 在排序时返回的 `sorter.field/columnKey` 更接近列的 `dataIndex`（这里是 `sortField`），而动态列曾使用了另一套 key（如内部 fallback key）。
-- 由于匹配不到“当前排序列”，`sortOrder` 无法回填到正确列，导致：
-  - 图标状态不更新
-  - 下一次点击的排序状态判断异常
+- 动态列的 `key` 与排序字段没有严格对齐，导致 `sorter.field/columnKey` 无法稳定匹配当前列
+- 排序状态虽然通过请求参数传到了后端，但前端没有把受控 `sortOrder` 回填到正确列上
+- 视图恢复排序时，如果仍按页面各自处理 `sorter`，很容易出现恢复成功但图标不高亮的残留问题
 
-## 关键修复
+## 解决方式
 
-- 在动态列构建时，将列 key 与排序字段对齐：
+- 统一在 `UniversalReportTable` 内部处理排序状态，继续以 `ProTable.onChange` 作为唯一排序入口
+- 动态列统一用同一套列身份标识计算 `key` / `sortField`，并同时兼容 `sorter.field` 与 `sorter.columnKey`
+- 通过受控 `sortOrder` 精确回填当前排序列，确保点击排序与恢复视图排序两条链路都能正确高亮
 
-```ts
-const sortField = getColumnSortField(originalColumn, fallbackKey);
-const key = sortField || `${fallbackKey}-${index}`;
-```
+## 补充：视图恢复排序与视图变更提示
 
-- 继续按当前 sorter 回填列 `sortOrder`，并通过 `field/columnKey` 匹配当前列。
-- 统一由 `ProTable.onChange` 同步分页与排序状态。
-- 排序调试日志仅用于排查，现已移除。
+### 新增场景
 
-## 下次同类问题先回顾
+- 选中已保存视图后，需要恢复该视图保存时的排序状态，并让表头排序图标正确高亮
+- 选中视图后，如果修改了筛选条件、维度、指标、排序或列设置，需要明确提示“视图变更，未保存”
+- 点击 `更新` 时，不仅要覆盖保存当前视图，还要把尚未应用的查询条件同步生效
 
-在再次遇到“排序参数对了但 UI 不对”这类问题时，先按下面顺序检查组件理解与实现：
+### 补充处理
 
-1. 先看 Ant Table 机制
+- 统一在 `UniversalReportTable` 内部恢复视图排序状态，避免页面侧分别处理 `sorter.field/columnKey`
+- 视图变更检测按完整视图快照比较：`query`、`dimensions`、`visibleFilterDimensions`、`metrics`、`sorter`、`columnsStateMap`
+- 视图基线比较复用 `transformViewQuery`，确保相对日期视图在恢复后不会被误判为“已变更”
+- 点击 `更新` 时仅在草稿查询条件 / 维度与当前已应用状态不一致时触发查询，避免只改排序或列配置时产生重复请求
 
-- `sorter.field/columnKey` 是如何生成的（通常与 `dataIndex` 强相关）
-- 是否处于受控排序（`sortOrder`）模式，受控值是否只回填到当前列
+## 下次同类问题优先排查
 
-2. 再看动态列身份
+1. 先看 Ant Table / ProTable 的排序回调是否处于受控模式
+2. 再看动态列 `key`、`dataIndex`、`sorter.field/columnKey` 是否是一一映射
+3. 最后再看页面层对后端排序字段的映射，例如 camelCase 到 snake_case 的转换是否正确
 
-- 列 `key` 是否稳定
-- 列 `key` 与 `dataIndex`、`sorter.field/columnKey` 是否可一一映射
+## 相关文件
 
-3. 最后看业务映射
-
-- 前端字段（camel）到后端排序字段（snake）的映射是否正确
-- `orderDirection` 是否与 `ascend/descend` 正确转换
-
-建议：先校验组件层，再校验接口层，避免把组件状态问题误判为后端问题。
+- `src/components/report/UniversalReportTable.tsx`
+- `src/components/report/ViewManager.tsx`
+- `src/pages/report/user-report-admin/tabs/BaseUserReportTab.tsx`

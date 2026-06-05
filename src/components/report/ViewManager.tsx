@@ -1,5 +1,5 @@
 import { PlusOutlined } from '@ant-design/icons';
-import { Button, Dropdown, Input, Modal, Select } from 'antd';
+import { Button, Dropdown, Input, Modal, Select, Typography } from 'antd';
 import React from 'react';
 
 export interface ViewItem {
@@ -14,6 +14,9 @@ interface ViewManagerProps {
   renameModalOpen: boolean;
   renameInputValue: string;
   isAdding: boolean;
+  hasUnsavedChanges?: boolean;
+  changeHintText?: string;
+  sortDescription?: string;
   onStartAdd: () => void;
   onCancelAdd: () => void;
   onSelect: (id?: string) => void;
@@ -33,6 +36,9 @@ function ViewManager({
   renameModalOpen,
   renameInputValue,
   isAdding,
+  hasUnsavedChanges = false,
+  changeHintText,
+  sortDescription,
   onStartAdd,
   onCancelAdd,
   onSelect,
@@ -47,17 +53,25 @@ function ViewManager({
   const hasSelection = !!selectedId;
 
   const actionArea = hasSelection ? (
-    <Dropdown.Button
-      menu={{
-        items: [
-          { key: 'rename', label: '重命名', onClick: onOpenRename },
-          { key: 'delete', label: '删除', danger: true, onClick: onDelete },
-        ],
-      }}
-      onClick={onSave}
-    >
-      更新
-    </Dropdown.Button>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+      <Dropdown.Button
+        menu={{
+          items: [
+            { key: 'rename', label: '重命名', onClick: onOpenRename },
+            { key: 'delete', label: '删除', danger: true, onClick: onDelete },
+          ],
+        }}
+        onClick={onSave}
+      >
+        更新
+      </Dropdown.Button>
+      {sortDescription ? (
+        <Typography.Text type="secondary">{sortDescription}</Typography.Text>
+      ) : null}
+      {hasUnsavedChanges && changeHintText ? (
+        <Typography.Text type="warning">{changeHintText}</Typography.Text>
+      ) : null}
+    </div>
   ) : isAdding ? (
     <>
       <Input
@@ -86,7 +100,7 @@ function ViewManager({
   );
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
       <Select
         value={selectedId}
         style={{ width: 200, minWidth: 200 }}

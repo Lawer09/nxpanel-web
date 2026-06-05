@@ -159,3 +159,11 @@ visibleFilterDimensions.includes('yourDimension')
 
 - `src/components/report/UniversalReportTable.tsx`
 - `src/pages/report/user-report-admin/tabs/BaseUserReportTab.tsx`
+
+### 8.2 视图更新与排序高亮补充说明
+
+- 服务端排序场景下，动态列应保证列 `key` 与排序字段使用同一套可比较标识，否则请求参数正确时，表头排序图标也可能无法高亮
+- `UniversalReportTable` 内部通过受控 `sortOrder` 回填当前排序列；页面侧只需要保证 `fetchData` 正确消费 `sorter`
+- 若排序图标在特定动态列表场景下仍不稳定，可在视图操作区直接查看当前排序描述，格式为 `排序：字段 升序/降序`
+- 选中某个视图后，如果当前草稿状态相对该视图发生变化，视图操作区会提示 `视图变更，未保存`
+- 选中视图后点击 `更新`，会先覆盖保存当前视图，再将当前草稿查询条件/维度应用到表格；若这些条件尚未生效，会同步触发一次查询

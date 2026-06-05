@@ -63,6 +63,15 @@ interface ReportSorter {
   order?: SortOrder;
 }
 
+interface ViewSnapshot<Q extends AnyRecord> {
+  query: Q;
+  dimensions: string[];
+  visibleFilterDimensions: string[];
+  metrics: string[];
+  sorter?: ReportSorter;
+  columnsStateMap: ColumnStateMap;
+}
+
 interface UniversalReportTableProps<T extends AnyRecord, Q extends AnyRecord> {
   storageKey: string;
   title: string;
@@ -213,6 +222,77 @@ function isSameSorter(a?: ReportSorter, b?: ReportSorter) {
   return a?.field === b?.field && a?.columnKey === b?.columnKey && a?.order === b?.order;
 }
 
+function getColumnIdentity(column: ProColumns<any>, fallbackKey: string) {
+  const sortField = getColumnSortField(column, fallbackKey);
+  const key = sortField || fallbackKey;
+  return {
+    key,
+    sortField,
+    normalizedKey: normalizeSortKey(key),
+    normalizedSortField: normalizeSortKey(sortField),
+  };
+}
+
+function restoreViewSorter(sorter?: ReportSorter): ReportSorter | undefined {
+  if (!sorter?.order) return undefined;
+  const restoredField = normalizeSortKey(sorter.field || sorter.columnKey);
+  if (!restoredField) return undefined;
+  return {
+    field: restoredField,
+    columnKey: restoredField,
+    order: sorter.order,
+  };
+}
+
+function normalizeColumnsStateMap(map?: ColumnStateMap): ColumnStateMap {
+  if (!map || typeof map !== 'object') return {};
+  return Object.keys(map)
+    .sort()
+    .reduce<ColumnStateMap>((acc, key) => {
+      const state = map[key];
+      if (!state || typeof state !== 'object') return acc;
+      const nextState: ColumnState = {};
+      if (typeof state.show === 'boolean') nextState.show = state.show;
+      if (state.fixed === 'left' || state.fixed === 'right') nextState.fixed = state.fixed;
+      if (typeof state.order === 'number' && Number.isFinite(state.order)) nextState.order = state.order;
+      acc[key] = nextState;
+      return acc;
+    }, {});
+}
+
+function toStableComparable(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => toStableComparable(item));
+  }
+  if (value && typeof value === 'object') {
+    return Object.keys(value as Record<string, unknown>)
+      .sort()
+      .reduce<Record<string, unknown>>((acc, key) => {
+        const nextValue = toStableComparable((value as Record<string, unknown>)[key]);
+        if (nextValue !== undefined) {
+          acc[key] = nextValue;
+        }
+        return acc;
+      }, {});
+  }
+  return value;
+}
+
+function stableSerialize(value: unknown) {
+  return JSON.stringify(toStableComparable(value));
+}
+
+function createViewSnapshot<Q extends AnyRecord>(input: ViewSnapshot<Q>) {
+  return {
+    query: input.query,
+    dimensions: [...input.dimensions],
+    visibleFilterDimensions: [...input.visibleFilterDimensions].sort(),
+    metrics: [...input.metrics],
+    sorter: restoreViewSorter(input.sorter) ?? null,
+    columnsStateMap: normalizeColumnsStateMap(input.columnsStateMap),
+  };
+}
+
 function readLocalState<Q extends AnyRecord>(storageKey: string, fallback: Q, defaultDimensions: string[], defaultPageSize: number) {
   try {
     const raw = localStorage.getItem(storageKey);
@@ -353,9 +433,13 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     [validMetricValues, defaultMetrics, normalizeMetricValue],
   );
 
+  const allDimensionValues = useMemo(
+    () => normalizeDimensions(dimensionOptions.map((item) => item.value)),
+    [dimensionOptions, normalizeDimensions],
+  );
   const initialDimensions = normalizeDimensions(persisted.dimensions.length ? persisted.dimensions : defaultDimensions);
   const initialVisibleFilterDimensions = normalizeDimensions(
-    persisted.visibleFilterDimensions?.length ? persisted.visibleFilterDimensions : dimensionOptions.map((item) => item.value),
+    persisted.visibleFilterDimensions?.length ? persisted.visibleFilterDimensions : allDimensionValues,
   );
   const initialMetrics = persisted.metrics.length
     ? normalizeMetrics(persisted.metrics)
@@ -392,6 +476,10 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   const [grandTotals, setGrandTotals] = useState<Record<string, unknown>>({});
   const [reloadToken, setReloadToken] = useState(0);
   const [sorter, setSorter] = useState<ReportSorter | undefined>(undefined);
+  const selectedView = useMemo(
+    () => savedViews.find((item) => item.id === selectedViewId),
+    [savedViews, selectedViewId],
+  );
 
   useEffect(() => {
     writeLocalState(
@@ -494,17 +582,83 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
 
   const activeColumns = useMemo(() => [...dimColumns, ...metricColumns], [dimColumns, metricColumns]);
 
+  const currentViewSnapshot = useMemo(
+    () =>
+      createViewSnapshot({
+        query,
+        dimensions,
+        visibleFilterDimensions,
+        metrics,
+        sorter,
+        columnsStateMap,
+      }),
+    [query, dimensions, visibleFilterDimensions, metrics, sorter, columnsStateMap],
+  );
+
+  const selectedViewSnapshot = useMemo(() => {
+    if (!selectedView) return undefined;
+    const resolvedQuery = transformViewQuery ? transformViewQuery(selectedView.query) : selectedView.query;
+    const nextDimensions = normalizeDimensions(selectedView.dimensions);
+    const nextVisibleFilterDimensions = selectedView.visibleFilterDimensions?.length
+      ? normalizeDimensions(selectedView.visibleFilterDimensions)
+      : allDimensionValues;
+    const nextMetrics = normalizeMetrics(selectedView.metrics);
+    return createViewSnapshot({
+      query: resolvedQuery,
+      dimensions: nextDimensions.length ? nextDimensions : defaultDimensions,
+      visibleFilterDimensions: nextVisibleFilterDimensions.length ? nextVisibleFilterDimensions : allDimensionValues,
+      metrics: nextMetrics.length ? nextMetrics : normalizeMetrics(defaultMetrics),
+      sorter: selectedView.sorter,
+      columnsStateMap: selectedView.columnsStateMap ?? {},
+    });
+  }, [
+    selectedView,
+    transformViewQuery,
+    normalizeDimensions,
+    allDimensionValues,
+    normalizeMetrics,
+    defaultDimensions,
+    defaultMetrics,
+  ]);
+
+  const hasSelectedViewChanges = useMemo(() => {
+    if (!selectedViewSnapshot) return false;
+    return stableSerialize(currentViewSnapshot) !== stableSerialize(selectedViewSnapshot);
+  }, [currentViewSnapshot, selectedViewSnapshot]);
+
+  const hasDraftQueryChanges = useMemo(() => {
+    return stableSerialize(query) !== stableSerialize(appliedQuery);
+  }, [query, appliedQuery]);
+
+  const hasDraftDimensionChanges = useMemo(() => {
+    return stableSerialize(dimensions) !== stableSerialize(appliedDimensions);
+  }, [dimensions, appliedDimensions]);
+
+  const sorterDescription = useMemo(() => {
+    if (!sorter?.order) return undefined;
+    const normalizedField = normalizeSortKey(sorter.field || sorter.columnKey);
+    if (!normalizedField) return undefined;
+    const matchedColumn = activeColumns.find((item) => {
+      const originalColumn = item.column as ProColumns<T>;
+      const fallbackKey = String((item.column as any).key ?? item.id);
+      const identity = getColumnIdentity(originalColumn, fallbackKey);
+      return identity.normalizedKey === normalizedField || identity.normalizedSortField === normalizedField;
+    });
+    const fieldLabel = matchedColumn?.label || normalizedField;
+    const orderLabel = sorter.order === 'ascend' ? '升序' : '降序';
+    return `排序：${fieldLabel} ${orderLabel}`;
+  }, [activeColumns, sorter]);
+
   // 只由列结构（哪些列、列的 key/dataIndex）决定，不含 sortOrder，
   // 避免 sorter 变化时 ProTable key 变化导致整体重新挂载
   const tableStructureKey = useMemo(
     () =>
       JSON.stringify(
         activeColumns.map((item) => {
-          const col = item.column as any;
-          const fallbackKey = String(col.key ?? item.id);
-          const sortField = getColumnSortField(col, fallbackKey);
-          const key = sortField || fallbackKey;
-          return { key, sortField: String(col.dataIndex ?? key) };
+          const originalColumn = item.column as ProColumns<T>;
+          const fallbackKey = String((item.column as any).key ?? item.id);
+          const identity = getColumnIdentity(originalColumn, fallbackKey);
+          return { key: identity.key, sortField: identity.sortField };
         }),
       ),
     [activeColumns],
@@ -571,23 +725,20 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
 
   const tableColumns = useMemo<ProColumns<T>[]>(
     () =>
-      activeColumns.map((item, index) => {
+      activeColumns.map((item) => {
         const fallbackKey = String((item.column as any).key ?? item.id);
         const originalColumn = item.column as ProColumns<T>;
-        const sortField = getColumnSortField(originalColumn, fallbackKey);
-        const key = sortField || `${fallbackKey}-${index}`;
-        const normalizedKey = normalizeSortKey(key);
-        const normalizedSortField = normalizeSortKey(sortField);
+        const identity = getColumnIdentity(originalColumn, fallbackKey);
         const normalizedSorterField = normalizeSortKey(sorter?.field);
         const normalizedSorterColumnKey = normalizeSortKey(sorter?.columnKey);
         const isCurrentSortColumn =
-          normalizedSorterColumnKey === normalizedKey ||
-          normalizedSorterColumnKey === normalizedSortField ||
-          normalizedSorterField === normalizedSortField ||
-          normalizedSorterField === normalizedKey;
+          normalizedSorterColumnKey === identity.normalizedKey ||
+          normalizedSorterColumnKey === identity.normalizedSortField ||
+          normalizedSorterField === identity.normalizedSortField ||
+          normalizedSorterField === identity.normalizedKey;
         return {
           ...originalColumn,
-          key,
+          key: identity.key,
           sorter: enableServerSort ? originalColumn.sorter ?? true : undefined,
           sortOrder: enableServerSort && isCurrentSortColumn ? sorter?.order : undefined,
         };
@@ -598,9 +749,11 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   const visibleOrderedColumns = useMemo(() => {
     return activeColumns
       .map((item, index) => {
-        const key = String((item.column as any).key ?? item.id);
-        const state = columnsStateMap[key];
-        return { ...item, index, key, order: state?.order, show: state?.show };
+        const originalColumn = item.column as ProColumns<T>;
+        const fallbackKey = String((item.column as any).key ?? item.id);
+        const identity = getColumnIdentity(originalColumn, fallbackKey);
+        const state = columnsStateMap[identity.key] ?? columnsStateMap[fallbackKey];
+        return { ...item, index, key: identity.key, order: state?.order, show: state?.show };
       })
       .filter((item) => item.show !== false)
       .sort((a, b) => {
@@ -635,6 +788,32 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     [summaryMetrics],
   );
 
+  const applyDraftQueryChanges = useCallback(() => {
+    if (!hasDraftQueryChanges && !hasDraftDimensionChanges) return false;
+    setCurrent(1);
+    if (hasDraftQueryChanges) {
+      setAppliedQuery(query);
+    }
+    if (hasDraftDimensionChanges) {
+      setAppliedDimensions(dimensions);
+    }
+    return true;
+  }, [hasDraftQueryChanges, hasDraftDimensionChanges, query, dimensions]);
+
+  const buildCurrentView = useCallback(
+    (name: string, id?: string): SavedView<Q> => ({
+      id: id ?? `${Date.now()}`,
+      name,
+      query,
+      dimensions,
+      visibleFilterDimensions,
+      metrics,
+      sorter: restoreViewSorter(sorter),
+      columnsStateMap: normalizeColumnsStateMap(columnsStateMap),
+    }),
+    [query, dimensions, visibleFilterDimensions, metrics, sorter, columnsStateMap],
+  );
+
   const handleSearch = () => {
     setCurrent(1);
     setAppliedQuery(query);
@@ -647,7 +826,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     const nextDefaultDimensions = normalizeDimensions(defaultDimensions);
     setDimensions(nextDefaultDimensions.length ? nextDefaultDimensions : defaultDimensions);
     setAppliedDimensions(nextDefaultDimensions.length ? nextDefaultDimensions : defaultDimensions);
-    setVisibleFilterDimensions(normalizeDimensions(dimensionOptions.map((item) => item.value)));
+    setVisibleFilterDimensions(allDimensionValues);
     setMetrics(normalizeMetrics(defaultMetrics));
     setSorter(undefined);
     setColumnsStateMap({});
@@ -662,23 +841,31 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
       return;
     }
     const existed = savedViews.find((item) => item.name === name);
-    const nextView: SavedView<Q> = {
-      id: existed?.id ?? `${Date.now()}`,
-      name,
-      query,
-      dimensions,
-      visibleFilterDimensions,
-      metrics,
-      sorter,
-      columnsStateMap,
-    };
-    const rest = savedViews.filter((item) => item.name !== name);
+    const nextView = buildCurrentView(name, existed?.id);
+    const rest = savedViews.filter((item) => item.id !== nextView.id);
     const nextViews = [nextView, ...rest].slice(0, 20);
     setSavedViews(nextViews);
     setSelectedViewId(nextView.id);
     setSaveViewName('');
     setIsAdding(false);
     message.success(existed ? '已覆盖同名视图' : '视图已保存');
+  };
+
+  const handleUpdateView = () => {
+    if (!selectedViewId) {
+      handleSaveView();
+      return;
+    }
+    const target = savedViews.find((item) => item.id === selectedViewId);
+    if (!target) return;
+    const nextView = buildCurrentView(target.name, target.id);
+    const nextViews = [nextView, ...savedViews.filter((item) => item.id !== target.id)].slice(0, 20);
+    setSavedViews(nextViews);
+    setSelectedViewId(nextView.id);
+    setSaveViewName('');
+    setIsAdding(false);
+    applyDraftQueryChanges();
+    message.success('视图已更新');
   };
 
   const handleApplyView = (id: string) => {
@@ -691,27 +878,18 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     const nextDimensions = normalizeDimensions(target.dimensions);
     const nextVisibleFilterDimensions = target.visibleFilterDimensions?.length
       ? normalizeDimensions(target.visibleFilterDimensions)
-      : normalizeDimensions(dimensionOptions.map((item) => item.value));
+      : allDimensionValues;
     const nextMetrics = normalizeMetrics(target.metrics);
     setDimensions(nextDimensions.length ? nextDimensions : defaultDimensions);
     setAppliedDimensions(nextDimensions.length ? nextDimensions : defaultDimensions);
     setVisibleFilterDimensions(
       nextVisibleFilterDimensions.length
         ? nextVisibleFilterDimensions
-        : normalizeDimensions(dimensionOptions.map((item) => item.value)),
+        : allDimensionValues,
     );
     setMetrics(nextMetrics.length ? nextMetrics : normalizeMetrics(defaultMetrics));
-    if (target.sorter?.order) {
-      const restoredField = target.sorter.field || target.sorter.columnKey;
-      setSorter({
-        field: restoredField,
-        columnKey: restoredField,
-        order: target.sorter.order,
-      });
-    } else {
-      setSorter(undefined);
-    }
-    setColumnsStateMap(target.columnsStateMap ?? {});
+    setSorter(restoreViewSorter(target.sorter));
+    setColumnsStateMap(normalizeColumnsStateMap(target.columnsStateMap));
     setCurrent(1);
   };
 
@@ -833,6 +1011,9 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
                 renameModalOpen={renameModalOpen}
                 renameInputValue={renameModalName}
                 isAdding={isAdding}
+                hasUnsavedChanges={hasSelectedViewChanges}
+                changeHintText="视图变更，未保存"
+                sortDescription={sorterDescription}
                 onStartAdd={() => setIsAdding(true)}
                 onCancelAdd={() => { setIsAdding(false); setSaveViewName(''); }}
                 onSelect={(id) => {
@@ -844,7 +1025,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
                   setSaveViewName('');
                   handleApplyView(id);
                 }}
-                onSave={handleSaveView}
+                onSave={selectedViewId ? handleUpdateView : handleSaveView}
                 onSaveInputChange={setSaveViewName}
                 onOpenRename={() => {
                   const target = savedViews.find((v) => v.id === selectedViewId);
