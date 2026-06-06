@@ -124,6 +124,7 @@ visibleFilterDimensions.includes('yourDimension')
 - `fetchData` 返回结构可为 `return { list, total, summary }`
 - 如果总计数据需要独立接口，也可以继续使用 `fetchGrandTotals`
 - `summary` 支持 `number / string / null`，建议复用指标列 `formatter` 统一展示格式
+- 统计行会跟随当前列设置顺序同步调整；列拖拽、隐藏/显示、恢复已保存视图后，主表列与“当前页合计 / 总数据合计”会保持同一顺序
 
 ## 8. 常见问题
 
@@ -166,4 +167,5 @@ visibleFilterDimensions.includes('yourDimension')
 - `UniversalReportTable` 内部通过受控 `sortOrder` 回填当前排序列；页面侧只需要保证 `fetchData` 正确消费 `sorter`
 - 若排序图标在特定动态列表场景下仍不稳定，可在视图操作区直接查看当前排序描述，格式为 `排序：字段 升序/降序`
 - 选中某个视图后，如果当前草稿状态相对该视图发生变化，视图操作区会提示 `视图变更，未保存`
+- 统计行不会再单独重建列顺序；组件内部会让 `ProTable` 列顺序与统计行共用同一份列布局状态，避免拖拽后主表与统计行错位
 - 选中视图后点击 `更新`，会先覆盖保存当前视图，再将当前草稿查询条件/维度应用到表格；若这些条件尚未生效，会同步触发一次查询

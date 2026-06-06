@@ -38,6 +38,32 @@
 - 视图基线比较复用 `transformViewQuery`，确保相对日期视图在恢复后不会被误判为“已变更”
 - 点击 `更新` 时仅在草稿查询条件 / 维度与当前已应用状态不一致时触发查询，避免只改排序或列配置时产生重复请求
 
+## 补充：统计行顺序未跟随列设置
+
+### 新增现象
+
+- 项目汇总报表开启“当前页合计 / 总数据合计”后，主表列已按拖拽顺序变化，但统计行仍按固定顺序展示
+
+### 根因
+
+- 主表列顺序主要由 `ProTable` 基于 `columnsStateMap.order` 内部处理
+- 统计行则在组件内部再次基于 `activeColumns + columnsStateMap` 重新推导可见列顺序
+- 两条链路没有共享同一份最终列布局，动态列场景下容易出现主表已变、统计行未变的错位
+
+### 解决方式
+
+- 在 `UniversalReportTable` 内部统一构造“最终列布局描述”，先合并列身份信息，再合并 `columnsStateMap` 中的 `show/order/fixed`
+- `ProTable.columns` 与统计行都从这份统一列布局派生，确保列拖拽、隐藏/显示、恢复视图后三者顺序一致
+
+### 影响范围
+
+- 所有使用 `UniversalReportTable` 且开启统计行的报表页
+
+### 相关文件
+
+- `src/components/report/UniversalReportTable.tsx`
+- `docs/components/universal_report.md`
+
 ## 下次同类问题优先排查
 
 1. 先看 Ant Table / ProTable 的排序回调是否处于受控模式

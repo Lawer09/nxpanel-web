@@ -45,6 +45,17 @@ interface ActiveColumn<T> {
   column: ColumnsType<T>[number];
 }
 
+interface ColumnLayout<T> extends ActiveColumn<T> {
+  index: number;
+  key: string;
+  sortField?: string;
+  normalizedKey?: string;
+  normalizedSortField?: string;
+  show?: boolean;
+  fixed?: FixedPosition;
+  order?: number;
+}
+
 interface DimensionOption<T> {
   label: string;
   value: string;
@@ -231,6 +242,19 @@ function getColumnIdentity(column: ProColumns<any>, fallbackKey: string) {
     normalizedKey: normalizeSortKey(key),
     normalizedSortField: normalizeSortKey(sortField),
   };
+}
+
+function resolveColumnState(
+  map: ColumnStateMap,
+  identity: ReturnType<typeof getColumnIdentity>,
+  fallbackKey: string,
+) {
+  return (
+    map[identity.key] ??
+    map[fallbackKey] ??
+    (identity.normalizedKey ? map[identity.normalizedKey] : undefined) ??
+    (identity.normalizedSortField ? map[identity.normalizedSortField] : undefined)
+  );
 }
 
 function restoreViewSorter(sorter?: ReportSorter): ReportSorter | undefined {
@@ -723,39 +747,25 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
 
   const resolvedRowKey = useCallback((record: T) => rowKeyMap.get(record) || resolveBaseRowKey(record), [rowKeyMap, resolveBaseRowKey]);
 
-  const tableColumns = useMemo<ProColumns<T>[]>(
-    () =>
-      activeColumns.map((item) => {
-        const fallbackKey = String((item.column as any).key ?? item.id);
-        const originalColumn = item.column as ProColumns<T>;
-        const identity = getColumnIdentity(originalColumn, fallbackKey);
-        const normalizedSorterField = normalizeSortKey(sorter?.field);
-        const normalizedSorterColumnKey = normalizeSortKey(sorter?.columnKey);
-        const isCurrentSortColumn =
-          normalizedSorterColumnKey === identity.normalizedKey ||
-          normalizedSorterColumnKey === identity.normalizedSortField ||
-          normalizedSorterField === identity.normalizedSortField ||
-          normalizedSorterField === identity.normalizedKey;
-        return {
-          ...originalColumn,
-          key: identity.key,
-          sorter: enableServerSort ? originalColumn.sorter ?? true : undefined,
-          sortOrder: enableServerSort && isCurrentSortColumn ? sorter?.order : undefined,
-        };
-      }),
-    [activeColumns, enableServerSort, sorter],
-  );
-
-  const visibleOrderedColumns = useMemo(() => {
+  const orderedColumnLayouts = useMemo<ColumnLayout<T>[]>(() => {
     return activeColumns
       .map((item, index) => {
         const originalColumn = item.column as ProColumns<T>;
         const fallbackKey = String((item.column as any).key ?? item.id);
         const identity = getColumnIdentity(originalColumn, fallbackKey);
-        const state = columnsStateMap[identity.key] ?? columnsStateMap[fallbackKey];
-        return { ...item, index, key: identity.key, order: state?.order, show: state?.show };
+        const state = resolveColumnState(columnsStateMap, identity, fallbackKey);
+        return {
+          ...item,
+          index,
+          key: identity.key,
+          sortField: identity.sortField,
+          normalizedKey: identity.normalizedKey,
+          normalizedSortField: identity.normalizedSortField,
+          order: state?.order,
+          show: state?.show,
+          fixed: state?.fixed,
+        };
       })
-      .filter((item) => item.show !== false)
       .sort((a, b) => {
         const hasA = typeof a.order === 'number';
         const hasB = typeof b.order === 'number';
@@ -765,6 +775,33 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
         return a.index - b.index;
       });
   }, [activeColumns, columnsStateMap]);
+
+  const visibleOrderedColumns = useMemo(
+    () => orderedColumnLayouts.filter((item) => item.show !== false),
+    [orderedColumnLayouts],
+  );
+
+  const tableColumns = useMemo<ProColumns<T>[]>(
+    () =>
+      orderedColumnLayouts.map((item) => {
+        const originalColumn = item.column as ProColumns<T>;
+        const normalizedSorterField = normalizeSortKey(sorter?.field);
+        const normalizedSorterColumnKey = normalizeSortKey(sorter?.columnKey);
+        const isCurrentSortColumn =
+          normalizedSorterColumnKey === item.normalizedKey ||
+          normalizedSorterColumnKey === item.normalizedSortField ||
+          normalizedSorterField === item.normalizedSortField ||
+          normalizedSorterField === item.normalizedKey;
+        return {
+          ...originalColumn,
+          key: item.key,
+          fixed: item.fixed ?? originalColumn.fixed,
+          sorter: enableServerSort ? originalColumn.sorter ?? true : undefined,
+          sortOrder: enableServerSort && isCurrentSortColumn ? sorter?.order : undefined,
+        };
+      }),
+    [orderedColumnLayouts, enableServerSort, sorter],
+  );
 
   const summaryMetrics = useMemo<SummaryMetric[]>(() => {
     return metricOptions

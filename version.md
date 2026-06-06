@@ -104,6 +104,7 @@
 ### Bug 修复
 
 - 修复通用报表服务端排序图标高亮异常：统一动态列排序标识与受控 `sortOrder` 回填逻辑，确保点击排序和恢复已保存视图排序时，表头高亮与请求参数保持一致（src/components/report/UniversalReportTable.tsx, src/components/report/ViewManager.tsx, docs/components/universal_report.md, docs/issue/report_sorting_issue.md）。
+- 修复通用报表统计行列顺序错位：统一 `ProTable` 列顺序与“当前页合计 / 总数据合计”统计行的列布局来源，确保列拖拽、隐藏/显示和恢复视图后统计行同步跟随当前展示顺序（src/components/report/UniversalReportTable.tsx, docs/components/universal_report.md, docs/issue/report_sorting_issue.md）。
 
 ## [1.2.4] - 2026-05-12
 
