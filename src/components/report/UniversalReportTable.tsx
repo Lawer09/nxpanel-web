@@ -1,11 +1,11 @@
-import { ProTable } from '@ant-design/pro-components';
+import { DownloadOutlined, FunnelPlotOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ProColumns } from '@ant-design/pro-components';
-import { FunnelPlotOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
-import { Button, Card, Space, Table, Tag, Tooltip, Typography, message } from 'antd';
+import { ProTable } from '@ant-design/pro-components';
+import { Button, Card, message, Space, Table, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { SortOrder } from 'antd/es/table/interface';
-import ViewManager from './ViewManager';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import ViewManager from './ViewManager';
 
 type AnyRecord = Record<string, any>;
 
@@ -74,6 +74,21 @@ interface ReportSorter {
   order?: SortOrder;
 }
 
+interface ReportExportResult {
+  blob: Blob;
+  filename?: string;
+}
+
+interface ReportExportAction<Q extends AnyRecord> {
+  label?: React.ReactNode;
+  run: (args: {
+    query: Q;
+    dimensions: string[];
+    metrics: string[];
+    sorter?: ReportSorter;
+  }) => Promise<ReportExportResult>;
+}
+
 interface ViewSnapshot<Q extends AnyRecord> {
   query: Q;
   dimensions: string[];
@@ -118,6 +133,7 @@ interface UniversalReportTableProps<T extends AnyRecord, Q extends AnyRecord> {
     sorter?: ReportSorter;
   }) => Promise<ReportFetchResult<T>>;
   fetchGrandTotals?: (args: { query: Q; dimensions: string[]; sorter?: ReportSorter }) => Promise<Record<string, unknown>>;
+  exportAction?: ReportExportAction<Q>;
 }
 
 function normalizeDimensionValues(
@@ -133,9 +149,13 @@ function normalizeDimensionValues(
     uniq.push(normalized);
   };
 
-  rawValues.forEach((item) => pushIfValid(item));
+  rawValues.forEach((item) => {
+    pushIfValid(item);
+  });
   if (uniq.length) return uniq;
-  fallbackValues.forEach((item) => pushIfValid(item));
+  fallbackValues.forEach((item) => {
+    pushIfValid(item);
+  });
   return uniq;
 }
 
@@ -217,7 +237,7 @@ function normalizeSorter(input: any): ReportSorter | undefined {
   const source = Array.isArray(input)
     ? [...input].reverse().find((item) => item?.order)
     : input;
-  if (!source || !source.order) return undefined;
+  if (!source?.order) return undefined;
   const order = source.order as SortOrder;
   if (order !== 'ascend' && order !== 'descend') return undefined;
   const normalizedField = normalizeSortKey(source.field ? String(source.field) : undefined);
@@ -304,6 +324,17 @@ function toStableComparable(value: unknown): unknown {
 
 function stableSerialize(value: unknown) {
   return JSON.stringify(toStableComparable(value));
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename || 'report.csv';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
 }
 
 function createViewSnapshot<Q extends AnyRecord>(input: ViewSnapshot<Q>) {
@@ -421,7 +452,6 @@ function writeLocalState<Q extends AnyRecord>(
 function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: UniversalReportTableProps<T, Q>) {
   const {
     storageKey,
-    title,
     rowKey,
     defaultQuery,
     defaultDimensions,
@@ -439,6 +469,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     fetchData,
     fetchGrandTotals,
     transformViewQuery,
+    exportAction,
   } = props;
 
   const persisted = readLocalState(storageKey, defaultQuery, defaultDimensions, defaultPageSize);
@@ -500,6 +531,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   const [grandTotals, setGrandTotals] = useState<Record<string, unknown>>({});
   const [reloadToken, setReloadToken] = useState(0);
   const [sorter, setSorter] = useState<ReportSorter | undefined>(undefined);
+  const [exporting, setExporting] = useState(false);
   const selectedView = useMemo(
     () => savedViews.find((item) => item.id === selectedViewId),
     [savedViews, selectedViewId],
@@ -857,6 +889,37 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     setAppliedDimensions(dimensions);
   };
 
+  const handleExport = async () => {
+    if (!exportAction || exporting) return;
+
+    const nextQuery = query;
+    const nextDimensions = dimensions;
+    const nextSorter = enableServerSort ? sorter : undefined;
+
+    setCurrent(1);
+    setAppliedQuery(nextQuery);
+    setAppliedDimensions(nextDimensions);
+    setExporting(true);
+
+    try {
+      const result = await exportAction.run({
+        query: nextQuery,
+        dimensions: nextDimensions,
+        metrics,
+        sorter: nextSorter,
+      });
+      if (!result?.blob) {
+        throw new Error('Invalid export response');
+      }
+      downloadBlob(result.blob, result.filename || 'report.csv');
+      message.success('导出成功');
+    } catch {
+      message.error('导出失败');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleReset = () => {
     setQuery(defaultQuery);
     setAppliedQuery(defaultQuery);
@@ -1077,6 +1140,11 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
             </Space>
 
             <Space>
+              {exportAction ? (
+                <Button icon={<DownloadOutlined />} loading={exporting} onClick={handleExport}>
+                  {exportAction.label || '导出'}
+                </Button>
+              ) : null}
               <Button icon={<ReloadOutlined />} onClick={handleReset}>
                 重置
               </Button>

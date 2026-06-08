@@ -3,16 +3,16 @@ import { App, DatePicker, Form, Select } from 'antd';
 import type { SortOrder } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
 import React, { useCallback, useEffect, useState } from 'react';
-import UniversalReportTable from '@/components/report/UniversalReportTable';
 import {
-  STANDARD_DATE_PRESET_ITEMS,
-  toRangePickerPresets,
+  type DateRangePreset,
   getPresetByDateRange,
   resolveDateRangeByPreset,
-  type DateRangePreset,
+  STANDARD_DATE_PRESET_ITEMS,
+  toRangePickerPresets,
 } from '@/components/report/reportDatePreset';
+import UniversalReportTable from '@/components/report/UniversalReportTable';
 import { getProjects } from '@/services/project/api';
-import { queryProjectReport } from '@/services/report/api';
+import { exportProjectReport, queryProjectReport } from '@/services/report/api';
 
 const { RangePicker } = DatePicker;
 
@@ -295,6 +295,32 @@ const normalizeProjectCodes = (projectCodes?: string[]) => {
   return normalized.length ? Array.from(new Set(normalized)) : undefined;
 };
 
+type ReportSorter = {
+  field?: string;
+  columnKey?: string;
+  order?: SortOrder;
+};
+
+const buildProjectReportQuery = (
+  query: QueryState,
+  dimensions: string[],
+  sorter?: ReportSorter,
+): API.ProjectReportQuery => {
+  const resolvedDateRange =
+    resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query.dateRangePreset) || query.dateRange;
+  return {
+    dateFrom: resolvedDateRange[0],
+    dateTo: resolvedDateRange[1],
+    groupBy: dimensions.length ? (dimensions as API.ProjectReportDimension[]) : undefined,
+    filters: {
+      projectCodes: normalizeProjectCodes(query.projectCodes),
+      countries: normalizeCountries(query.countries),
+    },
+    orderBy: sorter?.field || sorter?.columnKey,
+    orderDirection: toOrderDirection(sorter?.order),
+  };
+};
+
 const ProjectAggregatesPage: React.FC = () => {
   const { message: messageApi } = App.useApp();
   const today = dayjs().format('YYYY-MM-DD');
@@ -352,6 +378,16 @@ const ProjectAggregatesPage: React.FC = () => {
         ]}
         showGrandSummary
         enableServerSort
+        exportAction={{
+          label: '导出 CSV',
+          run: async ({ query, dimensions, sorter }) => {
+            const result = await exportProjectReport(buildProjectReportQuery(query, dimensions, sorter));
+            return {
+              blob: result.blob,
+              filename: result.filename || 'project_report_daily.csv',
+            };
+          },
+        }}
         transformViewQuery={(query) => {
           const resolved = resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query.dateRangePreset);
           if (!resolved) return query;
@@ -425,19 +461,10 @@ const ProjectAggregatesPage: React.FC = () => {
           </Form>
         )}
         fetchData={async ({ query, page, pageSize, dimensions, sorter }) => {
-          const resolvedDateRange = resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query.dateRangePreset) || query.dateRange;
           const res = await queryProjectReport({
-            dateFrom: resolvedDateRange[0],
-            dateTo: resolvedDateRange[1],
-            groupBy: dimensions.length ? (dimensions as API.ProjectReportDimension[]) : undefined,
-            filters: {
-              projectCodes: normalizeProjectCodes(query.projectCodes),
-              countries: normalizeCountries(query.countries),
-            },
+            ...buildProjectReportQuery(query, dimensions, sorter),
             page,
             pageSize,
-            orderBy: sorter?.field || sorter?.columnKey,
-            orderDirection: toOrderDirection(sorter?.order),
           });
 
           if (res.code !== 0) {

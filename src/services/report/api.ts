@@ -1,5 +1,21 @@
 import { request } from '@umijs/max';
 
+function parseContentDispositionFilename(contentDisposition?: string | null) {
+  if (!contentDisposition) return undefined;
+
+  const utf8Filename = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  if (utf8Filename) {
+    try {
+      return decodeURIComponent(utf8Filename);
+    } catch {
+      return utf8Filename;
+    }
+  }
+
+  const fallbackFilename = contentDisposition.match(/filename="?([^";]+)"?/i)?.[1];
+  return fallbackFilename || undefined;
+}
+
 export async function queryNodeMainReport(data: API.NodeMainReportQuery) {
   return request<API.ApiResponse<API.ReportPageResult<API.NodeMainReportItem>>>(
     '/v3/report/node/query',
@@ -118,4 +134,26 @@ export async function queryProjectReport(data: API.ProjectReportQuery) {
       data,
     },
   );
+}
+
+export async function exportProjectReport(data: API.ProjectReportQuery) {
+  const result = await request<Blob>('/v3/report/project/export', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data,
+    responseType: 'blob',
+    getResponse: true,
+  } as any) as Blob | { data?: Blob; response?: Response };
+
+  if (result instanceof Blob) {
+    return { blob: result };
+  }
+
+  const contentDisposition = result.response?.headers?.get('content-disposition')
+    || result.response?.headers?.get('Content-Disposition');
+
+  return {
+    blob: result.data || new Blob([]),
+    filename: parseContentDispositionFilename(contentDisposition),
+  };
 }

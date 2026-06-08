@@ -126,7 +126,42 @@ visibleFilterDimensions.includes('yourDimension')
 - `summary` 支持 `number / string / null`，建议复用指标列 `formatter` 统一展示格式
 - 统计行会跟随当前列设置顺序同步调整；列拖拽、隐藏/显示、恢复已保存视图后，主表列与“当前页合计 / 总数据合计”会保持同一顺序
 
-## 8. 常见问题
+## 8. 导出配置（可选）
+
+页面需要导出能力时传入 `exportAction`；未传入时组件不展示导出按钮，不影响现有报表页。
+
+```tsx
+<UniversalReportTable<Row, Query>
+  exportAction={{
+    label: '导出 CSV',
+    run: async ({ query, dimensions, metrics, sorter }) => {
+      const result = await exportReport({
+        ...query,
+        groupBy: dimensions,
+        orderBy: sorter?.field || sorter?.columnKey,
+        orderDirection:
+          sorter?.order === 'ascend'
+            ? 'asc'
+            : sorter?.order === 'descend'
+              ? 'desc'
+              : undefined,
+      });
+      return {
+        blob: result.blob,
+        filename: result.filename || 'report.csv',
+      };
+    },
+  }}
+  ...
+/>
+```
+
+- 点击导出时，组件会先把当前草稿查询条件和维度同步为已应用状态，并将分页重置到第一页。
+- `exportAction.run` 接收的是本次即将生效的 `query`、`dimensions`、`metrics` 和当前排序 `sorter`，不需要页面再等待表格刷新后取值。
+- 组件内部统一处理 `Blob` 下载、导出中 loading、防重复点击和成功 / 失败提示。
+- 后端返回文件名时建议页面在 service 层从 `Content-Disposition` 解析，失败时回退到业务默认文件名。
+
+## 9. 常见问题
 
 - `pageSize` 异常（如缓存污染成 `[]`）
   - 组件内部已做容错与归一化
@@ -136,7 +171,7 @@ visibleFilterDimensions.includes('yourDimension')
   - 检查是否开启 `enableServerSort`
   - 检查 `fetchData` 是否把 `sorter` 映射为后端参数
 
-### 8.1 本次排序问题复盘（userReport）
+### 9.1 本次排序问题复盘（userReport）
 
 现象：
 
@@ -161,7 +196,7 @@ visibleFilterDimensions.includes('yourDimension')
 - `src/components/report/UniversalReportTable.tsx`
 - `src/pages/report/user-report-admin/tabs/BaseUserReportTab.tsx`
 
-### 8.2 视图更新与排序高亮补充说明
+### 9.2 视图更新与排序高亮补充说明
 
 - 服务端排序场景下，动态列应保证列 `key` 与排序字段使用同一套可比较标识，否则请求参数正确时，表头排序图标也可能无法高亮
 - `UniversalReportTable` 内部通过受控 `sortOrder` 回填当前排序列；页面侧只需要保证 `fetchData` 正确消费 `sorter`

@@ -2,7 +2,7 @@
 
 ## 维护说明（必读）
 
-当前开发版本：`1.3.0`
+当前开发版本：`1.3.1`
 
 请后续严格按以下规则维护此文件。
 
@@ -91,6 +91,12 @@
 不得修改非当前版本的任何内容
 
 ## 8. 当前版本日志
+
+## [1.3.1] - 2026-06-08
+
+### 新增功能
+
+- 新增通用报表可选导出能力，支持页面传入 `exportAction` 后展示导出按钮，并在导出前自动应用当前草稿查询条件、维度与排序；项目报表接入 CSV 导出接口，支持按当前筛选全量导出并从响应头解析文件名（src/components/report/UniversalReportTable.tsx, src/pages/report/project/index.tsx, src/services/report/api.ts, docs/components/universal_report.md）。
 
 ## [1.3.0] - 2026-06-05
 
