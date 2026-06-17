@@ -29,5 +29,6 @@ declare namespace API {
     avatar?: string;
     access?: 'admin' | 'user';
     is_admin?: boolean;
+    loginMode?: 'operation' | 'management';
   }
 }

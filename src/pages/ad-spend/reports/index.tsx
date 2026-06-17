@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 import React, { useCallback, useEffect, useState } from 'react';
 import UniversalReportTable from '@/components/report/UniversalReportTable';
 import {
-  AD_SPEND_DATE_PRESET_ITEMS,
+  STANDARD_DATE_PRESET_ITEMS,
   toRangePickerPresets,
   getPresetByDateRange,
   resolveDateRangeByPreset,
@@ -14,7 +14,7 @@ import { getAdSpendAccounts, getAdSpendDaily, getAdSpendProjectCodes } from '@/s
 
 const { RangePicker } = DatePicker;
 
-const DATE_PRESETS = toRangePickerPresets(AD_SPEND_DATE_PRESET_ITEMS);
+const DATE_PRESETS = toRangePickerPresets(STANDARD_DATE_PRESET_ITEMS);
 
 interface ReportsPageProps {
   embedded?: boolean;
@@ -175,7 +175,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ embedded = false }) =>
       metricOptions={METRIC_OPTIONS}
       hideSummaryRows
       transformViewQuery={(query) => {
-        const resolved = resolveDateRangeByPreset(AD_SPEND_DATE_PRESET_ITEMS, query.dateRangePreset);
+        const resolved = resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query.dateRangePreset);
         if (!resolved) return query;
         return { ...query, dateRange: resolved };
       }}
@@ -184,7 +184,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ embedded = false }) =>
           <Form.Item label="日期范围">
             <RangePicker
                 value={(() => {
-                  const resolved = resolveDateRangeByPreset(AD_SPEND_DATE_PRESET_ITEMS, query.dateRangePreset);
+                  const resolved = resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query.dateRangePreset);
                   const [start, end] = resolved || query.dateRange;
                   return [dayjs(start), dayjs(end)] as [dayjs.Dayjs, dayjs.Dayjs];
                 })()}
@@ -198,7 +198,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ embedded = false }) =>
                   setQuery((prev) => ({
                     ...prev,
                     dateRange: nextDateRange,
-                    dateRangePreset: getPresetByDateRange(AD_SPEND_DATE_PRESET_ITEMS, nextDateRange),
+                    dateRangePreset: getPresetByDateRange(STANDARD_DATE_PRESET_ITEMS, nextDateRange),
                   }));
                 refreshProjectCodes(undefined, nextStart, nextEnd);
               }}
@@ -265,7 +265,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ embedded = false }) =>
         </Form>
       )}
       fetchData={async ({ query, page, pageSize, dimensions }) => {
-        const resolvedDateRange = resolveDateRangeByPreset(AD_SPEND_DATE_PRESET_ITEMS, query.dateRangePreset) || query.dateRange;
+        const resolvedDateRange = resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query.dateRangePreset) || query.dateRange;
         const res = await getAdSpendDaily({
           dateFrom: resolvedDateRange[0],
           dateTo: resolvedDateRange[1],

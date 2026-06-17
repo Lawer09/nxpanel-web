@@ -22,6 +22,7 @@ import {
   fetchUsers,
   resetUserSecret,
 } from '@/services/user/api';
+import BlockedIpModal from './components/BlockedIpModal';
 import GenerateUserModal from './components/GenerateUserModal';
 import SendMailModal from './components/SendMailModal';
 import UserFormModal from './components/UserFormModal';
@@ -43,6 +44,27 @@ const formatReportTrafficMb = (value?: number | string | null): string => {
   if (!Number.isFinite(num)) return '-';
   const mb = num > 1024 * 1024 ? num / (1024 * 1024) : num;
   return `${mb.toFixed(2)} MB`;
+};
+
+const formatCreatedAtQueryValue = (
+  value: unknown,
+  endOfDay = false,
+): string | number | undefined => {
+  if (value == null || value === '') return undefined;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    if (/^\d+$/.test(trimmed)) return Number(trimmed);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return `${trimmed} ${endOfDay ? '23:59:59' : '00:00:00'}`;
+    }
+    const parsed = dayjs(trimmed);
+    return parsed.isValid() ? parsed.format('YYYY-MM-DD HH:mm:ss') : trimmed;
+  }
+  const parsed = dayjs(value as dayjs.ConfigType);
+  if (!parsed.isValid()) return undefined;
+  return (endOfDay ? parsed.endOf('day') : parsed).format('YYYY-MM-DD HH:mm:ss');
 };
 
 const renderMetaValue = (
@@ -77,6 +99,7 @@ const UserManagePage: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<API.UserItem | undefined>();
   const [generateOpen, setGenerateOpen] = useState(false);
   const [sendMailOpen, setSendMailOpen] = useState(false);
+  const [blockedIpOpen, setBlockedIpOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<API.UserItem[]>([]);
   const [currentFilter, setCurrentFilter] = useState<API.UserFilter[]>([]);
 
@@ -134,6 +157,27 @@ const UserManagePage: React.FC = () => {
       title: '注册渠道',
       dataIndex: 'meta_channel',
       hideInTable: true,
+    },
+    {
+      title: '仅封禁用户',
+      dataIndex: 'only_banned',
+      valueType: 'switch',
+      hideInTable: true,
+      search: {
+        transform: (value) => (value ? { onlyBanned: true } : {}),
+      },
+    },
+    {
+      title: '注册时间',
+      dataIndex: 'created_at_range',
+      valueType: 'dateTimeRange',
+      hideInTable: true,
+      search: {
+        transform: (value) => ({
+          createdAtFrom: formatCreatedAtQueryValue(value?.[0]),
+          createdAtTo: formatCreatedAtQueryValue(value?.[1]),
+        }),
+      },
     },
     {
       title: '状态',
@@ -489,6 +533,9 @@ const UserManagePage: React.FC = () => {
             id: params.id_search || undefined,
             current: params.current,
             pageSize: params.pageSize,
+            onlyBanned: params.onlyBanned ? true : undefined,
+            createdAtFrom: formatCreatedAtQueryValue(params.createdAtFrom),
+            createdAtTo: formatCreatedAtQueryValue(params.createdAtTo, true),
             meta: Object.keys(meta).length ? meta : undefined,
             filter: filter.length ? filter : undefined,
             sort: [{ id: 'created_at', desc: true }],
@@ -507,6 +554,9 @@ const UserManagePage: React.FC = () => {
         toolBarRender={() => [
           <Button key="generate" onClick={() => setGenerateOpen(true)}>
             生成用户
+          </Button>,
+          <Button key="blockedIp" onClick={() => setBlockedIpOpen(true)}>
+            封禁 IP
           </Button>,
           <Button
             key="sendMail"
@@ -543,6 +593,9 @@ const UserManagePage: React.FC = () => {
         onOpenChange={setGenerateOpen}
         onSuccess={() => actionRef.current?.reload()}
       />
+
+      {/* Blocked IP modal */}
+      <BlockedIpModal open={blockedIpOpen} onOpenChange={setBlockedIpOpen} />
 
       {/* Send mail modal */}
       <SendMailModal

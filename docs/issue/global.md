@@ -144,6 +144,30 @@ React 19 类型定义下，`useRef<T>()` 需要显式传入初始值；旧写法
 - `src/pages/traffic-platform/dashboard/components/TrafficRankingCard.tsx`
 - `src/pages/traffic-platform/dashboard/components/TrafficTrendChart.tsx`
 
+## 弹窗提交前子组件编辑值未同步
+
+### 出现场景
+
+父级弹窗点击确定时，先调用子组件 `commit()` 再立即组装接口 payload。如果 `commit()` 只调用 `setState`，父组件可能仍读取旧的 JSON 状态。
+
+### 问题原因
+
+React state 更新是异步提交的，父组件在同一个事件流程内无法保证读取到子组件刚写入的新 state。
+
+### 解决方式
+
+让子组件 `commit()` 返回最终编辑值，父组件提交接口时直接使用返回值组装 payload，同时再更新本地 state 供 UI 后续展示。
+
+### 影响范围
+
+包含子组件 JSON/表单编辑器并由父级弹窗统一提交的页面。
+
+### 相关文件
+
+- `src/pages/dev/components/JsonConfigEditor.tsx`
+- `src/pages/dev/components/NodeFormModal.tsx`
+- `src/pages/dev/components/TemplateFormModal.tsx`
+
 ## 自动化策略弹窗视觉层级不足
 
 ### 出现场景
@@ -371,3 +395,30 @@ Dashboard 收益卡片的数据可观测性与调试定位效率。
 - `src/services/report/typings.d.ts`
 - `docs/api/project-report-api.md`
 - `docs/components/universal_report.md`
+
+## Dev 临时认证与正式登录链路隔离
+
+### 出现场景
+
+Dev 模块接入 admin-service 菜单管理时，需要在未登录正式后台的情况下直接访问 `/dev/menus`，并在页面内使用临时管理员 JWT 登录。后续又将 Dev 管理登录提升到 `/user/login` 主登录页的 `管理` Tab，需要避免管理登录后的 Dev 菜单与运营后台菜单混杂。
+
+### 问题原因
+
+项目全局 `onPageChange` 会在没有 `initialState.currentUser` 时跳转 `/user/login`，全局 request 拦截器也会给普通接口追加 `auth_token` 和 `secure_path`。如果 Dev 的 `/v4/admin/*` 请求复用旧链路，会被错误改写或跳转；如果管理登录复用运营登录态，则 ProLayout 会同时渲染 Dev 与运营菜单，导致权限和入口混乱。
+
+### 解决方式
+
+对 `/dev` 路由放行全局未登录跳转，由 Dev 页面自己的 `DevAuthGate` 弹窗登录；全局 request 拦截器跳过全部 `/v4/*` 请求。Dev admin 接口使用独立 `fetch` 请求层和 Dev 专用 `sessionStorage`，不写入 `auth_token`、`secure_path`、`user_info`。主登录页增加 `运营` / `管理` Tab 后，通过 `API.CurrentUser.loginMode` 区分登录来源：`management` 只显示 `/dev` 菜单并默认进入 `/dev/nodes`，`operation` 隐藏 `/dev` 菜单并继续使用原业务后台。
+
+### 影响范围
+
+Dev 模块下的 admin-service 菜单管理页，以及后续新增的 `/v4/*` 开发联调接口。
+
+### 相关文件
+
+- `src/app.tsx`
+- `src/requestErrorConfig.ts`
+- `src/pages/user/Login.tsx`
+- `src/components/RightContent/AvatarDropdown.tsx`
+- `src/pages/dev/components/DevAuthGate.tsx`
+- `src/services/dev-admin/request.ts`

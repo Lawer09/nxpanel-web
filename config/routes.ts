@@ -329,6 +329,37 @@ export default [
     component: './dns',
   },
   {
+    path: '/dev',
+    name: 'dev',
+    icon: 'code',
+    routes: [
+      {
+        path: '/dev',
+        redirect: '/dev/nodes',
+      },
+      {
+        path: '/dev/nodes',
+        name: 'nodes',
+        component: './dev/Nodes',
+      },
+      {
+        path: '/dev/agents',
+        name: 'agents',
+        component: './dev/Agents',
+      },
+      {
+        path: '/dev/services',
+        name: 'services',
+        component: './dev/Services',
+      },
+      {
+        path: '/dev/menus',
+        name: 'menus',
+        component: './dev/Menus',
+      },
+    ],
+  },
+  {
     path: '/system',
     name: 'system',
     icon: 'dashboard',

@@ -81,6 +81,9 @@ declare namespace API {
     id?: string;
     current?: number;
     pageSize?: number;
+    onlyBanned?: boolean;
+    createdAtFrom?: string | number;
+    createdAtTo?: string | number;
     meta?: Record<string, string | number>;
     filter?: UserFilter[];
     sort?: UserSort[];
@@ -126,6 +129,32 @@ declare namespace API {
     filter?: UserFilter[];
     sort?: UserSort[];
     sort_type?: string;
+  }
+
+  interface BlockedIpUserLite {
+    id: number;
+    email: string;
+  }
+
+  interface UserBlockedIpItem {
+    id: number;
+    ip: string;
+    reason?: string | null;
+    metadata?: Record<string, any> | null;
+    banned_user_id?: number | null;
+    operator_user_id?: number | null;
+    banned_user?: BlockedIpUserLite | null;
+    operator_user?: BlockedIpUserLite | null;
+    created_at?: number;
+    updated_at?: number;
+  }
+
+  interface UserBlockedIpFetchParams {
+    ip?: string;
+    bannedUserId?: number;
+    operatorUserId?: number;
+    current?: number;
+    pageSize?: number;
   }
 
 }

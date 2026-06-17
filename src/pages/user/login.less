@@ -30,7 +30,7 @@
 
     .header {
       text-align: center;
-      margin-bottom: 40px;
+      margin-bottom: 28px;
 
       h1 {
         font-size: 32px;
@@ -46,6 +46,20 @@
         font-size: 14px;
         color: #999;
         margin: 0;
+      }
+    }
+
+    .modeTabs {
+      :global {
+        .ant-tabs-nav {
+          margin-bottom: 24px;
+        }
+
+        .ant-tabs-tab {
+          min-width: 88px;
+          justify-content: center;
+          font-weight: 600;
+        }
       }
     }
 

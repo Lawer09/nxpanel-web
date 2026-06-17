@@ -14,6 +14,10 @@ import {
   SystemConfigEntry,
 } from '@/components';
 import VersionNoticeModal from '@/components/VersionNoticeModal';
+import {
+  buildDevAdminCurrentUser,
+  getDevAdminSession,
+} from '@/services/dev-admin/session';
 import { getLatestVersion } from '@/services/version/api';
 import defaultSettings from '../config/defaultSettings';
 import { errorConfig } from './requestErrorConfig';
@@ -23,6 +27,8 @@ const isDev = process.env.NODE_ENV === 'development';
 const loginPath = '/user/login';
 const RUNTIME_VERSION_KEY = 'nxpanel_runtime_version';
 const VERSION_CHECK_INTERVAL = 60_000;
+const devHomePath = '/dev/nodes';
+const authFreePaths = [loginPath, '/user/register', '/user/register-result'];
 
 let lastCheckTime = 0;
 let checking = false;
@@ -105,6 +111,7 @@ export async function getInitialState(): Promise<{
         name: info.email,
         access: info.is_admin ? ('admin' as const) : ('user' as const),
         is_admin: info.is_admin,
+        loginMode: 'operation',
       };
     } catch (_error) {
       return undefined;
@@ -116,12 +123,13 @@ export async function getInitialState(): Promise<{
   };
   // 如果不是登录页面，执行
   const { location } = history;
-  if (
-    ![loginPath, '/user/register', '/user/register-result'].includes(
-      location.pathname,
-    )
-  ) {
-    const currentUser = await fetchUserInfo();
+  if (!authFreePaths.includes(location.pathname)) {
+    const devSession = location.pathname.startsWith('/dev')
+      ? getDevAdminSession()
+      : undefined;
+    const currentUser = devSession?.accessToken
+      ? buildDevAdminCurrentUser(devSession.user)
+      : await fetchUserInfo();
     return {
       fetchUserInfo,
       currentUser,
@@ -139,13 +147,24 @@ export const layout: RunTimeLayoutConfig = ({
   initialState,
   setInitialState,
 }) => {
+  const isManagementMode =
+    initialState?.currentUser?.loginMode === 'management';
+
   return {
-    actionsRender: () => [
-      <Question key="doc" />,
-      <SelectLang key="SelectLang" />,
-      <AutomationRulesEntry key="AutomationRulesEntry" />,
-      <SystemConfigEntry key="SystemConfigEntry" />,
-    ],
+    actionsRender: () => {
+      const commonActions = [
+        <Question key="doc" />,
+        <SelectLang key="SelectLang" />,
+      ];
+      if (isManagementMode) {
+        return commonActions;
+      }
+      return [
+        ...commonActions,
+        <AutomationRulesEntry key="AutomationRulesEntry" />,
+        <SystemConfigEntry key="SystemConfigEntry" />,
+      ];
+    },
     avatarProps: {
       src: initialState?.currentUser?.avatar,
       title: <AvatarName />,
@@ -157,12 +176,38 @@ export const layout: RunTimeLayoutConfig = ({
       content: initialState?.currentUser?.name,
     },
     footerRender: () => <Footer />,
+    menuDataRender: (menuData) => {
+      if (isManagementMode) {
+        return menuData.filter((item) => item.path === '/dev');
+      }
+      return menuData.filter((item) => item.path !== '/dev');
+    },
     onPageChange: () => {
       const { location } = history;
       void checkRuntimeVersionAndReload();
-      // 如果没有登录，重定向到 login
-      if (!initialState?.currentUser && location.pathname !== loginPath) {
-        history.push(loginPath);
+      const isDevPath = location.pathname.startsWith('/dev');
+      const isAuthFreePath = authFreePaths.includes(location.pathname);
+      const loginMode = initialState?.currentUser?.loginMode;
+
+      if (!initialState?.currentUser && !isAuthFreePath && !isDevPath) {
+        history.push(`${loginPath}?mode=operation`);
+        return;
+      }
+
+      if (loginMode === 'management' && !isDevPath && !isAuthFreePath) {
+        history.replace(devHomePath);
+        return;
+      }
+
+      if (loginMode === 'operation' && isDevPath) {
+        const searchParams = new URLSearchParams({
+          mode: 'management',
+          redirect: location.pathname + location.search,
+        });
+        history.replace({
+          pathname: loginPath,
+          search: searchParams.toString(),
+        });
       }
     },
     bgLayoutImgList: [
@@ -185,7 +230,7 @@ export const layout: RunTimeLayoutConfig = ({
         width: '331px',
       },
     ],
-    links: isDev
+    links: isDev && !isManagementMode
       ? [
           <Link key="openapi" to="/umi/plugin/openapi" target="_blank">
             <LinkOutlined />

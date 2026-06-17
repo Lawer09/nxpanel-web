@@ -103,3 +103,27 @@ export async function destroyUser(body: { id: number }, options?: { [key: string
     ...(options || {}),
   });
 }
+
+export async function fetchBlockedIps(
+  params: API.UserBlockedIpFetchParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<{ data: API.UserBlockedIpItem[]; total: number }>>(
+    '/v3/user/blockedIp/fetch',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: params,
+      ...(options || {}),
+    },
+  );
+}
+
+export async function deleteBlockedIp(body: { id: number }, options?: { [key: string]: any }) {
+  return request<API.ApiResponse<boolean>>('/v3/user/blockedIp/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}

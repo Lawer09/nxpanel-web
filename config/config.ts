@@ -7,7 +7,13 @@ import proxy from './proxy';
 
 import routes from './routes';
 
-const { REACT_APP_ENV = 'dev' } = process.env;
+const {
+  REACT_APP_ENV = 'dev',
+  REACT_APP_NODE_CONTROL_APP_ID,
+  REACT_APP_NODE_CONTROL_APP_SECRET,
+  UMI_APP_NODE_CONTROL_APP_ID,
+  UMI_APP_NODE_CONTROL_APP_SECRET,
+} = process.env;
 
 /**
  * @name 使用公共路径
@@ -131,6 +137,16 @@ export default defineConfig({
    * @doc https://umijs.org/docs/max/request
    */
   request: {},
+  define: {
+    'process.env.REACT_APP_NODE_CONTROL_APP_ID':
+      REACT_APP_NODE_CONTROL_APP_ID || UMI_APP_NODE_CONTROL_APP_ID || '',
+    'process.env.REACT_APP_NODE_CONTROL_APP_SECRET':
+      REACT_APP_NODE_CONTROL_APP_SECRET || UMI_APP_NODE_CONTROL_APP_SECRET || '',
+    'process.env.UMI_APP_NODE_CONTROL_APP_ID':
+      UMI_APP_NODE_CONTROL_APP_ID || REACT_APP_NODE_CONTROL_APP_ID || '',
+    'process.env.UMI_APP_NODE_CONTROL_APP_SECRET':
+      UMI_APP_NODE_CONTROL_APP_SECRET || REACT_APP_NODE_CONTROL_APP_SECRET || '',
+  },
   /**
    * @name 权限插件
    * @description 基于 initialState 的权限插件，必须先打开 initialState

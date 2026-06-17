@@ -13,6 +13,9 @@
 | `id` | `string` | 否 | 按 ID 查询，逗号分隔多个，例如 `"1,2,3"` |
 | `current` | `int` | 否 | 页码，默认 `1` |
 | `pageSize` | `int` | 否 | 每页条数，默认 `10` |
+| `onlyBanned` | `bool` | 否 | 只查询已封禁用户 |
+| `createdAtFrom` | `string\|int` | 否 | 注册时间起始，包含边界；支持 Unix 时间戳、`YYYY-MM-DD`、`YYYY-MM-DD HH:mm:ss` |
+| `createdAtTo` | `string\|int` | 否 | 注册时间结束，包含边界；支持 Unix 时间戳、`YYYY-MM-DD`、`YYYY-MM-DD HH:mm:ss`，仅日期格式会按当天 `23:59:59` 处理 |
 | `meta` | `object` | 否 | 按 `register_metadata` JSON 字段筛选，key 为元数据字段名 |
 | `filter` | `array` | 否 | 通用字段筛选，格式 `[{id, value}]` |
 | `sort` | `array` | 否 | 排序，格式 `[{id, desc: bool}]` |
@@ -26,6 +29,9 @@ POST /api/v3/admin/user/fetch
         "app_id": "com.example.app",
         "channel": "telegram"
     },
+    "onlyBanned": true,
+    "createdAtFrom": "2026-06-01 00:00:00",
+    "createdAtTo": "2026-06-14 23:59:59",
     "current": 1,
     "pageSize": 20,
     "filter": [
@@ -77,6 +83,99 @@ POST /api/v3/admin/user/fetch
     "total": 1,
     "page": 1,
     "pageSize": 20
+}
+```
+
+## 封禁用户 IP 列表查询
+
+`POST /v3/user/blockedIp/fetch`
+
+支持 GET/POST。
+
+### 请求参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `ip` | `string` | 否 | 按封禁 IP 精确查询 |
+| `bannedUserId` | `int` | 否 | 按被封禁用户 ID 查询 |
+| `operatorUserId` | `int` | 否 | 按操作管理员 ID 查询 |
+| `current` | `int` | 否 | 页码，默认 `1` |
+| `pageSize` | `int` | 否 | 每页条数，默认 `10`，最大 `200` |
+
+### 请求示例
+
+```json
+POST /api/v3/admin/user/blockedIp/fetch
+{
+    "ip": "203.0.113.30",
+    "current": 1,
+    "pageSize": 20
+}
+```
+
+### 返回示例
+
+```json
+{
+    "code": 0,
+    "msg": "操作成功",
+    "data": {
+        "data": [
+            {
+                "id": 1,
+                "ip": "203.0.113.30",
+                "reason": "fraud batch",
+                "metadata": {
+                    "source": "admin_batch_ban",
+                    "user_email": "with-ip@example.com"
+                },
+                "banned_user_id": 1001,
+                "operator_user_id": 9001,
+                "banned_user": {
+                    "id": 1001,
+                    "email": "with-ip@example.com"
+                },
+                "operator_user": {
+                    "id": 9001,
+                    "email": "admin@example.com"
+                },
+                "created_at": 1781400000,
+                "updated_at": 1781400000
+            }
+        ],
+        "total": 1,
+        "page": 1,
+        "pageSize": 20
+    }
+}
+```
+
+## 删除封禁用户 IP 记录
+
+`POST /v3/user/blockedIp/delete`
+
+### 请求参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `id` | `int` | 是 | 封禁 IP 记录 ID |
+
+### 请求示例
+
+```json
+POST /api/v3/admin/user/blockedIp/delete
+{
+    "id": 1
+}
+```
+
+### 返回示例
+
+```json
+{
+    "code": 0,
+    "msg": "操作成功",
+    "data": true
 }
 ```
 

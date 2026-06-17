@@ -9,6 +9,7 @@ import { Spin } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import { flushSync } from 'react-dom';
+import { logoutDevAdmin } from '@/services/dev-admin/api';
 import HeaderDropdown from '../HeaderDropdown';
 
 export type GlobalHeaderRightProps = {
@@ -47,7 +48,7 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
   /**
    * 退出登录，并且将当前的 url 保存
    */
-  const loginOut = async () => {
+  const operationLoginOut = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_token');
     localStorage.removeItem('user_info');
@@ -63,8 +64,18 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
     if (window.location.pathname !== '/user/login' && !redirect) {
       history.replace({
         pathname: '/user/login',
-        search: searchParams.toString(),
+        search: `mode=operation&${searchParams.toString()}`,
       });
+    }
+  };
+
+  const managementLoginOut = async () => {
+    try {
+      await logoutDevAdmin();
+    } catch {
+      // Dev session is local-only for this temporary management mode.
+    } finally {
+      history.replace('/user/login?mode=management');
     }
   };
   const { styles } = useStyles();
@@ -74,10 +85,17 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
   const onMenuClick: MenuProps['onClick'] = (event) => {
     const { key } = event;
     if (key === 'logout') {
-      flushSync(() => {
-        setInitialState((s) => ({ ...s, currentUser: undefined }));
-      });
-      loginOut();
+      const loginMode = initialState?.currentUser?.loginMode;
+      void (async () => {
+        flushSync(() => {
+          setInitialState((s) => ({ ...s, currentUser: undefined }));
+        });
+        if (loginMode === 'management') {
+          await managementLoginOut();
+          return;
+        }
+        operationLoginOut();
+      })();
       return;
     }
     history.push(`/account/${key}`);

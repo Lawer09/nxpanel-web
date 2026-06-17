@@ -10,6 +10,27 @@
  * @doc https://umijs.org/docs/guides/proxy
  */
 export default {
+  dev: {
+    '/v4/control/': {
+      target: 'http://8.220.74.20:8080',
+      changeOrigin: true,
+      pathRewrite: { '^/v4/control': '/api/v1/control' },
+    },
+    '/v4/service-register-manager/': {
+      target: 'http://8.220.74.20:8080',
+      changeOrigin: true,
+      pathRewrite: {
+        '^/v4/service-register-manager': '/api/v1/service-register-manager',
+      },
+    },
+    '/v4/admin/': {
+      target: 'http://8.220.74.20:8080',
+      changeOrigin: true,
+      pathRewrite: {
+        '^/v4/admin': '/api/v1/admin',
+      },
+    },
+  },
   // 如果需要自定义本地开发服务器  请取消注释按需调整
   // dev: {
   //   // localhost:8000/api/** -> https://preview.pro.ant.design/api/**

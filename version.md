@@ -97,6 +97,40 @@
 ### 新增功能
 
 - 新增通用报表可选导出能力，支持页面传入 `exportAction` 后展示导出按钮，并在导出前自动应用当前草稿查询条件、维度与排序；项目报表接入 CSV 导出接口，支持按当前筛选全量导出并从响应头解析文件名（src/components/report/UniversalReportTable.tsx, src/pages/report/project/index.tsx, src/services/report/api.ts, docs/components/universal_report.md）。
+- 新增 Dev 控制面菜单组，接入 node-service 新版 Agent、节点、配置模板管理页面，并提供运行态查看、节点用户管理与模板绑定入口（config/routes.ts, src/pages/dev/, src/locales/zh-CN/menu.ts, src/locales/en-US/menu.ts）。
+- 新增 node-service 控制面独立请求层与 app 签名认证实现，支持 `/v4/control/*` 本地代理转发、`X-API-ID` / `X-Timestamp` / `X-Nonce` / `X-Body-SHA256` / `X-Signature` 请求头生成，以及基于表单模式与 JSON 模式的三段配置编辑器（src/services/node-control/, config/proxy.ts, src/requestErrorConfig.ts, src/pages/dev/components/JsonConfigEditor.tsx）。
+- 新增 node-service 控制面接口文档，补充测试联调用 app 认证方式、签名串规则与创建接口按 HTTP 200 成功处理的约定（docs/api/node_service_control_api.md）。
+- 新增 Dev 服务注册页面，复用 app 签名认证调用 `/api/v1/service-register-manager/services`，展示 services、routes 与 service_auth 信息并支持关键字段复制（config/routes.ts, config/proxy.ts, src/pages/dev/Services.tsx, src/services/node-control/）。
+- 新增 Dev 节点 Snapshot 预览能力，支持调用 `/api/v1/control/nodes/{node_id}/snapshot` 查看模板合并和运行面映射后的 Agent 最终下发配置（src/pages/dev/Nodes.tsx, src/services/node-control/api.ts, src/services/node-control/typings.d.ts, docs/api/node_service_control_api.md）。
+- 新增用户管理封禁 IP 列表弹窗入口，支持按 IP、被封禁用户 ID、操作管理员 ID 查询封禁记录，并支持删除单条封禁 IP 记录（src/pages/user-manage/index.tsx, src/pages/user-manage/components/BlockedIpModal.tsx, src/services/user/, docs/api/user_api.md）。
+- 新增 Dev 菜单管理页面与临时管理员 JWT 登录弹窗，支持对接 admin-service 菜单增删改查、当前用户菜单预览和权限码选择，并将 Dev 路由未登录行为与正式登录链路隔离（src/pages/dev/Menus.tsx, src/pages/dev/components/DevAuthGate.tsx, src/services/dev-admin/, docs/api/admin_service_api.md）。
+
+### 优化功能
+
+- 优化 Dev 控制面认证方式：将 `/v4/control/*` 从 app 签名认证切换为 Dev 临时管理员 JWT，并复用 Dev 登录弹窗保护节点与 Agent 页面；服务注册接口继续保留 app 签名认证（src/services/node-control/request.ts, src/pages/dev/Nodes.tsx, src/pages/dev/Agents.tsx, docs/api/node_service_control_api.md）。
+- 优化 Dev 控制面节点与配置模板 JSON 编辑器：按新版 node-service Snapshot 协议生成 `config_json.listen/settings/tls/transport/multiplex`，将 `options_json` 调整为 snake_case limiter 字段，并允许创建时提交空 `config_json`（src/pages/dev/components/JsonConfigEditor.tsx, src/services/node-control/typings.d.ts, docs/api/node_service_control_api.md）。
+- 优化 Dev 控制面节点创建与编辑：将节点提交 payload 从三段 JSON 调整为完整 Snapshot 顶层结构，新增覆盖全部字段的联动表单与完整 JSON tab，并在迁移期间将配置模板页改为只读以避免旧模板结构误写（src/pages/dev/components/SnapshotConfigEditor.tsx, src/pages/dev/components/NodeFormModal.tsx, src/pages/dev/ConfigTemplates.tsx, src/services/node-control/typings.d.ts, docs/api/node_service_control_api.md）。
+- 优化 Dev 控制面节点 Snapshot 协议字段：按最新约定调整各协议 `settings` 表单字段，移除 vless/vmess 的 `encryption`，拆分 hysteria 与 hysteria2 字段，并裁剪 Reality 配置为 `private_key`、`short_id`、`dest`、`server_port`、`max_time_diff`（src/pages/dev/components/SnapshotConfigEditor.tsx, src/services/node-control/typings.d.ts, docs/api/node_service_control_api.md）。
+- 优化 Dev 控制面节点 Snapshot 表单：将 shadowsocks `cipher` 改为固定方法下拉选择，并按协议约束 transport 可选类型，补充 vless/vmess 的 tcp 旧式 HTTP header、ws、grpc 与 httpupgrade 结构化配置（src/pages/dev/components/SnapshotConfigEditor.tsx, docs/api/node_service_control_api.md）。
+- 优化 Dev 控制面节点 Snapshot 与用户管理：将 `id/tag` 调整为创建非必填，新增同级 `client` 配置，并限制只有 vless 暴露 Reality 与 Transport；同时新增节点独立用户管理弹窗与批量新增、批量更新、批量删除接口联动（src/pages/dev/components/SnapshotConfigEditor.tsx, src/pages/dev/components/NodeUsersManageModal.tsx, src/pages/dev/Nodes.tsx, src/services/node-control/api.ts, src/services/node-control/typings.d.ts, docs/api/node_service_control_api.md）。
+- 优化 Dev 控制面节点用户列表操作：新增单用户“Get Config”连接获取能力，接入 `/api/v1/control/nodes/{node_id}/users/{user_id}/client-config` 展示分享 URI 与客户端连接信息，并同时覆盖节点详情用户表与批量用户管理弹窗（src/pages/dev/Nodes.tsx, src/pages/dev/components/NodeUsersManageModal.tsx, src/pages/dev/components/NodeUserClientConfigModal.tsx, src/services/node-control/api.ts, src/services/node-control/typings.d.ts, docs/api/node_service_control_api.md）。
+- 优化 Dev 节点 Reality 配置表单：新增 `tls.reality.client_fingerprint` 下拉选择并接入 Snapshot 提交与文档说明，覆盖 chrome、firefox、safari、ios、android、edge、360、qq、random 等指纹选项（src/pages/dev/components/SnapshotConfigEditor.tsx, src/services/node-control/typings.d.ts, docs/api/node_service_control_api.md）。
+- 优化 Dev 节点 TLS 证书配置：新增 `tls.cert.key_type` 下拉并接入证书分支提交，支持 ec256、ec384 与多档 RSA 私钥类型选择，保持仅作用于 ACME 证书私钥（src/pages/dev/components/SnapshotConfigEditor.tsx, src/services/node-control/typings.d.ts, docs/api/node_service_control_api.md）。
+- 优化 Dev 节点 Snapshot 字段单位说明：在表单提示和接口文档中明确 `up_mbps/down_mbps` 使用 Mbps、`speed_limit` 使用 B/s、`ip_online_min_traffic/report_min_traffic` 使用 KiB，避免配置输入时产生单位歧义（src/pages/dev/components/SnapshotConfigEditor.tsx, docs/api/node_service_control_api.md）。
+- 优化 Dev 节点单位输入体验：新增模块内 `UnitNumberInput`，支持限速按 B/s、KiB/s、MiB/s、GiB/s 输入并换算为 B/s 提交，支持流量阈值按 KiB、MiB、GiB 输入并换算为 KiB 提交，同时接入节点默认限速、节点阈值和节点用户限速配置（src/pages/dev/components/UnitNumberInput.tsx, src/pages/dev/components/SnapshotConfigEditor.tsx, src/pages/dev/components/NodeUserModal.tsx, src/pages/dev/components/NodeUsersManageModal.tsx, src/pages/dev/Nodes.tsx, docs/api/node_service_control_api.md）。
+- 优化登录页与 Dev 菜单隔离：在 `/user/login` 增加 `运营` / `管理` 模式切换，管理模式使用 Dev admin JWT 登录后进入 `/dev/nodes`，并通过 `loginMode` 让布局只显示 Dev 菜单、运营模式隐藏 Dev 菜单（src/pages/user/Login.tsx, src/app.tsx, src/components/RightContent/AvatarDropdown.tsx, src/pages/dev/components/DevAuthGate.tsx）。
+- 优化用户管理面板查询条件：新增“仅封禁用户”开关与注册时间范围筛选，并将 `onlyBanned`、`createdAtFrom`、`createdAtTo` 参数接入用户列表请求层，同时补充用户接口文档说明（src/pages/user-manage/index.tsx, src/services/user/typings.d.ts, docs/api/user_api.md）。
+
+### Bug 修复
+
+- 修复 Dev 控制面节点与模板弹窗提交 JSON 时可能读取旧状态的问题：`JsonConfigEditor.commit()` 返回最终编辑值，父弹窗直接使用返回值组装 payload，避免最后一次表单或 JSON 编辑丢失（src/pages/dev/components/JsonConfigEditor.tsx, src/pages/dev/components/NodeFormModal.tsx, src/pages/dev/components/TemplateFormModal.tsx, docs/issue/global.md）。
+- 修复 Dev 控制面响应三段 JSON 回显异常：在 node-control 请求层统一将响应中的 `config_json`、`rules_json`、`options_json` base64 字符串解码为 JSON 对象，确保节点详情、模板详情和绑定模板填充使用可编辑结构（src/services/node-control/request.ts, docs/api/node_service_control_api.md）。
+
+- 修复 Dev 节点用户管理弹窗中用户 `speed_limit` 只能查看不能编辑的问题：将隐藏的单位输入列恢复为可编辑列，并区分节点默认限速与用户限速文案；同时修正单位下拉切换时不应改变后端基础值的逻辑（src/pages/dev/components/NodeUsersManageModal.tsx, src/pages/dev/components/NodeUserModal.tsx, src/pages/dev/components/UnitNumberInput.tsx, src/pages/dev/Nodes.tsx）。
+
+- 移除 Dev 控制面中过时的配置模板能力：删除 `/dev/config-templates` 路由与菜单、ConfigTemplates 页面、旧三段 JSON 模板弹窗和 node-control 模板接口/类型，同时清理节点列表和详情中的模板字段展示（config/routes.ts, src/locales/*/menu.ts, src/pages/dev/, src/services/node-control/, docs/api/node_service_control_api.md）。
+
+- 优化 Dev 限速单位输入：为节点默认限速和节点用户限速的 `UnitNumberInput` 增加 Mbps 选项，并按 `1 Mbps = 125000 B/s` 换算后提交后端基础值（src/pages/dev/components/UnitNumberInput.tsx, docs/api/node_service_control_api.md）。
 
 ## [1.3.0] - 2026-06-05
 

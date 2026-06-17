@@ -41,6 +41,10 @@ const errorConfig = {
   // 请求拦截器 - 添加认证信息
   requestInterceptors: [
     (config: any) => {
+      if (typeof config?.url === 'string' && config.url.startsWith('/v4/')) {
+        return config;
+      }
+
       // 从本地存储读取 token
       const token = localStorage.getItem('auth_token');
       if (token) {
