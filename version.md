@@ -62,6 +62,7 @@
 ### 优化功能
 
 - 优化项目管理用户 App 绑定：为用户 App 关联增加非必填 `appLink` 字段，并同步到列表展示、新增/编辑弹窗、前端类型与项目 API 文档（src/pages/project/components/ResourceTabs/UserApps.tsx, src/services/project/types.ts, docs/api/project_api.md）。
+- 优化项目报表数值展示精度：将金额、比例、ROI、流量和其它小数字段的前端显示统一从 2 位小数调整为 3 位小数，并同步更新项目报表接口文档说明（src/pages/report/project/index.tsx, docs/api/project-report-api.md）。
 ### Bug 修复
 ---
 后续所有改动记录，只能写入当前开发版本对应区块。

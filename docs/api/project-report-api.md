@@ -150,7 +150,7 @@
 
 前端展示建议：
 
-- 金额类字段：`adRevenue/adSpendCost/trafficCost/profit/adSpendCpi/adSpendCpc/adSpendCpm` 建议统一货币格式，并保留 2 位小数。
-- 比例类字段：`adCtr/adMatchRate/adShowRate` 建议展示为百分比并保留 2 位小数。
-- `roi` 建议按百分比展示：`roiPercent = roi * 100`，并保留 2 位小数（例如 `1.234567 -> 123.46%`）。
+- 金额类字段：`adRevenue/adSpendCost/trafficCost/profit/adSpendCpi/adSpendCpc/adSpendCpm` 建议统一货币格式，并保留 3 位小数。
+- 比例类字段：`adCtr/adMatchRate/adShowRate` 建议展示为百分比并保留 3 位小数。
+- `roi` 建议按百分比展示：`roiPercent = roi * 100`，并保留 3 位小数（例如 `1.234567 -> 123.457%`）。
 - 空值处理：接口分母为 0 时返回 `null`，前端可展示为 `--`。

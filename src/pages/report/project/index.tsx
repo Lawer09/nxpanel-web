@@ -72,32 +72,32 @@ const fmtInt = (v: unknown) => {
 const fmtCurrency = (v: unknown) => {
   const n = toSafeNumber(v);
   if (n === null) return '--';
-  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return n.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 };
 
 const fmtFixed2 = (v: unknown) => {
   const n = toSafeNumber(v);
   if (n === null) return '--';
-  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return n.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 };
 
 const fmtTraffic = (v: unknown) => {
   const n = toSafeNumber(v);
   if (n === null) return '--';
-  if (n >= 1024) return `${(n / 1024).toFixed(2)} GB`;
-  return `${n.toFixed(2)} MB`;
+  if (n >= 1024) return `${(n / 1024).toFixed(3)} GB`;
+  return `${n.toFixed(3)} MB`;
 }
 
 const fmtPercent = (v: unknown) => {
   const n = toSafeNumber(v);
   if (n === null) return '--';
-  return `${n.toFixed(2)}%`;
+  return `${n.toFixed(3)}%`;
 };
 
 const fmtRoiPercent = (v: unknown) => {
   const n = toSafeNumber(v);
   if (n === null) return '--';
-  return `${(n * 100).toFixed(2)}%`;
+  return `${(n * 100).toFixed(3)}%`;
 };
 
 const fmtCountry = (country?: string | null) => {
