@@ -27,6 +27,7 @@ export interface ProjectAdAccount {
 export interface ProjectUserApp {
   id: number;
   appId: string;
+  appLink: string | null;
   enabled: number;
   remark: string | null;
   createdAt?: string;
@@ -120,6 +121,7 @@ export interface ProjectAdAccountUpdateRequest {
 export interface ProjectUserAppStoreRequest {
   projectId: number;
   appId: string;
+  appLink?: string;
   enabled?: number;
   remark?: string;
 }
@@ -127,6 +129,7 @@ export interface ProjectUserAppStoreRequest {
 export interface ProjectUserAppUpdateRequest {
   id: number;
   projectId: number;
+  appLink?: string;
   enabled?: number;
   remark?: string;
 }

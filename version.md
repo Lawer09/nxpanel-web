@@ -61,6 +61,7 @@
 
 ### 优化功能
 
+- 优化项目管理用户 App 绑定：为用户 App 关联增加非必填 `appLink` 字段，并同步到列表展示、新增/编辑弹窗、前端类型与项目 API 文档（src/pages/project/components/ResourceTabs/UserApps.tsx, src/services/project/types.ts, docs/api/project_api.md）。
 ### Bug 修复
 ---
 后续所有改动记录，只能写入当前开发版本对应区块。

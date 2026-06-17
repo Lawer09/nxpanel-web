@@ -32,6 +32,7 @@ const UserApps = forwardRef<ResourceActionRef, UserAppsProps>(({ projectId }, re
 
   const columns: ProColumns<ProjectUserApp>[] = [
     { title: 'App ID', dataIndex: 'appId' },
+    { title: 'App Link', dataIndex: 'appLink', hideInSearch: true, ellipsis: true },
     {
       title: '状态',
       dataIndex: 'enabled',
@@ -91,10 +92,11 @@ const UserApps = forwardRef<ResourceActionRef, UserAppsProps>(({ projectId }, re
           onFinish={async (values) => {
             try {
               if (currentRow) {
-                // 编辑时只允许修改 enabled 和 remark
+                // 编辑时允许修改 appLink、enabled 和 remark
                 await updateUserApp({
                   id: currentRow.id,
                   projectId,
+                  appLink: values.appLink,
                   enabled: values.enabled,
                   remark: values.remark,
                 });
@@ -117,6 +119,7 @@ const UserApps = forwardRef<ResourceActionRef, UserAppsProps>(({ projectId }, re
           {!currentRow && (
             <ProFormText name="appId" label="App ID" rules={[{ required: true }]} />
           )}
+          <ProFormText name="appLink" label="App Link" />
           <ProFormSelect
             name="enabled"
             label="状态"
