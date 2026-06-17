@@ -2,7 +2,7 @@
 
 ## 维护说明（必读）
 
-当前开发版本：`1.3.1`
+当前开发版本：`1.4.1`
 
 请后续严格按以下规则维护此文件。
 
@@ -60,10 +60,6 @@
 ### 新增功能
 
 ### 优化功能
-
-- 优化域名管理主视图：将域名列表由 ProTable 升级为 ProList 卡片式展示，合并“域名总数/缺失域名”为域名池统计（总数+可用+缺失），并新增右侧抽屉详情展示域名信息与绑定 IP 列表；同时按区块拆分概览卡片、域名列表、详情抽屉组件（src/pages/dns/index.tsx, src/pages/dns/components/, src/services/dns-tool/typings.d.ts）。
-- 优化域名详情抽屉交互：在绑定 IP 列表内增加就地“解绑”操作，支持直接带入 FQDN 和 IPv4 打开解绑确认弹窗（src/pages/dns/components/DomainDetailDrawer.tsx, src/pages/dns/index.tsx）。
-- 优化域名详情抽屉操作能力：在绑定 IP 列表增加“编辑”操作，可直接打开元信息弹窗修改该绑定记录的 tags 与 note（src/pages/dns/components/DomainDetailDrawer.tsx, src/pages/dns/index.tsx）。
 
 ### Bug 修复
 ---

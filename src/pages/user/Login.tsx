@@ -12,6 +12,23 @@ type LoginMode = 'operation' | 'management';
 
 const loginPath = '/user/login';
 
+const modeCopy: Record<
+  LoginMode,
+  {
+    title: string;
+    submitText: string;
+  }
+> = {
+  operation: {
+    title: 'NXPANEL',
+    submitText: '登录',
+  },
+  management: {
+    title: 'NXPANEL',
+    submitText: '登录',
+  },
+};
+
 const LoginPage: React.FC = () => {
   const [operationForm] = Form.useForm();
   const [managementForm] = Form.useForm<API.DevAdminLoginParams>();
@@ -56,69 +73,60 @@ const LoginPage: React.FC = () => {
     });
   };
 
-  const { run: handleOperationLogin, loading: operationLoading } = useRequest(
-    login,
-    {
-      manual: true,
-      formatResult: (res: any) => res,
-      onSuccess: async (res: any) => {
-        // 检查响应状态
-        if (res.status === 'success' && res.data) {
-          // 登录成功
-          const { token, auth_data, is_admin, secure_path } = res.data;
+  const { run: handleOperationLogin, loading: operationLoading } = useRequest(login, {
+    manual: true,
+    formatResult: (res: any) => res,
+    onSuccess: async (res: any) => {
+      if (res.status === 'success' && res.data) {
+        const { token, auth_data, is_admin, secure_path } = res.data;
 
-          // 存储 token 和用户信息
-          localStorage.setItem('auth_token', auth_data);
-          localStorage.setItem('user_token', token);
-          if (secure_path) {
-            localStorage.setItem('secure_path', secure_path);
-          } else {
-            localStorage.removeItem('secure_path');
-          }
-          localStorage.setItem(
-            'user_info',
-            JSON.stringify({
-              is_admin,
-              token,
-              email: operationForm.getFieldValue('email'),
-            }),
-          );
-
-          message.success(res.message || '登录成功');
-
-          const fetchedUser = await initialState?.fetchUserInfo?.();
-          const nextUser =
-            fetchedUser ??
-            ({
-              email: operationForm.getFieldValue('email'),
-              name: operationForm.getFieldValue('email'),
-              access: is_admin ? 'admin' : 'user',
-              is_admin,
-              loginMode: 'operation',
-            } as API.CurrentUser);
-          flushSync(() => {
-            setInitialState((s) => ({
-              ...s,
-              currentUser: { ...nextUser, loginMode: 'operation' },
-            }));
-          });
-
-          const redirect = getRedirect();
-          const targetPath =
-            redirect?.startsWith('/') && !redirect.startsWith('/dev')
-              ? redirect
-              : '/';
-          history.replace(targetPath);
+        localStorage.setItem('auth_token', auth_data);
+        localStorage.setItem('user_token', token);
+        if (secure_path) {
+          localStorage.setItem('secure_path', secure_path);
         } else {
-          // 登录失败 - 显示后端返回的错误信息
-          message.error(res.message || '登录失败，请检查邮箱和密码');
+          localStorage.removeItem('secure_path');
         }
-      },
-      onError: (error: any) => {
-        message.error(getErrorMessage(error));
-      },
+        localStorage.setItem(
+          'user_info',
+          JSON.stringify({
+            is_admin,
+            token,
+            email: operationForm.getFieldValue('email'),
+          }),
+        );
+
+        message.success(res.message || '登录成功');
+
+        const fetchedUser = await initialState?.fetchUserInfo?.();
+        const nextUser =
+          fetchedUser ??
+          ({
+            email: operationForm.getFieldValue('email'),
+            name: operationForm.getFieldValue('email'),
+            access: is_admin ? 'admin' : 'user',
+            is_admin,
+            loginMode: 'operation',
+          } as API.CurrentUser);
+        flushSync(() => {
+          setInitialState((s) => ({
+            ...s,
+            currentUser: { ...nextUser, loginMode: 'operation' },
+          }));
+        });
+
+        const redirect = getRedirect();
+        const targetPath =
+          redirect?.startsWith('/') && !redirect.startsWith('/dev') ? redirect : '/';
+        history.replace(targetPath);
+      } else {
+        message.error(res.message || '登录失败，请检查邮箱和密码');
+      }
     },
-  );
+    onError: (error: any) => {
+      message.error(getErrorMessage(error));
+    },
+  });
 
   const { run: handleManagementLogin, loading: managementLoading } = useRequest(
     loginDevAdmin,
@@ -164,158 +172,151 @@ const LoginPage: React.FC = () => {
     updateModeInUrl(nextMode);
   };
 
+  const activeCopy = modeCopy[activeMode];
+
   return (
     <div className={styles.container}>
-      <div className={styles.box}>
-        <div className={styles.header}>
-          <h1>NxPanel</h1>
-          <p>Welcome Back</p>
-        </div>
-
-        <Tabs
-          className={styles.modeTabs}
-          activeKey={activeMode}
-          centered
-          onChange={handleModeChange}
-          items={[
-            {
-              key: 'operation',
-              label: '运营',
-              children: (
-                <Form
-                  form={operationForm}
-                  layout="vertical"
-                  onFinish={onOperationFinish}
-                  autoComplete="off"
-                >
-                  <Form.Item
-                    name="email"
-                    label="邮箱地址"
-                    rules={[
-                      { required: true, message: '请输入邮箱地址' },
-                      { type: 'email', message: '邮箱格式不正确' },
-                    ]}
-                  >
-                    <Input
-                      size="large"
-                      placeholder="请输入您的邮箱"
-                      prefix={<MailOutlined />}
-                      autoComplete="email"
-                    />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="password"
-                    label="密码"
-                    rules={[
-                      { required: true, message: '请输入密码' },
-                      { min: 8, message: '密码至少需要 8 位' },
-                    ]}
-                  >
-                    <Input.Password
-                      size="large"
-                      placeholder="请输入密码（最少 8 位）"
-                      prefix={<LockOutlined />}
-                      autoComplete="current-password"
-                    />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="remember"
-                    valuePropName="checked"
-                    initialValue={true}
-                  >
-                    <Checkbox>记住我</Checkbox>
-                  </Form.Item>
-
-                  <Form.Item>
-                    <Button
-                      type="primary"
-                      size="large"
-                      htmlType="submit"
-                      loading={operationLoading}
-                      block
-                    >
-                      登 录
-                    </Button>
-                  </Form.Item>
-                  <Form.Item>
-                    <Button
-                      size="large"
-                      loading={operationLoading}
-                      block
-                      onClick={() => {
-                        const email = 'admin@demo.com';
-                        const password = 'qwer123456';
-                        operationForm.setFieldsValue({ email, password });
-                        handleOperationLogin({ email, password });
-                      }}
-                    >
-                      测试登录
-                    </Button>
-                  </Form.Item>
-                </Form>
-              ),
-            },
-            {
-              key: 'management',
-              label: '管理',
-              children: (
-                <Form
-                  form={managementForm}
-                  layout="vertical"
-                  onFinish={onManagementFinish}
-                  autoComplete="off"
-                >
-                  <Form.Item
-                    name="username"
-                    label="用户名"
-                    rules={[{ required: true, message: '请输入用户名' }]}
-                  >
-                    <Input
-                      size="large"
-                      placeholder="请输入管理员用户名"
-                      prefix={<UserOutlined />}
-                      autoComplete="username"
-                    />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="password"
-                    label="密码"
-                    rules={[{ required: true, message: '请输入密码' }]}
-                  >
-                    <Input.Password
-                      size="large"
-                      placeholder="请输入管理员密码"
-                      prefix={<LockOutlined />}
-                      autoComplete="current-password"
-                    />
-                  </Form.Item>
-
-                  <Form.Item>
-                    <Button
-                      type="primary"
-                      size="large"
-                      htmlType="submit"
-                      loading={managementLoading}
-                      block
-                    >
-                      登 录
-                    </Button>
-                  </Form.Item>
-                </Form>
-              ),
-            },
-          ]}
-        />
-
-        {activeMode === 'operation' && (
-          <div className={styles.footer}>
-            <span>还没有账户？</span>
-            <a href="/user/register">立即注册</a>
+      <div className={styles.ambientGlow} />
+      <div className={styles.shell}>
+        <section className={styles.authPanel}>
+          <div className={styles.authHeader}>
+            <span className={styles.panelKicker}>SIGN IN</span>
+            <h2>{activeCopy.title}</h2>
           </div>
-        )}
+
+          <Tabs
+            className={styles.modeTabs}
+            activeKey={activeMode}
+            centered
+            onChange={handleModeChange}
+            items={[
+              {
+                key: 'operation',
+                label: '管理',
+                children: (
+                  <Form
+                    form={operationForm}
+                    layout="vertical"
+                    onFinish={onOperationFinish}
+                    autoComplete="off"
+                  >
+                    <Form.Item
+                      name="email"
+                      label="邮箱地址"
+                      rules={[
+                        { required: true, message: '请输入邮箱地址' },
+                        { type: 'email', message: '邮箱格式不正确' },
+                      ]}
+                    >
+                      <Input
+                        size="large"
+                        placeholder="请输入您的邮箱"
+                        prefix={<MailOutlined />}
+                        autoComplete="email"
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      name="password"
+                      label="密码"
+                      rules={[
+                        { required: true, message: '请输入密码' },
+                        { min: 8, message: '密码至少需要 8 位' },
+                      ]}
+                    >
+                      <Input.Password
+                        size="large"
+                        placeholder="请输入密码（最少 8 位）"
+                        prefix={<LockOutlined />}
+                        autoComplete="current-password"
+                      />
+                    </Form.Item>
+
+                    <Form.Item className={styles.submitItem}>
+                      <Button
+                        type="primary"
+                        size="large"
+                        htmlType="submit"
+                        loading={operationLoading}
+                        block
+                      >
+                        {modeCopy.operation.submitText}
+                      </Button>
+                    </Form.Item>
+
+                    <div className={styles.formAssistSlot}>
+                      <Form.Item
+                        name="remember"
+                        valuePropName="checked"
+                        initialValue={true}
+                        className={styles.rememberItem}
+                      >
+                        <Checkbox>记住我</Checkbox>
+                      </Form.Item>
+                      <div className={styles.footerInline}>
+                        <span>还没有账户？</span>
+                        <a href="/user/register">立即注册</a>
+                      </div>
+                    </div>
+                  </Form>
+                ),
+              },
+              {
+                key: 'management',
+                label: '开发',
+                children: (
+                  <Form
+                    form={managementForm}
+                    layout="vertical"
+                    onFinish={onManagementFinish}
+                    autoComplete="off"
+                  >
+                    <Form.Item
+                      name="username"
+                      label="用户名"
+                      rules={[{ required: true, message: '请输入用户名' }]}
+                    >
+                      <Input
+                        size="large"
+                        placeholder="请输入管理员用户名"
+                        prefix={<UserOutlined />}
+                        autoComplete="username"
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      name="password"
+                      label="密码"
+                      rules={[{ required: true, message: '请输入密码' }]}
+                    >
+                      <Input.Password
+                        size="large"
+                        placeholder="请输入管理员密码"
+                        prefix={<LockOutlined />}
+                        autoComplete="current-password"
+                      />
+                    </Form.Item>
+                    <Form.Item className={styles.submitItem}>
+                      <Button
+                        type="primary"
+                        size="large"
+                        htmlType="submit"
+                        loading={managementLoading}
+                        block
+                      >
+                        {modeCopy.management.submitText}
+                      </Button>
+                    </Form.Item>
+
+                    <div className={styles.formAssistSlot} aria-hidden="true">
+                      <div className={styles.formAssistPlaceholder} />
+                    </div>
+                  </Form>
+                ),
+              },
+            ]}
+          />
+        </section>
       </div>
     </div>
   );
