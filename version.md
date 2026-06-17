@@ -127,6 +127,7 @@
 
 ### Bug 修复
 
+- 修复登录页样式污染全局 Ant Design 组件的问题：将 `src/pages/user/login.less` 中按钮、输入框、表单项的 `:global` 样式收敛到登录页容器作用域内，避免非登录页面的输入框和按钮被一并改样式（src/pages/user/login.less, docs/issue/global.md）。
 - 修复 Dev 控制面节点与模板弹窗提交 JSON 时可能读取旧状态的问题：`JsonConfigEditor.commit()` 返回最终编辑值，父弹窗直接使用返回值组装 payload，避免最后一次表单或 JSON 编辑丢失（src/pages/dev/components/JsonConfigEditor.tsx, src/pages/dev/components/NodeFormModal.tsx, src/pages/dev/components/TemplateFormModal.tsx, docs/issue/global.md）。
 - 修复 Dev 控制面响应三段 JSON 回显异常：在 node-control 请求层统一将响应中的 `config_json`、`rules_json`、`options_json` base64 字符串解码为 JSON 对象，确保节点详情、模板详情和绑定模板填充使用可编辑结构（src/services/node-control/request.ts, docs/api/node_service_control_api.md）。
 
