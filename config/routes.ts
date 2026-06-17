@@ -353,6 +353,16 @@ export default [
         component: './dev/Services',
       },
       {
+        path: '/dev/assets',
+        name: 'assets',
+        component: './dev/Assets',
+      },
+      {
+        path: '/dev/asset-operations',
+        name: 'asset-operations',
+        component: './dev/AssetOperations',
+      },
+      {
         path: '/dev/menus',
         name: 'menus',
         component: './dev/Menus',

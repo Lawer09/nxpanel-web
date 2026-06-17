@@ -6,6 +6,7 @@ import {
 
 const DEV_ADMIN_ALIAS_PREFIX = '/v4/admin';
 const NODE_CONTROL_ALIAS_PREFIX = '/v4/control';
+const ASSET_SERVICE_ALIAS_PREFIX = '/v4/assets';
 
 type DevAdminRequestOptions = {
   method?: 'GET' | 'POST';
@@ -22,7 +23,11 @@ export class DevAdminUnauthorizedError extends Error {
 }
 
 const normalizePath = (path: string) => {
-  if (!path.startsWith(DEV_ADMIN_ALIAS_PREFIX) && !path.startsWith(NODE_CONTROL_ALIAS_PREFIX)) {
+  if (
+    !path.startsWith(DEV_ADMIN_ALIAS_PREFIX) &&
+    !path.startsWith(NODE_CONTROL_ALIAS_PREFIX) &&
+    !path.startsWith(ASSET_SERVICE_ALIAS_PREFIX)
+  ) {
     throw new Error(`Unsupported Dev admin path: ${path}`);
   }
   return path;

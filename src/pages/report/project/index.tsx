@@ -227,9 +227,9 @@ const METRIC_OPTIONS = [
     formatter: (v: number) => fmtTraffic(v),
   },
   {
-    label: '流量支出',
+    label: '流量费用',
     value: 'trafficCost',
-    column: { title: '流量支出', dataIndex: 'trafficCost', width: 110, render: fmtCurrency },
+    column: { title: '流量费用', dataIndex: 'trafficCost', width: 110, render: fmtCurrency },
     formatter: (v: number) => fmtCurrency(v),
   },
   {

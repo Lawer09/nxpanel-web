@@ -45,6 +45,8 @@ export default {
   'menu.dev.nodes': '节点控制',
   'menu.dev.agents': 'Agent 控制',
   'menu.dev.services': '服务注册',
+  'menu.dev.assets': '资产控制台',
+  'menu.dev.asset-operations': '操作记录',
   'menu.dev.menus': '菜单管理',
   'menu.profile': '详情页',
   'menu.profile.basic': '基础详情页',

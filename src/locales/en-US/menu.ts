@@ -70,6 +70,8 @@ export default {
   'menu.dev.nodes': 'Nodes',
   'menu.dev.agents': 'Agents',
   'menu.dev.services': 'Services',
+  'menu.dev.assets': 'Assets',
+  'menu.dev.asset-operations': 'Asset Operations',
   'menu.dev.menus': 'Menus',
   'menu.business.ticket': 'Ticket Manage',
   'menu.profile': 'Profile',

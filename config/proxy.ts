@@ -30,6 +30,13 @@ export default {
         '^/v4/admin': '/api/v1/admin',
       },
     },
+    '/v4/assets/': {
+      target: 'http://8.220.74.20:8080',
+      changeOrigin: true,
+      pathRewrite: {
+        '^/v4/assets': '/api/v1/assets',
+      },
+    },
   },
   // 如果需要自定义本地开发服务器  请取消注释按需调整
   // dev: {

@@ -88,6 +88,14 @@
 
 ## 8. 当前版本日志
 
+## [1.4.1] - 2026-06-17
+
+### 新增功能
+
+- 新增 Dev 资产控制台与操作记录页面，在 `Dev` 下补充 `/dev/assets` 和 `/dev/asset-operations` 两个菜单，使用共享筛选、页内 Tabs、抽屉与弹窗集中承载供应商账号、机器、IP、SSH 密钥和异步操作追踪（config/routes.ts, src/locales/zh-CN/menu.ts, src/locales/en-US/menu.ts, src/pages/dev/Assets.tsx, src/pages/dev/AssetOperations.tsx）。
+- 新增 asset-service 独立前端请求层与类型定义，统一通过 `/v4/assets/*` 代理到 `/api/v1/assets/*` 并复用当前 Dev 管理 JWT 鉴权，对接 ProviderAccount、Machine、IP、SSHKey、Operation 与 TaskAck 接口（config/proxy.ts, src/services/dev-admin/request.ts, src/services/asset-service/）。
+- 新增 asset-service 接口文档，固化 Dev 资产控制台当前使用的资源范围、异步任务跳转规则和 `capability_not_supported` 交互约束（docs/api/asset_service_api.md）。
+
 ## [1.3.1] - 2026-06-08
 
 ### 新增功能
