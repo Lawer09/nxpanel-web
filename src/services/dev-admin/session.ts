@@ -16,7 +16,7 @@ export const buildDevAdminCurrentUser = (
   user?: API.DevAdminUser,
 ): API.CurrentUser => ({
   email: user?.username,
-  name: user?.nickname || user?.username || 'Dev Admin',
+  name: user?.nickname || user?.username || 'Management',
   access: 'admin',
   is_admin: true,
   loginMode: 'management',

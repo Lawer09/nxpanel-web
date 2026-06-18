@@ -98,7 +98,7 @@ const defaultSnapshotConfig: API.ControlNodeSnapshotConfig = {
   },
   listen: {
     bind_ip: '0.0.0.0',
-    port: 10001,
+    port: 443,
     tcp_fast_open: false,
   },
   settings: {
@@ -341,11 +341,23 @@ const toFormValues = (value: API.ControlNodeSnapshotConfig) => ({
         : undefined,
     },
   },
+  multiplex: mergeObject(
+    defaultSnapshotConfig.multiplex as JsonObject,
+    isObject(value.multiplex) ? (value.multiplex as JsonObject) : null,
+  ),
   limiter: {
-    ...value.limiter,
+    ...mergeObject(
+      defaultSnapshotConfig.limiter as JsonObject,
+      isObject(value.limiter) ? (value.limiter as JsonObject) : null,
+    ),
     block: {
-      protocol: value.limiter?.block?.protocol ?? [],
-      regexp_lines: (value.limiter?.block?.regexp ?? []).join('\n'),
+      protocol:
+        (isObject(value.limiter) ? (value.limiter as API.ControlLimiterConfig)?.block?.protocol : []) ?? [],
+      regexp_lines:
+        ((isObject(value.limiter)
+          ? (value.limiter as API.ControlLimiterConfig)?.block?.regexp
+          : []) ?? []
+        ).join('\n'),
     },
   },
 });
@@ -408,6 +420,7 @@ const buildTls = (raw: JsonObject): API.ControlTlsConfig => {
       ...compactObject({ server_name: asString(raw.server_name) }),
       reality: compactObject({
         private_key: asString(reality.private_key),
+        public_key: asString(reality.public_key),
         short_id: asString(reality.short_id),
         dest: asString(reality.dest),
         server_port: asString(reality.server_port),
@@ -597,10 +610,10 @@ const SnapshotConfigEditor = forwardRef<SnapshotConfigEditorRef, SnapshotConfigE
     const transportNetwork =
       Form.useWatch(['transport', 'network'], form) ?? currentValue.transport.network;
     const multiplexEnabled =
-      Form.useWatch(['multiplex', 'enabled'], form) ?? currentValue.multiplex.enabled;
+      Form.useWatch(['multiplex', 'enabled'], form) ?? currentValue.multiplex?.enabled ?? false;
     const brutalEnabled =
       Form.useWatch(['multiplex', 'brutal', 'enabled'], form) ??
-      currentValue.multiplex.brutal?.enabled;
+      currentValue.multiplex?.brutal?.enabled;
     const transportSelectOptions = useMemo(() => getTransportOptions(String(type)), [type]);
 
     useEffect(() => {
@@ -616,6 +629,15 @@ const SnapshotConfigEditor = forwardRef<SnapshotConfigEditorRef, SnapshotConfigE
         form.setFieldValue(['transport', 'network'], 'tcp');
       }
     }, [form, transportNetwork, transportSelectOptions]);
+
+    useEffect(() => {
+      if (type !== 'vless') {
+        form.setFieldValue(['transport'], {
+          network: 'tcp',
+          settings: {},
+        });
+      }
+    }, [form, type]);
 
     useEffect(() => {
       if (type !== 'vless' && tlsMode === 'reality') {
@@ -1053,21 +1075,32 @@ const SnapshotConfigEditor = forwardRef<SnapshotConfigEditorRef, SnapshotConfigE
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name={['tls', 'reality', 'short_id']} label="Short ID" tooltip="Reality short id.">
+                <Form.Item
+                  name={['tls', 'reality', 'public_key']}
+                  label="Public Key"
+                  tooltip="Reality server public key. Derived by backend when only private_key is provided."
+                >
                   <Input />
                 </Form.Item>
               </Col>
             </Row>
             <Row gutter={16}>
-              <Col span={8}>
+              <Col span={12}>
+                <Form.Item name={['tls', 'reality', 'short_id']} label="Short ID" tooltip="Reality short id.">
+                  <Input />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
                 <Form.Item
                   name={['tls', 'reality', 'client_fingerprint']}
                   label="Client Fingerprint"
-                  tooltip="Reality client fingerprint."
+                  tooltip="Reality client fingerprint. Used for client sharing config, not Agent Snapshot."
                 >
                   <Select allowClear options={realityClientFingerprintOptions} />
                 </Form.Item>
               </Col>
+            </Row>
+            <Row gutter={16}>
               <Col span={8}>
                 <Form.Item name={['tls', 'reality', 'dest']} label="Dest" tooltip="Reality handshake target.">
                   <Input />
@@ -1162,8 +1195,12 @@ const SnapshotConfigEditor = forwardRef<SnapshotConfigEditorRef, SnapshotConfigE
               <>
                 <Row gutter={16}>
                   <Col span={12}>
-                    <Form.Item name={['transport', 'settings', 'path']} label="Path" tooltip="Transport path.">
-                      <Input placeholder="/ws" />
+                    <Form.Item
+                      name={['transport', 'settings', 'path']}
+                      label="Path"
+                      tooltip="Transport path. When ws path is empty, backend auto-generates a random path."
+                    >
+                      <Input placeholder={transportNetwork === 'ws' ? '(auto)' : '/upgrade'} />
                     </Form.Item>
                   </Col>
                   <Col span={12}>

@@ -27,8 +27,10 @@ const isDev = process.env.NODE_ENV === 'development';
 const loginPath = '/user/login';
 const RUNTIME_VERSION_KEY = 'nxpanel_runtime_version';
 const VERSION_CHECK_INTERVAL = 60_000;
-const devHomePath = '/dev/nodes';
+const devHomePath = '/nodes/overview';
 const authFreePaths = [loginPath, '/user/register', '/user/register-result'];
+const isManagementPathname = (pathname: string) =>
+  pathname.startsWith('/nodes') || pathname.startsWith('/dev') || pathname.startsWith('/iam');
 
 let lastCheckTime = 0;
 let checking = false;
@@ -124,7 +126,7 @@ export async function getInitialState(): Promise<{
   // 如果不是登录页面，执行
   const { location } = history;
   if (!authFreePaths.includes(location.pathname)) {
-    const devSession = location.pathname.startsWith('/dev')
+    const devSession = isManagementPathname(location.pathname)
       ? getDevAdminSession()
       : undefined;
     const currentUser = devSession?.accessToken
@@ -178,28 +180,32 @@ export const layout: RunTimeLayoutConfig = ({
     footerRender: () => <Footer />,
     menuDataRender: (menuData) => {
       if (isManagementMode) {
-        return menuData.filter((item) => item.path === '/dev');
+        return menuData.filter(
+          (item) => item.path === '/nodes' || item.path === '/dev' || item.path === '/iam',
+        );
       }
-      return menuData.filter((item) => item.path !== '/dev');
+      return menuData.filter(
+        (item) => item.path !== '/nodes' && item.path !== '/dev' && item.path !== '/iam',
+      );
     },
     onPageChange: () => {
       const { location } = history;
       void checkRuntimeVersionAndReload();
-      const isDevPath = location.pathname.startsWith('/dev');
+      const isManagementPath = isManagementPathname(location.pathname);
       const isAuthFreePath = authFreePaths.includes(location.pathname);
       const loginMode = initialState?.currentUser?.loginMode;
 
-      if (!initialState?.currentUser && !isAuthFreePath && !isDevPath) {
+      if (!initialState?.currentUser && !isAuthFreePath && !isManagementPath) {
         history.push(`${loginPath}?mode=operation`);
         return;
       }
 
-      if (loginMode === 'management' && !isDevPath && !isAuthFreePath) {
+      if (loginMode === 'management' && !isManagementPath && !isAuthFreePath) {
         history.replace(devHomePath);
         return;
       }
 
-      if (loginMode === 'operation' && isDevPath) {
+      if (loginMode === 'operation' && isManagementPath) {
         const searchParams = new URLSearchParams({
           mode: 'management',
           redirect: location.pathname + location.search,

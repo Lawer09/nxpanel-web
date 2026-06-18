@@ -11,10 +11,10 @@
  */
 export default {
   dev: {
-    '/v4/control/': {
+    '/v4/nodes/': {
       target: 'http://8.220.74.20:8080',
       changeOrigin: true,
-      pathRewrite: { '^/v4/control': '/api/v1/control' },
+      pathRewrite: { '^/v4/nodes': '/api/v1/nodes' },
     },
     '/v4/service-register-manager/': {
       target: 'http://8.220.74.20:8080',
@@ -28,6 +28,13 @@ export default {
       changeOrigin: true,
       pathRewrite: {
         '^/v4/admin': '/api/v1/admin',
+      },
+    },
+    '/v4/iam/': {
+      target: 'http://8.220.74.20:8080',
+      changeOrigin: true,
+      pathRewrite: {
+        '^/v4/iam': '/api/v1/iam',
       },
     },
     '/v4/assets/': {

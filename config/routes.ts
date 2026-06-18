@@ -329,23 +329,49 @@ export default [
     component: './dns',
   },
   {
+    path: '/nodes',
+    name: 'nodes',
+    icon: 'cluster',
+    routes: [
+      {
+        path: '/nodes',
+        redirect: '/nodes/overview',
+      },
+      {
+        path: '/nodes/overview',
+        name: 'overview',
+        component: './dev/NodesOverview',
+      },
+      {
+        path: '/nodes/list',
+        name: 'list',
+        component: './dev/Nodes',
+      },
+      {
+        path: '/nodes/agents',
+        name: 'agents',
+        component: './dev/Agents',
+      },
+    ],
+  },
+  {
     path: '/dev',
     name: 'dev',
     icon: 'code',
     routes: [
       {
         path: '/dev',
-        redirect: '/dev/nodes',
+        redirect: '/dev/assets',
       },
       {
         path: '/dev/nodes',
-        name: 'nodes',
-        component: './dev/Nodes',
+        redirect: '/nodes/list',
+        hideInMenu: true,
       },
       {
         path: '/dev/agents',
-        name: 'agents',
-        component: './dev/Agents',
+        redirect: '/nodes/agents',
+        hideInMenu: true,
       },
       {
         path: '/dev/services',
@@ -364,8 +390,49 @@ export default [
       },
       {
         path: '/dev/menus',
+        redirect: '/iam/menus',
+        hideInMenu: true,
+      },
+    ],
+  },
+  {
+    path: '/iam',
+    name: 'iam',
+    icon: 'safetyCertificate',
+    routes: [
+      {
+        path: '/iam',
+        redirect: '/iam/users',
+      },
+      {
+        path: '/iam/users',
+        name: 'users',
+        component: './iam/Users',
+      },
+      {
+        path: '/iam/roles',
+        name: 'roles',
+        component: './iam/Roles',
+      },
+      {
+        path: '/iam/permissions',
+        name: 'permissions',
+        component: './iam/Permissions',
+      },
+      {
+        path: '/iam/menus',
         name: 'menus',
-        component: './dev/Menus',
+        component: './iam/Menus',
+      },
+      {
+        path: '/iam/clients',
+        name: 'clients',
+        component: './iam/Clients',
+      },
+      {
+        path: '/iam/audit-logs',
+        name: 'audit-logs',
+        component: './iam/AuditLogs',
       },
     ],
   },

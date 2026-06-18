@@ -54,6 +54,7 @@
 
 - 在 `UniversalReportTable` 内部统一构造“最终列布局描述”，先合并列身份信息，再合并 `columnsStateMap` 中的 `show/order/fixed`
 - `ProTable.columns` 与统计行都从这份统一列布局派生，确保列拖拽、隐藏/显示、恢复视图后三者顺序一致
+- 固定列场景还需要按 `left / normal / right` 重排统计行列布局；合计文案不能固定覆盖第一个视觉列，否则 ROI 等指标固定到首列时会丢失对应合计值
 
 ### 影响范围
 

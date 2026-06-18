@@ -20,11 +20,11 @@ const DevLoginModal: React.FC<DevLoginModalProps> = ({ open, onSuccess }) => {
     setLoading(true);
     try {
       await loginDevAdmin(values);
-      message.success('Dev login successful.');
+      message.success('Management login successful.');
       form.resetFields();
       onSuccess();
     } catch (error: any) {
-      message.error(error?.message || 'Dev login failed.');
+      message.error(error?.message || 'Management login failed.');
     } finally {
       setLoading(false);
     }
@@ -32,7 +32,7 @@ const DevLoginModal: React.FC<DevLoginModalProps> = ({ open, onSuccess }) => {
 
   return (
     <Modal
-      title="Dev Admin Login"
+      title="Management Login"
       open={open}
       closable={false}
       maskClosable={false}
@@ -43,7 +43,7 @@ const DevLoginModal: React.FC<DevLoginModalProps> = ({ open, onSuccess }) => {
       cancelButtonProps={{ style: { display: 'none' } }}
     >
       <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-        This temporary login only applies to Dev admin APIs in the current browser tab.
+        This temporary login only applies to Nodes, Dev, and IAM management APIs in the current browser tab.
       </Text>
       <Form form={form} layout="vertical" autoComplete="off">
         <Form.Item

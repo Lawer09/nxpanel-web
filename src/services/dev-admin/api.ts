@@ -1,8 +1,16 @@
 import { clearDevAdminSession, getDevAdminSession, setDevAdminSession } from './session';
 import { devAdminRequest } from './request';
+import {
+  createIamMenu,
+  deleteIamMenu,
+  listCurrentIamMenus,
+  listIamMenus,
+  listIamPermissions,
+  updateIamMenu,
+} from '@/services/iam/api';
 
 export async function loginDevAdmin(body: API.DevAdminLoginParams) {
-  const response = await devAdminRequest<API.DevAdminLoginData>('/v4/admin/auth/login', {
+  const response = await devAdminRequest<API.DevAdminLoginData>('/v4/iam/auth/login', {
     method: 'POST',
     body,
     auth: false,
@@ -15,7 +23,7 @@ export async function logoutDevAdmin() {
   const session = getDevAdminSession();
   try {
     if (session?.refreshToken) {
-      await devAdminRequest<{ ok: boolean }>('/v4/admin/auth/logout', {
+      await devAdminRequest<{ ok: boolean }>('/v4/iam/auth/logout', {
         method: 'POST',
         body: { refresh_token: session.refreshToken },
       });
@@ -26,36 +34,29 @@ export async function logoutDevAdmin() {
 }
 
 export async function getCurrentDevAdmin() {
-  return devAdminRequest<API.DevAdminUser>('/v4/admin/auth/me');
+  return devAdminRequest<API.DevAdminUser>('/v4/iam/auth/me');
 }
 
 export async function listAdminMenus() {
-  return devAdminRequest<{ items: API.DevAdminMenu[] }>('/v4/admin/menus');
+  return listIamMenus() as Promise<API.DevAdminApiResponse<{ items: API.DevAdminMenu[] }>>;
 }
 
 export async function listCurrentAdminMenus() {
-  return devAdminRequest<{ items: API.DevAdminMenu[] }>('/v4/admin/menus/current');
+  return listCurrentIamMenus() as Promise<
+    API.DevAdminApiResponse<{ items: API.DevAdminMenu[] }>
+  >;
 }
 
 export async function createAdminMenu(body: API.DevAdminMenuCreateParams) {
-  return devAdminRequest<{ id: number }>('/v4/admin/menus/create', {
-    method: 'POST',
-    body,
-  });
+  return createIamMenu(body);
 }
 
 export async function updateAdminMenu(body: API.DevAdminMenuUpdateParams) {
-  return devAdminRequest<{ ok: boolean }>('/v4/admin/menus/update', {
-    method: 'POST',
-    body,
-  });
+  return updateIamMenu(body);
 }
 
 export async function deleteAdminMenu(id: number) {
-  return devAdminRequest<{ ok: boolean }>('/v4/admin/menus/delete', {
-    method: 'POST',
-    body: { id },
-  });
+  return deleteIamMenu(id);
 }
 
 export async function listAdminPermissions(params?: {
@@ -63,7 +64,7 @@ export async function listAdminPermissions(params?: {
   resource?: string;
   action?: string;
 }) {
-  return devAdminRequest<{ items: API.DevAdminPermission[] }>('/v4/admin/permissions', {
-    params,
-  });
+  return listIamPermissions(params) as Promise<
+    API.DevAdminApiResponse<{ items: API.DevAdminPermission[] }>
+  >;
 }

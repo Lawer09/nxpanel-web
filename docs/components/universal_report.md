@@ -124,7 +124,9 @@ visibleFilterDimensions.includes('yourDimension')
 - `fetchData` 返回结构可为 `return { list, total, summary }`
 - 如果总计数据需要独立接口，也可以继续使用 `fetchGrandTotals`
 - `summary` 支持 `number / string / null`，建议复用指标列 `formatter` 统一展示格式
+- 指标列 `formatter` 在合计行会收到第二参数 `record`，当前页合计传入当前页各指标汇总对象，总数据合计传入后端 `summary`；依赖其它字段组合展示的指标可通过该参数读取伴随字段
 - 统计行会跟随当前列设置顺序同步调整；列拖拽、隐藏/显示、恢复已保存视图后，主表列与“当前页合计 / 总数据合计”会保持同一顺序
+- 当指标列被固定到首列时，统计行不会再用合计文案覆盖该指标值；合计文案会优先展示在可见维度列上，固定列、普通列和右固定列顺序会与主表保持一致
 
 ## 8. 导出配置（可选）
 

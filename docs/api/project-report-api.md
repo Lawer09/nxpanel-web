@@ -71,13 +71,14 @@
   - `adSpendCpm` `string|null`（6位小数）
   - `trafficUsageMb` `string|null`（6位小数）
   - `trafficCost` `string|null`（6位小数）
+  - `trafficCostRatio` `string|null`（6位小数，流量费用占总支出的百分比值）
   - `profit` `string|null`（6位小数）
   - `roi` `string|null`（6位小数）
 - 其它字段：`id`（仅明细行可用）、`updatedAt`
 
 `summary` 常见字段：
 
-- 与 `data[]` 中的指标字段保持一致，如 `newUsers/reportNewUsers/dauUsers/adRevenue/adRequests/adMatchedRequests/adImpressions/adClicks/adEcpm/adCtr/adMatchRate/adShowRate/adSpendCost/adSpendCpi/adSpendCpc/adSpendCpm/trafficUsageMb/trafficCost/profit/roi`
+- 与 `data[]` 中的指标字段保持一致，如 `newUsers/reportNewUsers/dauUsers/adRevenue/adRequests/adMatchedRequests/adImpressions/adClicks/adEcpm/adCtr/adMatchRate/adShowRate/adSpendCost/adSpendCpi/adSpendCpc/adSpendCpm/trafficUsageMb/trafficCost/trafficCostRatio/profit/roi`
 - `summary` 不包含分组维度字段，适用于在分页列表之外展示整份查询结果的汇总值
 
 ## 2. 示例请求
@@ -143,6 +144,7 @@
 | 投放 CPM | `adSpendCpm` | string/null | 金额/千次展示，6 位小数 |
 | 流量使用量 | `trafficUsageMb` | string/null | MB，6 位小数 |
 | 流量成本 | `trafficCost` | string/null | 金额，6 位小数 |
+| 流量消耗占比 | `trafficCostRatio` | string/null | 百分比值（0-100），6 位小数 |
 | 利润 | `profit` | string/null | 金额，6 位小数 |
 | ROI | `roi` | string/null | 收入/总成本，6 位小数 |
 | 记录 ID | `id` | int/null | 仅明细查询通常有值 |
@@ -152,5 +154,6 @@
 
 - 金额类字段：`adRevenue/adSpendCost/trafficCost/profit/adSpendCpi/adSpendCpc/adSpendCpm` 建议统一货币格式，并保留 3 位小数。
 - 比例类字段：`adCtr/adMatchRate/adShowRate` 建议展示为百分比并保留 3 位小数。
+- `trafficCostRatio` 不单独作为默认指标列展示，建议合并到 `trafficCost` 列，格式为 `流量费用 (流量消耗占比)`，例如 `3.200 (1.742%)`。
 - `roi` 建议按百分比展示：`roiPercent = roi * 100`，并保留 3 位小数（例如 `1.234567 -> 123.457%`）。
 - 空值处理：接口分母为 0 时返回 `null`，前端可展示为 `--`。

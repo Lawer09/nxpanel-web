@@ -5,7 +5,8 @@ import {
 } from './session';
 
 const DEV_ADMIN_ALIAS_PREFIX = '/v4/admin';
-const NODE_CONTROL_ALIAS_PREFIX = '/v4/control';
+const IAM_ALIAS_PREFIX = '/v4/iam';
+const NODE_CONTROL_ALIAS_PREFIX = '/v4/nodes';
 const ASSET_SERVICE_ALIAS_PREFIX = '/v4/assets';
 
 type DevAdminRequestOptions = {
@@ -25,10 +26,11 @@ export class DevAdminUnauthorizedError extends Error {
 const normalizePath = (path: string) => {
   if (
     !path.startsWith(DEV_ADMIN_ALIAS_PREFIX) &&
+    !path.startsWith(IAM_ALIAS_PREFIX) &&
     !path.startsWith(NODE_CONTROL_ALIAS_PREFIX) &&
     !path.startsWith(ASSET_SERVICE_ALIAS_PREFIX)
   ) {
-    throw new Error(`Unsupported Dev admin path: ${path}`);
+    throw new Error(`Unsupported management path: ${path}`);
   }
   return path;
 };
@@ -46,7 +48,7 @@ const buildQuery = (params?: Record<string, unknown>) => {
 };
 
 const getErrorMessage = (payload: Partial<API.DevAdminApiResponse<unknown>> | undefined) =>
-  payload?.message || payload?.error?.detail || payload?.error?.type || 'Dev admin request failed.';
+  payload?.message || payload?.error?.detail || payload?.error?.type || 'Management request failed.';
 
 const isLegacyNodeControlSignatureError = (
   path: string,
@@ -71,7 +73,7 @@ const executeDevAdminRequest = async <T>(
   if (options.auth !== false) {
     const session = getDevAdminSession();
     if (!session?.accessToken) {
-      throw new DevAdminUnauthorizedError('Dev admin login required.');
+      throw new DevAdminUnauthorizedError('Management login required.');
     }
     headers.Authorization = `Bearer ${session.accessToken}`;
   }
@@ -115,7 +117,7 @@ const executeDevAdminRequest = async <T>(
   }
 
   if (!payload) {
-    throw new Error(`Dev admin request failed with HTTP ${response.status}.`);
+    throw new Error(`Management request failed with HTTP ${response.status}.`);
   }
 
   if (payload.code !== 0) {
@@ -133,7 +135,7 @@ export const refreshDevAdminSession = async () => {
 
   try {
     const response = await executeDevAdminRequest<API.DevAdminLoginData>(
-      '/v4/admin/auth/refresh',
+      '/v4/iam/auth/refresh',
       {
         method: 'POST',
         body: { refresh_token: session.refreshToken },

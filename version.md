@@ -97,7 +97,13 @@
 - 新增 Dev 资产控制台与操作记录页面，在 `Dev` 下补充 `/dev/assets` 和 `/dev/asset-operations` 两个菜单，使用共享筛选、页内 Tabs、抽屉与弹窗集中承载供应商账号、机器、IP、SSH 密钥和异步操作追踪（config/routes.ts, src/locales/zh-CN/menu.ts, src/locales/en-US/menu.ts, src/pages/dev/Assets.tsx, src/pages/dev/AssetOperations.tsx）。
 - 新增 asset-service 独立前端请求层与类型定义，统一通过 `/v4/assets/*` 代理到 `/api/v1/assets/*` 并复用当前 Dev 管理 JWT 鉴权，对接 ProviderAccount、Machine、IP、SSHKey、Operation 与 TaskAck 接口（config/proxy.ts, src/services/dev-admin/request.ts, src/services/asset-service/）。
 - 新增 asset-service 接口文档，固化 Dev 资产控制台当前使用的资源范围、异步任务跳转规则和 `capability_not_supported` 交互约束（docs/api/asset_service_api.md）。
+- 新增独立 IAM 管理菜单组，管理登录态下提供用户、角色、权限、菜单、Client 与审计日志页面，并将管理登录接口切换到 `/api/v1/iam/*`，与 Dev 菜单并列展示且不混入运营菜单（config/routes.ts, config/proxy.ts, src/pages/iam/, src/services/iam/, src/services/dev-admin/）。
 
+- 鏂板 Nodes 鐙珛绠＄悊鑿滃崟缁勫苟灏?node-service 鎺у埗闈㈣繕绉诲嚭 Dev锛氬皢 Agent/Node 鑿滃崟杩佺Щ鍒?`/nodes/overview`銆?`/nodes/list`銆?`/nodes/agents`锛屽悓鏃跺皢 node-service 璇锋眰鍓嶇紑鍒囨崲涓?`/v4/nodes/* -> /api/v1/nodes/*`锛屽苟琛ュ叏 Overview 棣栭〉銆丯odes/Agents 璇︽儏鐨?runtime銆乻amples銆乼raffic銆乷nline銆乪vents 鑳藉姏锛坈onfig/routes.ts, config/proxy.ts, src/app.tsx, src/pages/dev/NodesOverview.tsx, src/pages/dev/Nodes.tsx, src/pages/dev/Agents.tsx, src/services/node-control/锛夈€?
+
+### 优化功能
+
+- 优化项目报表流量费用展示：接入 `trafficCostRatio` 伴随字段，在“流量费用”列展示为“流量费用 (流量消耗占比)”，并支持普通行、当前页合计和总数据合计统一展示（src/pages/report/project/index.tsx, src/components/report/UniversalReportTable.tsx, docs/api/project-report-api.md, docs/api/project_report_query_api.md）。
 ## [1.3.1] - 2026-06-08
 
 ### 新增功能
@@ -114,6 +120,8 @@
 ### 优化功能
 
 - 优化 Dev 控制面认证方式：将 `/v4/control/*` 从 app 签名认证切换为 Dev 临时管理员 JWT，并复用 Dev 登录弹窗保护节点与 Agent 页面；服务注册接口继续保留 app 签名认证（src/services/node-control/request.ts, src/pages/dev/Nodes.tsx, src/pages/dev/Agents.tsx, docs/api/node_service_control_api.md）。
+- 优化主登录页交互：将 `/user/login` 的运营/管理双模式登录切换为 ProComponents `LoginFormPage` 表单实现，保留原有跳转与登录态隔离逻辑，并同步适配新的登录页局部样式（src/pages/user/Login.tsx, src/pages/user/login.less）。
+- 优化主登录页样式策略：移除 `/user/login` 对 `login.less` 的自定义视觉覆盖，改为直接使用 ProComponents `LoginFormPage` 默认外观，仅保留登录模式切换和表单逻辑（src/pages/user/Login.tsx）。
 - 优化 Dev 控制面节点与配置模板 JSON 编辑器：按新版 node-service Snapshot 协议生成 `config_json.listen/settings/tls/transport/multiplex`，将 `options_json` 调整为 snake_case limiter 字段，并允许创建时提交空 `config_json`（src/pages/dev/components/JsonConfigEditor.tsx, src/services/node-control/typings.d.ts, docs/api/node_service_control_api.md）。
 - 优化 Dev 控制面节点创建与编辑：将节点提交 payload 从三段 JSON 调整为完整 Snapshot 顶层结构，新增覆盖全部字段的联动表单与完整 JSON tab，并在迁移期间将配置模板页改为只读以避免旧模板结构误写（src/pages/dev/components/SnapshotConfigEditor.tsx, src/pages/dev/components/NodeFormModal.tsx, src/pages/dev/ConfigTemplates.tsx, src/services/node-control/typings.d.ts, docs/api/node_service_control_api.md）。
 - 优化 Dev 控制面节点 Snapshot 协议字段：按最新约定调整各协议 `settings` 表单字段，移除 vless/vmess 的 `encryption`，拆分 hysteria 与 hysteria2 字段，并裁剪 Reality 配置为 `private_key`、`short_id`、`dest`、`server_port`、`max_time_diff`（src/pages/dev/components/SnapshotConfigEditor.tsx, src/services/node-control/typings.d.ts, docs/api/node_service_control_api.md）。
@@ -129,6 +137,7 @@
 
 ### Bug 修复
 
+- 修复通用报表统计行在固定指标列到首列时合计值丢失的问题：统计行列布局按固定左列、普通列、固定右列同步排序，并将合计文案优先放到可见维度列，避免覆盖 ROI 等指标列的合计值（src/components/report/UniversalReportTable.tsx, docs/components/universal_report.md, docs/issue/report_sorting_issue.md）。
 - 修复登录页样式污染全局 Ant Design 组件的问题：将 `src/pages/user/login.less` 中按钮、输入框、表单项的 `:global` 样式收敛到登录页容器作用域内，避免非登录页面的输入框和按钮被一并改样式（src/pages/user/login.less, docs/issue/global.md）。
 - 修复 Dev 控制面节点与模板弹窗提交 JSON 时可能读取旧状态的问题：`JsonConfigEditor.commit()` 返回最终编辑值，父弹窗直接使用返回值组装 payload，避免最后一次表单或 JSON 编辑丢失（src/pages/dev/components/JsonConfigEditor.tsx, src/pages/dev/components/NodeFormModal.tsx, src/pages/dev/components/TemplateFormModal.tsx, docs/issue/global.md）。
 - 修复 Dev 控制面响应三段 JSON 回显异常：在 node-control 请求层统一将响应中的 `config_json`、`rules_json`、`options_json` base64 字符串解码为 JSON 对象，确保节点详情、模板详情和绑定模板填充使用可编辑结构（src/services/node-control/request.ts, docs/api/node_service_control_api.md）。

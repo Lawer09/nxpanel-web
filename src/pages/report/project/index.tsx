@@ -94,6 +94,25 @@ const fmtPercent = (v: unknown) => {
   return `${n.toFixed(3)}%`;
 };
 
+const getTrafficCostRatio = (record?: Record<string, unknown>) => {
+  const explicitRatio = toSafeNumber(record?.trafficCostRatio);
+  if (explicitRatio !== null) return explicitRatio;
+
+  const trafficCost = toSafeNumber(record?.trafficCost);
+  const totalCost = toSafeNumber(record?.totalCost);
+  if (trafficCost === null || totalCost === null || totalCost === 0) return null;
+  return (trafficCost / totalCost) * 100;
+};
+
+const fmtTrafficCostWithRatio = (trafficCost: unknown, record?: Record<string, unknown>) => {
+  const costText = fmtCurrency(trafficCost);
+  if (costText === '--') return costText;
+
+  const ratio = getTrafficCostRatio(record);
+  if (ratio === null) return costText;
+  return `${costText} (${fmtPercent(ratio)})`;
+};
+
 const fmtRoiPercent = (v: unknown) => {
   const n = toSafeNumber(v);
   if (n === null) return '--';
@@ -229,8 +248,13 @@ const METRIC_OPTIONS = [
   {
     label: '流量费用',
     value: 'trafficCost',
-    column: { title: '流量费用', dataIndex: 'trafficCost', width: 110, render: fmtCurrency },
-    formatter: (v: number) => fmtCurrency(v),
+    column: {
+      title: '流量费用',
+      dataIndex: 'trafficCost',
+      width: 150,
+      render: (v: unknown, record: API.ProjectReportItem) => fmtTrafficCostWithRatio(v, record),
+    },
+    formatter: (v: number, record?: Record<string, unknown>) => fmtTrafficCostWithRatio(v, record),
   },
   {
     label: '利润',

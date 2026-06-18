@@ -64,8 +64,8 @@ const DevAuthGate: React.FC<DevAuthGateProps> = ({ children }) => {
         <Alert
           type="warning"
           showIcon
-          message="Dev admin login required"
-          description="Dev admin APIs use a temporary JWT session during development. Log in here to continue without changing the normal platform login state."
+          message="Management login required"
+          description="Nodes, Dev, and IAM management APIs use a temporary JWT session during development. Log in here to continue without changing the normal platform login state."
           action={
             <Button icon={<LoginOutlined />} onClick={() => setState(getSessionState())}>
               Login
@@ -87,7 +87,7 @@ const DevAuthGate: React.FC<DevAuthGateProps> = ({ children }) => {
     <>
       <Space style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
         <Text type="secondary">
-          Dev Admin: {state.user?.nickname || state.user?.username || 'Signed in'}
+          Management: {state.user?.nickname || state.user?.username || 'Signed in'}
         </Text>
         <Button
           size="small"
@@ -95,9 +95,9 @@ const DevAuthGate: React.FC<DevAuthGateProps> = ({ children }) => {
           onClick={async () => {
             try {
               await logoutDevAdmin();
-              message.success('Dev admin logged out.');
+              message.success('Management logged out.');
             } catch (error: any) {
-              message.error(error?.message || 'Dev logout failed.');
+              message.error(error?.message || 'Management logout failed.');
             } finally {
               flushSync(() => {
                 setInitialState((s) => ({ ...s, currentUser: undefined }));

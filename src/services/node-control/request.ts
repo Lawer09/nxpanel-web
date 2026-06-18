@@ -1,7 +1,7 @@
 import { buildCanonicalQuery, buildNodeControlHeaders } from './signing';
 import { devAdminRequest } from '../dev-admin/request';
 
-const NODE_CONTROL_ALIAS_PREFIX = '/v4/control';
+const NODE_CONTROL_ALIAS_PREFIX = '/v4/nodes';
 const SERVICE_REGISTER_ALIAS_PREFIX = '/v4/service-register-manager';
 const SERVICE_REGISTER_GATEWAY_PREFIX = '/api/v1/service-register-manager';
 

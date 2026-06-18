@@ -1,14 +1,23 @@
-import { LockOutlined, MailOutlined, UserOutlined } from '@ant-design/icons';
+import {
+  LockOutlined,
+  MailOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
+import {
+  LoginFormPage,
+  ProFormText,
+} from '@ant-design/pro-components';
 import { history, useModel, useRequest } from '@umijs/max';
-import { Button, Checkbox, Form, Input, message, Tabs } from 'antd';
+import { Checkbox, Divider, Flex, message, Tabs, Typography } from 'antd';
 import React from 'react';
 import { flushSync } from 'react-dom';
 import { login } from '@/services/auth/api';
 import { loginDevAdmin } from '@/services/dev-admin/api';
 import { buildDevAdminCurrentUser } from '@/services/dev-admin/session';
-import styles from './login.less';
 
 type LoginMode = 'operation' | 'management';
+
+const { Link, Text } = Typography;
 
 const loginPath = '/user/login';
 
@@ -16,22 +25,23 @@ const modeCopy: Record<
   LoginMode,
   {
     title: string;
+    subTitle: string;
     submitText: string;
   }
 > = {
   operation: {
     title: 'NXPANEL',
+    subTitle: '管理后台登录',
     submitText: '登录',
   },
   management: {
     title: 'NXPANEL',
+    subTitle: '开发控制面登录',
     submitText: '登录',
   },
 };
 
 const LoginPage: React.FC = () => {
-  const [operationForm] = Form.useForm();
-  const [managementForm] = Form.useForm<API.DevAdminLoginParams>();
   const [activeMode, setActiveMode] = React.useState<LoginMode>(() => {
     if (typeof window === 'undefined') {
       return 'operation';
@@ -76,9 +86,10 @@ const LoginPage: React.FC = () => {
   const { run: handleOperationLogin, loading: operationLoading } = useRequest(login, {
     manual: true,
     formatResult: (res: any) => res,
-    onSuccess: async (res: any) => {
+    onSuccess: async (res: any, params: [{ email: string; password: string }]) => {
       if (res.status === 'success' && res.data) {
         const { token, auth_data, is_admin, secure_path } = res.data;
+        const email = params[0]?.email;
 
         localStorage.setItem('auth_token', auth_data);
         localStorage.setItem('user_token', token);
@@ -92,7 +103,7 @@ const LoginPage: React.FC = () => {
           JSON.stringify({
             is_admin,
             token,
-            email: operationForm.getFieldValue('email'),
+            email,
           }),
         );
 
@@ -102,12 +113,13 @@ const LoginPage: React.FC = () => {
         const nextUser =
           fetchedUser ??
           ({
-            email: operationForm.getFieldValue('email'),
-            name: operationForm.getFieldValue('email'),
+            email,
+            name: email,
             access: is_admin ? 'admin' : 'user',
             is_admin,
             loginMode: 'operation',
           } as API.CurrentUser);
+
         flushSync(() => {
           setInitialState((s) => ({
             ...s,
@@ -117,7 +129,12 @@ const LoginPage: React.FC = () => {
 
         const redirect = getRedirect();
         const targetPath =
-          redirect?.startsWith('/') && !redirect.startsWith('/dev') ? redirect : '/';
+          redirect?.startsWith('/') &&
+          !redirect.startsWith('/nodes') &&
+          !redirect.startsWith('/dev') &&
+          !redirect.startsWith('/iam')
+            ? redirect
+            : '/';
         history.replace(targetPath);
       } else {
         message.error(res.message || '登录失败，请检查邮箱和密码');
@@ -144,27 +161,19 @@ const LoginPage: React.FC = () => {
         });
 
         const redirect = getRedirect();
-        history.replace(redirect?.startsWith('/dev') ? redirect : '/dev/nodes');
+        history.replace(
+          redirect?.startsWith('/nodes') ||
+            redirect?.startsWith('/dev') ||
+            redirect?.startsWith('/iam')
+            ? redirect
+            : '/nodes/overview',
+        );
       },
       onError: (error: any) => {
         message.error(getErrorMessage(error));
       },
     },
   );
-
-  const onOperationFinish = (values: any) => {
-    handleOperationLogin({
-      email: values.email,
-      password: values.password,
-    });
-  };
-
-  const onManagementFinish = (values: API.DevAdminLoginParams) => {
-    handleManagementLogin({
-      username: values.username,
-      password: values.password,
-    });
-  };
 
   const handleModeChange = (key: string) => {
     const nextMode: LoginMode = key === 'management' ? 'management' : 'operation';
@@ -175,150 +184,120 @@ const LoginPage: React.FC = () => {
   const activeCopy = modeCopy[activeMode];
 
   return (
-    <div className={styles.container}>
-      <div className={styles.ambientGlow} />
-      <div className={styles.shell}>
-        <section className={styles.authPanel}>
-          <div className={styles.authHeader}>
-            <span className={styles.panelKicker}>SIGN IN</span>
-            <h2>{activeCopy.title}</h2>
-          </div>
+    <LoginFormPage
+      logo={null}
+      title={activeCopy.title}
+      subTitle={activeCopy.subTitle}
+      submitter={{
+        searchConfig: {
+          submitText: activeCopy.submitText,
+        },
+        submitButtonProps: {
+          loading: activeMode === 'operation' ? operationLoading : managementLoading,
+          size: 'large',
+        },
+        resetButtonProps: false,
+      }}
+      onFinish={async (values) => {
+        if (activeMode === 'management') {
+          await handleManagementLogin({
+            username: values.username as string,
+            password: values.password as string,
+          });
+          return true;
+        }
 
-          <Tabs
-            className={styles.modeTabs}
-            activeKey={activeMode}
-            centered
-            onChange={handleModeChange}
-            items={[
-              {
-                key: 'operation',
-                label: '管理',
-                children: (
-                  <Form
-                    form={operationForm}
-                    layout="vertical"
-                    onFinish={onOperationFinish}
-                    autoComplete="off"
-                  >
-                    <Form.Item
-                      name="email"
-                      label="邮箱地址"
-                      rules={[
-                        { required: true, message: '请输入邮箱地址' },
-                        { type: 'email', message: '邮箱格式不正确' },
-                      ]}
-                    >
-                      <Input
-                        size="large"
-                        placeholder="请输入您的邮箱"
-                        prefix={<MailOutlined />}
-                        autoComplete="email"
-                      />
-                    </Form.Item>
+        await handleOperationLogin({
+          email: values.email as string,
+          password: values.password as string,
+        });
+        return true;
+      }}
+      actions={
+        activeMode === 'operation' ? (
+          <>
+            <Divider style={{ marginBlock: 8 }} />
+            <Flex justify="space-between" align="center" wrap="wrap" gap={12}>
+              <Checkbox defaultChecked>记住我</Checkbox>
+              <Text type="secondary">
+                还没有账户？<Link href="/user/register">立即注册</Link>
+              </Text>
+            </Flex>
+          </>
+        ) : (
+          <>
+            <Divider style={{ marginBlock: 8 }} />
+            <Text type="secondary">
+              当前登录只写入开发会话，不影响管理侧登录态。
+            </Text>
+          </>
+        )
+      }
+    >
+      <Tabs
+        activeKey={activeMode}
+        centered
+        onChange={handleModeChange}
+        items={[
+          { key: 'operation', label: '管理' },
+          { key: 'management', label: '开发' },
+        ]}
+      />
 
-                    <Form.Item
-                      name="password"
-                      label="密码"
-                      rules={[
-                        { required: true, message: '请输入密码' },
-                        { min: 8, message: '密码至少需要 8 位' },
-                      ]}
-                    >
-                      <Input.Password
-                        size="large"
-                        placeholder="请输入密码（最少 8 位）"
-                        prefix={<LockOutlined />}
-                        autoComplete="current-password"
-                      />
-                    </Form.Item>
-
-                    <Form.Item className={styles.submitItem}>
-                      <Button
-                        type="primary"
-                        size="large"
-                        htmlType="submit"
-                        loading={operationLoading}
-                        block
-                      >
-                        {modeCopy.operation.submitText}
-                      </Button>
-                    </Form.Item>
-
-                    <div className={styles.formAssistSlot}>
-                      <Form.Item
-                        name="remember"
-                        valuePropName="checked"
-                        initialValue={true}
-                        className={styles.rememberItem}
-                      >
-                        <Checkbox>记住我</Checkbox>
-                      </Form.Item>
-                      <div className={styles.footerInline}>
-                        <span>还没有账户？</span>
-                        <a href="/user/register">立即注册</a>
-                      </div>
-                    </div>
-                  </Form>
-                ),
-              },
-              {
-                key: 'management',
-                label: '开发',
-                children: (
-                  <Form
-                    form={managementForm}
-                    layout="vertical"
-                    onFinish={onManagementFinish}
-                    autoComplete="off"
-                  >
-                    <Form.Item
-                      name="username"
-                      label="用户名"
-                      rules={[{ required: true, message: '请输入用户名' }]}
-                    >
-                      <Input
-                        size="large"
-                        placeholder="请输入管理员用户名"
-                        prefix={<UserOutlined />}
-                        autoComplete="username"
-                      />
-                    </Form.Item>
-
-                    <Form.Item
-                      name="password"
-                      label="密码"
-                      rules={[{ required: true, message: '请输入密码' }]}
-                    >
-                      <Input.Password
-                        size="large"
-                        placeholder="请输入管理员密码"
-                        prefix={<LockOutlined />}
-                        autoComplete="current-password"
-                      />
-                    </Form.Item>
-                    <Form.Item className={styles.submitItem}>
-                      <Button
-                        type="primary"
-                        size="large"
-                        htmlType="submit"
-                        loading={managementLoading}
-                        block
-                      >
-                        {modeCopy.management.submitText}
-                      </Button>
-                    </Form.Item>
-
-                    <div className={styles.formAssistSlot} aria-hidden="true">
-                      <div className={styles.formAssistPlaceholder} />
-                    </div>
-                  </Form>
-                ),
-              },
+      {activeMode === 'operation' ? (
+        <>
+          <ProFormText
+            name="email"
+            fieldProps={{
+              size: 'large',
+              prefix: <MailOutlined />,
+              autoComplete: 'email',
+            }}
+            placeholder="请输入您的邮箱"
+            rules={[
+              { required: true, message: '请输入邮箱地址' },
+              { type: 'email', message: '邮箱格式不正确' },
             ]}
           />
-        </section>
-      </div>
-    </div>
+          <ProFormText.Password
+            name="password"
+            fieldProps={{
+              size: 'large',
+              prefix: <LockOutlined />,
+              autoComplete: 'current-password',
+            }}
+            placeholder="请输入密码（最少 8 位）"
+            rules={[
+              { required: true, message: '请输入密码' },
+              { min: 8, message: '密码至少需要 8 位' },
+            ]}
+          />
+        </>
+      ) : (
+        <>
+          <ProFormText
+            name="username"
+            fieldProps={{
+              size: 'large',
+              prefix: <UserOutlined />,
+              autoComplete: 'username',
+            }}
+            placeholder="请输入管理员用户名"
+            rules={[{ required: true, message: '请输入用户名' }]}
+          />
+          <ProFormText.Password
+            name="password"
+            fieldProps={{
+              size: 'large',
+              prefix: <LockOutlined />,
+              autoComplete: 'current-password',
+            }}
+            placeholder="请输入管理员密码"
+            rules={[{ required: true, message: '请输入密码' }]}
+          />
+        </>
+      )}
+    </LoginFormPage>
   );
 };
 

@@ -18,16 +18,17 @@ import {
 } from 'antd';
 import React, { useMemo, useState } from 'react';
 import {
-  createAdminMenu,
-  deleteAdminMenu,
-  listAdminMenus,
-  listAdminPermissions,
-  listCurrentAdminMenus,
-  updateAdminMenu,
-} from '@/services/dev-admin/api';
-import DevAuthGate from './components/DevAuthGate';
+  createIamMenu,
+  deleteIamMenu,
+  listCurrentIamMenus,
+  listIamMenus,
+  listIamPermissions,
+  updateIamMenu,
+} from '@/services/iam/api';
+import IamAuthPage from './components/IamAuthPage';
+import { toPermissionOptions, trimOptional } from './components/utils';
 
-type MenuFormValues = API.DevAdminMenuCreateParams & {
+type MenuFormValues = API.IamMenuCreateParams & {
   id?: number;
 };
 
@@ -39,31 +40,17 @@ type MenuTreeSelectNode = {
 
 const ROOT_PARENT_ID = 0;
 
-const trimOptional = (value?: string) => {
-  const text = value?.trim();
-  return text || undefined;
-};
-
-const walkMenus = (items: API.DevAdminMenu[], visitor: (item: API.DevAdminMenu) => void) => {
-  items.forEach((item) => {
-    visitor(item);
-    if (item.children?.length) {
-      walkMenus(item.children, visitor);
-    }
-  });
-};
-
-const collectDescendantIds = (items: API.DevAdminMenu[], targetId?: number) => {
+const collectDescendantIds = (items: API.IamMenu[], targetId?: number) => {
   if (!targetId) {
     return new Set<number>();
   }
 
   const excluded = new Set<number>();
-  const collect = (item: API.DevAdminMenu) => {
+  const collect = (item: API.IamMenu) => {
     excluded.add(item.id);
     item.children?.forEach(collect);
   };
-  const find = (menus: API.DevAdminMenu[]): boolean => {
+  const find = (menus: API.IamMenu[]): boolean => {
     for (const item of menus) {
       if (item.id === targetId) {
         collect(item);
@@ -80,7 +67,7 @@ const collectDescendantIds = (items: API.DevAdminMenu[], targetId?: number) => {
 };
 
 const toChildTreeSelectData = (
-  items: API.DevAdminMenu[],
+  items: API.IamMenu[],
   excludedIds: Set<number>,
 ): MenuTreeSelectNode[] =>
   items
@@ -94,7 +81,7 @@ const toChildTreeSelectData = (
     }));
 
 const toTreeSelectData = (
-  items: API.DevAdminMenu[],
+  items: API.IamMenu[],
   excludedIds: Set<number>,
 ): MenuTreeSelectNode[] => [
   {
@@ -104,7 +91,7 @@ const toTreeSelectData = (
   },
 ];
 
-const normalizePayload = (values: MenuFormValues): API.DevAdminMenuCreateParams => ({
+const normalizePayload = (values: MenuFormValues): API.IamMenuCreateParams => ({
   parent_id: values.parent_id ?? ROOT_PARENT_ID,
   name: values.name.trim(),
   path: values.path.trim(),
@@ -118,20 +105,20 @@ const normalizePayload = (values: MenuFormValues): API.DevAdminMenuCreateParams 
 const MenusContent: React.FC = () => {
   const { message } = App.useApp();
   const [form] = Form.useForm<MenuFormValues>();
-  const [menus, setMenus] = useState<API.DevAdminMenu[]>([]);
-  const [currentMenus, setCurrentMenus] = useState<API.DevAdminMenu[]>([]);
-  const [permissions, setPermissions] = useState<API.DevAdminPermission[]>([]);
+  const [menus, setMenus] = useState<API.IamMenu[]>([]);
+  const [currentMenus, setCurrentMenus] = useState<API.IamMenu[]>([]);
+  const [permissions, setPermissions] = useState<API.IamPermission[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentLoading, setCurrentLoading] = useState(false);
   const [permissionLoading, setPermissionLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingMenu, setEditingMenu] = useState<API.DevAdminMenu | null>(null);
+  const [editingMenu, setEditingMenu] = useState<API.IamMenu | null>(null);
   const [saving, setSaving] = useState(false);
 
   const loadMenus = async () => {
     setLoading(true);
     try {
-      const response = await listAdminMenus();
+      const response = await listIamMenus();
       setMenus(response.data?.items ?? []);
     } catch (error: any) {
       message.error(error?.message || 'Failed to load menus.');
@@ -143,7 +130,7 @@ const MenusContent: React.FC = () => {
   const loadCurrentMenus = async () => {
     setCurrentLoading(true);
     try {
-      const response = await listCurrentAdminMenus();
+      const response = await listCurrentIamMenus();
       setCurrentMenus(response.data?.items ?? []);
     } catch (error: any) {
       message.error(error?.message || 'Failed to load current menus.');
@@ -155,7 +142,7 @@ const MenusContent: React.FC = () => {
   const loadPermissions = async () => {
     setPermissionLoading(true);
     try {
-      const response = await listAdminPermissions();
+      const response = await listIamPermissions();
       setPermissions(response.data?.items ?? []);
     } catch (error: any) {
       message.error(error?.message || 'Failed to load permissions.');
@@ -169,21 +156,14 @@ const MenusContent: React.FC = () => {
     void loadPermissions();
   }, []);
 
-  const permissionOptions = useMemo(
-    () =>
-      permissions.map((item) => ({
-        label: `${item.code}${item.name ? ` - ${item.name}` : ''}`,
-        value: item.code,
-      })),
-    [permissions],
-  );
+  const permissionOptions = useMemo(() => toPermissionOptions(permissions), [permissions]);
 
   const treeSelectData = useMemo(
     () => toTreeSelectData(menus, collectDescendantIds(menus, editingMenu?.id)),
     [menus, editingMenu?.id],
   );
 
-  const openCreateModal = (parent?: API.DevAdminMenu) => {
+  const openCreateModal = (parent?: API.IamMenu) => {
     setEditingMenu(null);
     form.setFieldsValue({
       parent_id: parent?.id ?? ROOT_PARENT_ID,
@@ -198,7 +178,7 @@ const MenusContent: React.FC = () => {
     setModalOpen(true);
   };
 
-  const openEditModal = (record: API.DevAdminMenu) => {
+  const openEditModal = (record: API.IamMenu) => {
     setEditingMenu(record);
     form.setFieldsValue({
       id: record.id,
@@ -220,13 +200,13 @@ const MenusContent: React.FC = () => {
     setSaving(true);
     try {
       if (editingMenu) {
-        await updateAdminMenu({
+        await updateIamMenu({
           ...payload,
           id: editingMenu.id,
         });
         message.success('Menu updated.');
       } else {
-        await createAdminMenu(payload);
+        await createIamMenu(payload);
         message.success('Menu created.');
       }
       setModalOpen(false);
@@ -240,7 +220,7 @@ const MenusContent: React.FC = () => {
     }
   };
 
-  const baseColumns: ProColumns<API.DevAdminMenu>[] = [
+  const baseColumns: ProColumns<API.IamMenu>[] = [
     { title: 'ID', dataIndex: 'id', width: 80 },
     { title: 'Name', dataIndex: 'name', width: 180 },
     {
@@ -272,7 +252,7 @@ const MenusContent: React.FC = () => {
     },
   ];
 
-  const columns: ProColumns<API.DevAdminMenu>[] = [
+  const columns: ProColumns<API.IamMenu>[] = [
     ...baseColumns,
     {
       title: 'Actions',
@@ -290,7 +270,7 @@ const MenusContent: React.FC = () => {
           title="Delete this menu?"
           onConfirm={async () => {
             try {
-              await deleteAdminMenu(record.id);
+              await deleteIamMenu(record.id);
               message.success('Menu deleted.');
               await loadMenus();
             } catch (error: any) {
@@ -318,7 +298,7 @@ const MenusContent: React.FC = () => {
             key: 'all',
             label: 'All Menus',
             children: (
-              <ProTable<API.DevAdminMenu>
+              <ProTable<API.IamMenu>
                 rowKey="id"
                 loading={loading}
                 columns={columns}
@@ -327,7 +307,12 @@ const MenusContent: React.FC = () => {
                 pagination={false}
                 expandable={{ defaultExpandAllRows: true }}
                 toolBarRender={() => [
-                  <Button key="create" type="primary" icon={<PlusOutlined />} onClick={() => openCreateModal()}>
+                  <Button
+                    key="create"
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => openCreateModal()}
+                  >
                     Create Root Menu
                   </Button>,
                   <Button key="refresh" onClick={() => void loadMenus()}>
@@ -341,7 +326,7 @@ const MenusContent: React.FC = () => {
             key: 'current',
             label: 'Current User Preview',
             children: (
-              <ProTable<API.DevAdminMenu>
+              <ProTable<API.IamMenu>
                 rowKey="id"
                 loading={currentLoading}
                 columns={baseColumns}
@@ -394,18 +379,18 @@ const MenusContent: React.FC = () => {
             label="Path"
             rules={[{ required: true, message: 'Please enter menu path.' }]}
           >
-            <Input placeholder="/dev/menus" />
+            <Input placeholder="/iam/menus" />
           </Form.Item>
           <Form.Item
             name="component"
             label="Component"
             rules={[{ required: true, message: 'Please enter component.' }]}
           >
-            <Input placeholder="./dev/Menus" />
+            <Input placeholder="./iam/Menus" />
           </Form.Item>
           <Space size={16} style={{ width: '100%' }} align="start">
             <Form.Item name="icon" label="Icon" style={{ flex: 1 }}>
-              <Input placeholder="code" />
+              <Input placeholder="safetyCertificate" />
             </Form.Item>
             <Form.Item name="sort" label="Sort" style={{ width: 160 }}>
               <InputNumber style={{ width: '100%' }} precision={0} />
@@ -431,9 +416,9 @@ const MenusContent: React.FC = () => {
 };
 
 const MenusPage: React.FC = () => (
-  <DevAuthGate>
+  <IamAuthPage>
     <MenusContent />
-  </DevAuthGate>
+  </IamAuthPage>
 );
 
 export default MenusPage;

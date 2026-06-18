@@ -9,7 +9,7 @@ import ViewManager from './ViewManager';
 
 type AnyRecord = Record<string, any>;
 
-type MetricFormatter = (value: number) => React.ReactNode;
+type MetricFormatter = (value: number, record?: Record<string, unknown>) => React.ReactNode;
 type FixedPosition = 'left' | 'right';
 type ColumnState = { show?: boolean; fixed?: FixedPosition; order?: number };
 type ColumnStateMap = Record<string, ColumnState>;
@@ -187,8 +187,8 @@ function safeNumber(v: any) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function renderSummaryValue(raw: unknown, formatter?: MetricFormatter) {
-  if (formatter) return formatter(safeNumber(raw));
+function renderSummaryValue(raw: unknown, formatter?: MetricFormatter, record?: Record<string, unknown>) {
+  if (formatter) return formatter(safeNumber(raw), record);
   if (raw === null || raw === undefined || raw === '') return '--';
   if (typeof raw === 'number') return raw.toLocaleString();
   return String(raw);
@@ -275,6 +275,12 @@ function resolveColumnState(
     (identity.normalizedKey ? map[identity.normalizedKey] : undefined) ??
     (identity.normalizedSortField ? map[identity.normalizedSortField] : undefined)
   );
+}
+
+function getFixedOrder(fixed?: FixedPosition) {
+  if (fixed === 'left') return 0;
+  if (fixed === 'right') return 2;
+  return 1;
 }
 
 function restoreViewSorter(sorter?: ReportSorter): ReportSorter | undefined {
@@ -799,6 +805,8 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
         };
       })
       .sort((a, b) => {
+        const fixedDiff = getFixedOrder(a.fixed) - getFixedOrder(b.fixed);
+        if (fixedDiff !== 0) return fixedDiff;
         const hasA = typeof a.order === 'number';
         const hasB = typeof b.order === 'number';
         if (hasA && hasB) return (a.order as number) - (b.order as number);
@@ -812,6 +820,10 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     () => orderedColumnLayouts.filter((item) => item.show !== false),
     [orderedColumnLayouts],
   );
+
+  const summaryLabelColumnKey = useMemo(() => {
+    return visibleOrderedColumns.find((item) => item.kind !== 'metric')?.key;
+  }, [visibleOrderedColumns]);
 
   const tableColumns = useMemo<ProColumns<T>[]>(
     () =>
@@ -841,12 +853,16 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
       .map((item) => ({ key: item.value, formatter: item.formatter }));
   }, [metricOptions, metrics]);
 
+  const allSummaryMetrics = useMemo<SummaryMetric[]>(() => {
+    return metricOptions.map((item) => ({ key: item.value, formatter: item.formatter }));
+  }, [metricOptions]);
+
   const currentTotals = useMemo(() => {
-    return summaryMetrics.reduce<Record<string, unknown>>((acc, item) => {
+    return allSummaryMetrics.reduce<Record<string, unknown>>((acc, item) => {
       acc[item.key] = data.reduce((sum, row) => sum + safeNumber(row[item.key as keyof T]), 0);
       return acc;
     }, {});
-  }, [data, summaryMetrics]);
+  }, [data, allSummaryMetrics]);
 
   const metricMap = useMemo(
     () =>
@@ -1208,7 +1224,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
               {showCurrentSummary ? (
                 <Table.Summary.Row>
                   {visibleOrderedColumns.map((col, idx) => {
-                    if (idx === 0) {
+                    if (summaryLabelColumnKey && col.key === summaryLabelColumnKey) {
                       return (
                         <Table.Summary.Cell index={idx} key={`curr-${col.key}`}>
                           当前页合计
@@ -1224,7 +1240,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
                     }
                     const metric = metricMap[col.value];
                     const raw = currentTotals[col.value] ?? 0;
-                    const content = renderSummaryValue(raw, metric?.formatter);
+                    const content = renderSummaryValue(raw, metric?.formatter, currentTotals);
                     return (
                       <Table.Summary.Cell index={idx} key={`curr-${col.key}`}>
                         {content}
@@ -1236,7 +1252,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
               {showGrandSummary ? (
                 <Table.Summary.Row>
                   {visibleOrderedColumns.map((col, idx) => {
-                    if (idx === 0) {
+                    if (summaryLabelColumnKey && col.key === summaryLabelColumnKey) {
                       return (
                         <Table.Summary.Cell index={idx} key={`grand-${col.key}`}>
                           总数据合计
@@ -1252,7 +1268,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
                     }
                     const metric = metricMap[col.value];
                     const raw = grandTotals[col.value] ?? 0;
-                    const content = renderSummaryValue(raw, metric?.formatter);
+                    const content = renderSummaryValue(raw, metric?.formatter, grandTotals);
                     return (
                       <Table.Summary.Cell index={idx} key={`grand-${col.key}`}>
                         {content}
