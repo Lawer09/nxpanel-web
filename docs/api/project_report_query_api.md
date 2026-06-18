@@ -110,7 +110,7 @@
         "adSpendCpm": "2.093023",
         "trafficUsageMb": "20480.000000",
         "trafficCost": "3.200000",
-        "trafficCostRatio": "1.746725",
+        "trafficCostRatio": "0.017467",
         "totalCost": "183.200000",
         "profit": "137.300000",
         "roi": "1.749454",
@@ -140,7 +140,7 @@
       "adSpendCpm": "2.083333",
       "trafficUsageMb": "65536.000000",
       "trafficCost": "10.240000",
-      "trafficCostRatio": "2.006115",
+      "trafficCostRatio": "0.020061",
       "totalCost": "510.240000",
       "profit": "370.260000",
       "roi": "1.725597",
@@ -161,7 +161,7 @@
 - `summary` 为当前筛选条件下的整体汇总，不受分页影响
 - `summary` 与 `data`、`total`、`page`、`pageSize` 同级，位于 `data` 对象内部
 - `totalCost = adSpendCost + trafficCost`
-- `trafficCostRatio = trafficCost / totalCost * 100`
+- `trafficCostRatio = trafficCost / totalCost`，前端展示为百分比时乘以 100
 - `impressionsPerUser = adImpressions / dauUsers`
 - `arpu = adRevenue / dauUsers`
 
@@ -236,7 +236,7 @@
 
 - 导出按钮调用：`POST /api/v3/{secure_path}/report/project/export`
 - 请求体直接复用当前项目日报查询表单条件，可以不传 `page`、`pageSize`
-- 前端项目报表中 `trafficCostRatio` 不单独作为指标列展示，合并到 `trafficCost` 列显示为 `流量费用 (流量消耗占比)`。
+- 前端项目报表中 `trafficCostRatio` 不单独作为指标列展示，接口返回比例小数，合并到 `trafficCost` 列显示为 `流量费用 (流量消耗占比)`。
 - Axios 示例：
 
 ```js

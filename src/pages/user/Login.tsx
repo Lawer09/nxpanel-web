@@ -4,11 +4,12 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import {
-  LoginFormPage,
+  LoginForm,
   ProFormText,
 } from '@ant-design/pro-components';
 import { history, useModel, useRequest } from '@umijs/max';
 import { Checkbox, Divider, Flex, message, Tabs, Typography } from 'antd';
+import type { CSSProperties } from 'react';
 import React from 'react';
 import { flushSync } from 'react-dom';
 import { login } from '@/services/auth/api';
@@ -20,6 +21,18 @@ type LoginMode = 'operation' | 'management';
 const { Link, Text } = Typography;
 
 const loginPath = '/user/login';
+const pageStyle: CSSProperties = {
+  minHeight: '100vh',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: 24,
+};
+
+const cardStyle: CSSProperties = {
+  width: '100%',
+  maxWidth: 420,
+};
 
 const modeCopy: Record<
   LoginMode,
@@ -184,120 +197,123 @@ const LoginPage: React.FC = () => {
   const activeCopy = modeCopy[activeMode];
 
   return (
-    <LoginFormPage
-      logo={null}
-      title={activeCopy.title}
-      subTitle={activeCopy.subTitle}
-      submitter={{
-        searchConfig: {
-          submitText: activeCopy.submitText,
-        },
-        submitButtonProps: {
-          loading: activeMode === 'operation' ? operationLoading : managementLoading,
-          size: 'large',
-        },
-        resetButtonProps: false,
-      }}
-      onFinish={async (values) => {
-        if (activeMode === 'management') {
-          await handleManagementLogin({
-            username: values.username as string,
+    <div style={pageStyle}>
+      <LoginForm
+        logo={null}
+        title={activeCopy.title}
+        subTitle={activeCopy.subTitle}
+        style={cardStyle}
+        submitter={{
+          searchConfig: {
+            submitText: activeCopy.submitText,
+          },
+          submitButtonProps: {
+            loading: activeMode === 'operation' ? operationLoading : managementLoading,
+            size: 'large',
+          },
+          resetButtonProps: false,
+        }}
+        onFinish={async (values) => {
+          if (activeMode === 'management') {
+            await handleManagementLogin({
+              username: values.username as string,
+              password: values.password as string,
+            });
+            return true;
+          }
+
+          await handleOperationLogin({
+            email: values.email as string,
             password: values.password as string,
           });
           return true;
-        }
-
-        await handleOperationLogin({
-          email: values.email as string,
-          password: values.password as string,
-        });
-        return true;
-      }}
-      actions={
-        activeMode === 'operation' ? (
-          <>
-            <Divider style={{ marginBlock: 8 }} />
-            <Flex justify="space-between" align="center" wrap="wrap" gap={12}>
-              <Checkbox defaultChecked>记住我</Checkbox>
+        }}
+        actions={
+          activeMode === 'operation' ? (
+            <>
+              <Divider style={{ marginBlock: 8 }} />
+              <Flex justify="space-between" align="center" wrap="wrap" gap={12}>
+                <Checkbox defaultChecked>记住我</Checkbox>
+                <Text type="secondary">
+                  还没有账户？<Link href="/user/register">立即注册</Link>
+                </Text>
+              </Flex>
+            </>
+          ) : (
+            <>
+              <Divider style={{ marginBlock: 8 }} />
               <Text type="secondary">
-                还没有账户？<Link href="/user/register">立即注册</Link>
+                当前登录只写入开发会话，不影响管理侧登录态。
               </Text>
-            </Flex>
+            </>
+          )
+        }
+      >
+        <Tabs
+          activeKey={activeMode}
+          centered
+          onChange={handleModeChange}
+          items={[
+            { key: 'operation', label: '管理' },
+            { key: 'management', label: '开发' },
+          ]}
+        />
+
+        {activeMode === 'operation' ? (
+          <>
+            <ProFormText
+              name="email"
+              fieldProps={{
+                size: 'large',
+                prefix: <MailOutlined />,
+                autoComplete: 'email',
+              }}
+              placeholder="请输入您的邮箱"
+              rules={[
+                { required: true, message: '请输入邮箱地址' },
+                { type: 'email', message: '邮箱格式不正确' },
+              ]}
+            />
+            <ProFormText.Password
+              name="password"
+              fieldProps={{
+                size: 'large',
+                prefix: <LockOutlined />,
+                autoComplete: 'current-password',
+              }}
+              placeholder="请输入密码（最少 8 位）"
+              rules={[
+                { required: true, message: '请输入密码' },
+                { min: 8, message: '密码至少需要 8 位' },
+              ]}
+            />
           </>
         ) : (
           <>
-            <Divider style={{ marginBlock: 8 }} />
-            <Text type="secondary">
-              当前登录只写入开发会话，不影响管理侧登录态。
-            </Text>
+            <ProFormText
+              name="username"
+              fieldProps={{
+                size: 'large',
+                prefix: <UserOutlined />,
+                autoComplete: 'username',
+              }}
+              placeholder="请输入管理员用户名"
+              rules={[{ required: true, message: '请输入用户名' }]}
+            />
+            <ProFormText.Password
+              name="password"
+              fieldProps={{
+                size: 'large',
+                prefix: <LockOutlined />,
+                autoComplete: 'current-password',
+              }}
+              placeholder="请输入管理员密码"
+              rules={[{ required: true, message: '请输入密码' }]}
+            />
           </>
-        )
-      }
-    >
-      <Tabs
-        activeKey={activeMode}
-        centered
-        onChange={handleModeChange}
-        items={[
-          { key: 'operation', label: '管理' },
-          { key: 'management', label: '开发' },
-        ]}
-      />
-
-      {activeMode === 'operation' ? (
-        <>
-          <ProFormText
-            name="email"
-            fieldProps={{
-              size: 'large',
-              prefix: <MailOutlined />,
-              autoComplete: 'email',
-            }}
-            placeholder="请输入您的邮箱"
-            rules={[
-              { required: true, message: '请输入邮箱地址' },
-              { type: 'email', message: '邮箱格式不正确' },
-            ]}
-          />
-          <ProFormText.Password
-            name="password"
-            fieldProps={{
-              size: 'large',
-              prefix: <LockOutlined />,
-              autoComplete: 'current-password',
-            }}
-            placeholder="请输入密码（最少 8 位）"
-            rules={[
-              { required: true, message: '请输入密码' },
-              { min: 8, message: '密码至少需要 8 位' },
-            ]}
-          />
-        </>
-      ) : (
-        <>
-          <ProFormText
-            name="username"
-            fieldProps={{
-              size: 'large',
-              prefix: <UserOutlined />,
-              autoComplete: 'username',
-            }}
-            placeholder="请输入管理员用户名"
-            rules={[{ required: true, message: '请输入用户名' }]}
-          />
-          <ProFormText.Password
-            name="password"
-            fieldProps={{
-              size: 'large',
-              prefix: <LockOutlined />,
-              autoComplete: 'current-password',
-            }}
-            placeholder="请输入管理员密码"
-            rules={[{ required: true, message: '请输入密码' }]}
-          />
-        </>
-      )}
-    </LoginFormPage>
+        )}
+      </LoginForm>
+    </div>
   );
 };
 

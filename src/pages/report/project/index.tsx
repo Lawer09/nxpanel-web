@@ -96,7 +96,7 @@ const fmtPercent = (v: unknown) => {
 
 const getTrafficCostRatio = (record?: Record<string, unknown>) => {
   const explicitRatio = toSafeNumber(record?.trafficCostRatio);
-  if (explicitRatio !== null) return explicitRatio;
+  if (explicitRatio !== null) return explicitRatio * 100;
 
   const trafficCost = toSafeNumber(record?.trafficCost);
   const totalCost = toSafeNumber(record?.totalCost);
