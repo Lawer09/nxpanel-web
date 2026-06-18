@@ -72,26 +72,26 @@ const fmtInt = (v: unknown) => {
 const fmtCurrency = (v: unknown) => {
   const n = toSafeNumber(v);
   if (n === null) return '--';
-  return n.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 const fmtFixed2 = (v: unknown) => {
   const n = toSafeNumber(v);
   if (n === null) return '--';
-  return n.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 const fmtTraffic = (v: unknown) => {
   const n = toSafeNumber(v);
   if (n === null) return '--';
-  if (n >= 1024) return `${(n / 1024).toFixed(3)} GB`;
-  return `${n.toFixed(3)} MB`;
+  if (n >= 1024) return `${(n / 1024).toFixed(2)} GB`;
+  return `${n.toFixed(2)} MB`;
 }
 
 const fmtPercent = (v: unknown) => {
   const n = toSafeNumber(v);
   if (n === null) return '--';
-  return `${n.toFixed(3)}%`;
+  return `${n.toFixed(2)}%`;
 };
 
 const getTrafficCostRatio = (record?: Record<string, unknown>) => {
@@ -116,7 +116,7 @@ const fmtTrafficCostWithRatio = (trafficCost: unknown, record?: Record<string, u
 const fmtRoiPercent = (v: unknown) => {
   const n = toSafeNumber(v);
   if (n === null) return '--';
-  return `${(n * 100).toFixed(3)}%`;
+  return `${(n * 100).toFixed(2)}%`;
 };
 
 const fmtCountry = (country?: string | null) => {

@@ -310,6 +310,38 @@ function normalizeColumnsStateMap(map?: ColumnStateMap): ColumnStateMap {
     }, {});
 }
 
+function buildEffectiveColumnsStateMap<T>(activeColumns: ActiveColumn<T>[], map?: ColumnStateMap) {
+  const normalizedMap = normalizeColumnsStateMap(map);
+  const resolvedColumns = activeColumns.map((item) => {
+    const originalColumn = item.column as ProColumns<T>;
+    const fallbackKey = String((item.column as any).key ?? item.id);
+    const identity = getColumnIdentity(originalColumn, fallbackKey);
+    return {
+      identity,
+      state: resolveColumnState(normalizedMap, identity, fallbackKey),
+    };
+  });
+
+  let nextOrder =
+    resolvedColumns.reduce((max, item) => {
+      if (typeof item.state?.order !== 'number' || !Number.isFinite(item.state.order)) {
+        return max;
+      }
+      return Math.max(max, item.state.order);
+    }, -1) + 1;
+
+  const effectiveMap: ColumnStateMap = { ...normalizedMap };
+  resolvedColumns.forEach((item) => {
+    const nextState: ColumnState = item.state ? { ...item.state } : {};
+    if (typeof nextState.order !== 'number' || !Number.isFinite(nextState.order)) {
+      nextState.order = nextOrder++;
+    }
+    effectiveMap[item.identity.key] = nextState;
+  });
+
+  return effectiveMap;
+}
+
 function toStableComparable(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map((item) => toStableComparable(item));
@@ -629,20 +661,28 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
 
   const metricColumns = useMemo<ActiveColumn<T>[]>(
     () => {
-      return metricOptions
-        .filter((item) => metrics.includes(item.value))
-        .map((item) => ({
-          id: `m:${item.value}`,
-          kind: 'metric' as const,
-          value: item.value,
-          label: item.label,
-          column: item.column,
-        }));
+      return metrics
+        .map((value) => {
+          const item = metricOptions.find((option) => option.value === value);
+          if (!item) return null;
+          return {
+            id: `m:${item.value}`,
+            kind: 'metric' as const,
+            value: item.value,
+            label: item.label,
+            column: item.column,
+          };
+        })
+        .filter(Boolean) as ActiveColumn<T>[];
     },
     [metricOptions, metrics],
   );
 
   const activeColumns = useMemo(() => [...dimColumns, ...metricColumns], [dimColumns, metricColumns]);
+  const effectiveColumnsStateMap = useMemo(
+    () => buildEffectiveColumnsStateMap(activeColumns, columnsStateMap),
+    [activeColumns, columnsStateMap],
+  );
 
   const currentViewSnapshot = useMemo(
     () =>
@@ -791,7 +831,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
         const originalColumn = item.column as ProColumns<T>;
         const fallbackKey = String((item.column as any).key ?? item.id);
         const identity = getColumnIdentity(originalColumn, fallbackKey);
-        const state = resolveColumnState(columnsStateMap, identity, fallbackKey);
+        const state = resolveColumnState(effectiveColumnsStateMap, identity, fallbackKey);
         return {
           ...item,
           index,
@@ -809,12 +849,16 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
         if (fixedDiff !== 0) return fixedDiff;
         const hasA = typeof a.order === 'number';
         const hasB = typeof b.order === 'number';
-        if (hasA && hasB) return (a.order as number) - (b.order as number);
+        if (hasA && hasB) {
+          const orderDiff = (a.order as number) - (b.order as number);
+          if (orderDiff !== 0) return orderDiff;
+          return a.index - b.index;
+        }
         if (hasA) return -1;
         if (hasB) return 1;
         return a.index - b.index;
       });
-  }, [activeColumns, columnsStateMap]);
+  }, [activeColumns, effectiveColumnsStateMap]);
 
   const visibleOrderedColumns = useMemo(
     () => orderedColumnLayouts.filter((item) => item.show !== false),
@@ -1190,7 +1234,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
             setting: { draggable: true },
           }}
           columnsState={{
-            value: columnsStateMap,
+            value: effectiveColumnsStateMap,
             onChange: (map) => setColumnsStateMap((map || {}) as ColumnStateMap),
           }}
           pagination={pagination}

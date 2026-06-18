@@ -152,8 +152,8 @@
 
 前端展示建议：
 
-- 金额类字段：`adRevenue/adSpendCost/trafficCost/profit/adSpendCpi/adSpendCpc/adSpendCpm` 建议统一货币格式，并保留 3 位小数。
-- 比例类字段：`adCtr/adMatchRate/adShowRate` 建议展示为百分比并保留 3 位小数。
-- `trafficCostRatio` 不单独作为默认指标列展示，建议合并到 `trafficCost` 列，格式为 `流量费用 (流量消耗占比)`；接口返回比例小数，前端展示时乘以 100，例如 `0.01742 -> 1.742%`。
-- `roi` 建议按百分比展示：`roiPercent = roi * 100`，并保留 3 位小数（例如 `1.234567 -> 123.457%`）。
+- 金额类字段：`adRevenue/adSpendCost/trafficCost/profit/adSpendCpi/adSpendCpc/adSpendCpm` 建议统一货币格式，并保留 2 位小数。
+- 比例类字段：`adCtr/adMatchRate/adShowRate` 建议展示为百分比并保留 2 位小数。
+- `trafficCostRatio` 不单独作为默认指标列展示，建议合并到 `trafficCost` 列，格式为 `流量费用 (流量消耗占比)`；接口返回比例小数，前端展示时乘以 100，例如 `0.01742 -> 1.74%`。
+- `roi` 建议按百分比展示：`roiPercent = roi * 100`，并保留 2 位小数（例如 `1.234567 -> 123.46%`）。
 - 空值处理：接口分母为 0 时返回 `null`，前端可展示为 `--`。
