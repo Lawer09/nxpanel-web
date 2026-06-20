@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getAssetMachineCreateCatalog } from '@/services/asset-service/api';
+import type { MachineCreateCatalogField } from '../../types';
 import { normalizeDevErrorMessage } from '../../utils';
 import {
   buildMachineCreateFieldMap,
   collectMachineCreateCatalogMessages,
+  type MachineCreateCatalogFieldGroup,
+  type MachineCreateCatalogOption,
   getMachineCreateFieldGroup,
   getMachineCreateFieldOptions,
 } from './machineCreateCatalog';
@@ -28,6 +31,19 @@ type MachineCreateCatalogState = {
   loading: boolean;
   refreshing: boolean;
   error?: string;
+};
+
+type MachineCreateCatalogDependency = 'account_id' | 'region' | 'zone';
+
+type MachineCreateCatalogFieldState = {
+  category: API.AssetMachineCreateCatalogCategory;
+  group?: MachineCreateCatalogFieldGroup;
+  options: MachineCreateCatalogOption[];
+  disabled: boolean;
+  loading: boolean;
+  error?: string;
+  placeholder: string;
+  emptyText: string;
 };
 
 const trimValue = (value?: string) => {
@@ -131,6 +147,154 @@ const buildCatalogPlans = ({
   }
 
   return plans;
+};
+
+const FIELD_CATEGORY_MAP: Record<
+  MachineCreateCatalogField,
+  API.AssetMachineCreateCatalogCategory
+> = {
+  region: 'regions',
+  zone: 'zones',
+  instance_type: 'instance-types',
+  'billing.type': 'billing-options',
+  'billing.period_unit': 'billing-options',
+  'billing.internet_charge_type': 'billing-options',
+  image_id: 'images',
+  'storage.system_disk.category': 'storage-options',
+  'storage.data_disks.category': 'storage-options',
+  'network.vpc_id': 'network-options',
+  'network.subnet_id': 'network-options',
+  'network.security_group_id': 'network-options',
+  'ip_assignment.mode': 'ip-options',
+  'ip_assignment.ip_ids': 'ip-options',
+  'ssh_key.provider_key_id': 'ssh-keys',
+  time_zone: 'timezones',
+};
+
+const FIELD_DEPENDENCIES: Record<
+  MachineCreateCatalogField,
+  MachineCreateCatalogDependency[]
+> = {
+  region: ['account_id'],
+  zone: ['account_id', 'region'],
+  instance_type: ['account_id', 'region', 'zone'],
+  'billing.type': ['account_id'],
+  'billing.period_unit': ['account_id'],
+  'billing.internet_charge_type': ['account_id'],
+  image_id: ['account_id', 'region', 'zone'],
+  'storage.system_disk.category': ['account_id', 'region', 'zone'],
+  'storage.data_disks.category': ['account_id', 'region', 'zone'],
+  'network.vpc_id': ['account_id', 'region', 'zone'],
+  'network.subnet_id': ['account_id', 'region', 'zone'],
+  'network.security_group_id': ['account_id', 'region', 'zone'],
+  'ip_assignment.mode': ['account_id', 'region'],
+  'ip_assignment.ip_ids': ['account_id', 'region'],
+  'ssh_key.provider_key_id': ['account_id'],
+  time_zone: ['account_id'],
+};
+
+const FIELD_PLACEHOLDER_MAP: Record<MachineCreateCatalogField, string> = {
+  region: 'Select region',
+  zone: 'Select zone',
+  instance_type: 'Select instance type',
+  'billing.type': 'Select billing type',
+  'billing.period_unit': 'Select unit',
+  'billing.internet_charge_type': 'Select internet charge type',
+  image_id: 'Select image',
+  'storage.system_disk.category': 'Select system disk category',
+  'storage.data_disks.category': 'Select data disk category',
+  'network.vpc_id': 'Select VPC',
+  'network.subnet_id': 'Select subnet',
+  'network.security_group_id': 'Select security group',
+  'ip_assignment.mode': 'Select IP assignment mode',
+  'ip_assignment.ip_ids': 'Select IPs',
+  'ssh_key.provider_key_id': 'Select provider SSH key',
+  time_zone: 'Select time zone',
+};
+
+const getDependencyMessage = (
+  field: MachineCreateCatalogField,
+  accountReady: boolean,
+  regionReady: boolean,
+  zoneReady: boolean,
+) => {
+  const dependencies = FIELD_DEPENDENCIES[field];
+
+  for (const dependency of dependencies) {
+    if (dependency === 'account_id' && !accountReady) {
+      return 'Select provider account first.';
+    }
+    if (dependency === 'region' && !regionReady) {
+      return 'Select region first.';
+    }
+    if (dependency === 'zone' && !zoneReady) {
+      return 'Select zone first.';
+    }
+  }
+
+  return undefined;
+};
+
+const getFieldEmptyText = (
+  field: MachineCreateCatalogField,
+  region?: string,
+  zone?: string,
+  vpcId?: string,
+) => {
+  switch (field) {
+    case 'region':
+      return 'No region candidates were returned for the current provider account.';
+    case 'zone':
+      return region
+        ? `No zone candidates were returned for region ${region}.`
+        : 'No zone candidates were returned for the current selection.';
+    case 'instance_type':
+      return region && zone
+        ? `No instance type candidates were returned for ${region} / ${zone}.`
+        : 'No instance type candidates were returned for the current selection.';
+    case 'image_id':
+      return zone
+        ? `No image candidates were returned for zone ${zone}.`
+        : 'No image candidates were returned for the current selection.';
+    case 'billing.type':
+    case 'billing.period_unit':
+    case 'billing.internet_charge_type':
+      return 'No billing candidates were returned for the current provider account.';
+    case 'storage.system_disk.category':
+    case 'storage.data_disks.category':
+      return zone
+        ? `No storage candidates were returned for zone ${zone}.`
+        : 'No storage candidates were returned for the current selection.';
+    case 'network.vpc_id':
+      return zone
+        ? `No VPC candidates were returned for zone ${zone}.`
+        : 'No VPC candidates were returned for the current selection.';
+    case 'network.subnet_id':
+      if (vpcId) {
+        return `No subnet candidates were returned for VPC ${vpcId} in the current zone.`;
+      }
+      return zone
+        ? `No subnet candidates were returned for zone ${zone}.`
+        : 'No subnet candidates were returned for the current selection.';
+    case 'network.security_group_id':
+      return zone
+        ? `No security group candidates were returned for zone ${zone}.`
+        : 'No security group candidates were returned for the current selection.';
+    case 'ip_assignment.mode':
+      return region
+        ? `No IP assignment modes were returned for region ${region}.`
+        : 'No IP assignment mode candidates were returned for the current selection.';
+    case 'ip_assignment.ip_ids':
+      return region
+        ? `No selectable IP candidates were returned for region ${region}.`
+        : 'No selectable IP candidates were returned for the current selection.';
+    case 'ssh_key.provider_key_id':
+      return 'No provider SSH key candidates were returned for the current provider account.';
+    case 'time_zone':
+      return 'No time zone candidates were returned for the current provider account.';
+    default:
+      return 'No candidate values were returned for the current selection.';
+  }
 };
 
 export const useMachineCreateCatalogs = ({
@@ -289,6 +453,13 @@ export const useMachineCreateCatalogs = ({
     [categoryStateMap, plans],
   );
 
+  const normalizedRegion = trimValue(region);
+  const normalizedZone = trimValue(zone);
+  const normalizedVpcId = trimValue(vpcId);
+  const accountReady = !!accountId;
+  const regionReady = !!normalizedRegion;
+  const zoneReady = !!normalizedZone;
+
   const loadingByCategory = useMemo(
     () => {
       const nextMap: Partial<
@@ -325,6 +496,57 @@ export const useMachineCreateCatalogs = ({
     await Promise.all(plans.map((plan) => runPlanRequest(plan, true)));
   }, [plans, runPlanRequest]);
 
+  const getFieldStatus = useCallback(
+    (field: MachineCreateCatalogField): MachineCreateCatalogFieldState => {
+      const category = FIELD_CATEGORY_MAP[field];
+      const options = getMachineCreateFieldOptions(fieldMap, field);
+      const group = getMachineCreateFieldGroup(fieldMap, field);
+      const plan = planMap[category];
+      const currentState = categoryStateMap[category];
+      const matchesPlan =
+        !!plan && currentState?.requestKey === plan.requestKey;
+      const dependencyMessage = getDependencyMessage(
+        field,
+        accountReady,
+        regionReady,
+        zoneReady,
+      );
+      const loading =
+        !dependencyMessage &&
+        !!plan &&
+        (!matchesPlan ||
+          currentState?.loading === true ||
+          (currentState?.refreshing === true && options.length === 0));
+      const error =
+        !dependencyMessage && matchesPlan ? currentState?.error : undefined;
+
+      return {
+        category,
+        group,
+        options,
+        disabled: !!dependencyMessage || (loading && options.length === 0),
+        loading,
+        error,
+        placeholder: dependencyMessage || FIELD_PLACEHOLDER_MAP[field],
+        emptyText:
+          dependencyMessage ||
+          error ||
+          getFieldEmptyText(field, normalizedRegion, normalizedZone, normalizedVpcId),
+      };
+    },
+    [
+      accountReady,
+      categoryStateMap,
+      fieldMap,
+      normalizedRegion,
+      normalizedVpcId,
+      normalizedZone,
+      planMap,
+      regionReady,
+      zoneReady,
+    ],
+  );
+
   return {
     available: !!accountId,
     plans,
@@ -343,6 +565,7 @@ export const useMachineCreateCatalogs = ({
     getFieldGroup: (field: string) => getMachineCreateFieldGroup(fieldMap, field),
     getFieldOptions: (field: string) =>
       getMachineCreateFieldOptions(fieldMap, field),
+    getFieldStatus,
     reload,
     getPlan: (category: API.AssetMachineCreateCatalogCategory) => planMap[category],
   };

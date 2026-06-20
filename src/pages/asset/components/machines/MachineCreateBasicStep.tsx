@@ -20,10 +20,13 @@ const MachineCreateBasicStep: React.FC<Props> = ({
   catalog,
   retrying,
 }) => {
-  const regionOptions = catalog.getFieldOptions('region');
-  const zoneOptions = catalog.getFieldOptions('zone');
-  const instanceTypeOptions = catalog.getFieldOptions('instance_type');
-  const imageOptions = catalog.getFieldOptions('image_id');
+  const form = Form.useFormInstance();
+  const watchedRegion = Form.useWatch('region', form) as string | undefined;
+  const watchedZone = Form.useWatch('zone', form) as string | undefined;
+  const regionField = catalog.getFieldStatus('region');
+  const zoneField = catalog.getFieldStatus('zone');
+  const instanceTypeField = catalog.getFieldStatus('instance_type');
+  const imageField = catalog.getFieldStatus('image_id');
   const accountLocked = mode === 'retry';
 
   return (
@@ -53,7 +56,27 @@ const MachineCreateBasicStep: React.FC<Props> = ({
           showIcon
           style={{ marginBottom: 16 }}
           message="Select provider account first"
-          description="The remaining fields are enabled after the account is selected."
+          description="Region, billing, SSH key, and time zone candidates are loaded after the provider account is selected."
+        />
+      ) : null}
+
+      {catalog.available && !watchedRegion ? (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="Select region to continue placement"
+          description="Zone candidates and IP assignment candidates are requested after the region is selected."
+        />
+      ) : null}
+
+      {catalog.available && watchedRegion && !watchedZone ? (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="Select zone to load zone-scoped candidates"
+          description="Instance type, image, storage, and network catalogs are only loaded after the zone is selected. The image catalog is zone-scoped and is not requested before that."
         />
       ) : null}
 
@@ -85,10 +108,11 @@ const MachineCreateBasicStep: React.FC<Props> = ({
             rules={[{ required: true, message: 'Please select region.' }]}
           >
             <MachineCreateCatalogSelect
-              options={regionOptions}
-              disabled={!catalog.available}
-              loading={catalog.loadingByCategory.regions}
-              placeholder="Select region"
+              options={regionField.options}
+              disabled={regionField.disabled}
+              loading={regionField.loading}
+              placeholder={regionField.placeholder}
+              notFoundContent={regionField.emptyText}
             />
           </Form.Item>
         </Space>
@@ -100,10 +124,11 @@ const MachineCreateBasicStep: React.FC<Props> = ({
             rules={[{ required: true, message: 'Please select zone.' }]}
           >
             <MachineCreateCatalogSelect
-              options={zoneOptions}
-              disabled={!catalog.available}
-              loading={catalog.loadingByCategory.zones}
-              placeholder="Select zone"
+              options={zoneField.options}
+              disabled={zoneField.disabled}
+              loading={zoneField.loading}
+              placeholder={zoneField.placeholder}
+              notFoundContent={zoneField.emptyText}
             />
           </Form.Item>
           <Form.Item
@@ -113,10 +138,11 @@ const MachineCreateBasicStep: React.FC<Props> = ({
             rules={[{ required: true, message: 'Please select instance type.' }]}
           >
             <MachineCreateCatalogSelect
-              options={instanceTypeOptions}
-              disabled={!catalog.available}
-              loading={catalog.loadingByCategory['instance-types']}
-              placeholder="Select instance type"
+              options={instanceTypeField.options}
+              disabled={instanceTypeField.disabled}
+              loading={instanceTypeField.loading}
+              placeholder={instanceTypeField.placeholder}
+              notFoundContent={instanceTypeField.emptyText}
             />
           </Form.Item>
         </Space>
@@ -126,10 +152,11 @@ const MachineCreateBasicStep: React.FC<Props> = ({
           rules={[{ required: true, message: 'Please select image.' }]}
         >
           <MachineCreateCatalogSelect
-            options={imageOptions}
-            disabled={!catalog.available}
-            loading={catalog.loadingByCategory.images}
-            placeholder="Select image"
+            options={imageField.options}
+            disabled={imageField.disabled}
+            loading={imageField.loading}
+            placeholder={imageField.placeholder}
+            notFoundContent={imageField.emptyText}
           />
         </Form.Item>
       </MachineCreateSection>

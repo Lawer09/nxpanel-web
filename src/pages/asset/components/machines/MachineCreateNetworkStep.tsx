@@ -17,13 +17,13 @@ const MachineCreateNetworkStep: React.FC<Props> = ({ catalog, zoneReady }) => {
     | string
     | undefined;
 
-  const vpcOptions = catalog.getFieldOptions('network.vpc_id');
-  const subnetOptions = catalog.getFieldOptions('network.subnet_id');
-  const securityGroupOptions = catalog.getFieldOptions(
+  const vpcField = catalog.getFieldStatus('network.vpc_id');
+  const subnetField = catalog.getFieldStatus('network.subnet_id');
+  const securityGroupField = catalog.getFieldStatus(
     'network.security_group_id',
   );
-  const ipModeOptions = catalog.getFieldOptions('ip_assignment.mode');
-  const ipOptions = catalog.getFieldOptions('ip_assignment.ip_ids');
+  const ipModeField = catalog.getFieldStatus('ip_assignment.mode');
+  const ipField = catalog.getFieldStatus('ip_assignment.ip_ids');
   const ipExistingMode =
     ipMode === 'provider_existing' || ipMode === 'self_owned';
 
@@ -53,10 +53,11 @@ const MachineCreateNetworkStep: React.FC<Props> = ({ catalog, zoneReady }) => {
         <Space size={16} align="start" style={{ width: '100%' }}>
           <Form.Item name={['network', 'vpc_id']} label="VPC" style={{ flex: 1 }}>
             <MachineCreateCatalogSelect
-              options={vpcOptions}
-              loading={catalog.loadingByCategory['network-options']}
-              disabled={!zoneReady}
-              placeholder="Select VPC"
+              options={vpcField.options}
+              loading={vpcField.loading}
+              disabled={vpcField.disabled}
+              placeholder={vpcField.placeholder}
+              notFoundContent={vpcField.emptyText}
             />
           </Form.Item>
           <Form.Item
@@ -66,10 +67,11 @@ const MachineCreateNetworkStep: React.FC<Props> = ({ catalog, zoneReady }) => {
             rules={[{ required: true, message: 'Please select subnet.' }]}
           >
             <MachineCreateCatalogSelect
-              options={subnetOptions}
-              loading={catalog.loadingByCategory['network-options']}
-              disabled={!zoneReady}
-              placeholder="Select subnet"
+              options={subnetField.options}
+              loading={subnetField.loading}
+              disabled={subnetField.disabled}
+              placeholder={subnetField.placeholder}
+              notFoundContent={subnetField.emptyText}
             />
           </Form.Item>
         </Space>
@@ -80,10 +82,11 @@ const MachineCreateNetworkStep: React.FC<Props> = ({ catalog, zoneReady }) => {
             style={{ flex: 1 }}
           >
             <MachineCreateCatalogSelect
-              options={securityGroupOptions}
-              loading={catalog.loadingByCategory['network-options']}
-              disabled={!zoneReady}
-              placeholder="Select security group"
+              options={securityGroupField.options}
+              loading={securityGroupField.loading}
+              disabled={securityGroupField.disabled}
+              placeholder={securityGroupField.placeholder}
+              notFoundContent={securityGroupField.emptyText}
             />
           </Form.Item>
           <Form.Item
@@ -137,10 +140,11 @@ const MachineCreateNetworkStep: React.FC<Props> = ({ catalog, zoneReady }) => {
           label="IP Assignment Mode"
         >
           <MachineCreateCatalogSelect
-            options={ipModeOptions}
-            loading={catalog.loadingByCategory['ip-options']}
-            disabled={!catalog.available}
-            placeholder="Select IP assignment mode"
+            options={ipModeField.options}
+            loading={ipModeField.loading}
+            disabled={ipModeField.disabled}
+            placeholder={ipModeField.placeholder}
+            notFoundContent={ipModeField.emptyText}
           />
         </Form.Item>
 
@@ -169,10 +173,11 @@ const MachineCreateNetworkStep: React.FC<Props> = ({ catalog, zoneReady }) => {
           >
             <MachineCreateCatalogSelect
               mode="multiple"
-              options={ipOptions}
-              loading={catalog.loadingByCategory['ip-options']}
-              disabled={!catalog.available}
-              placeholder="Select IPs"
+              options={ipField.options}
+              loading={ipField.loading}
+              disabled={ipField.disabled}
+              placeholder={ipField.placeholder}
+              notFoundContent={ipField.emptyText}
             />
           </Form.Item>
         ) : (

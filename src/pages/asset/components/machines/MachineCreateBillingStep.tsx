@@ -21,15 +21,15 @@ type Props = {
 };
 
 const MachineCreateBillingStep: React.FC<Props> = ({ catalog, zoneReady }) => {
-  const billingTypeOptions = catalog.getFieldOptions('billing.type');
-  const periodUnitOptions = catalog.getFieldOptions('billing.period_unit');
-  const billingInternetOptions = catalog.getFieldOptions(
+  const billingTypeField = catalog.getFieldStatus('billing.type');
+  const periodUnitField = catalog.getFieldStatus('billing.period_unit');
+  const billingInternetField = catalog.getFieldStatus(
     'billing.internet_charge_type',
   );
-  const systemDiskOptions = catalog.getFieldOptions(
+  const systemDiskField = catalog.getFieldStatus(
     'storage.system_disk.category',
   );
-  const dataDiskOptions = catalog.getFieldOptions('storage.data_disks.category');
+  const dataDiskField = catalog.getFieldStatus('storage.data_disks.category');
 
   return (
     <>
@@ -55,10 +55,11 @@ const MachineCreateBillingStep: React.FC<Props> = ({ catalog, zoneReady }) => {
             rules={[{ required: true, message: 'Please select billing type.' }]}
           >
             <MachineCreateCatalogSelect
-              options={billingTypeOptions}
-              loading={catalog.loadingByCategory['billing-options']}
-              disabled={!catalog.available}
-              placeholder="Select billing type"
+              options={billingTypeField.options}
+              loading={billingTypeField.loading}
+              disabled={billingTypeField.disabled}
+              placeholder={billingTypeField.placeholder}
+              notFoundContent={billingTypeField.emptyText}
             />
           </Form.Item>
           <Form.Item
@@ -74,10 +75,11 @@ const MachineCreateBillingStep: React.FC<Props> = ({ catalog, zoneReady }) => {
             style={{ width: 200 }}
           >
             <MachineCreateCatalogSelect
-              options={periodUnitOptions}
-              loading={catalog.loadingByCategory['billing-options']}
-              disabled={!catalog.available}
-              placeholder="Select unit"
+              options={periodUnitField.options}
+              loading={periodUnitField.loading}
+              disabled={periodUnitField.disabled}
+              placeholder={periodUnitField.placeholder}
+              notFoundContent={periodUnitField.emptyText}
             />
           </Form.Item>
         </Space>
@@ -88,10 +90,11 @@ const MachineCreateBillingStep: React.FC<Props> = ({ catalog, zoneReady }) => {
             style={{ flex: 1 }}
           >
             <MachineCreateCatalogSelect
-              options={billingInternetOptions}
-              loading={catalog.loadingByCategory['billing-options']}
-              disabled={!catalog.available}
-              placeholder="Select internet charge type"
+              options={billingInternetField.options}
+              loading={billingInternetField.loading}
+              disabled={billingInternetField.disabled}
+              placeholder={billingInternetField.placeholder}
+              notFoundContent={billingInternetField.emptyText}
             />
           </Form.Item>
           <Form.Item
@@ -129,10 +132,11 @@ const MachineCreateBillingStep: React.FC<Props> = ({ catalog, zoneReady }) => {
             style={{ flex: 1 }}
           >
             <MachineCreateCatalogSelect
-              options={systemDiskOptions}
-              loading={catalog.loadingByCategory['storage-options']}
-              disabled={!zoneReady}
-              placeholder="Select system disk category"
+              options={systemDiskField.options}
+              loading={systemDiskField.loading}
+              disabled={systemDiskField.disabled}
+              placeholder={systemDiskField.placeholder}
+              notFoundContent={systemDiskField.emptyText}
             />
           </Form.Item>
           <Form.Item
@@ -200,10 +204,11 @@ const MachineCreateBillingStep: React.FC<Props> = ({ catalog, zoneReady }) => {
                       style={{ flex: 1 }}
                     >
                       <MachineCreateCatalogSelect
-                        options={dataDiskOptions}
-                        loading={catalog.loadingByCategory['storage-options']}
-                        disabled={!zoneReady}
-                        placeholder="Select data disk category"
+                        options={dataDiskField.options}
+                        loading={dataDiskField.loading}
+                        disabled={dataDiskField.disabled}
+                        placeholder={dataDiskField.placeholder}
+                        notFoundContent={dataDiskField.emptyText}
                       />
                     </Form.Item>
                     <Form.Item

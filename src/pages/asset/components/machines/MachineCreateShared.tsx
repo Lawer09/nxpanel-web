@@ -30,6 +30,7 @@ export const MachineCreateCatalogSelect: React.FC<{
   disabled?: boolean;
   mode?: 'multiple';
   allowClear?: boolean;
+  notFoundContent?: React.ReactNode;
 }> = ({
   options = [],
   placeholder,
@@ -37,6 +38,7 @@ export const MachineCreateCatalogSelect: React.FC<{
   disabled = false,
   mode,
   allowClear = true,
+  notFoundContent,
 }) => (
   <Select
     showSearch
@@ -46,6 +48,7 @@ export const MachineCreateCatalogSelect: React.FC<{
     loading={loading}
     optionFilterProp="searchLabel"
     placeholder={placeholder}
+    notFoundContent={notFoundContent}
     options={options.map((item) => ({
       label: item.selectable ? (
         item.label

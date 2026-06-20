@@ -111,6 +111,7 @@
 
 - 修复项目报表数值展示精度错误：将金额、比例、ROI 与流量相关字段的前端显示从 3 位小数恢复为 2 位小数，并同步修正文档示例（src/pages/report/project/index.tsx, docs/api/project-report-api.md）。
 - 修复通用报表新增统计字段时主表列与合计行顺序不一致的问题：为当前激活列补全受控 `order`，并让指标列顺序跟随当前 `metrics` 选中顺序，避免新字段在主表提前插入、在合计行追加到末尾（src/components/report/UniversalReportTable.tsx, docs/components/universal_report.md, docs/issue/report_sorting_issue.md）。
+- 修复 Asset 机器创建候选参数空态误导：为 machine-create 各字段补充按账号/区域/可用区分层的依赖禁用、下拉空态和字段级提示，避免在未满足 `region` / `zone` 前提时把未请求 catalog 误显示为“无数据”，并同步强调 image 为 zone-scoped、time zone 为 account-scoped（src/pages/asset/components/machines/useMachineCreateCatalogs.ts, src/pages/asset/components/machines/MachineCreateBasicStep.tsx, src/pages/asset/components/machines/MachineCreateBillingStep.tsx, src/pages/asset/components/machines/MachineCreateNetworkStep.tsx, src/pages/asset/components/machines/MachineCreateAccessStep.tsx, src/pages/asset/components/machines/MachineCreateShared.tsx）。
 ### 优化功能
 
 - 优化 Asset 机器供应商创建体验：新增 `machine-create-options` 候选参数请求层与解析工具，在供应商创建/重试弹窗中按账号、区域、可用区联动加载 Zone、规格、镜像、密钥、子网和安全组候选项，并保留高级 JSON 兜底未文档化字段，减少用户手动输入（src/services/asset-service/api.ts, src/services/asset-service/typings.d.ts, src/pages/asset/components/machines/, src/pages/asset/components/panels/MachinesPanel.tsx）。

@@ -11,8 +11,8 @@ type Props = {
 };
 
 const MachineCreateAccessStep: React.FC<Props> = ({ catalog }) => {
-  const sshKeyOptions = catalog.getFieldOptions('ssh_key.provider_key_id');
-  const timezoneOptions = catalog.getFieldOptions('time_zone');
+  const sshKeyField = catalog.getFieldStatus('ssh_key.provider_key_id');
+  const timezoneField = catalog.getFieldStatus('time_zone');
 
   return (
     <>
@@ -35,10 +35,11 @@ const MachineCreateAccessStep: React.FC<Props> = ({ catalog }) => {
             style={{ flex: 1 }}
           >
             <MachineCreateCatalogSelect
-              options={sshKeyOptions}
-              loading={catalog.loadingByCategory['ssh-keys']}
-              disabled={!catalog.available}
-              placeholder="Select provider SSH key"
+              options={sshKeyField.options}
+              loading={sshKeyField.loading}
+              disabled={sshKeyField.disabled}
+              placeholder={sshKeyField.placeholder}
+              notFoundContent={sshKeyField.emptyText}
             />
           </Form.Item>
           <Form.Item
@@ -49,12 +50,17 @@ const MachineCreateAccessStep: React.FC<Props> = ({ catalog }) => {
             <Input.Password placeholder="Sensitive field" />
           </Form.Item>
         </Space>
-        <Form.Item name="time_zone" label="Time Zone">
+        <Form.Item
+          name="time_zone"
+          label="Time Zone"
+          extra="Loaded from the provider account scope. Region and zone are not required for this catalog."
+        >
           <MachineCreateCatalogSelect
-            options={timezoneOptions}
-            loading={catalog.loadingByCategory.timezones}
-            disabled={!catalog.available}
-            placeholder="Select time zone"
+            options={timezoneField.options}
+            loading={timezoneField.loading}
+            disabled={timezoneField.disabled}
+            placeholder={timezoneField.placeholder}
+            notFoundContent={timezoneField.emptyText}
           />
         </Form.Item>
       </MachineCreateSection>
