@@ -65,7 +65,7 @@ const DevAuthGate: React.FC<DevAuthGateProps> = ({ children }) => {
           type="warning"
           showIcon
           message="Management login required"
-          description="Nodes, Dev, and IAM management APIs use a temporary JWT session during development. Log in here to continue without changing the normal platform login state."
+          description="Management APIs use a temporary JWT session during development. Log in here to continue without changing the normal platform login state."
           action={
             <Button icon={<LoginOutlined />} onClick={() => setState(getSessionState())}>
               Login

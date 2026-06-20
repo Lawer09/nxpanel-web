@@ -1,11 +1,26 @@
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
 import { useSearchParams } from '@umijs/max';
-import { App, Button, Descriptions, Drawer, Input, Select, Space, Tabs, Tag, Typography } from 'antd';
+import {
+  App,
+  Button,
+  Descriptions,
+  Drawer,
+  Select,
+  Space,
+  Tabs,
+  Tag,
+  Typography,
+} from 'antd';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { getAssetOperationDetail, listAssetOperations, listAssetProviderAccounts, listAssetProviders } from '@/services/asset-service/api';
-import DevAuthGate from './components/DevAuthGate';
-import JsonBlock from './components/JsonBlock';
+import {
+  getAssetOperationDetail,
+  listAssetOperations,
+  listAssetProviderAccounts,
+  listAssetProviders,
+} from '@/services/asset-service/api';
+import DevAuthGate from '../dev/components/DevAuthGate';
+import JsonBlock from '../dev/components/JsonBlock';
 
 const { Text } = Typography;
 
@@ -13,8 +28,6 @@ type OperationFilters = {
   provider_code?: string;
   account_id?: number;
   status?: string;
-  operation_type?: string;
-  target_type?: string;
 };
 
 const formatText = (value?: string | number | null) => {
@@ -28,7 +41,10 @@ const formatTime = (value?: string | null) => formatText(value);
 
 const normalizeDevErrorMessage = (error: any) => {
   const messageText = error?.message || 'Request failed.';
-  if (typeof messageText === 'string' && messageText.includes('capability_not_supported')) {
+  if (
+    typeof messageText === 'string' &&
+    messageText.includes('capability_not_supported')
+  ) {
     return 'Current provider capability does not support this action.';
   }
   return messageText;
@@ -50,7 +66,10 @@ const OperationFiltersBar: React.FC<{
   const accountOptions = useMemo(
     () =>
       accounts
-        .filter((item) => !local.provider_code || item.provider_code === local.provider_code)
+        .filter(
+          (item) =>
+            !local.provider_code || item.provider_code === local.provider_code,
+        )
         .map((item) => ({
           label: `${item.name} (#${item.id})`,
           value: item.id,
@@ -75,7 +94,8 @@ const OperationFiltersBar: React.FC<{
           setLocal((current) => ({
             ...current,
             provider_code: value,
-            account_id: current.provider_code === value ? current.account_id : undefined,
+            account_id:
+              current.provider_code === value ? current.account_id : undefined,
           }))
         }
       />
@@ -87,7 +107,9 @@ const OperationFiltersBar: React.FC<{
         optionFilterProp="label"
         value={local.account_id}
         options={accountOptions}
-        onChange={(value) => setLocal((current) => ({ ...current, account_id: value }))}
+        onChange={(value) =>
+          setLocal((current) => ({ ...current, account_id: value }))
+        }
       />
       <Select
         allowClear
@@ -101,22 +123,8 @@ const OperationFiltersBar: React.FC<{
           { label: 'failed', value: 'failed' },
           { label: 'cancelled', value: 'cancelled' },
         ]}
-        onChange={(value) => setLocal((current) => ({ ...current, status: value }))}
-      />
-      <Input
-        style={{ width: 180 }}
-        placeholder="Operation Type"
-        value={local.operation_type}
-        onChange={(event) =>
-          setLocal((current) => ({ ...current, operation_type: event.target.value || undefined }))
-        }
-      />
-      <Input
-        style={{ width: 180 }}
-        placeholder="Target Type"
-        value={local.target_type}
-        onChange={(event) =>
-          setLocal((current) => ({ ...current, target_type: event.target.value || undefined }))
+        onChange={(value) =>
+          setLocal((current) => ({ ...current, status: value }))
         }
       />
       <Button type="primary" onClick={() => onApply(local)}>
@@ -168,7 +176,11 @@ const AssetOperationsContent: React.FC = () => {
 
   const columns: ProColumns<API.AssetOperation>[] = [
     { title: 'ID', dataIndex: 'id', width: 90 },
-    { title: 'Operation Type', dataIndex: 'operation_type', renderText: formatText },
+    {
+      title: 'Operation Type',
+      dataIndex: 'operation_type',
+      renderText: formatText,
+    },
     { title: 'Target Type', dataIndex: 'target_type', renderText: formatText },
     { title: 'Target ID', dataIndex: 'target_id', renderText: formatText },
     {
@@ -262,14 +274,13 @@ const AssetOperationsContent: React.FC = () => {
                 provider_code: filters.provider_code,
                 account_id: filters.account_id,
                 status: filters.status,
-                operation_type: filters.operation_type,
-                target_type: filters.target_type,
               });
               const items = response.data?.items || [];
               const sortedItems = initialTaskId
                 ? [...items].sort((left, right) => {
                     const leftMatch = String(left.id) === initialTaskId ? 1 : 0;
-                    const rightMatch = String(right.id) === initialTaskId ? 1 : 0;
+                    const rightMatch =
+                      String(right.id) === initialTaskId ? 1 : 0;
                     return rightMatch - leftMatch;
                   })
                 : items;
@@ -289,7 +300,9 @@ const AssetOperationsContent: React.FC = () => {
             </Button>,
           ]}
           rowClassName={(record) =>
-            initialTaskId && String(record.id) === initialTaskId ? 'asset-operation-highlight' : ''
+            initialTaskId && String(record.id) === initialTaskId
+              ? 'asset-operation-highlight'
+              : ''
           }
         />
       </Space>
@@ -310,17 +323,27 @@ const AssetOperationsContent: React.FC = () => {
                 label: '摘要',
                 children: (
                   <Descriptions bordered column={2}>
-                    <Descriptions.Item label="ID">{detail.id}</Descriptions.Item>
-                    <Descriptions.Item label="Status">{detail.status || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="ID">
+                      {detail.id}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Status">
+                      {detail.status || '-'}
+                    </Descriptions.Item>
                     <Descriptions.Item label="Operation Type">
                       {detail.operation_type || '-'}
                     </Descriptions.Item>
                     <Descriptions.Item label="Target Type">
                       {detail.target_type || '-'}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Target ID">{detail.target_id || '-'}</Descriptions.Item>
-                    <Descriptions.Item label="Provider">{detail.provider_code || '-'}</Descriptions.Item>
-                    <Descriptions.Item label="Account">{detail.account_name || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="Target ID">
+                      {detail.target_id || '-'}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Provider">
+                      {detail.provider_code || '-'}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Account">
+                      {detail.account_name || '-'}
+                    </Descriptions.Item>
                     <Descriptions.Item label="Created By">
                       {formatText(detail.created_by)}
                     </Descriptions.Item>

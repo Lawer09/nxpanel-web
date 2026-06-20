@@ -1,4 +1,4 @@
-# Version Log
+﻿# Version Log
 
 ## 维护说明（必读）
 
@@ -97,6 +97,7 @@
 - 新增 Dev 资产控制台与操作记录页面，在 `Dev` 下补充 `/dev/assets` 和 `/dev/asset-operations` 两个菜单，使用共享筛选、页内 Tabs、抽屉与弹窗集中承载供应商账号、机器、IP、SSH 密钥和异步操作追踪（config/routes.ts, src/locales/zh-CN/menu.ts, src/locales/en-US/menu.ts, src/pages/dev/Assets.tsx, src/pages/dev/AssetOperations.tsx）。
 - 新增 asset-service 独立前端请求层与类型定义，统一通过 `/v4/assets/*` 代理到 `/api/v1/assets/*` 并复用当前 Dev 管理 JWT 鉴权，对接 ProviderAccount、Machine、IP、SSHKey、Operation 与 TaskAck 接口（config/proxy.ts, src/services/dev-admin/request.ts, src/services/asset-service/）。
 - 新增 asset-service 接口文档，固化 Dev 资产控制台当前使用的资源范围、异步任务跳转规则和 `capability_not_supported` 交互约束（docs/api/asset_service_api.md）。
+- 新增独立 Asset 管理菜单组，将 asset-service 资产能力从 Dev 迁移到 `/asset/provider-accounts`、`/asset/machines`、`/asset/ips`、`/asset/ssh-keys`、`/asset/operations` 子菜单，并按新版接口补充供应商机器重试创建和创建请求信息展示（config/routes.ts, src/pages/asset/, src/services/asset-service/）。
 - 新增独立 IAM 管理菜单组，管理登录态下提供用户、角色、权限、菜单、Client 与审计日志页面，并将管理登录接口切换到 `/api/v1/iam/*`，与 Dev 菜单并列展示且不混入运营菜单（config/routes.ts, config/proxy.ts, src/pages/iam/, src/services/iam/, src/services/dev-admin/）。
 
 - 鏂板 Nodes 鐙珛绠＄悊鑿滃崟缁勫苟灏?node-service 鎺у埗闈㈣繕绉诲嚭 Dev锛氬皢 Agent/Node 鑿滃崟杩佺Щ鍒?`/nodes/overview`銆?`/nodes/list`銆?`/nodes/agents`锛屽悓鏃跺皢 node-service 璇锋眰鍓嶇紑鍒囨崲涓?`/v4/nodes/* -> /api/v1/nodes/*`锛屽苟琛ュ叏 Overview 棣栭〉銆丯odes/Agents 璇︽儏鐨?runtime銆乻amples銆乼raffic銆乷nline銆乪vents 鑳藉姏锛坈onfig/routes.ts, config/proxy.ts, src/app.tsx, src/pages/dev/NodesOverview.tsx, src/pages/dev/Nodes.tsx, src/pages/dev/Agents.tsx, src/services/node-control/锛夈€?
@@ -104,11 +105,18 @@
 ### 优化功能
 
 - 优化项目报表流量费用展示：接入 `trafficCostRatio` 伴随字段，在“流量费用”列展示为“流量费用 (流量消耗占比)”，并支持普通行、当前页合计和总数据合计统一展示（src/pages/report/project/index.tsx, src/components/report/UniversalReportTable.tsx, docs/api/project-report-api.md, docs/api/project_report_query_api.md）。
+- 优化 Asset 管理模块结构：将巨型 `src/pages/asset/index.tsx` 拆分为页面壳、共享筛选、资源面板、机器弹窗/详情抽屉与 payload 工具模块，并彻底移除 Dev 下旧资产兼容入口 `/dev/assets`、`/dev/asset-operations`，避免 Asset 与 Dev 旧页面继续混杂（config/routes.ts, src/pages/asset/, src/pages/dev/Assets.tsx, src/pages/dev/AssetOperations.tsx）。
 
 ### Bug 修复
 
 - 修复项目报表数值展示精度错误：将金额、比例、ROI 与流量相关字段的前端显示从 3 位小数恢复为 2 位小数，并同步修正文档示例（src/pages/report/project/index.tsx, docs/api/project-report-api.md）。
 - 修复通用报表新增统计字段时主表列与合计行顺序不一致的问题：为当前激活列补全受控 `order`，并让指标列顺序跟随当前 `metrics` 选中顺序，避免新字段在主表提前插入、在合计行追加到末尾（src/components/report/UniversalReportTable.tsx, docs/components/universal_report.md, docs/issue/report_sorting_issue.md）。
+### 优化功能
+
+- 优化 Asset 机器供应商创建体验：新增 `machine-create-options` 候选参数请求层与解析工具，在供应商创建/重试弹窗中按账号、区域、可用区联动加载 Zone、规格、镜像、密钥、子网和安全组候选项，并保留高级 JSON 兜底未文档化字段，减少用户手动输入（src/services/asset-service/api.ts, src/services/asset-service/typings.d.ts, src/pages/asset/components/machines/, src/pages/asset/components/panels/MachinesPanel.tsx）。
+
+ - 优化 Asset 机器供应商创建参数对齐：Zenlayer 创建表单与重试回填统一改用 `payload.timeZone`、`payload.instanceCount`、`payload.bandwidth` 和 `payload.subnetId`，将 `vpcId` 降级为前端子网筛选与 `metadata.provider_network.vpcId` 记录字段，并在高级 JSON 兜底场景下兼容旧键名后再归一化提交（src/pages/asset/components/machines/MachineFormFields.tsx, src/pages/asset/components/machines/machinePayload.ts, src/pages/asset/components/machines/MachineProviderRetryModal.tsx, src/pages/asset/components/panels/MachinesPanel.tsx）。
+- Optimize Asset provider machine create and retry flow: replace the old payload passthrough modal with a 5-step wizard, generic machine-create catalog loading, explicit price quote, and protocol-aligned request mapping (src/pages/asset/components/machines/, src/pages/asset/components/panels/MachinesPanel.tsx, src/services/asset-service/api.ts, src/services/asset-service/typings.d.ts, src/services/dev-admin/request.ts).
 ## [1.3.1] - 2026-06-08
 
 ### 新增功能
@@ -298,3 +306,5 @@
 ### Bug 修复
 
 - 对齐流量平台日流量汇总、月流量汇总和小时流量字段命名：将前端类型声明、表格列和接口文档从 `statDate/statMonth/statHour` 更新为 `reportDate/reportMonth/reportHour`，并保留旧字段兼容兜底（src/pages/traffic-platform/dashboard/components/UsageDataTabs.tsx, src/services/traffic-platform/typings.d.ts, docs/api/traffic_platform_api.md, docs/api/traffic_platform_platforms_api.md, docs/issue/global.md）。
+
+

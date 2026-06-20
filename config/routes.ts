@@ -361,7 +361,7 @@ export default [
     routes: [
       {
         path: '/dev',
-        redirect: '/dev/assets',
+        redirect: '/dev/services',
       },
       {
         path: '/dev/nodes',
@@ -379,19 +379,45 @@ export default [
         component: './dev/Services',
       },
       {
-        path: '/dev/assets',
-        name: 'assets',
-        component: './dev/Assets',
-      },
-      {
-        path: '/dev/asset-operations',
-        name: 'asset-operations',
-        component: './dev/AssetOperations',
-      },
-      {
         path: '/dev/menus',
         redirect: '/iam/menus',
         hideInMenu: true,
+      },
+    ],
+  },
+  {
+    path: '/asset',
+    name: 'asset',
+    icon: 'appstore',
+    routes: [
+      {
+        path: '/asset',
+        redirect: '/asset/machines',
+      },
+      {
+        path: '/asset/provider-accounts',
+        name: 'provider-accounts',
+        component: './asset/ProviderAccounts',
+      },
+      {
+        path: '/asset/machines',
+        name: 'machines',
+        component: './asset/Machines',
+      },
+      {
+        path: '/asset/ips',
+        name: 'ips',
+        component: './asset/Ips',
+      },
+      {
+        path: '/asset/ssh-keys',
+        name: 'ssh-keys',
+        component: './asset/SshKeys',
+      },
+      {
+        path: '/asset/operations',
+        name: 'operations',
+        component: './asset/Operations',
       },
     ],
   },

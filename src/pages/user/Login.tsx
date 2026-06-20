@@ -145,7 +145,8 @@ const LoginPage: React.FC = () => {
           redirect?.startsWith('/') &&
           !redirect.startsWith('/nodes') &&
           !redirect.startsWith('/dev') &&
-          !redirect.startsWith('/iam')
+          !redirect.startsWith('/iam') &&
+          !redirect.startsWith('/asset')
             ? redirect
             : '/';
         history.replace(targetPath);
@@ -177,7 +178,8 @@ const LoginPage: React.FC = () => {
         history.replace(
           redirect?.startsWith('/nodes') ||
             redirect?.startsWith('/dev') ||
-            redirect?.startsWith('/iam')
+            redirect?.startsWith('/iam') ||
+            redirect?.startsWith('/asset')
             ? redirect
             : '/nodes/overview',
         );

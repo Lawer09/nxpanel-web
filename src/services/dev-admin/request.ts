@@ -23,6 +23,27 @@ export class DevAdminUnauthorizedError extends Error {
   }
 }
 
+export class DevAdminRequestError extends Error {
+  httpStatus?: number;
+  errorType?: string;
+  errorDetail?: string;
+
+  constructor(
+    message: string,
+    options?: {
+      httpStatus?: number;
+      errorType?: string;
+      errorDetail?: string;
+    },
+  ) {
+    super(message);
+    this.name = 'DevAdminRequestError';
+    this.httpStatus = options?.httpStatus;
+    this.errorType = options?.errorType;
+    this.errorDetail = options?.errorDetail;
+  }
+}
+
 const normalizePath = (path: string) => {
   if (
     !path.startsWith(DEV_ADMIN_ALIAS_PREFIX) &&
@@ -49,6 +70,16 @@ const buildQuery = (params?: Record<string, unknown>) => {
 
 const getErrorMessage = (payload: Partial<API.DevAdminApiResponse<unknown>> | undefined) =>
   payload?.message || payload?.error?.detail || payload?.error?.type || 'Management request failed.';
+
+const buildRequestError = (
+  response: Response,
+  payload: Partial<API.DevAdminApiResponse<unknown>> | undefined,
+) =>
+  new DevAdminRequestError(getErrorMessage(payload) || `HTTP ${response.status}`, {
+    httpStatus: response.status,
+    errorType: payload?.error?.type,
+    errorDetail: payload?.error?.detail,
+  });
 
 const isLegacyNodeControlSignatureError = (
   path: string,
@@ -96,7 +127,7 @@ const executeDevAdminRequest = async <T>(
   }
 
   if (response.status === 401 && isLegacyNodeControlSignatureError(path, payload)) {
-    throw new Error(getErrorMessage(payload));
+    throw buildRequestError(response, payload);
   }
 
   if (response.status === 401 && options.auth !== false && allowRefresh) {
@@ -113,7 +144,7 @@ const executeDevAdminRequest = async <T>(
       clearDevAdminSession();
       throw new DevAdminUnauthorizedError(getErrorMessage(payload));
     }
-    throw new Error(getErrorMessage(payload) || `HTTP ${response.status}`);
+    throw buildRequestError(response, payload);
   }
 
   if (!payload) {
@@ -121,7 +152,7 @@ const executeDevAdminRequest = async <T>(
   }
 
   if (payload.code !== 0) {
-    throw new Error(getErrorMessage(payload));
+    throw buildRequestError(response, payload);
   }
 
   return payload;

@@ -48,6 +48,32 @@ export async function testAssetProviderAccountConnection(accountId: number) {
   );
 }
 
+export async function getAssetMachineCreateCatalog(
+  accountId: number,
+  category: API.AssetMachineCreateCatalogCategory,
+  params?: API.AssetMachineCreateCatalogQuery,
+) {
+  return devAdminRequest<API.AssetMachineCreateCatalog>(
+    `${ASSET_PREFIX}/provider-accounts/${accountId}/machine-create/${category}`,
+    {
+      params: toQueryParams(params),
+    },
+  );
+}
+
+export async function quoteAssetMachineCreatePrice(
+  accountId: number,
+  body: API.AssetMachineCreateFromProviderParams,
+) {
+  return devAdminRequest<API.AssetMachineCreatePriceQuote>(
+    `${ASSET_PREFIX}/provider-accounts/${accountId}/machine-create/price`,
+    {
+      method: 'POST',
+      body,
+    },
+  );
+}
+
 export async function listAssetMachines(params?: API.AssetListParams & { source?: string; name?: string }) {
   return devAdminRequest<API.AssetPageResult<API.AssetMachine>>(`${ASSET_PREFIX}/machines`, {
     params: toQueryParams(params),
@@ -70,6 +96,19 @@ export async function createAssetMachineFromProvider(body: API.AssetMachineCreat
     method: 'POST',
     body,
   });
+}
+
+export async function retryAssetMachineProviderCreate(
+  machineId: number,
+  body: API.AssetMachineRetryProviderCreateParams,
+) {
+  return devAdminRequest<API.AssetTaskAck>(
+    `${ASSET_PREFIX}/machines/${machineId}/retry-provider-create`,
+    {
+      method: 'POST',
+      body,
+    },
+  );
 }
 
 export async function importAssetMachinesFromProvider(body: { account_id: number; region?: string }) {

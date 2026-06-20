@@ -30,7 +30,10 @@ const VERSION_CHECK_INTERVAL = 60_000;
 const devHomePath = '/nodes/overview';
 const authFreePaths = [loginPath, '/user/register', '/user/register-result'];
 const isManagementPathname = (pathname: string) =>
-  pathname.startsWith('/nodes') || pathname.startsWith('/dev') || pathname.startsWith('/iam');
+  pathname.startsWith('/nodes') ||
+  pathname.startsWith('/dev') ||
+  pathname.startsWith('/iam') ||
+  pathname.startsWith('/asset');
 
 let lastCheckTime = 0;
 let checking = false;
@@ -181,11 +184,19 @@ export const layout: RunTimeLayoutConfig = ({
     menuDataRender: (menuData) => {
       if (isManagementMode) {
         return menuData.filter(
-          (item) => item.path === '/nodes' || item.path === '/dev' || item.path === '/iam',
+          (item) =>
+            item.path === '/nodes' ||
+            item.path === '/dev' ||
+            item.path === '/iam' ||
+            item.path === '/asset',
         );
       }
       return menuData.filter(
-        (item) => item.path !== '/nodes' && item.path !== '/dev' && item.path !== '/iam',
+        (item) =>
+          item.path !== '/nodes' &&
+          item.path !== '/dev' &&
+          item.path !== '/iam' &&
+          item.path !== '/asset',
       );
     },
     onPageChange: () => {

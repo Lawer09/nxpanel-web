@@ -43,7 +43,7 @@ const DevLoginModal: React.FC<DevLoginModalProps> = ({ open, onSuccess }) => {
       cancelButtonProps={{ style: { display: 'none' } }}
     >
       <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-        This temporary login only applies to Nodes, Dev, and IAM management APIs in the current browser tab.
+        This temporary login only applies to management APIs in the current browser tab.
       </Text>
       <Form form={form} layout="vertical" autoComplete="off">
         <Form.Item
