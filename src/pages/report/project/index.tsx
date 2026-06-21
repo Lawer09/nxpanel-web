@@ -50,11 +50,14 @@ const COMMON_COUNTRY_OPTIONS = [
   'RU',
 ];
 
+const DEFAULT_AD_STATUS_OPTIONS = ['activate', 'deactivate'];
+
 type QueryState = {
   dateRange: [string, string];
   dateRangePreset?: DateRangePreset;
   projectCodes?: string[];
   countries?: string[];
+  adStatuses?: string[];
 };
 
 const toSafeNumber = (v: unknown) => {
@@ -319,6 +322,12 @@ const normalizeProjectCodes = (projectCodes?: string[]) => {
   return normalized.length ? Array.from(new Set(normalized)) : undefined;
 };
 
+const normalizeAdStatuses = (adStatuses?: string[]) => {
+  if (!Array.isArray(adStatuses) || !adStatuses.length) return undefined;
+  const normalized = adStatuses.map((item) => item.trim()).filter(Boolean);
+  return normalized.length ? Array.from(new Set(normalized)) : undefined;
+};
+
 type ReportSorter = {
   field?: string;
   columnKey?: string;
@@ -339,6 +348,7 @@ const buildProjectReportQuery = (
     filters: {
       projectCodes: normalizeProjectCodes(query.projectCodes),
       countries: normalizeCountries(query.countries),
+      adStatuses: normalizeAdStatuses(query.adStatuses),
     },
     orderBy: sorter?.field || sorter?.columnKey,
     orderDirection: toOrderDirection(sorter?.order),
@@ -388,6 +398,7 @@ const ProjectAggregatesPage: React.FC = () => {
           dateRangePreset: 'yesterdayToToday',
           projectCodes: undefined,
           countries: undefined,
+          adStatuses: undefined,
         }}
         defaultDimensions={['projectCode']}
         defaultMetrics={[
@@ -482,6 +493,28 @@ const ProjectAggregatesPage: React.FC = () => {
                 />
               </Form.Item>
             ) : null}
+            <Form.Item label="广告状态">
+              <Select
+                mode="tags"
+                allowClear
+                maxTagCount="responsive"
+                style={{ width: 240 }}
+                placeholder="请选择广告状态，支持输入"
+                tokenSeparators={[',', '，', ' ']}
+                value={query.adStatuses}
+                options={DEFAULT_AD_STATUS_OPTIONS.map((status) => ({
+                  label: status,
+                  value: status,
+                }))}
+                onChange={(value) => {
+                  const normalized = (value || [])
+                    .map((item) => `${item}`.trim())
+                    .filter(Boolean);
+                  const deduped = Array.from(new Set(normalized));
+                  setQuery((prev) => ({ ...prev, adStatuses: deduped.length ? deduped : undefined }));
+                }}
+              />
+            </Form.Item>
           </Form>
         )}
         fetchData={async ({ query, page, pageSize, dimensions, sorter }) => {

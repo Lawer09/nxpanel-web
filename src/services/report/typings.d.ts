@@ -308,6 +308,7 @@ declare namespace API {
     filters?: {
       projectCodes?: string[];
       countries?: string[];
+      adStatuses?: string[];
     };
     page?: number;
     pageSize?: number;

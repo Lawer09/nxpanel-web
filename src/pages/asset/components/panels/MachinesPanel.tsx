@@ -127,7 +127,6 @@ const MachinesPanel: React.FC<{
       const response = await getAssetMachineDetail(machineId);
       setDetail(response.data);
       setDetailTab(nextTab);
-      bindForm.resetFields();
       if (nextTab === 'ip-bindings') {
         void loadBindOptions(response.data);
       }

@@ -102,7 +102,7 @@ const AssetPageContent: React.FC<{ kind: AssetPageKind }> = ({ kind }) => {
     notification.success({
       message: title,
       description: `Task ID: ${ack.task_id}, status: ${ack.status || 'pending'}.`,
-      btn: (
+      actions: (
         <Button
           size="small"
           onClick={() =>

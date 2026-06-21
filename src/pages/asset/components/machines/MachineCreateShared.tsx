@@ -1,9 +1,13 @@
 import { ReloadOutlined } from '@ant-design/icons';
 import { Alert, Button, Select, Space, Tooltip, Typography } from 'antd';
+import type { SelectProps } from 'antd';
 import React from 'react';
 import type { MachineCreateCatalogOption } from './machineCreateCatalog';
 
 const { Text, Title, Paragraph } = Typography;
+
+const toSelectValue = (value: string | number | boolean) =>
+  typeof value === 'boolean' ? String(value) : value;
 
 export const MachineCreateSection: React.FC<{
   title: string;
@@ -23,7 +27,7 @@ export const MachineCreateSection: React.FC<{
   </div>
 );
 
-export const MachineCreateCatalogSelect: React.FC<{
+type MachineCreateCatalogSelectProps = Omit<SelectProps, 'options'> & {
   options?: MachineCreateCatalogOption[];
   placeholder?: string;
   loading?: boolean;
@@ -31,7 +35,11 @@ export const MachineCreateCatalogSelect: React.FC<{
   mode?: 'multiple';
   allowClear?: boolean;
   notFoundContent?: React.ReactNode;
-}> = ({
+};
+
+export const MachineCreateCatalogSelect: React.FC<
+  MachineCreateCatalogSelectProps
+> = ({
   options = [],
   placeholder,
   loading = false,
@@ -39,8 +47,10 @@ export const MachineCreateCatalogSelect: React.FC<{
   mode,
   allowClear = true,
   notFoundContent,
+  ...selectProps
 }) => (
   <Select
+    {...selectProps}
     showSearch
     allowClear={allowClear}
     mode={mode}
@@ -61,7 +71,7 @@ export const MachineCreateCatalogSelect: React.FC<{
         </Tooltip>
       ),
       searchLabel: item.label,
-      value: item.value,
+      value: toSelectValue(item.value),
       disabled: !item.selectable,
     }))}
   />

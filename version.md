@@ -105,6 +105,7 @@
 ### 优化功能
 
 - 优化项目报表流量费用展示：接入 `trafficCostRatio` 伴随字段，在“流量费用”列展示为“流量费用 (流量消耗占比)”，并支持普通行、当前页合计和总数据合计统一展示（src/pages/report/project/index.tsx, src/components/report/UniversalReportTable.tsx, docs/api/project-report-api.md, docs/api/project_report_query_api.md）。
+- 优化项目报表筛选能力：新增仅用于筛选的 `adStatuses` 条件，下拉默认提供 `activate`、`deactivate` 并支持手动输入，查询和导出时统一透传到 `filters` 参数（src/pages/report/project/index.tsx, src/services/report/typings.d.ts, docs/api/project-report-api.md, docs/api/project_report_query_api.md）。
 - 优化 Asset 管理模块结构：将巨型 `src/pages/asset/index.tsx` 拆分为页面壳、共享筛选、资源面板、机器弹窗/详情抽屉与 payload 工具模块，并彻底移除 Dev 下旧资产兼容入口 `/dev/assets`、`/dev/asset-operations`，避免 Asset 与 Dev 旧页面继续混杂（config/routes.ts, src/pages/asset/, src/pages/dev/Assets.tsx, src/pages/dev/AssetOperations.tsx）。
 
 ### Bug 修复
@@ -112,6 +113,10 @@
 - 修复项目报表数值展示精度错误：将金额、比例、ROI 与流量相关字段的前端显示从 3 位小数恢复为 2 位小数，并同步修正文档示例（src/pages/report/project/index.tsx, docs/api/project-report-api.md）。
 - 修复通用报表新增统计字段时主表列与合计行顺序不一致的问题：为当前激活列补全受控 `order`，并让指标列顺序跟随当前 `metrics` 选中顺序，避免新字段在主表提前插入、在合计行追加到末尾（src/components/report/UniversalReportTable.tsx, docs/components/universal_report.md, docs/issue/report_sorting_issue.md）。
 - 修复 Asset 机器创建候选参数空态误导：为 machine-create 各字段补充按账号/区域/可用区分层的依赖禁用、下拉空态和字段级提示，避免在未满足 `region` / `zone` 前提时把未请求 catalog 误显示为“无数据”，并同步强调 image 为 zone-scoped、time zone 为 account-scoped（src/pages/asset/components/machines/useMachineCreateCatalogs.ts, src/pages/asset/components/machines/MachineCreateBasicStep.tsx, src/pages/asset/components/machines/MachineCreateBillingStep.tsx, src/pages/asset/components/machines/MachineCreateNetworkStep.tsx, src/pages/asset/components/machines/MachineCreateAccessStep.tsx, src/pages/asset/components/machines/MachineCreateShared.tsx）。
+- 修复 Asset 机器创建区域联动不可选问题：按接口定义将 `region` 视为 Zenlayer `regionId`、`zone` 视为 `zoneId`，在前端按 `raw.regionId` 过滤当前 Region 下的 Zone 候选，并避免 catalog 加载期间把下拉控件硬禁用，确保选择 Region 后可继续选择 Zone，再联动加载 Instance Type 与 Image（src/pages/asset/components/machines/useMachineCreateCatalogs.ts）。
+- 修复 Asset 机器创建 Catalog 下拉未写入表单的问题：`MachineCreateCatalogSelect` 透传 Ant Design Form 注入的 `value/onChange` 等 Select 属性，并撤回前端基于 `extra/raw` 的 Zone 过滤逻辑，统一只消费后端 `option_groups[].options[].value`（src/pages/asset/components/machines/MachineCreateShared.tsx, src/pages/asset/components/machines/useMachineCreateCatalogs.ts）。
+- 修复 Asset 机器创建分步切换后 Catalog 状态丢失：在向导弹窗中使用 `Form.useWatch(..., { preserve: true })` 监听已卸载步骤字段，避免进入 Billing 后 `account_id/region/zone` 被误判为空并显示“Select provider account first”（src/pages/asset/components/machines/MachineCreateWizardModal.tsx）。
+- 修复 Asset 页面控制台警告：将 Notification `btn` 替换为 `actions`，为禁用态操作按钮 Tooltip 补充稳定 key，并避免机器详情 IP 绑定表单挂载前调用 `resetFields()` 导致 useForm 未连接警告（src/pages/asset/components/AssetPageShell.tsx, src/pages/asset/utils.tsx, src/pages/asset/components/panels/MachinesPanel.tsx）。
 ### 优化功能
 
 - 优化 Asset 机器供应商创建体验：新增 `machine-create-options` 候选参数请求层与解析工具，在供应商创建/重试弹窗中按账号、区域、可用区联动加载 Zone、规格、镜像、密钥、子网和安全组候选项，并保留高级 JSON 兜底未文档化字段，减少用户手动输入（src/services/asset-service/api.ts, src/services/asset-service/typings.d.ts, src/pages/asset/components/machines/, src/pages/asset/components/panels/MachinesPanel.tsx）。

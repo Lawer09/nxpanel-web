@@ -394,7 +394,9 @@ export const useMachineCreateCatalogs = ({
   useEffect(() => {
     if (!open || !accountId) {
       activeRequestKeyRef.current = {};
-      setCategoryStateMap({});
+      setCategoryStateMap((current) =>
+        Object.keys(current).length ? {} : current,
+      );
       return;
     }
 
@@ -524,7 +526,7 @@ export const useMachineCreateCatalogs = ({
         category,
         group,
         options,
-        disabled: !!dependencyMessage || (loading && options.length === 0),
+        disabled: !!dependencyMessage,
         loading,
         error,
         placeholder: dependencyMessage || FIELD_PLACEHOLDER_MAP[field],

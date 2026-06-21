@@ -126,10 +126,16 @@ const MachineCreateWizardModal: React.FC<Props> = ({
   const [quoteUnsupported, setQuoteUnsupported] = useState(false);
   const [quotedSignature, setQuotedSignature] = useState<string>();
 
-  const watchedAccountId = Form.useWatch('account_id', form);
-  const watchedRegion = Form.useWatch('region', form);
-  const watchedZone = Form.useWatch('zone', form);
-  const watchedVpcId = Form.useWatch(['network', 'vpc_id'], form);
+  const watchedAccountId = Form.useWatch('account_id', {
+    form,
+    preserve: true,
+  });
+  const watchedRegion = Form.useWatch('region', { form, preserve: true });
+  const watchedZone = Form.useWatch('zone', { form, preserve: true });
+  const watchedVpcId = Form.useWatch(['network', 'vpc_id'], {
+    form,
+    preserve: true,
+  });
   const watchedValues = Form.useWatch([], form) as
     | MachineCreateFormValues
     | undefined;
@@ -246,7 +252,7 @@ const MachineCreateWizardModal: React.FC<Props> = ({
     const zoneValue = form.getFieldValue('zone');
     if (
       zoneValue &&
-      !isOptionAvailable(zoneValue, catalog.getFieldOptions('zone'))
+      !isOptionAvailable(zoneValue, catalog.getFieldStatus('zone').options)
     ) {
       nextValues.zone = undefined;
       nextValues.instance_type = undefined;

@@ -20,6 +20,7 @@
 - `filters` `object|null`
   - `filters.projectCodes` `string[]|null`
   - `filters.countries` `string[]|null`（入参会统一转大写后过滤）
+  - `filters.adStatuses` `string[]|null`（广告状态过滤，前端默认候选：`activate`、`deactivate`，也支持手动输入）
 - `page` `int|null`，默认 `1`
 - `pageSize` `int|null`，默认 `50`，范围 `1-200`
 - `orderBy` `string|null`，可选：
@@ -91,7 +92,8 @@
   "dateTo": "2026-05-07",
   "filters": {
     "projectCodes": ["PJT_A", "PJT_B"],
-    "countries": ["us", "jp"]
+    "countries": ["us", "jp"],
+    "adStatuses": ["activate"]
   },
   "page": 1,
   "pageSize": 50,
@@ -108,7 +110,8 @@
   "dateTo": "2026-05-07",
   "groupBy": ["projectCode", "country"],
   "filters": {
-    "projectCodes": ["PJT_A"]
+    "projectCodes": ["PJT_A"],
+    "adStatuses": ["activate", "deactivate"]
   },
   "page": 1,
   "pageSize": 100,

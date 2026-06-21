@@ -141,7 +141,7 @@ export const renderActionButton = (
   }
 
   return (
-    <Tooltip title={disabledReason}>
+    <Tooltip key={button.key ?? 'disabled-action'} title={disabledReason}>
       <span>{React.cloneElement(button, { disabled: true })}</span>
     </Tooltip>
   );
