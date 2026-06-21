@@ -493,13 +493,13 @@ const ProjectAggregatesPage: React.FC = () => {
                 />
               </Form.Item>
             ) : null}
-            <Form.Item label="广告状态">
+            <Form.Item label="投放状态">
               <Select
                 mode="tags"
                 allowClear
                 maxTagCount="responsive"
                 style={{ width: 240 }}
-                placeholder="请选择广告状态，支持输入"
+                placeholder="请选择投放状态，支持输入"
                 tokenSeparators={[',', '，', ' ']}
                 value={query.adStatuses}
                 options={DEFAULT_AD_STATUS_OPTIONS.map((status) => ({

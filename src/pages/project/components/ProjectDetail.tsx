@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Descriptions, Tag, Button, Space, Row, Col, Statistic, Empty, Modal, Form, Input, App, Select } from 'antd';
+import { Card, Descriptions, Tag, Button, Space, Row, Col, Statistic, Empty, Modal, Form, Input, App, AutoComplete } from 'antd';
 import { EditOutlined, StopOutlined, CheckCircleOutlined, InboxOutlined, SaveOutlined, CloseOutlined, PlusOutlined } from '@ant-design/icons';
 import type { ProjectItem } from '@/services/project/types';
 import { updateProjectStatus, updateProject } from '@/services/project/api';
@@ -202,13 +202,15 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onProjectUpdate 
               </Col>
               <Col span={8}>
                 <Form.Item name="adStatus" label="投放状态">
-                  <Select
-                    mode="tags"
+                  <AutoComplete
                     placeholder="请选择投放状态"
                     options={DEFAULT_AD_STATUS_OPTIONS}
-                    tokenSeparators={[',', '，', ' ']}
-                    maxTagCount={1}
-                  />
+                    filterOption={(inputValue, option) =>
+                      `${option?.value ?? ''}`.toLowerCase().includes(inputValue.toLowerCase())
+                    }
+                  >
+                    <Input />
+                  </AutoComplete>
                 </Form.Item>
               </Col>
               <Col span={24}>

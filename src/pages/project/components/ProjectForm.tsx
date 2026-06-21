@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { ModalForm, ProFormText, ProFormSelect, ProFormTextArea } from '@ant-design/pro-components';
-import { Form, App } from 'antd';
+import { Form, App, AutoComplete, Input } from 'antd';
 import { createProject, updateProject } from '@/services/project/api';
 import type { ProjectItem } from '@/services/project/types';
 
@@ -79,17 +79,17 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ open, onOpenChange, onSuccess
         name="ownerName"
         label="负责人名称"
       />
-      <ProFormSelect
-        name="adStatus"
-        label="投放状态"
-        options={adStatusOptions}
-        fieldProps={{
-          mode: 'tags',
-          tokenSeparators: [',', '，', ' '],
-          maxTagCount: 1,
-          placeholder: '请选择投放状态',
-        }}
-      />
+      <Form.Item name="adStatus" label="投放状态">
+        <AutoComplete
+          options={adStatusOptions}
+          placeholder="请选择投放状态"
+          filterOption={(inputValue, option) =>
+            `${option?.value ?? ''}`.toLowerCase().includes(inputValue.toLowerCase())
+          }
+        >
+          <Input />
+        </AutoComplete>
+      </Form.Item>
       <ProFormSelect
         name="status"
         label="状态"

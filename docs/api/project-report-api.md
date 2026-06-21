@@ -20,7 +20,7 @@
 - `filters` `object|null`
   - `filters.projectCodes` `string[]|null`
   - `filters.countries` `string[]|null`（入参会统一转大写后过滤）
-  - `filters.adStatuses` `string[]|null`（广告状态过滤，前端默认候选：`activate`、`deactivate`，也支持手动输入）
+  - `filters.adStatuses` `string[]|null`（投放状态过滤，前端默认候选：`activate`、`deactivate`，也支持手动输入）
 - `page` `int|null`，默认 `1`
 - `pageSize` `int|null`，默认 `50`，范围 `1-200`
 - `orderBy` `string|null`，可选：

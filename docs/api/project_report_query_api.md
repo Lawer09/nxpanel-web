@@ -40,7 +40,7 @@
 | groupBy | array | 否 | 聚合维度，支持 `reportDate`、`projectCode`、`country` |
 | filters.projectCodes | array | 否 | 项目编码过滤 |
 | filters.countries | array | 否 | 国家过滤，内部会转为大写 |
-| filters.adStatuses | array | 否 | 广告状态过滤，前端默认候选为 `activate`、`deactivate`，也支持手动输入 |
+| filters.adStatuses | array | 否 | 投放状态过滤，前端默认候选为 `activate`、`deactivate`，也支持手动输入 |
 | page | integer | 否 | 页码，默认 `1` |
 | pageSize | integer | 否 | 每页条数，默认 `50`，最大 `200` |
 | orderBy | string | 否 | 排序字段 |
