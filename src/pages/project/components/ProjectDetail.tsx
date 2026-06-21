@@ -195,6 +195,11 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onProjectUpdate 
                   <Input placeholder="请输入负责人名称" />
                 </Form.Item>
               </Col>
+              <Col span={8}>
+                <Form.Item name="adStatus" label="投放状态">
+                  <Input placeholder="请输入投放状态" />
+                </Form.Item>
+              </Col>
               <Col span={24}>
                 <Form.Item name="remark" label="备注" style={{ marginBottom: 0 }}>
                   <Input.TextArea rows={2} placeholder="请输入备注" />
@@ -208,6 +213,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onProjectUpdate 
             <Descriptions.Item label="项目名称">{project.projectName}</Descriptions.Item>
             <Descriptions.Item label="部门">{project.department || '-'}</Descriptions.Item>
             <Descriptions.Item label="负责人">{project.ownerName || '-'}</Descriptions.Item>
+            <Descriptions.Item label="投放状态">{project.adStatus || '-'}</Descriptions.Item>
             <Descriptions.Item label="创建时间">{formatUTC8(project.createdAt)}</Descriptions.Item>
             <Descriptions.Item label="更新时间">{formatUTC8(project.updatedAt)}</Descriptions.Item>
             <Descriptions.Item label="备注" span={3}>{project.remark || '-'}</Descriptions.Item>

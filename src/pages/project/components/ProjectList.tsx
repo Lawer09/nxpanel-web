@@ -126,7 +126,10 @@ const ProjectList: React.FC<ProjectListProps> = ({ selectedProject, onSelect }) 
               </div>
               <Space split={<Text type="secondary">|</Text>} size="small" style={{ fontSize: 12 }}>
                 <Text>流量账号: {item.trafficAccounts?.length || 0}</Text>
-                <Text>广告账号: {item.adAccounts?.length || 0}</Text>
+                <Space size={4}>
+                  <Text>广告账号: {item.adAccounts?.length || 0}</Text>
+                  {item.adStatus ? <Tag color="blue" style={{ marginInlineEnd: 0 }}>{item.adStatus}</Tag> : null}
+                </Space>
                 <Text>App: {item.userApps?.length || 0}</Text>
               </Space>
             </Card>

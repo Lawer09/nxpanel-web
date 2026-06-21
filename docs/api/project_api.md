@@ -61,6 +61,7 @@
       "ownerName": "张三",
       "department": "技术部",
       "status": "active",
+      "adStatus": "activate",
       "remark": null,
       "createdAt": "2026-05-12T00:00:00.000Z",
       "updatedAt": "2026-05-12T00:00:00.000Z",
@@ -121,6 +122,7 @@
 | ownerName | string/null | 负责人 |
 | department | string/null | 所属部门 |
 | status | string | 状态：`active` / `inactive` / `archived` |
+| adStatus | string/null | 投放状态，自定义字符串 |
 | remark | string/null | 备注 |
 | createdAt | string | 创建时间 |
 | updatedAt | string | 更新时间 |
@@ -211,6 +213,7 @@
 | ownerName | string | 否 | 负责人 |
 | department | string | 否 | 所属部门 |
 | status | string | 否 | 默认 `active`，可选：`active` / `inactive` / `archived` |
+| adStatus | string | 否 | 投放状态，自定义字符串 |
 | remark | string | 否 | 备注 |
 
 ### 3.2 返回字段
@@ -240,6 +243,7 @@
 | ownerName | string | 否 | 负责人 |
 | department | string | 否 | 所属部门 |
 | status | string | 否 | `active` / `inactive` / `archived` |
+| adStatus | string | 否 | 投放状态，自定义字符串 |
 | remark | string | 否 | 备注 |
 
 ### 4.2 返回字段

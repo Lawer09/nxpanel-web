@@ -41,6 +41,7 @@ export interface ProjectItem {
   ownerName: string;
   department: string;
   status: 'active' | 'inactive' | 'archived';
+  adStatus?: string | null;
   remark: string | null;
   createdAt: string;
   updatedAt: string;
@@ -64,6 +65,7 @@ export interface ProjectStoreRequest {
   ownerName?: string;
   department?: string;
   status?: string;
+  adStatus?: string;
   remark?: string;
 }
 
@@ -74,6 +76,7 @@ export interface ProjectUpdateRequest {
   ownerName?: string;
   department?: string;
   status?: string;
+  adStatus?: string;
   remark?: string;
 }
 

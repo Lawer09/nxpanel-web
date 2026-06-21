@@ -75,6 +75,10 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ open, onOpenChange, onSuccess
         name="ownerName"
         label="负责人名称"
       />
+      <ProFormText
+        name="adStatus"
+        label="投放状态"
+      />
       <ProFormSelect
         name="status"
         label="状态"
