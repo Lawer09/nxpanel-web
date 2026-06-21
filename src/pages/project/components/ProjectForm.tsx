@@ -15,6 +15,10 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ open, onOpenChange, onSuccess
   const { message } = App.useApp();
   const [form] = Form.useForm();
   const isEdit = !!initialValues;
+  const adStatusOptions = [
+    { label: 'activate', value: 'activate' },
+    { label: 'deactivate', value: 'deactivate' },
+  ];
 
   useEffect(() => {
     if (open) {
@@ -75,9 +79,16 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ open, onOpenChange, onSuccess
         name="ownerName"
         label="负责人名称"
       />
-      <ProFormText
+      <ProFormSelect
         name="adStatus"
         label="投放状态"
+        options={adStatusOptions}
+        fieldProps={{
+          mode: 'tags',
+          tokenSeparators: [',', '，', ' '],
+          maxTagCount: 1,
+          placeholder: '请选择投放状态',
+        }}
       />
       <ProFormSelect
         name="status"
