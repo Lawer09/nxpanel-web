@@ -100,6 +100,7 @@
 - 新增独立 Asset 管理菜单组，将 asset-service 资产能力从 Dev 迁移到 `/asset/provider-accounts`、`/asset/machines`、`/asset/ips`、`/asset/ssh-keys`、`/asset/operations` 子菜单，并按新版接口补充供应商机器重试创建和创建请求信息展示（config/routes.ts, src/pages/asset/, src/services/asset-service/）。
 - 新增独立 IAM 管理菜单组，管理登录态下提供用户、角色、权限、菜单、Client 与审计日志页面，并将管理登录接口切换到 `/api/v1/iam/*`，与 Dev 菜单并列展示且不混入运营菜单（config/routes.ts, config/proxy.ts, src/pages/iam/, src/services/iam/, src/services/dev-admin/）。
 - 新增项目管理表格页并接入项目扩展字段：保留原 `/project` 卡片页并改名为项目管理Card，新增 `/project-table` 表格管理入口，支持项目扩展字段展示、新建、编辑、状态切换、详情抽屉与资源管理复用（config/routes.ts, src/pages/project-table/, src/services/project/types.ts, docs/api/project_api.md）。
+- 新增用户管理 AID 登录封禁策略弹窗，支持按启用状态、包名和国家查询规则，并提供新增、编辑、删除封禁策略能力（src/pages/user-manage/index.tsx, src/pages/user-manage/components/AidLoginBanRuleModal.tsx, src/pages/user-manage/components/AidLoginBanRuleFormModal.tsx, src/services/user/, docs/api/user_api.md）。
 
 - 鏂板 Nodes 鐙珛绠＄悊鑿滃崟缁勫苟灏?node-service 鎺у埗闈㈣繕绉诲嚭 Dev锛氬皢 Agent/Node 鑿滃崟杩佺Щ鍒?`/nodes/overview`銆?`/nodes/list`銆?`/nodes/agents`锛屽悓鏃跺皢 node-service 璇锋眰鍓嶇紑鍒囨崲涓?`/v4/nodes/* -> /api/v1/nodes/*`锛屽苟琛ュ叏 Overview 棣栭〉銆丯odes/Agents 璇︽儏鐨?runtime銆乻amples銆乼raffic銆乷nline銆乪vents 鑳藉姏锛坈onfig/routes.ts, config/proxy.ts, src/app.tsx, src/pages/dev/NodesOverview.tsx, src/pages/dev/Nodes.tsx, src/pages/dev/Agents.tsx, src/services/node-control/锛夈€?
 

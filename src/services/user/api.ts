@@ -127,3 +127,51 @@ export async function deleteBlockedIp(body: { id: number }, options?: { [key: st
     ...(options || {}),
   });
 }
+
+export async function fetchAidLoginBanRules(
+  params: API.AidLoginBanRuleFetchParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<{ data: API.AidLoginBanRuleItem[]; total: number }>>(
+    '/v3/user/aidLoginBanRule/fetch',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: params,
+      ...(options || {}),
+    },
+  );
+}
+
+export async function saveAidLoginBanRule(
+  body: API.AidLoginBanRuleSaveParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<boolean>>('/v3/user/aidLoginBanRule/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+export async function updateAidLoginBanRule(
+  body: API.AidLoginBanRuleUpdateParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<boolean>>('/v3/user/aidLoginBanRule/update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+export async function deleteAidLoginBanRule(body: { id: number }, options?: { [key: string]: any }) {
+  return request<API.ApiResponse<boolean>>('/v3/user/aidLoginBanRule/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}

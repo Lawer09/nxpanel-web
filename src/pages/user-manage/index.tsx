@@ -22,6 +22,7 @@ import {
   fetchUsers,
   resetUserSecret,
 } from '@/services/user/api';
+import AidLoginBanRuleModal from './components/AidLoginBanRuleModal';
 import BlockedIpModal from './components/BlockedIpModal';
 import GenerateUserModal from './components/GenerateUserModal';
 import SendMailModal from './components/SendMailModal';
@@ -100,6 +101,7 @@ const UserManagePage: React.FC = () => {
   const [generateOpen, setGenerateOpen] = useState(false);
   const [sendMailOpen, setSendMailOpen] = useState(false);
   const [blockedIpOpen, setBlockedIpOpen] = useState(false);
+  const [banRuleOpen, setBanRuleOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<API.UserItem[]>([]);
   const [currentFilter, setCurrentFilter] = useState<API.UserFilter[]>([]);
 
@@ -558,6 +560,9 @@ const UserManagePage: React.FC = () => {
           <Button key="blockedIp" onClick={() => setBlockedIpOpen(true)}>
             封禁 IP
           </Button>,
+          <Button key="banRule" onClick={() => setBanRuleOpen(true)}>
+            封禁策略
+          </Button>,
           <Button
             key="sendMail"
             onClick={() => {
@@ -596,6 +601,9 @@ const UserManagePage: React.FC = () => {
 
       {/* Blocked IP modal */}
       <BlockedIpModal open={blockedIpOpen} onOpenChange={setBlockedIpOpen} />
+
+      {/* Ban rule modal */}
+      <AidLoginBanRuleModal open={banRuleOpen} onOpenChange={setBanRuleOpen} />
 
       {/* Send mail modal */}
       <SendMailModal

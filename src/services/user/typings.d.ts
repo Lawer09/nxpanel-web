@@ -157,4 +157,59 @@ declare namespace API {
     pageSize?: number;
   }
 
+  interface AidLoginBanRuleWeeklyWindow {
+    weekday: number;
+    start: string;
+    end: string;
+  }
+
+  interface AidLoginBanRuleUserLite {
+    id: number;
+    email: string;
+  }
+
+  interface AidLoginBanRuleItem {
+    id: number;
+    name: string;
+    enabled: boolean;
+    cutoffAt: string;
+    weeklyWindows: AidLoginBanRuleWeeklyWindow[];
+    packageNames?: string[];
+    countries?: string[];
+    reason?: string | null;
+    createdBy?: AidLoginBanRuleUserLite | null;
+    updatedBy?: AidLoginBanRuleUserLite | null;
+    createdAt?: number;
+    updatedAt?: number;
+  }
+
+  interface AidLoginBanRuleFetchParams {
+    enabled?: boolean;
+    packageName?: string;
+    country?: string;
+    current?: number;
+    pageSize?: number;
+  }
+
+  interface AidLoginBanRuleSaveParams {
+    name: string;
+    enabled?: boolean;
+    cutoffAt: string;
+    weeklyWindows: AidLoginBanRuleWeeklyWindow[];
+    packageNames?: string[];
+    countries?: string[];
+    reason?: string;
+  }
+
+  interface AidLoginBanRuleUpdateParams {
+    id: number;
+    name?: string;
+    enabled?: boolean;
+    cutoffAt?: string;
+    weeklyWindows?: AidLoginBanRuleWeeklyWindow[];
+    packageNames?: string[];
+    countries?: string[];
+    reason?: string;
+  }
+
 }

@@ -179,6 +179,127 @@ POST /api/v3/admin/user/blockedIp/delete
 }
 ```
 
+## AID 登录封禁规则列表查询
+
+`POST /v3/user/aidLoginBanRule/fetch`
+
+支持 GET/POST。
+
+### 请求参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `enabled` | `bool` | 否 | 按启用状态筛选 |
+| `packageName` | `string` | 否 | 按包名精确筛选 |
+| `country` | `string` | 否 | 按国家精确筛选，服务端会转大写 |
+| `current` | `int` | 否 | 页码，默认 `1` |
+| `pageSize` | `int` | 否 | 每页条数，默认 `10`，最大 `200` |
+
+### 返回示例
+
+```json
+{
+    "code": 0,
+    "msg": "操作成功",
+    "data": {
+        "data": [
+            {
+                "id": 1,
+                "name": "US night fraud block",
+                "enabled": true,
+                "cutoffAt": "2026-06-30 23:59:59",
+                "weeklyWindows": [
+                    {"weekday": 1, "start": "00:00", "end": "06:00"}
+                ],
+                "packageNames": ["com.example.vpn"],
+                "countries": ["US"],
+                "reason": "aid login custom rule",
+                "createdBy": {"id": 1, "email": "admin@example.com"},
+                "updatedBy": {"id": 1, "email": "admin@example.com"},
+                "createdAt": 1782144000,
+                "updatedAt": 1782144000
+            }
+        ],
+        "total": 1,
+        "page": 1,
+        "pageSize": 10
+    }
+}
+```
+
+## 新增 AID 登录封禁规则
+
+`POST /v3/user/aidLoginBanRule/save`
+
+### 请求参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `name` | `string` | 是 | 规则名称，最大 191 字符 |
+| `enabled` | `bool` | 否 | 是否启用，默认启用 |
+| `cutoffAt` | `string` | 是 | 规则有效截止时间，例如 `2026-06-30 23:59:59` |
+| `weeklyWindows` | `array` | 是 | 一周内生效时间段 |
+| `weeklyWindows[].weekday` | `int` | 是 | 星期，`1=周一`，`7=周日` |
+| `weeklyWindows[].start` | `string` | 是 | 开始时间，格式 `HH:mm` |
+| `weeklyWindows[].end` | `string` | 是 | 结束时间，格式 `HH:mm`，必须大于 `start` |
+| `packageNames` | `string[]` | 否 | 包名白名单，空数组或不传表示不限制 |
+| `countries` | `string[]` | 否 | 国家白名单，空数组或不传表示不限制 |
+| `reason` | `string` | 否 | 封禁原因，最大 500 字符 |
+
+### 请求示例
+
+```json
+{
+    "name": "US night fraud block",
+    "enabled": true,
+    "cutoffAt": "2026-06-30 23:59:59",
+    "weeklyWindows": [
+        {"weekday": 1, "start": "00:00", "end": "06:00"},
+        {"weekday": 2, "start": "00:00", "end": "06:00"}
+    ],
+    "packageNames": ["com.example.vpn"],
+    "countries": ["US"],
+    "reason": "aid login custom rule"
+}
+```
+
+## 更新 AID 登录封禁规则
+
+`POST /v3/user/aidLoginBanRule/update`
+
+### 请求参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `id` | `int` | 是 | 规则 ID |
+| `name` | `string` | 否 | 规则名称 |
+| `enabled` | `bool` | 否 | 是否启用 |
+| `cutoffAt` | `string` | 否 | 规则有效截止时间 |
+| `weeklyWindows` | `array` | 否 | 一周内生效时间段，格式同新增接口 |
+| `packageNames` | `string[]` | 否 | 包名白名单 |
+| `countries` | `string[]` | 否 | 国家白名单 |
+| `reason` | `string` | 否 | 封禁原因 |
+
+## 删除 AID 登录封禁规则
+
+`POST /v3/user/aidLoginBanRule/delete`
+
+### 请求参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `id` | `int` | 是 | 规则 ID |
+
+### 返回示例
+
+```json
+{
+    "code": 0,
+    "msg": "操作成功",
+    "data": true
+}
+```
+
 ## 用户更新
 
 `POST /v3/user/update`
