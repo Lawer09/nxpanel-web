@@ -1,5 +1,5 @@
 import { PageContainer } from '@ant-design/pro-components';
-import { App, DatePicker, Form, Select } from 'antd';
+import { App, DatePicker, Form, Select, Tag } from 'antd';
 import type { SortOrder } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -50,7 +50,17 @@ const COMMON_COUNTRY_OPTIONS = [
   'RU',
 ];
 
-const DEFAULT_AD_STATUS_OPTIONS = ['activate', 'deactivate'];
+const AD_STATUS_LABEL_MAP: Record<string, string> = {
+  activate: '在投状态',
+  deactivate: '暂停状态',
+  在投状态: '在投状态',
+  暂停状态: '暂停状态',
+};
+
+const DEFAULT_AD_STATUS_OPTIONS = [
+  { label: '在投状态', value: '在投状态' },
+  { label: '暂停状态', value: '暂停状态' },
+];
 
 type QueryState = {
   dateRange: [string, string];
@@ -125,6 +135,35 @@ const fmtRoiPercent = (v: unknown) => {
 const fmtCountry = (country?: string | null) => {
   if (!country) return '--';
   return country.toUpperCase();
+};
+
+const getAdStatusLabel = (adStatus?: string | null) => {
+  const normalized = adStatus?.trim();
+  if (!normalized) return undefined;
+  return AD_STATUS_LABEL_MAP[normalized] || normalized;
+};
+
+const getAdStatusColor = (adStatus?: string | null) => {
+  if (adStatus === 'activate' || adStatus === '在投状态') return 'green';
+  if (adStatus === 'deactivate' || adStatus === '暂停状态') return 'default';
+  return 'blue';
+};
+
+const renderProjectCodeWithAdStatus = (projectCode: unknown, record: API.ProjectReportItem) => {
+  const codeText = projectCode ? String(projectCode) : '--';
+  const adStatus = typeof record.adStatus === 'string' ? record.adStatus : undefined;
+  const adStatusLabel = getAdStatusLabel(adStatus);
+
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, maxWidth: '100%' }}>
+      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{codeText}</span>
+      {adStatusLabel ? (
+        <Tag color={getAdStatusColor(adStatus)} style={{ marginInlineEnd: 0 }}>
+          投放-{adStatusLabel}
+        </Tag>
+      ) : null}
+    </span>
+  );
 };
 
 const METRIC_OPTIONS = [
@@ -293,7 +332,12 @@ const DIMENSION_OPTIONS = [
   {
     label: '项目编码',
     value: 'projectCode',
-    column: { title: '项目编码', dataIndex: 'projectCode', width: 140 },
+    column: {
+      title: '项目编码',
+      dataIndex: 'projectCode',
+      width: 180,
+      render: (v: unknown, record: API.ProjectReportItem) => renderProjectCodeWithAdStatus(v, record),
+    },
   },
   {
     label: '国家',
@@ -502,10 +546,7 @@ const ProjectAggregatesPage: React.FC = () => {
                 placeholder="请选择投放状态，支持输入"
                 tokenSeparators={[',', '，', ' ']}
                 value={query.adStatuses}
-                options={DEFAULT_AD_STATUS_OPTIONS.map((status) => ({
-                  label: status,
-                  value: status,
-                }))}
+                options={DEFAULT_AD_STATUS_OPTIONS}
                 onChange={(value) => {
                   const normalized = (value || [])
                     .map((item) => `${item}`.trim())

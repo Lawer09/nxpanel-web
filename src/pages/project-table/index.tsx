@@ -117,13 +117,32 @@ const ProjectTablePage: React.FC = () => {
       render: (_, record) => renderStatus(record.status),
     },
     {
+      title: '投放状态',
+      dataIndex: 'adStatus',
+      width: 120,
+      ellipsis: true,
+    },
+    {
+      title: '项目包名',
+      dataIndex: 'packageName',
+      width: 220,
+      ellipsis: true,
+    },
+    {
+      title: '开发者 Gmail',
+      dataIndex: 'developerGmail',
+      width: 180,
+      ellipsis: true,
+    },
+    {
       title: '负责人 ID',
       dataIndex: 'ownerId',
       hideInTable: true,
       valueType: 'digit',
     },
     ...PROJECT_TABLE_FIELDS.filter(
-      (field) => !['projectCode', 'projectName', 'remark'].includes(field.name),
+      (field) =>
+        !['projectCode', 'projectName', 'adStatus', 'packageName', 'developerGmail', 'remark'].includes(field.name),
     ).map<ProColumns<ProjectItem>>((field) => ({
       title: field.label,
       dataIndex: field.name,
@@ -228,12 +247,15 @@ const ProjectTablePage: React.FC = () => {
           </Button>,
         ]}
         request={async (params) => {
-          const { current, pageSize, keyword, status, ownerId } = params;
+          const { current, pageSize, keyword, status, adStatus, packageName, developerGmail, ownerId } = params;
           const res = await getProjects({
             page: current,
             pageSize,
             keyword,
             status,
+            adStatus,
+            packageName,
+            developerGmail,
             ownerId,
           });
           const pageData = res.data;

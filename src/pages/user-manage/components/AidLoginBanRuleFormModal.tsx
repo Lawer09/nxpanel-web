@@ -21,6 +21,7 @@ type AidLoginBanRuleFormModalProps = {
 };
 
 type AidLoginBanRuleFormValues = Omit<API.AidLoginBanRuleSaveParams, 'weeklyWindows'> & {
+  cutoffAt?: string;
   weeklyWindows?: API.AidLoginBanRuleWeeklyWindow[];
 };
 
@@ -53,16 +54,18 @@ const AidLoginBanRuleFormModal: React.FC<AidLoginBanRuleFormModalProps> = ({
   const initialValues = current
     ? {
         ...current,
-        cutoffAt: current.cutoffAt,
+        cutoffAt: current.cutoffAt || undefined,
         enabled: current.enabled,
-        weeklyWindows: current.weeklyWindows?.length ? current.weeklyWindows : [{}],
+        weeklyWindows: current.weeklyWindows ?? [],
         packageNames: current.packageNames ?? [],
+        projectCodes: current.projectCodes ?? [],
         countries: current.countries ?? [],
       }
     : {
         enabled: true,
-        weeklyWindows: [{}],
+        weeklyWindows: [],
         packageNames: [],
+        projectCodes: [],
         countries: [],
       };
 
@@ -75,11 +78,19 @@ const AidLoginBanRuleFormModal: React.FC<AidLoginBanRuleFormModalProps> = ({
       onOpenChange={onOpenChange}
       submitter={{ searchConfig: { submitText: current ? '保存' : '新增' } }}
       onFinish={async (values: AidLoginBanRuleFormValues) => {
-        const weeklyWindows = (values.weeklyWindows ?? []).map((item) => ({
-          weekday: Number(item.weekday),
-          start: item.start,
-          end: item.end,
-        }));
+        const weeklyWindows = (values.weeklyWindows ?? [])
+          .filter((item) => item?.weekday || item?.start || item?.end)
+          .map((item) => ({
+            weekday: Number(item.weekday),
+            start: item.start,
+            end: item.end,
+          }));
+
+        const incompleteRange = weeklyWindows.find((item) => !item.weekday || !item.start || !item.end);
+        if (incompleteRange) {
+          messageApi.error('生效时间段填写后需补全星期、开始时间和结束时间');
+          return false;
+        }
 
         const invalidRange = weeklyWindows.find((item) => item.start && item.end && item.end <= item.start);
         if (invalidRange) {
@@ -90,9 +101,10 @@ const AidLoginBanRuleFormModal: React.FC<AidLoginBanRuleFormModalProps> = ({
         const basePayload: API.AidLoginBanRuleSaveParams = {
           name: values.name,
           enabled: values.enabled ?? true,
-          cutoffAt: dayjs(values.cutoffAt).format('YYYY-MM-DD HH:mm:ss'),
+          cutoffAt: values.cutoffAt ? dayjs(values.cutoffAt).format('YYYY-MM-DD HH:mm:ss') : undefined,
           weeklyWindows,
           packageNames: normalizeTags(values.packageNames),
+          projectCodes: normalizeTags(values.projectCodes),
           countries: normalizeCountries(values.countries),
           reason: values.reason || undefined,
         };
@@ -126,7 +138,7 @@ const AidLoginBanRuleFormModal: React.FC<AidLoginBanRuleFormModalProps> = ({
       <ProFormDateTimePicker
         name="cutoffAt"
         label="有效截止时间"
-        rules={[{ required: true, message: '请选择有效截止时间' }]}
+        placeholder="留空表示不限制截止时间"
         fieldProps={{ format: 'YYYY-MM-DD HH:mm:ss' }}
       />
 
@@ -134,39 +146,29 @@ const AidLoginBanRuleFormModal: React.FC<AidLoginBanRuleFormModalProps> = ({
         name="weeklyWindows"
         label="生效时间段"
         creatorButtonProps={{ creatorButtonText: '添加时间段' }}
-        rules={[
-          {
-            validator: async (_, value) => {
-              if (!value?.length) throw new Error('请至少添加一个生效时间段');
-            },
-          },
-        ]}
       >
         <ProFormGroup>
           <ProFormSelect
             name="weekday"
             label="星期"
-            width="sm"
+            width="xs"
             options={WEEKDAY_OPTIONS}
-            rules={[{ required: true, message: '请选择星期' }]}
           />
           <ProFormText
             name="start"
             label="开始"
-            width="sm"
+            width="xs"
             placeholder="00:00"
             rules={[
-              { required: true, message: '请输入开始时间' },
               { pattern: TIME_PATTERN, message: '时间格式应为 HH:mm' },
             ]}
           />
           <ProFormText
             name="end"
             label="结束"
-            width="sm"
+            width="xs"
             placeholder="06:00"
             rules={[
-              { required: true, message: '请输入结束时间' },
               { pattern: TIME_PATTERN, message: '时间格式应为 HH:mm' },
             ]}
           />
@@ -176,15 +178,26 @@ const AidLoginBanRuleFormModal: React.FC<AidLoginBanRuleFormModalProps> = ({
       <ProFormGroup>
         <ProFormSelect
           name="packageNames"
-          label="包名白名单"
+          label="封禁匹配包名列表"
           mode="tags"
           colProps={{ span: 12 }}
           fieldProps={{ tokenSeparators: [','] }}
           placeholder="留空表示不限制"
         />
         <ProFormSelect
+          name="projectCodes"
+          label="封禁匹配项目代号"
+          mode="tags"
+          colProps={{ span: 12 }}
+          fieldProps={{ tokenSeparators: [','] }}
+          placeholder="留空表示不限制"
+        />
+      </ProFormGroup>
+
+      <ProFormGroup>
+        <ProFormSelect
           name="countries"
-          label="国家白名单"
+          label="封禁匹配国家列表"
           mode="tags"
           colProps={{ span: 12 }}
           fieldProps={{ tokenSeparators: [','] }}

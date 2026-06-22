@@ -50,7 +50,7 @@ const renderTags = (values?: string[]) => {
 };
 
 const renderWeeklyWindows = (windows?: API.AidLoginBanRuleWeeklyWindow[]) => {
-  if (!windows?.length) return '-';
+  if (!windows?.length) return <Tag>不限</Tag>;
   const content = windows
     .map((item) => `${WEEKDAY_LABELS[item.weekday] ?? item.weekday} ${item.start}-${item.end}`)
     .join('；');
@@ -121,6 +121,7 @@ const AidLoginBanRuleModal: React.FC<AidLoginBanRuleModalProps> = ({ open, onOpe
       dataIndex: 'cutoffAt',
       width: 170,
       search: false,
+      render: (_, record) => record.cutoffAt || <Tag>不限</Tag>,
     },
     {
       title: '生效时间段',
@@ -130,14 +131,21 @@ const AidLoginBanRuleModal: React.FC<AidLoginBanRuleModalProps> = ({ open, onOpe
       render: (_, record) => renderWeeklyWindows(record.weeklyWindows),
     },
     {
-      title: '包名白名单',
+      title: '封禁匹配包名列表',
       dataIndex: 'packageNames',
       width: 220,
       search: false,
       render: (_, record) => renderTags(record.packageNames),
     },
     {
-      title: '国家白名单',
+      title: '封禁匹配项目代号',
+      dataIndex: 'projectCodes',
+      width: 200,
+      search: false,
+      render: (_, record) => renderTags(record.projectCodes),
+    },
+    {
+      title: '封禁匹配国家列表',
       dataIndex: 'countries',
       width: 180,
       search: false,
@@ -252,7 +260,7 @@ const AidLoginBanRuleModal: React.FC<AidLoginBanRuleModalProps> = ({ open, onOpe
         }}
         pagination={{ defaultPageSize: 10, showSizeChanger: true }}
         search={{ labelWidth: 88 }}
-        scroll={{ x: 1960 }}
+        scroll={{ x: 2160 }}
         size="small"
         bordered
         toolBarRender={() => [

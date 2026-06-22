@@ -20,7 +20,7 @@
 - `filters` `object|null`
   - `filters.projectCodes` `string[]|null`
   - `filters.countries` `string[]|null`（入参会统一转大写后过滤）
-  - `filters.adStatuses` `string[]|null`（投放状态过滤，前端默认候选：`activate`、`deactivate`，也支持手动输入）
+  - `filters.adStatuses` `string[]|null`（投放状态过滤，前端默认候选展示并提交“在投状态”“暂停状态”，也支持手动输入）
 - `page` `int|null`，默认 `1`
 - `pageSize` `int|null`，默认 `50`，范围 `1-200`
 - `orderBy` `string|null`，可选：
@@ -75,7 +75,7 @@
   - `trafficCostRatio` `string|null`（6位小数，流量费用占总支出的比例小数，前端展示时乘以 100）
   - `profit` `string|null`（6位小数）
   - `roi` `string|null`（6位小数）
-- 其它字段：`id`（仅明细行可用）、`updatedAt`
+- 其它字段：`id`（仅明细行可用）、`adStatus`（投放状态伴随字段）、`updatedAt`
 
 `summary` 常见字段：
 
@@ -158,5 +158,6 @@
 - 金额类字段：`adRevenue/adSpendCost/trafficCost/profit/adSpendCpi/adSpendCpc/adSpendCpm` 建议统一货币格式，并保留 2 位小数。
 - 比例类字段：`adCtr/adMatchRate/adShowRate` 建议展示为百分比并保留 2 位小数。
 - `trafficCostRatio` 不单独作为默认指标列展示，建议合并到 `trafficCost` 列，格式为 `流量费用 (流量消耗占比)`；接口返回比例小数，前端展示时乘以 100，例如 `0.01742 -> 1.74%`。
+- `adStatus` 不单独作为维度或指标列展示，前端项目报表合并到 `projectCode` 列右侧以 Tag 展示；已知值 `activate/deactivate` 建议展示为“在投状态/暂停状态”，自定义值原样展示。
 - `roi` 建议按百分比展示：`roiPercent = roi * 100`，并保留 2 位小数（例如 `1.234567 -> 123.46%`）。
 - 空值处理：接口分母为 0 时返回 `null`，前端可展示为 `--`。

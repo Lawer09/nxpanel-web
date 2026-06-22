@@ -78,6 +78,9 @@ export interface ProjectItem {
 export interface ProjectFetchRequest {
   keyword?: string;
   status?: string;
+  adStatus?: string;
+  packageName?: string;
+  developerGmail?: string;
   ownerId?: number;
   page?: number;
   pageSize?: number;

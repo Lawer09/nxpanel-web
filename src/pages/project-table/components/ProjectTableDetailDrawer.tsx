@@ -1,17 +1,24 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Button, Descriptions, Drawer, Modal, Space, Tabs, Tag, Typography, App } from 'antd';
 import {
   CheckCircleOutlined,
   EditOutlined,
   InboxOutlined,
+  PlusOutlined,
   StopOutlined,
 } from '@ant-design/icons';
 import type { ProjectItem } from '@/services/project/types';
 import { updateProjectStatus } from '@/services/project/api';
 import { formatUTC8 } from '@/utils/format';
-import TrafficAccounts from '@/pages/project/components/ResourceTabs/TrafficAccounts';
-import AdAccounts from '@/pages/project/components/ResourceTabs/AdAccounts';
-import UserApps from '@/pages/project/components/ResourceTabs/UserApps';
+import TrafficAccounts, {
+  type ResourceActionRef as TrafficRef,
+} from '@/pages/project/components/ResourceTabs/TrafficAccounts';
+import AdAccounts, {
+  type ResourceActionRef as AdRef,
+} from '@/pages/project/components/ResourceTabs/AdAccounts';
+import UserApps, {
+  type ResourceActionRef as AppRef,
+} from '@/pages/project/components/ResourceTabs/UserApps';
 import DailyAggregation from '@/pages/project/components/DailyAggregation';
 import { PROJECT_FIELD_GROUPS } from '../fields';
 import ProjectTableForm from './ProjectTableForm';
@@ -56,6 +63,9 @@ const ProjectTableDetailDrawer: React.FC<ProjectTableDetailDrawerProps> = ({
 }) => {
   const { message } = App.useApp();
   const [formOpen, setFormOpen] = useState(false);
+  const trafficRef = useRef<TrafficRef>(null);
+  const adRef = useRef<AdRef>(null);
+  const appRef = useRef<AppRef>(null);
 
   const handleStatusChange = (status: ProjectItem['status']) => {
     if (!project) return;
@@ -71,6 +81,20 @@ const ProjectTableDetailDrawer: React.FC<ProjectTableDetailDrawerProps> = ({
       },
     });
   };
+
+  const renderResourcePanel = (
+    actionRef: React.RefObject<TrafficRef | AdRef | AppRef | null>,
+    children: React.ReactNode,
+  ) => (
+    <Space direction="vertical" size={12} style={{ width: '100%' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => actionRef.current?.openAdd()}>
+          关联
+        </Button>
+      </div>
+      {children}
+    </Space>
+  );
 
   return (
     <>
@@ -156,17 +180,23 @@ const ProjectTableDetailDrawer: React.FC<ProjectTableDetailDrawerProps> = ({
                 {
                   key: 'traffic',
                   label: '流量账号',
-                  children: <TrafficAccounts projectId={project.id} />,
+                  children: renderResourcePanel(
+                    trafficRef,
+                    <TrafficAccounts ref={trafficRef} projectId={project.id} />,
+                  ),
                 },
                 {
                   key: 'ad',
                   label: '广告账号',
-                  children: <AdAccounts projectId={project.id} />,
+                  children: renderResourcePanel(
+                    adRef,
+                    <AdAccounts ref={adRef} projectId={project.id} />,
+                  ),
                 },
                 {
                   key: 'app',
                   label: '用户 App',
-                  children: <UserApps projectId={project.id} />,
+                  children: renderResourcePanel(appRef, <UserApps ref={appRef} projectId={project.id} />),
                 },
                 {
                   key: 'aggregation',
@@ -196,4 +226,3 @@ const ProjectTableDetailDrawer: React.FC<ProjectTableDetailDrawerProps> = ({
 };
 
 export default ProjectTableDetailDrawer;
-

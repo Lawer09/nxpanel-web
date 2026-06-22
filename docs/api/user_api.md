@@ -212,6 +212,7 @@ POST /api/v3/admin/user/blockedIp/delete
                     {"weekday": 1, "start": "00:00", "end": "06:00"}
                 ],
                 "packageNames": ["com.example.vpn"],
+                "projectCodes": ["project-demo"],
                 "countries": ["US"],
                 "reason": "aid login custom rule",
                 "createdBy": {"id": 1, "email": "admin@example.com"},
@@ -237,13 +238,14 @@ POST /api/v3/admin/user/blockedIp/delete
 |------|------|------|------|
 | `name` | `string` | 是 | 规则名称，最大 191 字符 |
 | `enabled` | `bool` | 否 | 是否启用，默认启用 |
-| `cutoffAt` | `string` | 是 | 规则有效截止时间，例如 `2026-06-30 23:59:59` |
-| `weeklyWindows` | `array` | 是 | 一周内生效时间段 |
+| `cutoffAt` | `string` | 否 | 规则有效截止时间，例如 `2026-06-30 23:59:59`；为空表示不限制截止时间 |
+| `weeklyWindows` | `array` | 否 | 一周内生效时间段；为空表示不限制星期和小时段 |
 | `weeklyWindows[].weekday` | `int` | 是 | 星期，`1=周一`，`7=周日` |
 | `weeklyWindows[].start` | `string` | 是 | 开始时间，格式 `HH:mm` |
 | `weeklyWindows[].end` | `string` | 是 | 结束时间，格式 `HH:mm`，必须大于 `start` |
-| `packageNames` | `string[]` | 否 | 包名白名单，空数组或不传表示不限制 |
-| `countries` | `string[]` | 否 | 国家白名单，空数组或不传表示不限制 |
+| `packageNames` | `string[]` | 否 | 封禁匹配包名列表，空数组或不传表示不限制包名 |
+| `projectCodes` | `string[]` | 否 | 封禁匹配项目代号，空数组或不传表示不限制项目代号 |
+| `countries` | `string[]` | 否 | 封禁匹配国家列表，空数组或不传表示不限制国家 |
 | `reason` | `string` | 否 | 封禁原因，最大 500 字符 |
 
 ### 请求示例
@@ -258,6 +260,7 @@ POST /api/v3/admin/user/blockedIp/delete
         {"weekday": 2, "start": "00:00", "end": "06:00"}
     ],
     "packageNames": ["com.example.vpn"],
+    "projectCodes": ["project-demo"],
     "countries": ["US"],
     "reason": "aid login custom rule"
 }
@@ -274,10 +277,11 @@ POST /api/v3/admin/user/blockedIp/delete
 | `id` | `int` | 是 | 规则 ID |
 | `name` | `string` | 否 | 规则名称 |
 | `enabled` | `bool` | 否 | 是否启用 |
-| `cutoffAt` | `string` | 否 | 规则有效截止时间 |
-| `weeklyWindows` | `array` | 否 | 一周内生效时间段，格式同新增接口 |
-| `packageNames` | `string[]` | 否 | 包名白名单 |
-| `countries` | `string[]` | 否 | 国家白名单 |
+| `cutoffAt` | `string` | 否 | 规则有效截止时间；为空表示不限制截止时间 |
+| `weeklyWindows` | `array` | 否 | 一周内生效时间段，格式同新增接口；为空表示不限制星期和小时段 |
+| `packageNames` | `string[]` | 否 | 封禁匹配包名列表，空数组或不传表示不限制包名 |
+| `projectCodes` | `string[]` | 否 | 封禁匹配项目代号，空数组或不传表示不限制项目代号 |
+| `countries` | `string[]` | 否 | 封禁匹配国家列表，空数组或不传表示不限制国家 |
 | `reason` | `string` | 否 | 封禁原因 |
 
 ## 删除 AID 登录封禁规则

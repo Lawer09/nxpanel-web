@@ -45,6 +45,9 @@
 | --- | --- | --- | --- |
 | keyword | string | 否 | 模糊搜索（匹配 projectCode / projectName） |
 | status | string | 否 | 筛选：`active` / `inactive` / `archived` |
+| adStatus | string | 否 | 按投放状态筛选 |
+| packageName | string | 否 | 按项目包名筛选 |
+| developerGmail | string | 否 | 按开发者 Gmail 筛选 |
 | ownerId | int | 否 | 按拥有者 ID 筛选 |
 | page | int | 否 | 默认 1 |
 | pageSize | int | 否 | 默认 20，最大 200 |
