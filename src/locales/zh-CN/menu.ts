@@ -108,6 +108,7 @@ export default {
   'menu.traffic-platform.dashboard': '代理流量看板',
 
   'menu.project': '项目管理',
+  'menu.project-card': '项目管理Card',
   'menu.project.list': '项目列表',
   'menu.project.app-mappings': '应用归因映射',
   'menu.project.detail': '项目详情',

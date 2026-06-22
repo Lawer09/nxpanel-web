@@ -34,14 +34,39 @@ export interface ProjectUserApp {
   updatedAt?: string;
 }
 
+type NullableString = string | null;
+
 export interface ProjectItem {
   id: number;
   projectCode: string;
   projectName: string;
-  ownerName: string;
-  department: string;
+  ownerName: string | null;
+  department: string | null;
   status: 'active' | 'inactive' | 'archived';
   adStatus?: string | null;
+  adspowerEnv?: string | null;
+  developerGmail?: string | null;
+  appName?: string | null;
+  packageName?: string | null;
+  domainInfoStatus?: string | null;
+  admobPubId?: string | null;
+  domainUrl?: string | null;
+  privacyPolicyUrl?: string | null;
+  termsUrl?: string | null;
+  facebookInfoStatus?: string | null;
+  facebookAppId?: string | null;
+  facebookAppToken?: string | null;
+  facebookKeyHash?: string | null;
+  facebookClassName?: string | null;
+  admobAccountStatus?: string | null;
+  admobAppId?: string | null;
+  admobAdIds?: string | null;
+  admobAppAdsTxt?: string | null;
+  firebaseConfigNote?: string | null;
+  yandexAccount?: string | null;
+  yandexAdIds?: string | null;
+  yandexAppAdsTxt?: string | null;
+  storePageUrl?: string | null;
   remark: string | null;
   createdAt: string;
   updatedAt: string;
@@ -62,22 +87,68 @@ export interface ProjectStoreRequest {
   projectCode: string;
   projectName: string;
   ownerId?: number;
-  ownerName?: string;
-  department?: string;
+  ownerName?: NullableString;
+  department?: NullableString;
   status?: string;
-  adStatus?: string;
-  remark?: string;
+  adStatus?: NullableString;
+  adspowerEnv?: NullableString;
+  developerGmail?: NullableString;
+  appName?: NullableString;
+  packageName?: NullableString;
+  domainInfoStatus?: NullableString;
+  admobPubId?: NullableString;
+  domainUrl?: NullableString;
+  privacyPolicyUrl?: NullableString;
+  termsUrl?: NullableString;
+  facebookInfoStatus?: NullableString;
+  facebookAppId?: NullableString;
+  facebookAppToken?: NullableString;
+  facebookKeyHash?: NullableString;
+  facebookClassName?: NullableString;
+  admobAccountStatus?: NullableString;
+  admobAppId?: NullableString;
+  admobAdIds?: NullableString;
+  admobAppAdsTxt?: NullableString;
+  firebaseConfigNote?: NullableString;
+  yandexAccount?: NullableString;
+  yandexAdIds?: NullableString;
+  yandexAppAdsTxt?: NullableString;
+  storePageUrl?: NullableString;
+  remark?: NullableString;
 }
 
 export interface ProjectUpdateRequest {
   id: number;
-  projectName?: string;
+  projectName?: NullableString;
   ownerId?: number;
-  ownerName?: string;
-  department?: string;
+  ownerName?: NullableString;
+  department?: NullableString;
   status?: string;
-  adStatus?: string;
-  remark?: string;
+  adStatus?: NullableString;
+  adspowerEnv?: NullableString;
+  developerGmail?: NullableString;
+  appName?: NullableString;
+  packageName?: NullableString;
+  domainInfoStatus?: NullableString;
+  admobPubId?: NullableString;
+  domainUrl?: NullableString;
+  privacyPolicyUrl?: NullableString;
+  termsUrl?: NullableString;
+  facebookInfoStatus?: NullableString;
+  facebookAppId?: NullableString;
+  facebookAppToken?: NullableString;
+  facebookKeyHash?: NullableString;
+  facebookClassName?: NullableString;
+  admobAccountStatus?: NullableString;
+  admobAppId?: NullableString;
+  admobAdIds?: NullableString;
+  admobAppAdsTxt?: NullableString;
+  firebaseConfigNote?: NullableString;
+  yandexAccount?: NullableString;
+  yandexAdIds?: NullableString;
+  yandexAppAdsTxt?: NullableString;
+  storePageUrl?: NullableString;
+  remark?: NullableString;
 }
 
 export interface ProjectStatusUpdateRequest {

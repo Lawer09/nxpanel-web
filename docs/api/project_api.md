@@ -123,6 +123,29 @@
 | department | string/null | 所属部门 |
 | status | string | 状态：`active` / `inactive` / `archived` |
 | adStatus | string/null | 投放状态，自定义字符串 |
+| adspowerEnv | string/null | Adspower 环境 |
+| developerGmail | string/null | 开发者 Gmail |
+| appName | string/null | 应用名称 |
+| packageName | string/null | 项目包名 |
+| domainInfoStatus | string/null | 域名信息状态 |
+| admobPubId | string/null | Admob pub id |
+| domainUrl | string/null | 域名 URL |
+| privacyPolicyUrl | string/null | 隐私协议 URL |
+| termsUrl | string/null | 服务条款 URL |
+| facebookInfoStatus | string/null | FB 信息状态 |
+| facebookAppId | string/null | Facebook 应用 ID |
+| facebookAppToken | string/null | Facebook 应用 Token |
+| facebookKeyHash | string/null | Facebook 秘钥散列 |
+| facebookClassName | string/null | Facebook 类名 |
+| admobAccountStatus | string/null | Admob 账号状态 |
+| admobAppId | string/null | Admob 应用 ID |
+| admobAdIds | string/null | Admob 广告 ID 配置，支持多行文本 |
+| admobAppAdsTxt | string/null | Admob app-ads.txt 内容 |
+| firebaseConfigNote | string/null | Firebase 配置说明 |
+| yandexAccount | string/null | Yandex 账号 |
+| yandexAdIds | string/null | Yandex 广告 ID 配置，支持多行文本 |
+| yandexAppAdsTxt | string/null | Yandex app-ads.txt 内容 |
+| storePageUrl | string/null | 商店页链接 |
 | remark | string/null | 备注 |
 | createdAt | string | 创建时间 |
 | updatedAt | string | 更新时间 |
@@ -578,3 +601,35 @@
 - 所有请求/返回参数均为 **camelCase**
 - 分页接口统一返回 `data` / `total` / `page` / `pageSize`
 - 项目代号（projectCode）在创建接口中全局唯一，重复返回 422
+
+---
+
+## 10. 项目扩展字段补充
+
+以下字段均使用 camelCase 命名，适用于项目列表、项目详情、创建项目和编辑项目接口。创建和编辑时均为非必填字段，空值可不传或传 `null`。
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| adspowerEnv | string/null | Adspower 环境 |
+| developerGmail | string/null | 开发者 Gmail |
+| appName | string/null | 应用名称 |
+| packageName | string/null | 项目包名 |
+| domainInfoStatus | string/null | 域名信息状态 |
+| admobPubId | string/null | Admob pub id |
+| domainUrl | string/null | 域名 URL |
+| privacyPolicyUrl | string/null | 隐私协议 URL |
+| termsUrl | string/null | 服务条款 URL |
+| facebookInfoStatus | string/null | FB 信息状态 |
+| facebookAppId | string/null | Facebook 应用 ID |
+| facebookAppToken | string/null | Facebook 应用 Token |
+| facebookKeyHash | string/null | Facebook 秘钥散列 |
+| facebookClassName | string/null | Facebook 类名 |
+| admobAccountStatus | string/null | Admob 账号状态 |
+| admobAppId | string/null | Admob 应用 ID |
+| admobAdIds | string/null | Admob 广告 ID 配置，支持多行文本 |
+| admobAppAdsTxt | string/null | Admob app-ads.txt 内容 |
+| firebaseConfigNote | string/null | Firebase 配置说明 |
+| yandexAccount | string/null | Yandex 账号 |
+| yandexAdIds | string/null | Yandex 广告 ID 配置，支持多行文本 |
+| yandexAppAdsTxt | string/null | Yandex app-ads.txt 内容 |
+| storePageUrl | string/null | 商店页链接 |

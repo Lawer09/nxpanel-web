@@ -173,9 +173,16 @@ export default [
     redirect: '/traffic-platform',
   },
   {
-    path: '/project',
+    path: '/project-table',
     name: 'project',
     icon: 'project',
+    component: './project-table',
+  },
+  {
+    path: '/project',
+    name: 'project-card',
+    icon: 'project',
+    hideInMenu: true,
     component: './project',
   },
   {

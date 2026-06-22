@@ -109,6 +109,7 @@ export default {
   'menu.traffic-platform.dashboard': 'Proxy Traffic Dashboard',
 
   'menu.project': 'Project',
+  'menu.project-card': 'Project Card',
   'menu.project.list': 'Project List',
   'menu.project.app-mappings': 'App Attribution Mapping',
   'menu.project.detail': 'Project Detail',

@@ -3,9 +3,9 @@ import { Card, Descriptions, Tag, Button, Space, Row, Col, Statistic, Empty, Mod
 import { EditOutlined, StopOutlined, CheckCircleOutlined, InboxOutlined, SaveOutlined, CloseOutlined, PlusOutlined } from '@ant-design/icons';
 import type { ProjectItem } from '@/services/project/types';
 import { updateProjectStatus, updateProject } from '@/services/project/api';
-import TrafficAccounts, { ResourceActionRef as TrafficRef } from './ResourceTabs/TrafficAccounts';
-import AdAccounts, { ResourceActionRef as AdRef } from './ResourceTabs/AdAccounts';
-import UserApps, { ResourceActionRef as AppRef } from './ResourceTabs/UserApps';
+import TrafficAccounts, { type ResourceActionRef as TrafficRef } from './ResourceTabs/TrafficAccounts';
+import AdAccounts, { type ResourceActionRef as AdRef } from './ResourceTabs/AdAccounts';
+import UserApps, { type ResourceActionRef as AppRef } from './ResourceTabs/UserApps';
 import DailyAggregation from './DailyAggregation';
 import { formatUTC8 } from '@/utils/format';
 
@@ -53,7 +53,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onProjectUpdate 
           await updateProjectStatus({ id: project.id, status: newStatus });
           message.success('状态更新成功');
           onProjectUpdate({ ...project, status: newStatus });
-        } catch (e) {
+        } catch (_e) {
           // handled
         }
       }
@@ -86,7 +86,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onProjectUpdate 
       message.success('保存成功');
       onProjectUpdate({ ...project, ...values });
       setIsEditing(false);
-    } catch (e) {
+    } catch (_e) {
       // Form validation failed or API error
     } finally {
       setSaving(false);
@@ -229,7 +229,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onProjectUpdate 
             <Descriptions.Item label="投放状态">{project.adStatus || '-'}</Descriptions.Item>
             <Descriptions.Item label="创建时间">{formatUTC8(project.createdAt)}</Descriptions.Item>
             <Descriptions.Item label="更新时间">{formatUTC8(project.updatedAt)}</Descriptions.Item>
-            <Descriptions.Item label="备注" span={3}>{project.remark || '-'}</Descriptions.Item>
+            <Descriptions.Item label="备注" span={2}>{project.remark || '-'}</Descriptions.Item>
           </Descriptions>
         )}
       </Card>

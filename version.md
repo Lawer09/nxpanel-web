@@ -99,6 +99,7 @@
 - 新增 asset-service 接口文档，固化 Dev 资产控制台当前使用的资源范围、异步任务跳转规则和 `capability_not_supported` 交互约束（docs/api/asset_service_api.md）。
 - 新增独立 Asset 管理菜单组，将 asset-service 资产能力从 Dev 迁移到 `/asset/provider-accounts`、`/asset/machines`、`/asset/ips`、`/asset/ssh-keys`、`/asset/operations` 子菜单，并按新版接口补充供应商机器重试创建和创建请求信息展示（config/routes.ts, src/pages/asset/, src/services/asset-service/）。
 - 新增独立 IAM 管理菜单组，管理登录态下提供用户、角色、权限、菜单、Client 与审计日志页面，并将管理登录接口切换到 `/api/v1/iam/*`，与 Dev 菜单并列展示且不混入运营菜单（config/routes.ts, config/proxy.ts, src/pages/iam/, src/services/iam/, src/services/dev-admin/）。
+- 新增项目管理表格页并接入项目扩展字段：保留原 `/project` 卡片页并改名为项目管理Card，新增 `/project-table` 表格管理入口，支持项目扩展字段展示、新建、编辑、状态切换、详情抽屉与资源管理复用（config/routes.ts, src/pages/project-table/, src/services/project/types.ts, docs/api/project_api.md）。
 
 - 鏂板 Nodes 鐙珛绠＄悊鑿滃崟缁勫苟灏?node-service 鎺у埗闈㈣繕绉诲嚭 Dev锛氬皢 Agent/Node 鑿滃崟杩佺Щ鍒?`/nodes/overview`銆?`/nodes/list`銆?`/nodes/agents`锛屽悓鏃跺皢 node-service 璇锋眰鍓嶇紑鍒囨崲涓?`/v4/nodes/* -> /api/v1/nodes/*`锛屽苟琛ュ叏 Overview 棣栭〉銆丯odes/Agents 璇︽儏鐨?runtime銆乻amples銆乼raffic銆乷nline銆乪vents 鑳藉姏锛坈onfig/routes.ts, config/proxy.ts, src/app.tsx, src/pages/dev/NodesOverview.tsx, src/pages/dev/Nodes.tsx, src/pages/dev/Agents.tsx, src/services/node-control/锛夈€?
 
@@ -115,6 +116,7 @@
 - 修复项目报表数值展示精度错误：将金额、比例、ROI 与流量相关字段的前端显示从 3 位小数恢复为 2 位小数，并同步修正文档示例（src/pages/report/project/index.tsx, docs/api/project-report-api.md）。
 - 修复通用报表新增统计字段时主表列与合计行顺序不一致的问题：为当前激活列补全受控 `order`，并让指标列顺序跟随当前 `metrics` 选中顺序，避免新字段在主表提前插入、在合计行追加到末尾（src/components/report/UniversalReportTable.tsx, docs/components/universal_report.md, docs/issue/report_sorting_issue.md）。
 - 修复项目 `adStatus` 编辑提交为数组的问题：将项目基础信息和项目弹窗中的投放状态控件从多值 tags 模式改为单值自动完成，保留 `activate/deactivate` 默认候选和自定义输入能力，同时确保保存请求始终传递字符串（src/pages/project/components/ProjectDetail.tsx, src/pages/project/components/ProjectForm.tsx）。
+- 修复项目管理Card详情基础信息 `Descriptions` 最后一行 span 合计不匹配导致的 Ant Design 控制台警告（src/pages/project/components/ProjectDetail.tsx）。
 - 修复 Asset 机器创建候选参数空态误导：为 machine-create 各字段补充按账号/区域/可用区分层的依赖禁用、下拉空态和字段级提示，避免在未满足 `region` / `zone` 前提时把未请求 catalog 误显示为“无数据”，并同步强调 image 为 zone-scoped、time zone 为 account-scoped（src/pages/asset/components/machines/useMachineCreateCatalogs.ts, src/pages/asset/components/machines/MachineCreateBasicStep.tsx, src/pages/asset/components/machines/MachineCreateBillingStep.tsx, src/pages/asset/components/machines/MachineCreateNetworkStep.tsx, src/pages/asset/components/machines/MachineCreateAccessStep.tsx, src/pages/asset/components/machines/MachineCreateShared.tsx）。
 - 修复 Asset 机器创建区域联动不可选问题：按接口定义将 `region` 视为 Zenlayer `regionId`、`zone` 视为 `zoneId`，在前端按 `raw.regionId` 过滤当前 Region 下的 Zone 候选，并避免 catalog 加载期间把下拉控件硬禁用，确保选择 Region 后可继续选择 Zone，再联动加载 Instance Type 与 Image（src/pages/asset/components/machines/useMachineCreateCatalogs.ts）。
 - 修复 Asset 机器创建 Catalog 下拉未写入表单的问题：`MachineCreateCatalogSelect` 透传 Ant Design Form 注入的 `value/onChange` 等 Select 属性，并撤回前端基于 `extra/raw` 的 Zone 过滤逻辑，统一只消费后端 `option_groups[].options[].value`（src/pages/asset/components/machines/MachineCreateShared.tsx, src/pages/asset/components/machines/useMachineCreateCatalogs.ts）。
