@@ -568,6 +568,7 @@
 
 | 参数 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
+| projectId | int | 是 | 项目 ID |
 | startDate | string | 是 | 开始日期（Y-m-d） |
 | endDate | string | 是 | 结束日期（Y-m-d），须 >= startDate |
 
@@ -581,6 +582,7 @@
 
 | 参数 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
+| projectId | int | 是 | 项目 ID |
 | startDate | string | 是 | 开始日期（Y-m-d） |
 | endDate | string | 是 | 结束日期（Y-m-d），须 >= startDate |
 

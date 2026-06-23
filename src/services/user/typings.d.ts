@@ -163,6 +163,12 @@ declare namespace API {
     end: string;
   }
 
+  interface AidLoginBanRuleDateWindow {
+    date: string;
+    start: string;
+    end: string;
+  }
+
   interface AidLoginBanRuleUserLite {
     id: number;
     email: string;
@@ -172,8 +178,10 @@ declare namespace API {
     id: number;
     name: string;
     enabled: boolean;
+    timezone?: string | null;
     cutoffAt?: string | null;
     weeklyWindows?: AidLoginBanRuleWeeklyWindow[];
+    dateWindows?: AidLoginBanRuleDateWindow[];
     packageNames?: string[];
     projectCodes?: string[];
     countries?: string[];
@@ -195,8 +203,10 @@ declare namespace API {
   interface AidLoginBanRuleSaveParams {
     name: string;
     enabled?: boolean;
-    cutoffAt?: string;
+    timezone: string;
+    cutoffAt?: string | null;
     weeklyWindows?: AidLoginBanRuleWeeklyWindow[];
+    dateWindows?: AidLoginBanRuleDateWindow[];
     packageNames?: string[];
     projectCodes?: string[];
     countries?: string[];
@@ -207,8 +217,10 @@ declare namespace API {
     id: number;
     name?: string;
     enabled?: boolean;
-    cutoffAt?: string;
+    timezone?: string;
+    cutoffAt?: string | null;
     weeklyWindows?: AidLoginBanRuleWeeklyWindow[];
+    dateWindows?: AidLoginBanRuleDateWindow[];
     packageNames?: string[];
     projectCodes?: string[];
     countries?: string[];

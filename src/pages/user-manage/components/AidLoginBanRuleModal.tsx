@@ -63,6 +63,18 @@ const renderWeeklyWindows = (windows?: API.AidLoginBanRuleWeeklyWindow[]) => {
   );
 };
 
+const renderDateWindows = (windows?: API.AidLoginBanRuleDateWindow[]) => {
+  if (!windows?.length) return <Tag>不限</Tag>;
+  const content = windows.map((item) => `${item.date} ${item.start}-${item.end}`).join('；');
+  return (
+    <Tooltip title={content}>
+      <Text ellipsis style={{ maxWidth: 260 }}>
+        {content}
+      </Text>
+    </Tooltip>
+  );
+};
+
 const AidLoginBanRuleModal: React.FC<AidLoginBanRuleModalProps> = ({ open, onOpenChange }) => {
   const { message: messageApi, modal: modalApi } = App.useApp();
   const actionRef = useRef<ActionType | null>(null);
@@ -124,11 +136,25 @@ const AidLoginBanRuleModal: React.FC<AidLoginBanRuleModalProps> = ({ open, onOpe
       render: (_, record) => record.cutoffAt || <Tag>不限</Tag>,
     },
     {
+      title: '时区',
+      dataIndex: 'timezone',
+      width: 150,
+      search: false,
+      render: (_, record) => record.timezone || '-',
+    },
+    {
       title: '生效时间段',
       dataIndex: 'weeklyWindows',
       width: 280,
       search: false,
       render: (_, record) => renderWeeklyWindows(record.weeklyWindows),
+    },
+    {
+      title: '特定日期生效时间段',
+      dataIndex: 'dateWindows',
+      width: 280,
+      search: false,
+      render: (_, record) => renderDateWindows(record.dateWindows),
     },
     {
       title: '封禁匹配包名列表',
@@ -260,7 +286,7 @@ const AidLoginBanRuleModal: React.FC<AidLoginBanRuleModalProps> = ({ open, onOpe
         }}
         pagination={{ defaultPageSize: 10, showSizeChanger: true }}
         search={{ labelWidth: 88 }}
-        scroll={{ x: 2160 }}
+        scroll={{ x: 2590 }}
         size="small"
         bordered
         toolBarRender={() => [

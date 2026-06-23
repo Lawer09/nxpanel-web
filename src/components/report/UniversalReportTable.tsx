@@ -11,8 +11,13 @@ type AnyRecord = Record<string, any>;
 
 type MetricFormatter = (value: number, record?: Record<string, unknown>) => React.ReactNode;
 type FixedPosition = 'left' | 'right';
-type ColumnState = { show?: boolean; fixed?: FixedPosition; order?: number };
+type ColumnState = { show?: boolean; fixed?: FixedPosition; order?: number; width?: number };
 type ColumnStateMap = Record<string, ColumnState>;
+type ResizeableTitleProps = React.ThHTMLAttributes<HTMLTableCellElement> & {
+  width?: number;
+  columnKey?: string;
+  onColumnResize?: (columnKey: string, width: number) => void;
+};
 
 interface SummaryMetric {
   key: string;
@@ -54,6 +59,7 @@ interface ColumnLayout<T> extends ActiveColumn<T> {
   show?: boolean;
   fixed?: FixedPosition;
   order?: number;
+  width?: number;
 }
 
 interface DimensionOption<T> {
@@ -305,10 +311,86 @@ function normalizeColumnsStateMap(map?: ColumnStateMap): ColumnStateMap {
       if (typeof state.show === 'boolean') nextState.show = state.show;
       if (state.fixed === 'left' || state.fixed === 'right') nextState.fixed = state.fixed;
       if (typeof state.order === 'number' && Number.isFinite(state.order)) nextState.order = state.order;
+      if (typeof state.width === 'number' && Number.isFinite(state.width) && state.width > 0) {
+        nextState.width = Math.round(state.width);
+      }
       acc[key] = nextState;
       return acc;
     }, {});
 }
+
+function mergeColumnsStateMap(prev: ColumnStateMap, next?: ColumnStateMap): ColumnStateMap {
+  const normalizedPrev = normalizeColumnsStateMap(prev);
+  const normalizedNext = normalizeColumnsStateMap(next);
+  Object.keys(normalizedNext).forEach((key) => {
+    if (normalizedNext[key]?.width === undefined && normalizedPrev[key]?.width !== undefined) {
+      normalizedNext[key] = { ...normalizedNext[key], width: normalizedPrev[key].width };
+    }
+  });
+  return normalizedNext;
+}
+
+const ResizeableTitle: React.FC<ResizeableTitleProps> = ({
+  width,
+  columnKey,
+  onColumnResize,
+  children,
+  style,
+  ...restProps
+}) => {
+  const handleMouseDown = (event: React.MouseEvent<HTMLSpanElement>) => {
+    if (!columnKey || !width || !onColumnResize) return;
+    event.preventDefault();
+    event.stopPropagation();
+
+    const startX = event.clientX;
+    const startWidth = width;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const nextWidth = Math.max(80, startWidth + moveEvent.clientX - startX);
+      onColumnResize(columnKey, nextWidth);
+    };
+
+    const handleMouseUp = () => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  return (
+    <th
+      {...restProps}
+      style={{
+        ...style,
+        position: 'relative',
+        width,
+      }}
+    >
+      {children}
+      {width && columnKey && onColumnResize ? (
+        <span
+          onMouseDown={handleMouseDown}
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: -4,
+            bottom: 0,
+            width: 8,
+            cursor: 'col-resize',
+            zIndex: 1,
+          }}
+        />
+      ) : null}
+    </th>
+  );
+};
 
 function buildEffectiveColumnsStateMap<T>(activeColumns: ActiveColumn<T>[], map?: ColumnStateMap) {
   const normalizedMap = normalizeColumnsStateMap(map);
@@ -842,6 +924,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
           order: state?.order,
           show: state?.show,
           fixed: state?.fixed,
+          width: state?.width,
         };
       })
       .sort((a, b) => {
@@ -869,10 +952,29 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     return visibleOrderedColumns.find((item) => item.kind !== 'metric')?.key;
   }, [visibleOrderedColumns]);
 
+  const handleColumnResize = useCallback((columnKey: string, width: number) => {
+    setColumnsStateMap((prev) => {
+      const baseMap = {
+        ...normalizeColumnsStateMap(effectiveColumnsStateMap),
+        ...normalizeColumnsStateMap(prev),
+      };
+      const nextWidth = Math.round(width);
+      return {
+        ...baseMap,
+        [columnKey]: {
+          ...(baseMap[columnKey] ?? {}),
+          width: nextWidth,
+        },
+      };
+    });
+  }, [effectiveColumnsStateMap]);
+
   const tableColumns = useMemo<ProColumns<T>[]>(
     () =>
       orderedColumnLayouts.map((item) => {
         const originalColumn = item.column as ProColumns<T>;
+        const originalWidth = typeof originalColumn.width === 'number' ? originalColumn.width : undefined;
+        const columnWidth = item.width ?? originalWidth;
         const normalizedSorterField = normalizeSortKey(sorter?.field);
         const normalizedSorterColumnKey = normalizeSortKey(sorter?.columnKey);
         const isCurrentSortColumn =
@@ -883,12 +985,19 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
         return {
           ...originalColumn,
           key: item.key,
+          width: columnWidth ?? originalColumn.width,
           fixed: item.fixed ?? originalColumn.fixed,
           sorter: enableServerSort ? originalColumn.sorter ?? true : undefined,
           sortOrder: enableServerSort && isCurrentSortColumn ? sorter?.order : undefined,
+          onHeaderCell: (...args: any[]) => ({
+            ...((originalColumn as any).onHeaderCell?.(...args) ?? {}),
+            width: columnWidth,
+            columnKey: item.key,
+            onColumnResize: handleColumnResize,
+          }),
         };
       }),
-    [orderedColumnLayouts, enableServerSort, sorter],
+    [orderedColumnLayouts, enableServerSort, sorter, handleColumnResize],
   );
 
   const summaryMetrics = useMemo<SummaryMetric[]>(() => {
@@ -1223,6 +1332,11 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
           dataSource={data}
           loading={loading}
           search={false}
+          components={{
+            header: {
+              cell: ResizeableTitle,
+            },
+          }}
           toolBarRender={() => []}
           options={{
             reload: () => {
@@ -1235,7 +1349,8 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
           }}
           columnsState={{
             value: effectiveColumnsStateMap,
-            onChange: (map) => setColumnsStateMap((map || {}) as ColumnStateMap),
+            onChange: (map) =>
+              setColumnsStateMap((prev) => mergeColumnsStateMap(prev, (map || {}) as ColumnStateMap)),
           }}
           pagination={pagination}
           scroll={{ x: 'max-content' }}

@@ -207,9 +207,13 @@ POST /api/v3/admin/user/blockedIp/delete
                 "id": 1,
                 "name": "US night fraud block",
                 "enabled": true,
+                "timezone": "Asia/Shanghai",
                 "cutoffAt": "2026-06-30 23:59:59",
                 "weeklyWindows": [
                     {"weekday": 1, "start": "00:00", "end": "06:00"}
+                ],
+                "dateWindows": [
+                    {"date": "2026-06-18", "start": "00:00", "end": "06:00"}
                 ],
                 "packageNames": ["com.example.vpn"],
                 "projectCodes": ["project-demo"],
@@ -238,13 +242,18 @@ POST /api/v3/admin/user/blockedIp/delete
 |------|------|------|------|
 | `name` | `string` | 是 | 规则名称，最大 191 字符 |
 | `enabled` | `bool` | 否 | 是否启用，默认启用 |
-| `cutoffAt` | `string` | 否 | 规则有效截止时间，例如 `2026-06-30 23:59:59`；为空表示不限制截止时间 |
-| `weeklyWindows` | `array` | 否 | 一周内生效时间段；为空表示不限制星期和小时段 |
-| `weeklyWindows[].weekday` | `int` | 是 | 星期，`1=周一`，`7=周日` |
-| `weeklyWindows[].start` | `string` | 是 | 开始时间，格式 `HH:mm` |
-| `weeklyWindows[].end` | `string` | 是 | 结束时间，格式 `HH:mm`，必须大于 `start` |
-| `packageNames` | `string[]` | 否 | 封禁匹配包名列表，空数组或不传表示不限制包名 |
-| `projectCodes` | `string[]` | 否 | 封禁匹配项目代号，空数组或不传表示不限制项目代号 |
+| `timezone` | `string` | 是 | 规则时区，例如 `Asia/Shanghai`；所有时间条件均按该时区解释 |
+| `cutoffAt` | `string\|null` | 否 | 规则有效截止时间，例如 `2026-06-30 23:59:59`；空表示不限制 |
+| `weeklyWindows` | `array` | 否 | 一周内生效时间段，空数组或不传表示不限制 |
+| `weeklyWindows[].weekday` | `int` | 是 | 传 `weeklyWindows` 时必填；星期，`1=周一`，`7=周日` |
+| `weeklyWindows[].start` | `string` | 是 | 传 `weeklyWindows` 时必填；开始时间，格式 `HH:mm` |
+| `weeklyWindows[].end` | `string` | 是 | 传 `weeklyWindows` 时必填；结束时间，格式 `HH:mm`，必须大于 `start` |
+| `dateWindows` | `array` | 否 | 特定日期生效时间段，空数组或不传表示不限制 |
+| `dateWindows[].date` | `string` | 是 | 传 `dateWindows` 时必填；日期，格式 `Y-m-d` |
+| `dateWindows[].start` | `string` | 是 | 传 `dateWindows` 时必填；开始时间，格式 `HH:mm` |
+| `dateWindows[].end` | `string` | 是 | 传 `dateWindows` 时必填；结束时间，格式 `HH:mm`，必须大于 `start` |
+| `packageNames` | `string[]` | 否 | 封禁匹配包名列表；最终列表为空时规则不会参与封禁检测 |
+| `projectCodes` | `string[]` | 否 | 项目代号列表；保存时会查询 `project_user_app_map` 中 `enabled=1` 的相同 `project_code`，并将对应 `app_id` 合并到最终 `packageNames` |
 | `countries` | `string[]` | 否 | 封禁匹配国家列表，空数组或不传表示不限制国家 |
 | `reason` | `string` | 否 | 封禁原因，最大 500 字符 |
 
@@ -254,10 +263,14 @@ POST /api/v3/admin/user/blockedIp/delete
 {
     "name": "US night fraud block",
     "enabled": true,
+    "timezone": "Asia/Shanghai",
     "cutoffAt": "2026-06-30 23:59:59",
     "weeklyWindows": [
         {"weekday": 1, "start": "00:00", "end": "06:00"},
         {"weekday": 2, "start": "00:00", "end": "06:00"}
+    ],
+    "dateWindows": [
+        {"date": "2026-06-18", "start": "00:00", "end": "06:00"}
     ],
     "packageNames": ["com.example.vpn"],
     "projectCodes": ["project-demo"],
@@ -277,10 +290,12 @@ POST /api/v3/admin/user/blockedIp/delete
 | `id` | `int` | 是 | 规则 ID |
 | `name` | `string` | 否 | 规则名称 |
 | `enabled` | `bool` | 否 | 是否启用 |
-| `cutoffAt` | `string` | 否 | 规则有效截止时间；为空表示不限制截止时间 |
-| `weeklyWindows` | `array` | 否 | 一周内生效时间段，格式同新增接口；为空表示不限制星期和小时段 |
-| `packageNames` | `string[]` | 否 | 封禁匹配包名列表，空数组或不传表示不限制包名 |
-| `projectCodes` | `string[]` | 否 | 封禁匹配项目代号，空数组或不传表示不限制项目代号 |
+| `timezone` | `string` | 否 | 规则时区，例如 `Asia/Shanghai`；所有时间条件均按该时区解释 |
+| `cutoffAt` | `string\|null` | 否 | 规则有效截止时间；空表示不限制 |
+| `weeklyWindows` | `array` | 否 | 一周内生效时间段，格式同新增接口；空数组或不传表示不限制 |
+| `dateWindows` | `array` | 否 | 特定日期生效时间段，格式同新增接口；空数组或不传表示不限制 |
+| `packageNames` | `string[]` | 否 | 封禁匹配包名列表；最终列表为空时规则不会参与封禁检测 |
+| `projectCodes` | `string[]` | 否 | 项目代号列表；保存时会查询 `project_user_app_map` 中 `enabled=1` 的相同 `project_code`，并将对应 `app_id` 合并到最终 `packageNames` |
 | `countries` | `string[]` | 否 | 封禁匹配国家列表，空数组或不传表示不限制国家 |
 | `reason` | `string` | 否 | 封禁原因 |
 

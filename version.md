@@ -109,10 +109,13 @@
 - 优化项目报表流量费用展示：接入 `trafficCostRatio` 伴随字段，在“流量费用”列展示为“流量费用 (流量消耗占比)”，并支持普通行、当前页合计和总数据合计统一展示（src/pages/report/project/index.tsx, src/components/report/UniversalReportTable.tsx, docs/api/project-report-api.md, docs/api/project_report_query_api.md）。
 - 优化项目报表筛选能力：新增仅用于筛选的 `adStatuses` 条件，下拉默认展示并提交“在投状态”“暂停状态”，同时支持手动输入，查询和导出时统一透传到 `filters` 参数（src/pages/report/project/index.tsx, src/services/report/typings.d.ts, docs/api/project-report-api.md, docs/api/project_report_query_api.md）。
 - 优化项目报表投放状态展示：接口返回的 `adStatus` 伴随字段不单独新增列，合并到项目编码列右侧以 Tag 展示，`activate/deactivate` 显示为“在投状态/暂停状态”（src/pages/report/project/index.tsx, docs/api/project-report-api.md, docs/api/project_report_query_api.md）。
+- 优化通用报表列设置：支持在表头拖拽调整列宽，并将列宽写入 `columnsStateMap.width`，随本地缓存和保存视图一起恢复（src/components/report/UniversalReportTable.tsx, docs/components/universal_report_column_width.md, docs/issue/report_column_width.md）。
 - 优化项目卡片列表展示：项目管理左侧卡片在“广告账号”旁增加 `adStatus` 标签展示，用于直观显示当前投放状态（src/pages/project/components/ProjectList.tsx, src/services/project/types.ts, docs/api/project_api.md）。
 - 优化项目基础信息编辑：在项目详情内联编辑和项目新建/编辑弹窗中增加 `adStatus` 字段，默认下拉提供 `activate`、`deactivate` 两个候选并保留自定义输入能力，支持直接维护投放状态并与项目 API 参数保持一致（src/pages/project/components/ProjectDetail.tsx, src/pages/project/components/ProjectForm.tsx, src/services/project/types.ts, docs/api/project_api.md）。
+- 优化项目管理聚合同步：日聚合同步和异步触发请求增加当前 `projectId` 参数，避免只按日期范围触发全局聚合（src/pages/project/components/DailyAggregation.tsx, src/services/project/types.ts, docs/api/project_api.md）。
 - 优化 Asset 管理模块结构：将巨型 `src/pages/asset/index.tsx` 拆分为页面壳、共享筛选、资源面板、机器弹窗/详情抽屉与 payload 工具模块，并彻底移除 Dev 下旧资产兼容入口 `/dev/assets`、`/dev/asset-operations`，避免 Asset 与 Dev 旧页面继续混杂（config/routes.ts, src/pages/asset/, src/pages/dev/Assets.tsx, src/pages/dev/AssetOperations.tsx）。
 - 优化用户管理 AID 登录封禁策略：新增 `projectCodes` 封禁匹配项目代号配置、列表展示与接口文档说明（src/pages/user-manage/components/AidLoginBanRuleModal.tsx, src/pages/user-manage/components/AidLoginBanRuleFormModal.tsx, src/services/user/typings.d.ts, docs/api/user_api.md）。
+- 优化用户管理 AID 登录封禁策略：新增 `timezone` 规则时区和 `dateWindows` 特定日期生效时间段配置，并同步列表展示、表单校验、类型声明与接口文档（src/pages/user-manage/components/AidLoginBanRuleModal.tsx, src/pages/user-manage/components/AidLoginBanRuleFormModal.tsx, src/services/user/typings.d.ts, docs/api/user_api.md）。
 - 优化项目管理表格页资源管理：详情抽屉的流量账号、广告账号、用户 App 标签页补充“关联”入口，复用原资源组件新增绑定弹窗（src/pages/project-table/components/ProjectTableDetailDrawer.tsx）。
 - 优化项目管理表格页筛选能力：新增 `adStatus`、`packageName`、`developerGmail` 三个筛选项并透传项目列表接口（src/pages/project-table/index.tsx, src/services/project/types.ts, docs/api/project_api.md）。
 

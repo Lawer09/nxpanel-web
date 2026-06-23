@@ -1,4 +1,5 @@
 import {
+  ProFormDatePicker,
   ModalForm,
   ProFormDateTimePicker,
   ProFormGroup,
@@ -20,9 +21,13 @@ type AidLoginBanRuleFormModalProps = {
   onSuccess: () => void;
 };
 
-type AidLoginBanRuleFormValues = Omit<API.AidLoginBanRuleSaveParams, 'weeklyWindows'> & {
+type AidLoginBanRuleFormValues = Omit<
+  API.AidLoginBanRuleSaveParams,
+  'weeklyWindows' | 'dateWindows'
+> & {
   cutoffAt?: string;
   weeklyWindows?: API.AidLoginBanRuleWeeklyWindow[];
+  dateWindows?: API.AidLoginBanRuleDateWindow[];
 };
 
 const WEEKDAY_OPTIONS = [
@@ -36,6 +41,7 @@ const WEEKDAY_OPTIONS = [
 ];
 
 const TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+const DEFAULT_TIMEZONE = 'Asia/Shanghai';
 
 const normalizeTags = (value?: string[]) =>
   (value ?? []).map((item) => String(item).trim()).filter(Boolean);
@@ -54,16 +60,20 @@ const AidLoginBanRuleFormModal: React.FC<AidLoginBanRuleFormModalProps> = ({
   const initialValues = current
     ? {
         ...current,
+        timezone: current.timezone || DEFAULT_TIMEZONE,
         cutoffAt: current.cutoffAt || undefined,
         enabled: current.enabled,
         weeklyWindows: current.weeklyWindows ?? [],
+        dateWindows: current.dateWindows ?? [],
         packageNames: current.packageNames ?? [],
         projectCodes: current.projectCodes ?? [],
         countries: current.countries ?? [],
       }
     : {
         enabled: true,
+        timezone: DEFAULT_TIMEZONE,
         weeklyWindows: [],
+        dateWindows: [],
         packageNames: [],
         projectCodes: [],
         countries: [],
@@ -86,9 +96,23 @@ const AidLoginBanRuleFormModal: React.FC<AidLoginBanRuleFormModalProps> = ({
             end: item.end,
           }));
 
+        const dateWindows = (values.dateWindows ?? [])
+          .filter((item) => item?.date || item?.start || item?.end)
+          .map((item) => ({
+            date: item.date ? dayjs(item.date).format('YYYY-MM-DD') : '',
+            start: item.start,
+            end: item.end,
+          }));
+
         const incompleteRange = weeklyWindows.find((item) => !item.weekday || !item.start || !item.end);
         if (incompleteRange) {
           messageApi.error('生效时间段填写后需补全星期、开始时间和结束时间');
+          return false;
+        }
+
+        const incompleteDateRange = dateWindows.find((item) => !item.date || !item.start || !item.end);
+        if (incompleteDateRange) {
+          messageApi.error('特定日期生效时间段填写后需补全日期、开始时间和结束时间');
           return false;
         }
 
@@ -98,11 +122,25 @@ const AidLoginBanRuleFormModal: React.FC<AidLoginBanRuleFormModalProps> = ({
           return false;
         }
 
+        const invalidDateRange = dateWindows.find((item) => item.start && item.end && item.end <= item.start);
+        if (invalidDateRange) {
+          messageApi.error('特定日期生效时间段的结束时间必须大于开始时间');
+          return false;
+        }
+
+        const timezone = String(values.timezone || '').trim();
+        if (!timezone) {
+          messageApi.error('请输入规则时区');
+          return false;
+        }
+
         const basePayload: API.AidLoginBanRuleSaveParams = {
           name: values.name,
           enabled: values.enabled ?? true,
-          cutoffAt: values.cutoffAt ? dayjs(values.cutoffAt).format('YYYY-MM-DD HH:mm:ss') : undefined,
+          timezone,
+          cutoffAt: values.cutoffAt ? dayjs(values.cutoffAt).format('YYYY-MM-DD HH:mm:ss') : null,
           weeklyWindows,
+          dateWindows,
           packageNames: normalizeTags(values.packageNames),
           projectCodes: normalizeTags(values.projectCodes),
           countries: normalizeCountries(values.countries),
@@ -135,12 +173,25 @@ const AidLoginBanRuleFormModal: React.FC<AidLoginBanRuleFormModalProps> = ({
         <ProFormSwitch name="enabled" label="启用" colProps={{ span: 5 }} />
       </ProFormGroup>
 
-      <ProFormDateTimePicker
-        name="cutoffAt"
-        label="有效截止时间"
-        placeholder="留空表示不限制截止时间"
-        fieldProps={{ format: 'YYYY-MM-DD HH:mm:ss' }}
-      />
+      <ProFormGroup>
+        <ProFormText
+          name="timezone"
+          label="规则时区"
+          colProps={{ span: 10 }}
+          placeholder="例如 Asia/Shanghai"
+          rules={[
+            { required: true, message: '请输入规则时区' },
+            { max: 64, message: '规则时区最多 64 个字符' },
+          ]}
+        />
+        <ProFormDateTimePicker
+          name="cutoffAt"
+          label="有效截止时间"
+          colProps={{ span: 14 }}
+          placeholder="留空表示不限制截止时间"
+          fieldProps={{ format: 'YYYY-MM-DD HH:mm:ss' }}
+        />
+      </ProFormGroup>
 
       <ProFormList
         name="weeklyWindows"
@@ -175,6 +226,39 @@ const AidLoginBanRuleFormModal: React.FC<AidLoginBanRuleFormModalProps> = ({
         </ProFormGroup>
       </ProFormList>
 
+      <ProFormList
+        name="dateWindows"
+        label="特定日期生效时间段"
+        creatorButtonProps={{ creatorButtonText: '添加日期时间段' }}
+      >
+        <ProFormGroup>
+          <ProFormDatePicker
+            name="date"
+            label="日期"
+            width="xs"
+            fieldProps={{ format: 'YYYY-MM-DD' }}
+          />
+          <ProFormText
+            name="start"
+            label="开始"
+            width="xs"
+            placeholder="00:00"
+            rules={[
+              { pattern: TIME_PATTERN, message: '时间格式应为 HH:mm' },
+            ]}
+          />
+          <ProFormText
+            name="end"
+            label="结束"
+            width="xs"
+            placeholder="06:00"
+            rules={[
+              { pattern: TIME_PATTERN, message: '时间格式应为 HH:mm' },
+            ]}
+          />
+        </ProFormGroup>
+      </ProFormList>
+
       <ProFormGroup>
         <ProFormSelect
           name="packageNames"
@@ -182,7 +266,7 @@ const AidLoginBanRuleFormModal: React.FC<AidLoginBanRuleFormModalProps> = ({
           mode="tags"
           colProps={{ span: 12 }}
           fieldProps={{ tokenSeparators: [','] }}
-          placeholder="留空表示不限制"
+          placeholder="可留空；最终包名为空时不参与封禁检测"
         />
         <ProFormSelect
           name="projectCodes"
@@ -190,7 +274,7 @@ const AidLoginBanRuleFormModal: React.FC<AidLoginBanRuleFormModalProps> = ({
           mode="tags"
           colProps={{ span: 12 }}
           fieldProps={{ tokenSeparators: [','] }}
-          placeholder="留空表示不限制"
+          placeholder="可留空；保存时合并项目关联包名"
         />
       </ProFormGroup>
 

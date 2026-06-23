@@ -25,6 +25,7 @@ const DailyAggregation: React.FC<DailyAggregationProps> = ({ projectId }) => {
     setSyncLoading(true);
     try {
       await aggregateSync({
+        projectId,
         startDate: dates[0].format('YYYY-MM-DD'),
         endDate: dates[1].format('YYYY-MM-DD')
       });
@@ -42,6 +43,7 @@ const DailyAggregation: React.FC<DailyAggregationProps> = ({ projectId }) => {
     setAsyncLoading(true);
     try {
       const res = await aggregateAsync({
+        projectId,
         startDate: dates[0].format('YYYY-MM-DD'),
         endDate: dates[1].format('YYYY-MM-DD')
       });
