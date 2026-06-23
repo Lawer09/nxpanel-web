@@ -163,6 +163,12 @@ declare namespace API {
     pageSize?: number;
   }
 
+  interface UserBlockedIpBatchDeleteResult {
+    deletedCount: number;
+    requestedCount: number;
+    missingIds?: number[];
+  }
+
   interface AidLoginBanRuleWeeklyWindow {
     weekday: number;
     start: string;

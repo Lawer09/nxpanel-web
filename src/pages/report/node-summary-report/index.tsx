@@ -1,5 +1,5 @@
 import { PageContainer } from '@ant-design/pro-components';
-import { App, DatePicker, Form, Input, InputNumber } from 'antd';
+import { App, DatePicker, Form, Input, InputNumber, Select } from 'antd';
 import type { SortOrder } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
 import React from 'react';
@@ -11,6 +11,8 @@ import {
   resolveDateRangeByPreset,
   type DateRangePreset,
 } from '@/components/report/reportDatePreset';
+import { getUserAppMappings } from '@/services/project/api';
+import type { ProjectUserAppMapping } from '@/services/project/types';
 import { queryNodeReportHourly } from '@/services/report/api';
 
 const { RangePicker } = DatePicker;
@@ -35,6 +37,11 @@ type ReportSorter = {
   field?: string;
   columnKey?: string;
   order?: SortOrder;
+};
+
+type AppIdOption = {
+  label: string;
+  value: string;
 };
 
 const DIMENSIONS = [
@@ -121,9 +128,72 @@ const toOrderDirection = (order?: SortOrder) => {
   return undefined;
 };
 
+const buildAppIdOptions = (mappings: ProjectUserAppMapping[]): AppIdOption[] => {
+  const seen = new Set<string>();
+
+  return mappings.reduce<AppIdOption[]>((options, item) => {
+    const appId = item.packageNames?.[0];
+    if (!appId || seen.has(appId)) return options;
+
+    seen.add(appId);
+    options.push({
+      value: appId,
+      label: item.projectCode ? `${appId}（${item.projectCode}）` : appId,
+    });
+    return options;
+  }, []);
+};
+
+const getMappingList = (data: ProjectUserAppMapping[] | { data?: ProjectUserAppMapping[] } | undefined) => {
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.data)) return data.data;
+  return [];
+};
+
 const NodeSummaryReportPage: React.FC = () => {
   const { message: messageApi } = App.useApp();
   const today = dayjs().format('YYYY-MM-DD');
+  const [appIdOptions, setAppIdOptions] = React.useState<AppIdOption[]>([]);
+  const [appIdOptionsLoading, setAppIdOptionsLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    let ignore = false;
+
+    const fetchAppIdOptions = async () => {
+      setAppIdOptionsLoading(true);
+      try {
+        const res = await getUserAppMappings();
+        if (ignore) return;
+
+        if (res.code !== 0) {
+          messageApi.error(res.msg || '获取应用ID列表失败');
+          setAppIdOptions([]);
+          return;
+        }
+
+        setAppIdOptions(
+          buildAppIdOptions(
+            getMappingList(res.data as ProjectUserAppMapping[] | { data?: ProjectUserAppMapping[] } | undefined),
+          ),
+        );
+      } catch {
+        if (!ignore) {
+          messageApi.error('获取应用ID列表失败');
+          setAppIdOptions([]);
+        }
+      } finally {
+        if (!ignore) {
+          setAppIdOptionsLoading(false);
+        }
+      }
+    };
+
+    fetchAppIdOptions();
+
+    return () => {
+      ignore = true;
+    };
+  }, [messageApi]);
 
   return (
     <PageContainer>
@@ -227,7 +297,17 @@ const NodeSummaryReportPage: React.FC = () => {
             ) : null}
             {visibleFilterDimensions.includes('appId') ? (
               <Form.Item label="应用ID">
-                <Input value={query.appId} style={{ width: 160 }} onChange={(e) => setQuery((prev) => ({ ...prev, appId: e.target.value || undefined }))} />
+                <Select
+                  allowClear
+                  showSearch
+                  loading={appIdOptionsLoading}
+                  value={query.appId}
+                  style={{ width: 240 }}
+                  options={appIdOptions}
+                  placeholder="请选择应用ID"
+                  optionFilterProp="label"
+                  onChange={(value) => setQuery((prev) => ({ ...prev, appId: value || undefined }))}
+                />
               </Form.Item>
             ) : null}
             {visibleFilterDimensions.includes('appVersion') ? (

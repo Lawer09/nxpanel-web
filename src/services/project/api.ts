@@ -103,6 +103,12 @@ export async function getUserApps(projectId: number) {
   });
 }
 
+export async function getUserAppMappings() {
+  return request<API.ApiResponse<Types.ProjectUserAppMapping[]>>('/v3/projects/user-apps/mappings', {
+    method: 'GET',
+  });
+}
+
 export async function createUserApp(data: Types.ProjectUserAppStoreRequest) {
   return request<API.ApiResponse<any>>('/v3/projects/user-apps/create', {
     method: 'POST',

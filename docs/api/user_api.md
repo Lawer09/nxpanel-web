@@ -179,6 +179,39 @@ POST /api/v3/admin/user/blockedIp/delete
 }
 ```
 
+## 批量删除封禁用户 IP 记录
+
+`POST /v3/user/blockedIp/batchDelete`
+
+### 请求参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `ids` | `int[]` | 是 | 需要删除的封禁 IP 记录 ID 列表；服务端会去重，空数组会返回校验错误 |
+
+### 请求示例
+
+```json
+POST /api/v3/admin/user/blockedIp/batchDelete
+{
+    "ids": [1, 2, 3]
+}
+```
+
+### 返回示例
+
+```json
+{
+    "code": 0,
+    "msg": "操作成功",
+    "data": {
+        "deletedCount": 2,
+        "requestedCount": 3,
+        "missingIds": [3]
+    }
+}
+```
+
 ## AID 登录封禁规则列表查询
 
 `POST /v3/user/aidLoginBanRule/fetch`

@@ -101,6 +101,7 @@
 - 新增独立 IAM 管理菜单组，管理登录态下提供用户、角色、权限、菜单、Client 与审计日志页面，并将管理登录接口切换到 `/api/v1/iam/*`，与 Dev 菜单并列展示且不混入运营菜单（config/routes.ts, config/proxy.ts, src/pages/iam/, src/services/iam/, src/services/dev-admin/）。
 - 新增项目管理表格页并接入项目扩展字段：保留原 `/project` 卡片页并改名为项目管理Card，新增 `/project-table` 表格管理入口，支持项目扩展字段展示、新建、编辑、状态切换、详情抽屉与资源管理复用（config/routes.ts, src/pages/project-table/, src/services/project/types.ts, docs/api/project_api.md）。
 - 新增用户管理 AID 登录封禁策略弹窗，支持按启用状态、包名和国家查询规则，并提供新增、编辑、删除封禁策略能力（src/pages/user-manage/index.tsx, src/pages/user-manage/components/AidLoginBanRuleModal.tsx, src/pages/user-manage/components/AidLoginBanRuleFormModal.tsx, src/services/user/, docs/api/user_api.md）。
+- 新增用户管理封禁 IP 列表批量删除能力，支持勾选多条记录后调用 `/v3/user/blockedIp/batchDelete` 删除并展示删除结果统计（src/pages/user-manage/components/BlockedIpModal.tsx, src/services/user/, docs/api/user_api.md）。
 
 - 鏂板 Nodes 鐙珛绠＄悊鑿滃崟缁勫苟灏?node-service 鎺у埗闈㈣繕绉诲嚭 Dev锛氬皢 Agent/Node 鑿滃崟杩佺Щ鍒?`/nodes/overview`銆?`/nodes/list`銆?`/nodes/agents`锛屽悓鏃跺皢 node-service 璇锋眰鍓嶇紑鍒囨崲涓?`/v4/nodes/* -> /api/v1/nodes/*`锛屽苟琛ュ叏 Overview 棣栭〉銆丯odes/Agents 璇︽儏鐨?runtime銆乻amples銆乼raffic銆乷nline銆乪vents 鑳藉姏锛坈onfig/routes.ts, config/proxy.ts, src/app.tsx, src/pages/dev/NodesOverview.tsx, src/pages/dev/Nodes.tsx, src/pages/dev/Agents.tsx, src/services/node-control/锛夈€?
 
@@ -124,6 +125,7 @@
 - 优化项目管理表格页筛选能力：新增 `adStatus`、`packageName`、`developerGmail` 三个筛选项并透传项目列表接口（src/pages/project-table/index.tsx, src/services/project/types.ts, docs/api/project_api.md）。
 - 优化项目投放状态候选值：将项目管理Card和项目管理表格页的投放状态下拉统一调整为“暂停、在投、未上线”，并同步筛选项与项目 API 文档（src/pages/project/constants.ts, src/pages/project/components/ProjectForm.tsx, src/pages/project/components/ProjectDetail.tsx, src/pages/project-table/, docs/api/project_api.md）。
 - 优化用户管理添加与编辑表单：新增 `user_type` 用户类型下拉，选择 `define` 时展示 `menus` 菜单路径数组输入，并在提交时同步到用户生成和更新接口（src/pages/user-manage/components/UserFormModal.tsx, src/pages/user-manage/components/GenerateUserModal.tsx, src/services/user/typings.d.ts, docs/api/user_api.md）。
+- 优化节点汇总报表应用 ID 筛选：改为通过 `/v3/projects/user-apps/mappings` 获取用户 App 项目映射，使用 `packageNames[0]` 作为筛选值并按 `应用ID（projectCode）` 展示下拉选项（src/pages/report/node-summary-report/index.tsx, src/services/project/api.ts, src/services/project/types.ts, docs/api/project_api.md）。
 
 ### Bug 修复
 

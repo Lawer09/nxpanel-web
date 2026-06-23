@@ -34,6 +34,12 @@ export interface ProjectUserApp {
   updatedAt?: string;
 }
 
+export interface ProjectUserAppMapping {
+  projectCode: string;
+  packageNames: string[];
+  appCount: number;
+}
+
 type NullableString = string | null;
 
 export interface ProjectItem {

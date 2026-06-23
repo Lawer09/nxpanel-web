@@ -128,6 +128,21 @@ export async function deleteBlockedIp(body: { id: number }, options?: { [key: st
   });
 }
 
+export async function batchDeleteBlockedIps(
+  body: { ids: number[] },
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.UserBlockedIpBatchDeleteResult>>(
+    '/v3/user/blockedIp/batchDelete',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: body,
+      ...(options || {}),
+    },
+  );
+}
+
 export async function fetchAidLoginBanRules(
   params: API.AidLoginBanRuleFetchParams,
   options?: { [key: string]: any },

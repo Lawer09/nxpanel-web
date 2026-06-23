@@ -1,9 +1,9 @@
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { ProTable } from '@ant-design/pro-components';
-import { App, Modal, Space, Tag, Tooltip, Typography } from 'antd';
+import { App, Button, Modal, Space, Tag, Tooltip, Typography } from 'antd';
 import dayjs from 'dayjs';
-import React, { useRef } from 'react';
-import { deleteBlockedIp, fetchBlockedIps } from '@/services/user/api';
+import React, { useRef, useState } from 'react';
+import { batchDeleteBlockedIps, deleteBlockedIp, fetchBlockedIps } from '@/services/user/api';
 
 const { Text } = Typography;
 
@@ -30,6 +30,37 @@ const renderUser = (user?: API.BlockedIpUserLite | null, userId?: number | null)
 const BlockedIpModal: React.FC<BlockedIpModalProps> = ({ open, onOpenChange }) => {
   const { message: messageApi, modal: modalApi } = App.useApp();
   const actionRef = useRef<ActionType | null>(null);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+
+  const handleBatchDelete = () => {
+    const ids = selectedRowKeys.map((id) => Number(id)).filter((id) => Number.isFinite(id));
+    if (!ids.length) {
+      messageApi.warning('请先选择需要删除的封禁 IP 记录');
+      return;
+    }
+
+    modalApi.confirm({
+      title: `确认批量删除 ${ids.length} 条封禁 IP 记录？`,
+      content: '删除后这些 IP 封禁记录将不再生效。',
+      okType: 'danger',
+      onOk: async () => {
+        const res = await batchDeleteBlockedIps({ ids });
+        if (res.code !== 0) {
+          messageApi.error(res.msg || '批量删除失败');
+          return;
+        }
+        const result = res.data;
+        const missingText = result?.missingIds?.length
+          ? `，未找到 ID：${result.missingIds.join(', ')}`
+          : '';
+        messageApi.success(
+          `批量删除完成：成功 ${result?.deletedCount ?? 0}/${result?.requestedCount ?? ids.length}${missingText}`,
+        );
+        setSelectedRowKeys([]);
+        actionRef.current?.reload();
+      },
+    });
+  };
 
   const columns: ProColumns<API.UserBlockedIpItem>[] = [
     { title: 'ID', dataIndex: 'id', width: 80, search: false },
@@ -137,6 +168,24 @@ const BlockedIpModal: React.FC<BlockedIpModalProps> = ({ open, onOpenChange }) =
         rowKey="id"
         actionRef={actionRef}
         columns={columns}
+        rowSelection={{
+          selectedRowKeys,
+          onChange: setSelectedRowKeys,
+        }}
+        tableAlertRender={({ selectedRowKeys: keys }) => (
+          <span>已选择 {keys.length} 条封禁 IP 记录</span>
+        )}
+        tableAlertOptionRender={false}
+        toolBarRender={() => [
+          <Button
+            key="batchDelete"
+            danger
+            disabled={!selectedRowKeys.length}
+            onClick={handleBatchDelete}
+          >
+            批量删除
+          </Button>,
+        ]}
         request={async (params) => {
           const res = await fetchBlockedIps({
             ip: params.ip || undefined,

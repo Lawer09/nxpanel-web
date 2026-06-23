@@ -24,6 +24,7 @@
 | POST | `/projects/ad-accounts/update` | 修改广告账号关联 | `ProjectAdAccountController::update` |
 | POST | `/projects/ad-accounts/delete` | 删除广告账号关联 | `ProjectAdAccountController::destroy` |
 | GET | `/projects/user-apps` | 用户App绑定列表 | `ProjectUserAppMapController::index` |
+| GET | `/projects/user-apps/mappings` | 用户App项目映射列表 | `ProjectUserAppMapController::mappings` |
 | POST | `/projects/user-apps/create` | 新增用户App绑定 | `ProjectUserAppMapController::store` |
 | POST | `/projects/user-apps/update` | 修改用户App绑定 | `ProjectUserAppMapController::update` |
 | POST | `/projects/user-apps/delete` | 删除用户App绑定 | `ProjectUserAppMapController::destroy` |
@@ -509,7 +510,39 @@
 }
 ```
 
-### 8.2 新增用户 App 绑定
+### 8.2 查询用户 App 项目映射
+
+- **方法/路径**：`GET /v3/projects/user-apps/mappings`
+- **说明**：返回项目代号与用户 App 包名的映射列表，可用于报表中的应用 ID 下拉筛选。
+
+#### 返回结构
+
+```json
+{
+  "data": [
+    {
+      "projectCode": "rocket",
+      "packageNames": [
+        "com.rocket.vpn",
+        "com.rocket.secure"
+      ],
+      "appCount": 2
+    }
+  ]
+}
+```
+
+#### data[] 字段说明
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| projectCode | string | 项目代号 |
+| packageNames | string[] | 项目下绑定的用户 App 包名列表 |
+| appCount | int | 绑定 App 数量 |
+
+前端报表筛选使用 `packageNames[0]` 作为应用 ID 值，下拉展示格式为 `应用ID（projectCode）`。
+
+### 8.3 新增用户 App 绑定
 
 - **方法/路径**：`POST /v3/projects/user-apps/create`
 - **控制器**：`ProjectUserAppMapController::store`
@@ -525,7 +558,7 @@
 | enabled | int | 否 | 默认 1 |
 | remark | string | 否 | 备注 |
 
-### 8.3 修改用户 App 绑定
+### 8.4 修改用户 App 绑定
 
 - **方法/路径**：`POST /v3/projects/user-apps/update`
 - **控制器**：`ProjectUserAppMapController::update`
@@ -541,7 +574,7 @@
 | enabled | int | 否 | 是否启用 |
 | remark | string | 否 | 备注 |
 
-### 8.4 删除用户 App 绑定
+### 8.5 删除用户 App 绑定
 
 - **方法/路径**：`POST /v3/projects/user-apps/delete`
 - **控制器**：`ProjectUserAppMapController::destroy`
