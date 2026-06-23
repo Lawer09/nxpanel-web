@@ -9,7 +9,7 @@ import {
   ProFormText,
   ProFormTextArea,
 } from '@ant-design/pro-components';
-import { App } from 'antd';
+import { App, AutoComplete, Form } from 'antd';
 import dayjs from 'dayjs';
 import React from 'react';
 import { saveAidLoginBanRule, updateAidLoginBanRule } from '@/services/user/api';
@@ -42,6 +42,39 @@ const WEEKDAY_OPTIONS = [
 
 const TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 const DEFAULT_TIMEZONE = 'Asia/Shanghai';
+const TIMEZONE_OPTIONS = [
+  { value: 'Asia/Shanghai', label: 'Asia/Shanghai(UTC+8)' },
+  { value: 'Asia/Hong_Kong', label: 'Asia/Hong_Kong(UTC+8)' },
+  { value: 'Asia/Taipei', label: 'Asia/Taipei(UTC+8)' },
+  { value: 'Asia/Singapore', label: 'Asia/Singapore(UTC+8)' },
+  { value: 'Asia/Tokyo', label: 'Asia/Tokyo(UTC+9)' },
+  { value: 'Asia/Seoul', label: 'Asia/Seoul(UTC+9)' },
+  { value: 'Asia/Bangkok', label: 'Asia/Bangkok(UTC+7)' },
+  { value: 'Asia/Jakarta', label: 'Asia/Jakarta(UTC+7)' },
+  { value: 'Asia/Kolkata', label: 'Asia/Kolkata(UTC+5:30)' },
+  { value: 'Europe/Kaliningrad', label: 'Europe/Kaliningrad(UTC+2)' },
+  { value: 'Europe/Moscow', label: 'Europe/Moscow(UTC+3)' },
+  { value: 'Europe/Samara', label: 'Europe/Samara(UTC+4)' },
+  { value: 'Asia/Yekaterinburg', label: 'Asia/Yekaterinburg(UTC+5)' },
+  { value: 'Asia/Omsk', label: 'Asia/Omsk(UTC+6)' },
+  { value: 'Asia/Novosibirsk', label: 'Asia/Novosibirsk(UTC+7)' },
+  { value: 'Asia/Krasnoyarsk', label: 'Asia/Krasnoyarsk(UTC+7)' },
+  { value: 'Asia/Irkutsk', label: 'Asia/Irkutsk(UTC+8)' },
+  { value: 'Asia/Yakutsk', label: 'Asia/Yakutsk(UTC+9)' },
+  { value: 'Asia/Vladivostok', label: 'Asia/Vladivostok(UTC+10)' },
+  { value: 'Asia/Magadan', label: 'Asia/Magadan(UTC+11)' },
+  { value: 'Asia/Kamchatka', label: 'Asia/Kamchatka(UTC+12)' },
+  { value: 'Europe/London', label: 'Europe/London(UTC+0/+1)' },
+  { value: 'Europe/Berlin', label: 'Europe/Berlin(UTC+1/+2)' },
+  { value: 'Europe/Paris', label: 'Europe/Paris(UTC+1/+2)' },
+  { value: 'UTC', label: 'UTC(UTC+0)' },
+  { value: 'America/New_York', label: 'America/New_York(UTC-5/-4)' },
+  { value: 'America/Chicago', label: 'America/Chicago(UTC-6/-5)' },
+  { value: 'America/Denver', label: 'America/Denver(UTC-7/-6)' },
+  { value: 'America/Los_Angeles', label: 'America/Los_Angeles(UTC-8/-7)' },
+  { value: 'America/Sao_Paulo', label: 'America/Sao_Paulo(UTC-3)' },
+  { value: 'Australia/Sydney', label: 'Australia/Sydney(UTC+10/+11)' },
+];
 
 const normalizeTags = (value?: string[]) =>
   (value ?? []).map((item) => String(item).trim()).filter(Boolean);
@@ -173,25 +206,40 @@ const AidLoginBanRuleFormModal: React.FC<AidLoginBanRuleFormModalProps> = ({
         <ProFormSwitch name="enabled" label="启用" colProps={{ span: 5 }} />
       </ProFormGroup>
 
-      <ProFormGroup>
-        <ProFormText
+      <div
+        style={{
+          display: 'grid',
+          gap: 24,
+          gridTemplateColumns: 'minmax(260px, 1fr) minmax(300px, 1fr)',
+          marginBottom: 24,
+        }}
+      >
+        <div style={{ minWidth: 0 }}>
+        <Form.Item
           name="timezone"
           label="规则时区"
-          colProps={{ span: 10 }}
-          placeholder="例如 Asia/Shanghai"
           rules={[
             { required: true, message: '请输入规则时区' },
             { max: 64, message: '规则时区最多 64 个字符' },
           ]}
-        />
-        <ProFormDateTimePicker
-          name="cutoffAt"
-          label="有效截止时间"
-          colProps={{ span: 14 }}
-          placeholder="留空表示不限制截止时间"
-          fieldProps={{ format: 'YYYY-MM-DD HH:mm:ss' }}
-        />
-      </ProFormGroup>
+        >
+          <AutoComplete
+            options={TIMEZONE_OPTIONS}
+            placeholder="选择或输入时区，如 Asia/Shanghai"
+            style={{ width: '100%' }}
+            filterOption={false}
+          />
+        </Form.Item>
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <ProFormDateTimePicker
+            name="cutoffAt"
+            label="有效截止时间"
+            placeholder="留空表示不限制截止时间"
+            fieldProps={{ format: 'YYYY-MM-DD HH:mm:ss', style: { width: '100%' } }}
+          />
+        </div>
+      </div>
 
       <ProFormList
         name="weeklyWindows"
@@ -259,35 +307,30 @@ const AidLoginBanRuleFormModal: React.FC<AidLoginBanRuleFormModalProps> = ({
         </ProFormGroup>
       </ProFormList>
 
-      <ProFormGroup>
-        <ProFormSelect
-          name="packageNames"
-          label="封禁匹配包名列表"
-          mode="tags"
-          colProps={{ span: 12 }}
-          fieldProps={{ tokenSeparators: [','] }}
-          placeholder="可留空；最终包名为空时不参与封禁检测"
-        />
-        <ProFormSelect
-          name="projectCodes"
-          label="封禁匹配项目代号"
-          mode="tags"
-          colProps={{ span: 12 }}
-          fieldProps={{ tokenSeparators: [','] }}
-          placeholder="可留空；保存时合并项目关联包名"
-        />
-      </ProFormGroup>
-
-      <ProFormGroup>
-        <ProFormSelect
-          name="countries"
-          label="封禁匹配国家列表"
-          mode="tags"
-          colProps={{ span: 12 }}
-          fieldProps={{ tokenSeparators: [','] }}
-          placeholder="留空表示不限制"
-        />
-      </ProFormGroup>
+      <ProFormSelect
+        name="packageNames"
+        label="封禁匹配包名列表"
+        mode="tags"
+        width="xl"
+        fieldProps={{ tokenSeparators: [','], style: { width: '100%' } }}
+        placeholder="可留空；最终包名为空时不参与封禁检测"
+      />
+      <ProFormSelect
+        name="projectCodes"
+        label="封禁匹配项目代号"
+        mode="tags"
+        width="xl"
+        fieldProps={{ tokenSeparators: [','], style: { width: '100%' } }}
+        placeholder="可留空；保存时合并项目关联包名"
+      />
+      <ProFormSelect
+        name="countries"
+        label="封禁匹配国家列表"
+        mode="tags"
+        width="xl"
+        fieldProps={{ tokenSeparators: [','], style: { width: '100%' } }}
+        placeholder="留空表示不限制"
+      />
 
       <ProFormTextArea
         name="reason"

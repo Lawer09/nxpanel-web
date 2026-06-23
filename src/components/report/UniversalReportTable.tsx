@@ -338,6 +338,20 @@ const ResizeableTitle: React.FC<ResizeableTitleProps> = ({
   style,
   ...restProps
 }) => {
+  const skipNextClickRef = React.useRef(false);
+
+  const handleResizeHandleClick = (event: React.MouseEvent<HTMLSpanElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const handleHeaderClickCapture = (event: React.MouseEvent<HTMLTableCellElement>) => {
+    if (!skipNextClickRef.current) return;
+    skipNextClickRef.current = false;
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
   const handleMouseDown = (event: React.MouseEvent<HTMLSpanElement>) => {
     if (!columnKey || !width || !onColumnResize) return;
     event.preventDefault();
@@ -345,19 +359,36 @@ const ResizeableTitle: React.FC<ResizeableTitleProps> = ({
 
     const startX = event.clientX;
     const startWidth = width;
+    let finalWidth = startWidth;
+    const guideLine = document.createElement('div');
+    guideLine.style.position = 'fixed';
+    guideLine.style.top = '0';
+    guideLine.style.left = `${event.clientX}px`;
+    guideLine.style.width = '1px';
+    guideLine.style.height = '100vh';
+    guideLine.style.background = '#1677ff';
+    guideLine.style.pointerEvents = 'none';
+    guideLine.style.zIndex = '9999';
+    guideLine.style.opacity = '0.85';
+    document.body.appendChild(guideLine);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
-      const nextWidth = Math.max(80, startWidth + moveEvent.clientX - startX);
-      onColumnResize(columnKey, nextWidth);
+      finalWidth = Math.max(80, startWidth + moveEvent.clientX - startX);
+      if (Math.abs(moveEvent.clientX - startX) > 2) {
+        skipNextClickRef.current = true;
+      }
+      guideLine.style.left = `${startX + finalWidth - startWidth}px`;
     };
 
     const handleMouseUp = () => {
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
+      guideLine.remove();
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      onColumnResize(columnKey, finalWidth);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -367,6 +398,7 @@ const ResizeableTitle: React.FC<ResizeableTitleProps> = ({
   return (
     <th
       {...restProps}
+      onClickCapture={handleHeaderClickCapture}
       style={{
         ...style,
         position: 'relative',
@@ -377,6 +409,7 @@ const ResizeableTitle: React.FC<ResizeableTitleProps> = ({
       {width && columnKey && onColumnResize ? (
         <span
           onMouseDown={handleMouseDown}
+          onClick={handleResizeHandleClick}
           style={{
             position: 'absolute',
             top: 0,
