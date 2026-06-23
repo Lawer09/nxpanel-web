@@ -141,8 +141,9 @@ const getAdStatusLabel = (adStatus?: string | null) => {
 };
 
 const getAdStatusColor = (adStatus?: string | null) => {
-  if (adStatus === 'activate' || adStatus === '在投状态') return 'green';
-  if (adStatus === 'deactivate' || adStatus === '暂停状态') return 'default';
+  if (adStatus === '在投') return 'green';
+  if (adStatus === '暂停') return 'orange';
+  if (adStatus === '未上线') return 'default';
   return 'blue';
 };
 
