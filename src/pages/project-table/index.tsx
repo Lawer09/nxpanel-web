@@ -13,6 +13,7 @@ import { formatUTC8 } from '@/utils/format';
 import ProjectTableForm from './components/ProjectTableForm';
 import ProjectTableDetailDrawer from './components/ProjectTableDetailDrawer';
 import { PROJECT_TABLE_FIELDS } from './fields';
+import { PROJECT_AD_STATUS_OPTIONS } from '@/pages/project/constants';
 
 const { Text } = Typography;
 
@@ -120,6 +121,10 @@ const ProjectTablePage: React.FC = () => {
       title: '投放状态',
       dataIndex: 'adStatus',
       width: 120,
+      valueType: 'select',
+      fieldProps: {
+        options: PROJECT_AD_STATUS_OPTIONS,
+      },
       ellipsis: true,
     },
     {

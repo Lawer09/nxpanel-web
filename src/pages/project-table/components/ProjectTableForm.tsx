@@ -39,6 +39,17 @@ const renderField = (field: ProjectFieldConfig, isEdit: boolean) => {
     return <ProFormTextArea {...commonProps} fieldProps={{ rows: 4 }} />;
   }
 
+  if (field.options) {
+    return (
+      <ProFormSelect
+        {...commonProps}
+        options={field.options}
+        showSearch
+        fieldProps={{ optionFilterProp: 'label' }}
+      />
+    );
+  }
+
   return (
     <ProFormText
       {...commonProps}

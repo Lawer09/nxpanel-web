@@ -3,6 +3,7 @@ import { ModalForm, ProFormText, ProFormSelect, ProFormTextArea } from '@ant-des
 import { Form, App, AutoComplete, Input } from 'antd';
 import { createProject, updateProject } from '@/services/project/api';
 import type { ProjectItem } from '@/services/project/types';
+import { PROJECT_AD_STATUS_OPTIONS } from '../constants';
 
 interface ProjectFormProps {
   open: boolean;
@@ -15,10 +16,6 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ open, onOpenChange, onSuccess
   const { message } = App.useApp();
   const [form] = Form.useForm();
   const isEdit = !!initialValues;
-  const adStatusOptions = [
-    { label: 'activate', value: 'activate' },
-    { label: 'deactivate', value: 'deactivate' },
-  ];
 
   useEffect(() => {
     if (open) {
@@ -48,7 +45,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ open, onOpenChange, onSuccess
           }
           onSuccess();
           return true;
-        } catch (error) {
+        } catch (_error) {
           // Error handled by request interceptor
           return false;
         }
@@ -81,7 +78,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ open, onOpenChange, onSuccess
       />
       <Form.Item name="adStatus" label="投放状态">
         <AutoComplete
-          options={adStatusOptions}
+          options={PROJECT_AD_STATUS_OPTIONS}
           placeholder="请选择投放状态"
           filterOption={(inputValue, option) =>
             `${option?.value ?? ''}`.toLowerCase().includes(inputValue.toLowerCase())

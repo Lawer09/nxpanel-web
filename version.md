@@ -106,6 +106,7 @@
 
 ### 优化功能
 
+- 优化运营用户动态菜单隔离：支持登录响应 `user_type=define` 时按 `menus` path 白名单展示菜单、限制直接路由访问，并在无匹配菜单时展示无可用菜单提示（src/app.tsx, src/pages/user/Login.tsx, src/utils/definedMenus.ts, src/pages/user/NoMenu.tsx）。
 - 优化项目报表流量费用展示：接入 `trafficCostRatio` 伴随字段，在“流量费用”列展示为“流量费用 (流量消耗占比)”，并支持普通行、当前页合计和总数据合计统一展示（src/pages/report/project/index.tsx, src/components/report/UniversalReportTable.tsx, docs/api/project-report-api.md, docs/api/project_report_query_api.md）。
 - 优化项目报表筛选能力：新增仅用于筛选的 `adStatuses` 条件，下拉默认展示并提交“在投状态”“暂停状态”，同时支持手动输入，查询和导出时统一透传到 `filters` 参数（src/pages/report/project/index.tsx, src/services/report/typings.d.ts, docs/api/project-report-api.md, docs/api/project_report_query_api.md）。
 - 优化项目报表投放状态展示：接口返回的 `adStatus` 伴随字段不单独新增列，合并到项目编码列右侧以 Tag 展示，`activate/deactivate` 显示为“在投状态/暂停状态”（src/pages/report/project/index.tsx, docs/api/project-report-api.md, docs/api/project_report_query_api.md）。
@@ -121,6 +122,8 @@
 - 优化用户管理 AID 登录封禁策略表单布局：将封禁匹配包名列表、封禁匹配项目代号、封禁匹配国家列表调整为独立三行并横向填满，提升长列表输入空间（src/pages/user-manage/components/AidLoginBanRuleFormModal.tsx）。
 - 优化项目管理表格页资源管理：详情抽屉的流量账号、广告账号、用户 App 标签页补充“关联”入口，复用原资源组件新增绑定弹窗（src/pages/project-table/components/ProjectTableDetailDrawer.tsx）。
 - 优化项目管理表格页筛选能力：新增 `adStatus`、`packageName`、`developerGmail` 三个筛选项并透传项目列表接口（src/pages/project-table/index.tsx, src/services/project/types.ts, docs/api/project_api.md）。
+- 优化项目投放状态候选值：将项目管理Card和项目管理表格页的投放状态下拉统一调整为“暂停、在投、未上线”，并同步筛选项与项目 API 文档（src/pages/project/constants.ts, src/pages/project/components/ProjectForm.tsx, src/pages/project/components/ProjectDetail.tsx, src/pages/project-table/, docs/api/project_api.md）。
+- 优化用户管理添加与编辑表单：新增 `user_type` 用户类型下拉，选择 `define` 时展示 `menus` 菜单路径数组输入，并在提交时同步到用户生成和更新接口（src/pages/user-manage/components/UserFormModal.tsx, src/pages/user-manage/components/GenerateUserModal.tsx, src/services/user/typings.d.ts, docs/api/user_api.md）。
 
 ### Bug 修复
 

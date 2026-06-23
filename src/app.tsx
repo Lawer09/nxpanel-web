@@ -18,6 +18,13 @@ import {
   buildDevAdminCurrentUser,
   getDevAdminSession,
 } from '@/services/dev-admin/session';
+import {
+  getDefinedMenuPaths,
+  getFirstAllowedDefinedMenuPath,
+  isAllowedDefinedMenuPath,
+  isDefinedMenuUser,
+  NO_MENU_PATH,
+} from '@/utils/definedMenus';
 import { getLatestVersion } from '@/services/version/api';
 import defaultSettings from '../config/defaultSettings';
 import { errorConfig } from './requestErrorConfig';
@@ -28,12 +35,50 @@ const loginPath = '/user/login';
 const RUNTIME_VERSION_KEY = 'nxpanel_runtime_version';
 const VERSION_CHECK_INTERVAL = 60_000;
 const devHomePath = '/nodes/overview';
-const authFreePaths = [loginPath, '/user/register', '/user/register-result'];
+const authFreePaths = [
+  loginPath,
+  '/user/register',
+  '/user/register-result',
+  NO_MENU_PATH,
+];
 const isManagementPathname = (pathname: string) =>
   pathname.startsWith('/nodes') ||
   pathname.startsWith('/dev') ||
   pathname.startsWith('/iam') ||
   pathname.startsWith('/asset');
+const filterOperationMenu = (menuData: any[]) =>
+  menuData.filter(
+    (item) =>
+      item.path !== '/nodes' &&
+      item.path !== '/dev' &&
+      item.path !== '/iam' &&
+      item.path !== '/asset',
+  );
+const filterDefinedMenu = (menuData: any[], allowedPaths: Set<string>): any[] =>
+  filterOperationMenu(menuData)
+    .map((item) => {
+      const children = item.children
+        ? filterDefinedMenu(item.children, allowedPaths)
+        : undefined;
+      const routes = item.routes
+        ? filterDefinedMenu(item.routes, allowedPaths)
+        : undefined;
+      const matched = item.path ? allowedPaths.has(item.path) : false;
+
+      if (!matched && !children?.length && !routes?.length) {
+        return undefined;
+      }
+
+      const nextItem = { ...item };
+      if (item.children) {
+        nextItem.children = children ?? [];
+      }
+      if (item.routes) {
+        nextItem.routes = routes ?? [];
+      }
+      return nextItem;
+    })
+    .filter(Boolean);
 
 let lastCheckTime = 0;
 let checking = false;
@@ -69,8 +114,8 @@ const checkRuntimeVersionAndReload = async () => {
 
 /**
  * 动态获取 API 基础 URL
- * 本地开发: http://localhost:8081
- * 远程生产: http://pupu.apptilaus.com
+ * 本地开发: 使用相对路径走 dev proxy，避免浏览器跨域
+ * 远程生产: https://pupu.apptilaus.com
  */
 const getBaseURL = (): string => {
   // 服务端渲染时直接返回远程地址
@@ -86,7 +131,7 @@ const getBaseURL = (): string => {
     hostname === '127.0.0.1' ||
     hostname.startsWith('192.168.')
   ) {
-    return 'https://pupu.apptilaus.com';
+    return '';
   }
   // 默认远程生产环境
   return 'https://pupu.apptilaus.com';
@@ -109,6 +154,8 @@ export async function getInitialState(): Promise<{
       const info = JSON.parse(userInfoStr) as {
         email?: string;
         is_admin?: boolean;
+        user_type?: string;
+        menus?: string[];
       };
       if (typeof info !== 'object' || !info) return undefined;
       return {
@@ -116,6 +163,8 @@ export async function getInitialState(): Promise<{
         name: info.email,
         access: info.is_admin ? ('admin' as const) : ('user' as const),
         is_admin: info.is_admin,
+        user_type: info.user_type,
+        menus: Array.isArray(info.menus) ? info.menus : undefined,
         loginMode: 'operation',
       };
     } catch (_error) {
@@ -154,6 +203,7 @@ export const layout: RunTimeLayoutConfig = ({
 }) => {
   const isManagementMode =
     initialState?.currentUser?.loginMode === 'management';
+  const isDefinedMenuMode = isDefinedMenuUser(initialState?.currentUser);
 
   return {
     actionsRender: () => {
@@ -191,22 +241,23 @@ export const layout: RunTimeLayoutConfig = ({
             item.path === '/asset',
         );
       }
-      return menuData.filter(
-        (item) =>
-          item.path !== '/nodes' &&
-          item.path !== '/dev' &&
-          item.path !== '/iam' &&
-          item.path !== '/asset',
-      );
+      if (isDefinedMenuMode) {
+        return filterDefinedMenu(
+          menuData,
+          getDefinedMenuPaths(initialState?.currentUser),
+        );
+      }
+      return filterOperationMenu(menuData);
     },
     onPageChange: () => {
       const { location } = history;
       void checkRuntimeVersionAndReload();
       const isManagementPath = isManagementPathname(location.pathname);
       const isAuthFreePath = authFreePaths.includes(location.pathname);
-      const loginMode = initialState?.currentUser?.loginMode;
+      const currentUser = initialState?.currentUser;
+      const loginMode = currentUser?.loginMode;
 
-      if (!initialState?.currentUser && !isAuthFreePath && !isManagementPath) {
+      if (!currentUser && !isAuthFreePath && !isManagementPath) {
         history.push(`${loginPath}?mode=operation`);
         return;
       }
@@ -225,6 +276,17 @@ export const layout: RunTimeLayoutConfig = ({
           pathname: loginPath,
           search: searchParams.toString(),
         });
+        return;
+      }
+
+      if (
+        isDefinedMenuUser(currentUser) &&
+        !isAuthFreePath &&
+        !isAllowedDefinedMenuPath(location.pathname, currentUser)
+      ) {
+        history.replace(
+          getFirstAllowedDefinedMenuPath(currentUser) ?? NO_MENU_PATH,
+        );
       }
     },
     bgLayoutImgList: [

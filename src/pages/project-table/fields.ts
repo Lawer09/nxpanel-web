@@ -1,4 +1,5 @@
 import type { ProjectItem } from '@/services/project/types';
+import { PROJECT_AD_STATUS_OPTIONS } from '@/pages/project/constants';
 
 export type ProjectTextField = keyof Pick<
   ProjectItem,
@@ -39,6 +40,7 @@ export interface ProjectFieldConfig {
   multiline?: boolean;
   required?: boolean;
   disabledOnEdit?: boolean;
+  options?: { label: string; value: string }[];
   width?: number;
 }
 
@@ -57,7 +59,7 @@ export const PROJECT_FIELD_GROUPS: ProjectFieldGroup[] = [
       { name: 'projectName', label: '项目名称', required: true, width: 180 },
       { name: 'ownerName', label: '负责人', width: 120 },
       { name: 'department', label: '所属部门', width: 140 },
-      { name: 'adStatus', label: '投放状态', width: 120 },
+      { name: 'adStatus', label: '投放状态', options: PROJECT_AD_STATUS_OPTIONS, width: 120 },
       { name: 'adspowerEnv', label: 'Adspower 环境', width: 160 },
     ],
   },

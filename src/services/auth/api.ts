@@ -14,7 +14,16 @@ export async function register(
   return request<{
     status: 'success' | 'fail';
     message: string;
-    data: { token: string; auth_data: string; is_admin: boolean; secure_path?: string } | null;
+    data:
+      | {
+          token: string;
+          auth_data: string;
+          is_admin: boolean;
+          secure_path?: string;
+          user_type?: string;
+          menus?: string[];
+        }
+      | null;
     error: null;
   }>('/api/v1/passport/auth/register', {
     method: 'POST',
@@ -32,7 +41,16 @@ export async function login(
   return request<{
     status: 'success' | 'fail';
     message: string;
-    data: { token: string; auth_data: string; is_admin: boolean; secure_path?: string } | null;
+    data:
+      | {
+          token: string;
+          auth_data: string;
+          is_admin: boolean;
+          secure_path?: string;
+          user_type?: string;
+          menus?: string[];
+        }
+      | null;
     error: null;
   }>('/api/v1/passport/auth/login', {
     method: 'POST',
@@ -47,7 +65,15 @@ export async function getCurrentUser(options?: { [key: string]: any }) {
   return request<{
     status: 'success' | 'fail';
     message: string;
-    data: { email: string; is_admin: boolean; token: string } | null;
+    data:
+      | {
+          email: string;
+          is_admin: boolean;
+          token: string;
+          user_type?: string;
+          menus?: string[];
+        }
+      | null;
     error: null;
   }>('/api/v1/passport/auth/me', {
     method: 'GET',

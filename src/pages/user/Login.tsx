@@ -15,6 +15,12 @@ import { flushSync } from 'react-dom';
 import { login } from '@/services/auth/api';
 import { loginDevAdmin } from '@/services/dev-admin/api';
 import { buildDevAdminCurrentUser } from '@/services/dev-admin/session';
+import {
+  getFirstAllowedDefinedMenuPath,
+  isAllowedDefinedMenuPath,
+  isDefinedMenuUser,
+  NO_MENU_PATH,
+} from '@/utils/definedMenus';
 
 type LoginMode = 'operation' | 'management';
 
@@ -33,6 +39,7 @@ const cardStyle: CSSProperties = {
   width: '100%',
   maxWidth: 420,
 };
+const getPathnameFromPath = (path?: string) => path?.split(/[?#]/)[0];
 
 const modeCopy: Record<
   LoginMode,
@@ -101,7 +108,8 @@ const LoginPage: React.FC = () => {
     formatResult: (res: any) => res,
     onSuccess: async (res: any, params: [{ email: string; password: string }]) => {
       if (res.status === 'success' && res.data) {
-        const { token, auth_data, is_admin, secure_path } = res.data;
+        const { token, auth_data, is_admin, secure_path, user_type } = res.data;
+        const menus = Array.isArray(res.data.menus) ? res.data.menus : undefined;
         const email = params[0]?.email;
 
         localStorage.setItem('auth_token', auth_data);
@@ -117,6 +125,8 @@ const LoginPage: React.FC = () => {
             is_admin,
             token,
             email,
+            user_type,
+            menus,
           }),
         );
 
@@ -130,6 +140,8 @@ const LoginPage: React.FC = () => {
             name: email,
             access: is_admin ? 'admin' : 'user',
             is_admin,
+            user_type,
+            menus,
             loginMode: 'operation',
           } as API.CurrentUser);
 
@@ -141,7 +153,7 @@ const LoginPage: React.FC = () => {
         });
 
         const redirect = getRedirect();
-        const targetPath =
+        const operationRedirect =
           redirect?.startsWith('/') &&
           !redirect.startsWith('/nodes') &&
           !redirect.startsWith('/dev') &&
@@ -149,6 +161,15 @@ const LoginPage: React.FC = () => {
           !redirect.startsWith('/asset')
             ? redirect
             : '/';
+        const redirectPathname = getPathnameFromPath(redirect);
+        const definedRedirect =
+          redirect &&
+          redirectPathname &&
+          isAllowedDefinedMenuPath(redirectPathname, nextUser)
+            ? redirect
+            : getFirstAllowedDefinedMenuPath(nextUser) ?? NO_MENU_PATH;
+        const targetPath =
+          isDefinedMenuUser(nextUser) ? definedRedirect : operationRedirect;
         history.replace(targetPath);
       } else {
         message.error(res.message || '登录失败，请检查邮箱和密码');

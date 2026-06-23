@@ -27,6 +27,10 @@ export default [
         path: '/user/register-result',
         component: './user/RegisterResult',
       },
+      {
+        path: '/user/no-menu',
+        component: './user/NoMenu',
+      },
     ],
   },
   {

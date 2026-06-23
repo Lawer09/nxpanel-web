@@ -1,6 +1,7 @@
 import {
   ModalForm,
   ProFormDateTimePicker,
+  ProFormDependency,
   ProFormDigit,
   ProFormGroup,
   ProFormSelect,
@@ -35,6 +36,16 @@ const META_FIELDS: { name: keyof API.RegisterMetadata; label: string }[] = [
   { name: 'raw_referrer', label: 'Referrer' },
 ];
 
+const USER_TYPE_OPTIONS = [
+  { label: 'global', value: 'global' },
+  { label: 'define', value: 'define' },
+];
+
+const normalizeStringArray = (value?: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item).trim()).filter(Boolean);
+};
+
 const UserFormModal: React.FC<UserFormModalProps> = ({
   open,
   current,
@@ -66,6 +77,8 @@ const UserFormModal: React.FC<UserFormModalProps> = ({
             ? +(current.transfer_enable / 1073741824).toFixed(2)
             : undefined,
         register_metadata: current.register_metadata ?? {},
+        user_type: current.user_type || 'global',
+        menus: current.menus ?? [],
       }
     : {};
 
@@ -106,6 +119,23 @@ const UserFormModal: React.FC<UserFormModalProps> = ({
         if (values.device_limit !== undefined) payload.device_limit = values.device_limit || null;
         if (values.remarks !== undefined) payload.remarks = values.remarks || null;
         if (values.invite_user_email) payload.invite_user_email = values.invite_user_email;
+
+        const userType = values.user_type || 'global';
+        const currentUserType = current?.user_type || 'global';
+        const menus = normalizeStringArray(values.menus);
+        const currentMenus = normalizeStringArray(current?.menus);
+        const menusChanged = JSON.stringify(menus) !== JSON.stringify(currentMenus);
+
+        if (userType !== currentUserType) {
+          payload.user_type = userType;
+        }
+        if (userType === 'define') {
+          if (menusChanged || userType !== currentUserType) {
+            payload.menus = menus;
+          }
+        } else if (menusChanged || userType !== currentUserType) {
+          payload.menus = [];
+        }
 
         const meta = values.register_metadata ?? {};
         const hasMeta = META_FIELDS.some((f) => meta[f.name] !== current?.register_metadata?.[f.name]);
@@ -247,6 +277,31 @@ const UserFormModal: React.FC<UserFormModalProps> = ({
           placeholder="备注信息（可选）"
         />
       </ProFormGroup>
+
+      <ProFormGroup>
+        <ProFormSelect
+          name="user_type"
+          label="用户类型"
+          colProps={{ span: 12 }}
+          initialValue="global"
+          options={USER_TYPE_OPTIONS}
+          rules={[{ required: true, message: '请选择用户类型' }]}
+        />
+      </ProFormGroup>
+      <ProFormDependency name={['user_type']}>
+        {({ user_type }) =>
+          user_type === 'define' ? (
+            <ProFormSelect
+              name="menus"
+              label="菜单"
+              mode="tags"
+              width="xl"
+              fieldProps={{ tokenSeparators: [',', '，'], style: { width: '100%' } }}
+              placeholder="输入菜单 path，支持逗号分隔，例如 /dashboard"
+            />
+          ) : null
+        }
+      </ProFormDependency>
 
       <ProFormGroup>
         <ProFormSwitch name="banned" label="封禁" colProps={{ span: 8 }} />

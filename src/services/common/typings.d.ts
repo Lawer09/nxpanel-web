@@ -21,6 +21,8 @@ declare namespace API {
     auth_data: string; // "Bearer xxxxxxx"
     is_admin: boolean;
     secure_path?: string;
+    user_type?: string;
+    menus?: string[];
   }
 
   interface CurrentUser {
@@ -29,6 +31,8 @@ declare namespace API {
     avatar?: string;
     access?: 'admin' | 'user';
     is_admin?: boolean;
+    user_type?: string;
+    menus?: string[];
     loginMode?: 'operation' | 'management';
   }
 }

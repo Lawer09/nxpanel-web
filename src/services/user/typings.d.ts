@@ -75,6 +75,8 @@ declare namespace API {
     invite_user?: UserInviteLite;
     group?: UserGroupLite;
     register_metadata?: RegisterMetadata;
+    user_type?: 'global' | 'define' | string | null;
+    menus?: string[] | null;
   }
 
   interface UserFetchParams {
@@ -111,6 +113,8 @@ declare namespace API {
     device_limit?: number | null;
     invite_user_email?: string;
     register_metadata?: RegisterMetadata;
+    user_type?: 'global' | 'define' | string;
+    menus?: string[];
   }
 
   interface UserGenerateParams {
@@ -121,6 +125,8 @@ declare namespace API {
     plan_id?: number;
     expired_at?: number;
     download_csv?: boolean;
+    user_type?: 'global' | 'define' | string;
+    menus?: string[];
   }
 
   interface UserSendMailParams {

@@ -1,7 +1,9 @@
 import {
   ModalForm,
   ProFormDateTimePicker,
+  ProFormDependency,
   ProFormDigit,
+  ProFormSelect,
   ProFormSwitch,
   ProFormText,
 } from '@ant-design/pro-components';
@@ -14,6 +16,16 @@ type GenerateUserModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+};
+
+const USER_TYPE_OPTIONS = [
+  { label: 'global', value: 'global' },
+  { label: 'define', value: 'define' },
+];
+
+const normalizeStringArray = (value?: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item).trim()).filter(Boolean);
 };
 
 const GenerateUserModal: React.FC<GenerateUserModalProps> = ({
@@ -45,6 +57,8 @@ const GenerateUserModal: React.FC<GenerateUserModalProps> = ({
           expired_at: values.expired_at
             ? dayjs(values.expired_at).unix()
             : undefined,
+          user_type: values.user_type || 'global',
+          menus: values.user_type === 'define' ? normalizeStringArray(values.menus) : [],
         };
 
         if (isBatch) {
@@ -113,6 +127,27 @@ const GenerateUserModal: React.FC<GenerateUserModalProps> = ({
         placeholder="留空则永不过期"
         fieldProps={{ format: 'YYYY-MM-DD HH:mm:ss', allowClear: true }}
       />
+      <ProFormSelect
+        name="user_type"
+        label="用户类型"
+        initialValue="global"
+        options={USER_TYPE_OPTIONS}
+        rules={[{ required: true, message: '请选择用户类型' }]}
+      />
+      <ProFormDependency name={['user_type']}>
+        {({ user_type }) =>
+          user_type === 'define' ? (
+            <ProFormSelect
+              name="menus"
+              label="菜单"
+              mode="tags"
+              width="xl"
+              fieldProps={{ tokenSeparators: [',', '，'], style: { width: '100%' } }}
+              placeholder="输入菜单 path，支持逗号分隔，例如 /dashboard"
+            />
+          ) : null
+        }
+      </ProFormDependency>
       <ProFormSwitch name="download_csv" label="批量生成后下载 CSV" />
 
       {generatedList.length > 0 && (

@@ -346,6 +346,8 @@ POST /api/v3/admin/user/blockedIp/delete
 | `remarks` | `string` | 否 | 备注 |
 | `invite_user_email` | `string` | 否 | 邀请人邮箱 |
 | `register_metadata` | `object` | 否 | 注册元数据，key 为元数据字段名 |
+| `user_type` | `string` | 否 | 用户类型，`global` 或 `define`；`define` 时按 `menus` 菜单路径白名单限制可见菜单 |
+| `menus` | `string[]` | 否 | 菜单路径白名单，仅 `user_type=define` 时生效 |
 
 ### 示例
 
@@ -355,6 +357,8 @@ POST /api/v3/admin/user/update
     "id": 1,
     "email": "new@example.com",
     "plan_id": 2,
+    "user_type": "define",
+    "menus": ["/dashboard", "/business/user-manage"],
     "register_metadata": {
         "app_id": "com.new.app",
         "channel_type": "organic"
@@ -393,6 +397,8 @@ POST /api/v3/admin/user/update
 | `device_limit` | `int` | 否 | 设备数量限制 |
 | `register_metadata` | `object` | 否 | 注册元数据，支持 `{"app_id": "..."}` 格式 |
 | `invite_user_email` | `string` | 否 | 邀请人邮箱 |
+| `user_type` | `string` | 否 | 用户类型，`global` 或 `define`；`define` 时按 `menus` 菜单路径白名单限制可见菜单 |
+| `menus` | `string[]` | 否 | 菜单路径白名单，仅 `user_type=define` 时生效 |
 
 ### 示例
 
@@ -403,6 +409,8 @@ POST /v3/user/update
     "email": "new@example.com",
     "plan_id": 2,
     "expired_at": 1767225600,
+    "user_type": "define",
+    "menus": ["/dashboard", "/business/user-manage"],
     "register_metadata": {
         "app_id": "com.example.app",
         "channel": "telegram"

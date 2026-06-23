@@ -8,16 +8,12 @@ import AdAccounts, { type ResourceActionRef as AdRef } from './ResourceTabs/AdAc
 import UserApps, { type ResourceActionRef as AppRef } from './ResourceTabs/UserApps';
 import DailyAggregation from './DailyAggregation';
 import { formatUTC8 } from '@/utils/format';
+import { PROJECT_AD_STATUS_OPTIONS } from '../constants';
 
 interface ProjectDetailProps {
   project: ProjectItem | null;
   onProjectUpdate: (project: ProjectItem) => void;
 }
-
-const DEFAULT_AD_STATUS_OPTIONS = [
-  { label: 'activate', value: 'activate' },
-  { label: 'deactivate', value: 'deactivate' },
-];
 
 const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onProjectUpdate }) => {
   const [activeCard, setActiveCard] = useState<'traffic' | 'ad' | 'app'>('traffic');
@@ -204,7 +200,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onProjectUpdate 
                 <Form.Item name="adStatus" label="投放状态">
                   <AutoComplete
                     placeholder="请选择投放状态"
-                    options={DEFAULT_AD_STATUS_OPTIONS}
+                    options={PROJECT_AD_STATUS_OPTIONS}
                     filterOption={(inputValue, option) =>
                       `${option?.value ?? ''}`.toLowerCase().includes(inputValue.toLowerCase())
                     }

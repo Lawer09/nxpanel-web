@@ -45,7 +45,7 @@
 | --- | --- | --- | --- |
 | keyword | string | 否 | 模糊搜索（匹配 projectCode / projectName） |
 | status | string | 否 | 筛选：`active` / `inactive` / `archived` |
-| adStatus | string | 否 | 按投放状态筛选 |
+| adStatus | string | 否 | 按投放状态筛选，可选值：`暂停` / `在投` / `未上线` |
 | packageName | string | 否 | 按项目包名筛选 |
 | developerGmail | string | 否 | 按开发者 Gmail 筛选 |
 | ownerId | int | 否 | 按拥有者 ID 筛选 |
@@ -64,7 +64,7 @@
       "ownerName": "张三",
       "department": "技术部",
       "status": "active",
-      "adStatus": "activate",
+      "adStatus": "在投",
       "remark": null,
       "createdAt": "2026-05-12T00:00:00.000Z",
       "updatedAt": "2026-05-12T00:00:00.000Z",
@@ -125,7 +125,7 @@
 | ownerName | string/null | 负责人 |
 | department | string/null | 所属部门 |
 | status | string | 状态：`active` / `inactive` / `archived` |
-| adStatus | string/null | 投放状态，自定义字符串 |
+| adStatus | string/null | 投放状态，默认候选：`暂停` / `在投` / `未上线` |
 | adspowerEnv | string/null | Adspower 环境 |
 | developerGmail | string/null | 开发者 Gmail |
 | appName | string/null | 应用名称 |
@@ -239,7 +239,7 @@
 | ownerName | string | 否 | 负责人 |
 | department | string | 否 | 所属部门 |
 | status | string | 否 | 默认 `active`，可选：`active` / `inactive` / `archived` |
-| adStatus | string | 否 | 投放状态，自定义字符串 |
+| adStatus | string | 否 | 投放状态，默认候选：`暂停` / `在投` / `未上线` |
 | remark | string | 否 | 备注 |
 
 ### 3.2 返回字段
@@ -269,7 +269,7 @@
 | ownerName | string | 否 | 负责人 |
 | department | string | 否 | 所属部门 |
 | status | string | 否 | `active` / `inactive` / `archived` |
-| adStatus | string | 否 | 投放状态，自定义字符串 |
+| adStatus | string | 否 | 投放状态，默认候选：`暂停` / `在投` / `未上线` |
 | remark | string | 否 | 备注 |
 
 ### 4.2 返回字段
