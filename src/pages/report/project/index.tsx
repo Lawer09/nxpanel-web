@@ -13,6 +13,7 @@ import {
 import UniversalReportTable from '@/components/report/UniversalReportTable';
 import { getProjects } from '@/services/project/api';
 import { exportProjectReport, queryProjectReport } from '@/services/report/api';
+import { PROJECT_AD_STATUS_OPTIONS } from '@/pages/project/constants';
 
 const { RangePicker } = DatePicker;
 
@@ -57,10 +58,6 @@ const AD_STATUS_LABEL_MAP: Record<string, string> = {
   暂停状态: '暂停状态',
 };
 
-const DEFAULT_AD_STATUS_OPTIONS = [
-  { label: '在投状态', value: '在投状态' },
-  { label: '暂停状态', value: '暂停状态' },
-];
 
 type QueryState = {
   dateRange: [string, string];
@@ -140,7 +137,7 @@ const fmtCountry = (country?: string | null) => {
 const getAdStatusLabel = (adStatus?: string | null) => {
   const normalized = adStatus?.trim();
   if (!normalized) return undefined;
-  return AD_STATUS_LABEL_MAP[normalized] || normalized;
+  return normalized;
 };
 
 const getAdStatusColor = (adStatus?: string | null) => {
@@ -546,7 +543,7 @@ const ProjectAggregatesPage: React.FC = () => {
                 placeholder="请选择投放状态，支持输入"
                 tokenSeparators={[',', '，', ' ']}
                 value={query.adStatuses}
-                options={DEFAULT_AD_STATUS_OPTIONS}
+                options={PROJECT_AD_STATUS_OPTIONS}
                 onChange={(value) => {
                   const normalized = (value || [])
                     .map((item) => `${item}`.trim())

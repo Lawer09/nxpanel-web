@@ -128,6 +128,7 @@
 ### Bug 修复
 
 - 修复通用报表列宽拖拽误触排序的问题：拖拽手柄阻止 click 冒泡，并在拖拽后吞掉表头下一次 click，避免调整列宽时触发排序（src/components/report/UniversalReportTable.tsx）。
+- 修复本地开发 API 代理错误：为 dev proxy 补充 `/api/` 与 `/v3/` 到 `https://pupu.apptilaus.com` 的转发，避免本地相对路径请求落到 Umi 前端路由并返回 404 或页面 HTML（config/proxy.ts）。
 - 修复用户管理 AID 登录封禁策略表单时区控件布局异常：改为固定宽度行布局，避免输入框被压缩，并将常用时区下拉展示为 `Asia/Shanghai(UTC+8)` 格式且不随当前输入过滤为单项（src/pages/user-manage/components/AidLoginBanRuleFormModal.tsx）。
 - 修复项目报表数值展示精度错误：将金额、比例、ROI 与流量相关字段的前端显示从 3 位小数恢复为 2 位小数，并同步修正文档示例（src/pages/report/project/index.tsx, docs/api/project-report-api.md）。
 - 修复通用报表新增统计字段时主表列与合计行顺序不一致的问题：为当前激活列补全受控 `order`，并让指标列顺序跟随当前 `metrics` 选中顺序，避免新字段在主表提前插入、在合计行追加到末尾（src/components/report/UniversalReportTable.tsx, docs/components/universal_report.md, docs/issue/report_sorting_issue.md）。

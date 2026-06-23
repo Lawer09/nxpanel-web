@@ -11,6 +11,16 @@
  */
 export default {
   dev: {
+    '/api/': {
+      target: 'https://pupu.apptilaus.com',
+      changeOrigin: true,
+      secure: false,
+    },
+    '/v3/': {
+      target: 'https://pupu.apptilaus.com',
+      changeOrigin: true,
+      secure: false,
+    },
     '/v4/nodes/': {
       target: 'http://8.220.74.20:8080',
       changeOrigin: true,
