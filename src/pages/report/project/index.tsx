@@ -162,6 +162,16 @@ const getAdStatusColor = (adStatus?: string | null) => {
   return 'blue';
 };
 
+const getIsLimitTagMeta = (isLimited: unknown) => {
+  if (isLimited === true || isLimited === 'true' || isLimited === 1 || isLimited === '1') {
+    return { label: '限流', color: 'red' as const };
+  }
+  if (isLimited === false || isLimited === 'false' || isLimited === 0 || isLimited === '0') {
+    return { label: '正常', color: 'green' as const };
+  }
+  return { label: '未知', color: 'default' as const };
+};
+
 const renderProjectCodeWithAdStatus = (
   projectCode: unknown,
   record: API.ProjectReportItem,
@@ -170,6 +180,7 @@ const renderProjectCodeWithAdStatus = (
   const codeText = projectCode ? String(projectCode) : '--';
   const adStatus = typeof record.adStatus === 'string' ? record.adStatus : undefined;
   const adStatusLabel = getAdStatusLabel(adStatus);
+  const isLimitTagMeta = getIsLimitTagMeta(record.isLimited);
 
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, maxWidth: '100%' }}>
@@ -191,6 +202,9 @@ const renderProjectCodeWithAdStatus = (
           投放-{adStatusLabel}
         </Tag>
       ) : null}
+      <Tag color={isLimitTagMeta.color} style={{ marginInlineEnd: 0 }}>
+        {isLimitTagMeta.label}
+      </Tag>
     </span>
   );
 };

@@ -1,11 +1,26 @@
 import { ArrowLeftOutlined, BarChartOutlined } from '@ant-design/icons';
 import { Area, Column, Line } from '@ant-design/charts';
 import { PageContainer } from '@ant-design/pro-components';
-import { App, Button, Card, Col, DatePicker, Empty, Row, Segmented, Select, Space, Spin, Statistic, Tag, Typography } from 'antd';
+import {
+  App,
+  Button,
+  Card,
+  Col,
+  DatePicker,
+  Empty,
+  Row,
+  Segmented,
+  Select,
+  Space,
+  Spin,
+  Statistic,
+  Tag,
+  Typography,
+} from 'antd';
 import { history, useSearchParams } from '@umijs/max';
 import dayjs from 'dayjs';
 import React, { useEffect, useMemo, useState } from 'react';
-import { PROJECT_AD_STATUS_OPTIONS } from '@/pages/project/constants';
+import { STANDARD_DATE_PRESET_ITEMS, toRangePickerPresets } from '@/components/report/reportDatePreset';
 import { getProjects } from '@/services/project/api';
 import type { ProjectItem } from '@/services/project/types';
 import { queryProjectReport } from '@/services/report/api';
@@ -13,23 +28,20 @@ import {
   buildProjectTrendSearch,
   formatCurrency,
   formatInteger,
-  formatPercent,
-  formatRoiPercent,
   formatTrafficCostWithRatio,
-  normalizeAdStatus,
+  formatRoiPercent,
   normalizeCountry,
-  PROJECT_TREND_DASHBOARD_PATH,
   resolveProjectTrendDateRange,
   toSafeNumber,
 } from './utils';
 
 const { RangePicker } = DatePicker;
 const { Text, Title } = Typography;
+const DATE_PRESETS = toRangePickerPresets(STANDARD_DATE_PRESET_ITEMS);
 
 type TrendQueryState = {
   projectCode: string;
   dateRange: [string, string];
-  adStatus?: string;
   country?: string;
 };
 
@@ -39,6 +51,34 @@ type KpiItem = {
   key: string;
   title: string;
   value: React.ReactNode;
+};
+
+type ParsedProjectRow = {
+  reportDate: string;
+  country: string;
+  adRevenue: number;
+  totalCost: number;
+  profit: number;
+  newUsers: number;
+  reportNewUsers: number;
+  dauUsers: number;
+  adRequests: number;
+  adMatchedRequests: number;
+  adImpressions: number;
+  adClicks: number;
+  adMatchRate: number;
+  adShowRate: number;
+  adCtr: number;
+  adSpendCost: number;
+  trafficCost: number;
+  adEcpm: number;
+  arpu: number;
+};
+
+type TrendPoint = {
+  date: string;
+  value: number;
+  series: string;
 };
 
 const COUNTRY_METRIC_OPTIONS: Array<{ label: string; value: CountryMetric }> = [
@@ -51,53 +91,80 @@ const DASHBOARD_THEME = {
   colors10: ['#0f766e', '#ea580c', '#2563eb', '#7c3aed', '#dc2626', '#16a34a', '#0891b2', '#b45309'],
 };
 
+const LINE_SERIES_COLORS: Record<string, string> = {
+  广告收入: '#0f766e',
+  总成本: '#ea580c',
+  利润: '#2563eb',
+  新增用户: '#2563eb',
+  上报新增用户: '#7c3aed',
+  DAU: '#16a34a',
+  广告请求数: '#2563eb',
+  广告匹配请求数: '#0f766e',
+  广告展示数: '#ea580c',
+  广告点击数: '#dc2626',
+  广告匹配率: '#0f766e',
+  广告展示率: '#2563eb',
+  '广告 CTR': '#dc2626',
+  '广告 eCPM': '#2563eb',
+  ARPU: '#ea580c',
+};
+
+const COST_SERIES_COLORS: Record<string, string> = {
+  投放成本: '#2563eb',
+  流量花费: '#ea580c',
+};
+
+const COST_SERIES_COLOR_RANGE = [COST_SERIES_COLORS.投放成本, COST_SERIES_COLORS.流量花费];
+
+const getIsLimitedTagMeta = (isLimited: unknown) => {
+  if (isLimited === true || isLimited === 'true' || isLimited === 1 || isLimited === '1') {
+    return { label: '限流', color: 'red' as const };
+  }
+  if (isLimited === false || isLimited === 'false' || isLimited === 0 || isLimited === '0') {
+    return { label: '正常', color: 'green' as const };
+  }
+  return { label: '未知', color: 'default' as const };
+};
+
 const CARD_STYLE: React.CSSProperties = {
   borderRadius: 16,
   border: '1px solid #e5e7eb',
   boxShadow: '0 10px 30px rgba(15, 23, 42, 0.05)',
 };
 
-const parseProjectRow = (record: API.ProjectReportItem) => {
-  const reportDate = typeof record.reportDate === 'string' ? record.reportDate : '';
-  const country = typeof record.country === 'string' ? record.country.toUpperCase() : '--';
-  return {
-    reportDate,
-    country,
-    adRevenue: toSafeNumber(record.adRevenue) ?? 0,
-    totalCost: toSafeNumber(record.totalCost) ?? 0,
-    profit: toSafeNumber(record.profit) ?? 0,
-    newUsers: toSafeNumber(record.newUsers) ?? 0,
-    reportNewUsers: toSafeNumber(record.reportNewUsers) ?? 0,
-    dauUsers: toSafeNumber(record.dauUsers) ?? 0,
-    adRequests: toSafeNumber(record.adRequests) ?? 0,
-    adMatchedRequests: toSafeNumber(record.adMatchedRequests) ?? 0,
-    adImpressions: toSafeNumber(record.adImpressions) ?? 0,
-    adClicks: toSafeNumber(record.adClicks) ?? 0,
-    adMatchRate: toSafeNumber(record.adMatchRate) ?? 0,
-    adShowRate: toSafeNumber(record.adShowRate) ?? 0,
-    adCtr: toSafeNumber(record.adCtr) ?? 0,
-    adSpendCost: toSafeNumber(record.adSpendCost) ?? 0,
-    trafficCost: toSafeNumber(record.trafficCost) ?? 0,
-    trafficCostRatio: toSafeNumber(record.trafficCostRatio) ?? 0,
-    adEcpm: toSafeNumber(record.adEcpm) ?? 0,
-    arpu: toSafeNumber(record.arpu) ?? 0,
-    roi: toSafeNumber(record.roi) ?? 0,
-    adStatus: typeof record.adStatus === 'string' ? record.adStatus : undefined,
-  };
-};
+const parseProjectRow = (record: API.ProjectReportItem): ParsedProjectRow => ({
+  reportDate: typeof record.reportDate === 'string' ? record.reportDate : '',
+  country: typeof record.country === 'string' ? record.country.toUpperCase() : '--',
+  adRevenue: toSafeNumber(record.adRevenue) ?? 0,
+  totalCost: toSafeNumber(record.totalCost) ?? 0,
+  profit: toSafeNumber(record.profit) ?? 0,
+  newUsers: toSafeNumber(record.newUsers) ?? 0,
+  reportNewUsers: toSafeNumber(record.reportNewUsers) ?? 0,
+  dauUsers: toSafeNumber(record.dauUsers) ?? 0,
+  adRequests: toSafeNumber(record.adRequests) ?? 0,
+  adMatchedRequests: toSafeNumber(record.adMatchedRequests) ?? 0,
+  adImpressions: toSafeNumber(record.adImpressions) ?? 0,
+  adClicks: toSafeNumber(record.adClicks) ?? 0,
+  adMatchRate: toSafeNumber(record.adMatchRate) ?? 0,
+  adShowRate: toSafeNumber(record.adShowRate) ?? 0,
+  adCtr: toSafeNumber(record.adCtr) ?? 0,
+  adSpendCost: toSafeNumber(record.adSpendCost) ?? 0,
+  trafficCost: toSafeNumber(record.trafficCost) ?? 0,
+  adEcpm: toSafeNumber(record.adEcpm) ?? 0,
+  arpu: toSafeNumber(record.arpu) ?? 0,
+});
 
 const buildTrendSeries = (
-  rows: ReturnType<typeof parseProjectRow>[],
-  fields: Array<{ key: keyof ReturnType<typeof parseProjectRow>; label: string }>,
-) => {
-  return rows.flatMap((item) =>
+  rows: ParsedProjectRow[],
+  fields: Array<{ key: keyof ParsedProjectRow; label: string }>,
+): TrendPoint[] =>
+  rows.flatMap((item) =>
     fields.map((field) => ({
       date: item.reportDate,
       value: Number(item[field.key] ?? 0),
       series: field.label,
     })),
   );
-};
 
 const buildProjectTrendQuery = (
   query: TrendQueryState,
@@ -112,9 +179,6 @@ const buildProjectTrendQuery = (
   if (targetCountry) {
     filters.countries = [targetCountry];
   }
-  if (query.adStatus) {
-    filters.adStatuses = [query.adStatus];
-  }
 
   return {
     dateFrom: query.dateRange[0],
@@ -122,7 +186,7 @@ const buildProjectTrendQuery = (
     groupBy,
     filters,
     page: 1,
-    pageSize: groupBy.includes('country') ? 400 : 400,
+    pageSize: 400,
     orderBy: extra?.orderBy,
     orderDirection: extra?.orderDirection,
   };
@@ -131,29 +195,28 @@ const buildProjectTrendQuery = (
 const ProjectTrendDashboardPage: React.FC = () => {
   const { message } = App.useApp();
   const [searchParams, setSearchParams] = useSearchParams();
+  const sourceFrom = searchParams.get('from');
   const initialProjectCode = searchParams.get('projectCode')?.trim() || '';
   const [initialDateFrom, initialDateTo] = resolveProjectTrendDateRange(
     searchParams.get('dateFrom'),
     searchParams.get('dateTo'),
   );
-  const initialAdStatus = normalizeAdStatus(searchParams.get('adStatus'));
   const initialCountry = normalizeCountry(searchParams.get('country'));
-  const sourceFrom = searchParams.get('from');
 
   const [query, setQuery] = useState<TrendQueryState>({
     projectCode: initialProjectCode,
     dateRange: [initialDateFrom, initialDateTo],
-    adStatus: initialAdStatus,
     country: initialCountry,
   });
   const [projectOptions, setProjectOptions] = useState<Array<{ label: string; value: string }>>([]);
   const [projectMeta, setProjectMeta] = useState<ProjectItem | null>(null);
   const [loading, setLoading] = useState(false);
-  const [trendRows, setTrendRows] = useState<ReturnType<typeof parseProjectRow>[]>([]);
+  const [trendRows, setTrendRows] = useState<ParsedProjectRow[]>([]);
   const [summary, setSummary] = useState<Record<string, unknown>>({});
   const [countryRows, setCountryRows] = useState<Array<Record<string, unknown>>>([]);
-  const [countryTrendRows, setCountryTrendRows] = useState<ReturnType<typeof parseProjectRow>[]>([]);
+  const [countryTrendRows, setCountryTrendRows] = useState<ParsedProjectRow[]>([]);
   const [countryMetric, setCountryMetric] = useState<CountryMetric>('adRevenue');
+  const isLimitedTagMeta = getIsLimitedTagMeta(projectMeta?.isLimited);
 
   useEffect(() => {
     const run = async () => {
@@ -177,8 +240,7 @@ const ProjectTrendDashboardPage: React.FC = () => {
     const run = async () => {
       const res = await getProjects({ keyword: query.projectCode, page: 1, pageSize: 20 });
       if (res.code !== 0) return;
-      const matched =
-        (res.data?.data ?? []).find((item) => item.projectCode === query.projectCode) ?? null;
+      const matched = (res.data?.data ?? []).find((item) => item.projectCode === query.projectCode) ?? null;
       setProjectMeta(matched);
     };
     void run();
@@ -191,7 +253,6 @@ const ProjectTrendDashboardPage: React.FC = () => {
         projectCode: query.projectCode,
         dateFrom: query.dateRange[0],
         dateTo: query.dateRange[1],
-        adStatus: query.adStatus,
         country: query.country,
         from:
           sourceFrom === 'project-table' || sourceFrom === 'report-project'
@@ -208,8 +269,18 @@ const ProjectTrendDashboardPage: React.FC = () => {
       setLoading(true);
       try {
         const [trendRes, countryRes, countryTrendRes] = await Promise.all([
-          queryProjectReport(buildProjectTrendQuery(query, ['reportDate'], { orderBy: 'reportDate', orderDirection: 'asc' })),
-          queryProjectReport(buildProjectTrendQuery(query, ['country'], { orderBy: countryMetric, orderDirection: 'desc' })),
+          queryProjectReport(
+            buildProjectTrendQuery(query, ['reportDate'], {
+              orderBy: 'reportDate',
+              orderDirection: 'asc',
+            }),
+          ),
+          queryProjectReport(
+            buildProjectTrendQuery(query, ['country'], {
+              orderBy: countryMetric,
+              orderDirection: 'desc',
+            }),
+          ),
           query.country
             ? queryProjectReport(
                 buildProjectTrendQuery(query, ['reportDate', 'country'], {
@@ -222,6 +293,7 @@ const ProjectTrendDashboardPage: React.FC = () => {
         ]);
 
         if (!alive) return;
+
         if (trendRes.code !== 0) {
           message.error(trendRes.msg || '获取项目趋势数据失败');
           setTrendRows([]);
@@ -259,30 +331,28 @@ const ProjectTrendDashboardPage: React.FC = () => {
     };
   }, [query, countryMetric, message]);
 
-  const normalizedTrendSummary = useMemo(() => {
+  const kpiItems = useMemo<KpiItem[]>(() => {
     const latestRow = trendRows[trendRows.length - 1];
-    const dauAverage =
-      trendRows.length > 0
-        ? trendRows.reduce((sum, item) => sum + item.dauUsers, 0) / trendRows.length
-        : 0;
     const latestDau = latestRow?.dauUsers ?? 0;
+    const avgDau =
+      trendRows.length > 0 ? trendRows.reduce((sum, item) => sum + item.dauUsers, 0) / trendRows.length : 0;
 
-    const items: KpiItem[] = [
-      { key: 'adRevenue', title: '区间广告收入', value: formatCurrency(summary.adRevenue) },
-      { key: 'totalCost', title: '区间总成本', value: formatCurrency(summary.totalCost) },
-      { key: 'profit', title: '区间利润', value: formatCurrency(summary.profit) },
-      { key: 'roi', title: '区间 ROI', value: formatRoiPercent(summary.roi) },
-      { key: 'newUsers', title: '区间新增用户', value: formatInteger(summary.newUsers) },
-      {
-        key: 'dauUsers',
-        title: '最新 / 平均 DAU',
-        value: `${formatInteger(latestDau)} / ${formatInteger(dauAverage)}`,
-      },
+    return [
+      { key: 'adRevenue', title: '广告收入', value: formatCurrency(summary.adRevenue) },
+      { key: 'totalCost', title: '总成本', value: formatCurrency(summary.totalCost) },
+      { key: 'profit', title: '利润', value: formatCurrency(summary.profit) },
+      { key: 'roi', title: 'ROI', value: formatRoiPercent(summary.roi) },
+      { key: 'newUsers', title: '新增用户', value: formatInteger(summary.newUsers) },
+      { key: 'dauUsers', title: '最新 / 平均 DAU', value: `${formatInteger(latestDau)} / ${formatInteger(avgDau)}` },
     ];
-    return items;
   }, [summary, trendRows]);
-
-  const businessTrendData = useMemo(
+  const getAdStatusColor = (adStatus?: string | null) => {
+    if (adStatus === '在投') return 'green';
+    if (adStatus === '暂停') return 'orange';
+    if (adStatus === '未上线') return 'default';
+    return 'blue';
+  };
+  const revenueTrendData = useMemo(
     () =>
       buildTrendSeries(trendRows, [
         { key: 'adRevenue', label: '广告收入' },
@@ -313,7 +383,7 @@ const ProjectTrendDashboardPage: React.FC = () => {
     [trendRows],
   );
 
-  const rateTrendData = useMemo(
+  const efficiencyTrendData = useMemo(
     () =>
       buildTrendSeries(trendRows, [
         { key: 'adMatchRate', label: '广告匹配率' },
@@ -341,16 +411,18 @@ const ProjectTrendDashboardPage: React.FC = () => {
     [trendRows],
   );
 
-  const countryRankingData = useMemo(() => {
-    return countryRows
-      .map((item) => ({
-        country: typeof item.country === 'string' ? item.country.toUpperCase() : '--',
-        value: toSafeNumber(item[countryMetric]) ?? 0,
-      }))
-      .filter((item) => item.country !== '--');
-  }, [countryRows, countryMetric]);
+  const countryRankingData = useMemo(
+    () =>
+      countryRows
+        .map((item) => ({
+          country: typeof item.country === 'string' ? item.country.toUpperCase() : '--',
+          value: toSafeNumber(item[countryMetric]) ?? 0,
+        }))
+        .filter((item) => item.country !== '--' && item.value > 0),
+    [countryRows, countryMetric],
+  );
 
-  const countryTrendData = useMemo(
+  const countryRevenueTrendData = useMemo(
     () =>
       buildTrendSeries(countryTrendRows, [
         { key: 'adRevenue', label: '广告收入' },
@@ -360,40 +432,19 @@ const ProjectTrendDashboardPage: React.FC = () => {
     [countryTrendRows],
   );
 
-  const currentAdStatus = projectMeta?.adStatus || query.adStatus;
-
   const lineConfigBase = {
     xField: 'date',
     yField: 'value',
     seriesField: 'series',
+    colorField: 'series',
+    color: ({ series }: { series: string }) => LINE_SERIES_COLORS[series] || '#2563eb',
     smooth: true,
+    lineStyle: {
+      lineWidth: 3,
+    },
     height: 300,
     legend: { position: 'top-right' as const },
     theme: DASHBOARD_THEME,
-  };
-
-  const percentLineConfigBase = {
-    ...lineConfigBase,
-    axis: {
-      y: {
-        labelFormatter: (value: number) => `${Number(value).toFixed(2)}%`,
-      },
-    },
-    tooltip: {
-      items: [{ field: 'value', valueFormatter: (value: number) => `${Number(value).toFixed(2)}%` }],
-    },
-  };
-
-  const moneyLineConfigBase = {
-    ...lineConfigBase,
-    axis: {
-      y: {
-        labelFormatter: (value: number) => formatCurrency(value),
-      },
-    },
-    tooltip: {
-      items: [{ field: 'value', valueFormatter: (value: number) => formatCurrency(value) }],
-    },
   };
 
   const handleBack = () => {
@@ -406,12 +457,9 @@ const ProjectTrendDashboardPage: React.FC = () => {
 
   return (
     <PageContainer
-      header={{
-        title: '项目趋势 Dashboard',
-        onBack: handleBack,
-      }}
+      header={{ title: '项目趋势 Dashboard', onBack: handleBack }}
       extra={[
-        <Button key="back-report" icon={<ArrowLeftOutlined />} onClick={handleBack}>
+        <Button key="back" icon={<ArrowLeftOutlined />} onClick={handleBack}>
           返回
         </Button>,
       ]}
@@ -432,7 +480,8 @@ const ProjectTrendDashboardPage: React.FC = () => {
                 <Title level={4} style={{ margin: 0 }}>
                   {query.projectCode || '未选择项目'}
                 </Title>
-                {currentAdStatus ? <Tag color="blue">投放-{currentAdStatus}</Tag> : null}
+                {projectMeta?.adStatus ? <Tag color={getAdStatusColor(projectMeta.adStatus)}>投放-{projectMeta.adStatus}</Tag> : null}
+                {/* {projectMeta ? <Tag color={isLimitedTagMeta.color}>{isLimitedTagMeta.label}</Tag> : null} */}
                 {projectMeta?.status ? <Tag>{projectMeta.status}</Tag> : null}
               </Space>
               <div style={{ marginTop: 8 }}>
@@ -454,6 +503,7 @@ const ProjectTrendDashboardPage: React.FC = () => {
               />
               <RangePicker
                 value={[dayjs(query.dateRange[0]), dayjs(query.dateRange[1])]}
+                presets={DATE_PRESETS}
                 onChange={(dates) => {
                   const [start, end] = dates ?? [];
                   if (!start || !end) return;
@@ -462,14 +512,6 @@ const ProjectTrendDashboardPage: React.FC = () => {
                     dateRange: [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')],
                   }));
                 }}
-              />
-              <Select
-                allowClear
-                placeholder="投放状态"
-                style={{ width: 150 }}
-                value={query.adStatus}
-                options={PROJECT_AD_STATUS_OPTIONS}
-                onChange={(value) => setQuery((prev) => ({ ...prev, adStatus: normalizeAdStatus(value) }))}
               />
               <Select
                 allowClear
@@ -498,7 +540,7 @@ const ProjectTrendDashboardPage: React.FC = () => {
                   gap: 16,
                 }}
               >
-                {normalizedTrendSummary.map((item) => (
+                {kpiItems.map((item) => (
                   <Card key={item.key} style={CARD_STYLE} styles={{ body: { padding: 18 } }}>
                     <Statistic title={item.title} value={item.value as any} />
                   </Card>
@@ -506,14 +548,16 @@ const ProjectTrendDashboardPage: React.FC = () => {
               </div>
 
               <Card style={CARD_STYLE} styles={{ body: { padding: 20 } }}>
-                <Title level={5} style={{ marginTop: 0 }}>经营趋势</Title>
-                {businessTrendData.length ? (
+                <Title level={5} style={{ marginTop: 0 }}>收益趋势</Title>
+                {revenueTrendData.length ? (
                   <Line
-                    {...moneyLineConfigBase}
-                    data={businessTrendData}
+                    {...lineConfigBase}
+                    data={revenueTrendData}
+                    axis={{ y: { labelFormatter: (value: number) => formatCurrency(value) } }}
+                    tooltip={{ items: [{ field: 'value', valueFormatter: (value: number) => formatCurrency(value) }] }}
                   />
                 ) : (
-                  <Empty description="暂无经营趋势数据" />
+                  <Empty description="暂无收益趋势数据" />
                 )}
               </Card>
 
@@ -527,7 +571,12 @@ const ProjectTrendDashboardPage: React.FC = () => {
                         data={userTrendData}
                         axis={{ y: { labelFormatter: (value: number) => Math.round(Number(value)).toLocaleString() } }}
                         tooltip={{
-                          items: [{ field: 'value', valueFormatter: (value: number) => Math.round(Number(value)).toLocaleString() }],
+                          items: [
+                            {
+                              field: 'value',
+                              valueFormatter: (value: number) => Math.round(Number(value)).toLocaleString(),
+                            },
+                          ],
                         }}
                       />
                     ) : (
@@ -544,7 +593,12 @@ const ProjectTrendDashboardPage: React.FC = () => {
                         data={funnelTrendData}
                         axis={{ y: { labelFormatter: (value: number) => Math.round(Number(value)).toLocaleString() } }}
                         tooltip={{
-                          items: [{ field: 'value', valueFormatter: (value: number) => Math.round(Number(value)).toLocaleString() }],
+                          items: [
+                            {
+                              field: 'value',
+                              valueFormatter: (value: number) => Math.round(Number(value)).toLocaleString(),
+                            },
+                          ],
                         }}
                       />
                     ) : (
@@ -555,10 +609,14 @@ const ProjectTrendDashboardPage: React.FC = () => {
                 <Col xs={24} xl={12}>
                   <Card style={CARD_STYLE} styles={{ body: { padding: 20 } }}>
                     <Title level={5} style={{ marginTop: 0 }}>广告效率趋势</Title>
-                    {rateTrendData.length ? (
+                    {efficiencyTrendData.length ? (
                       <Line
-                        {...percentLineConfigBase}
-                        data={rateTrendData}
+                        {...lineConfigBase}
+                        data={efficiencyTrendData}
+                        axis={{ y: { labelFormatter: (value: number) => `${Number(value).toFixed(2)}%` } }}
+                        tooltip={{
+                          items: [{ field: 'value', valueFormatter: (value: number) => `${Number(value).toFixed(2)}%` }],
+                        }}
                       />
                     ) : (
                       <Empty description="暂无广告效率数据" />
@@ -578,9 +636,7 @@ const ProjectTrendDashboardPage: React.FC = () => {
                       }}
                     >
                       <Title level={5} style={{ margin: 0 }}>成本结构趋势</Title>
-                      <Text type="secondary">
-                        当前区间流量花费: {formatTrafficCostWithRatio(summary.trafficCost, summary)}
-                      </Text>
+                      <Text type="secondary">当前流量花费: {formatTrafficCostWithRatio(summary.trafficCost, summary)}</Text>
                     </div>
                     {costStructureData.length ? (
                       <Area
@@ -588,18 +644,14 @@ const ProjectTrendDashboardPage: React.FC = () => {
                         xField="date"
                         yField="value"
                         seriesField="series"
+                        colorField="series"
+                        scale={{ color: { range: COST_SERIES_COLOR_RANGE } }}
                         stack
                         height={300}
                         theme={DASHBOARD_THEME}
                         legend={{ position: 'top-right' }}
-                        axis={{
-                          y: {
-                            labelFormatter: (value: number) => formatCurrency(value),
-                          },
-                        }}
-                        tooltip={{
-                          items: [{ field: 'value', valueFormatter: (value: number) => formatCurrency(value) }],
-                        }}
+                        axis={{ y: { labelFormatter: (value: number) => formatCurrency(value) } }}
+                        tooltip={{ items: [{ field: 'value', valueFormatter: (value: number) => formatCurrency(value) }] }}
                       />
                     ) : (
                       <Empty description="暂无成本结构数据" />
@@ -614,8 +666,10 @@ const ProjectTrendDashboardPage: React.FC = () => {
                     <Title level={5} style={{ marginTop: 0 }}>变现质量趋势</Title>
                     {monetizationTrendData.length ? (
                       <Line
-                        {...moneyLineConfigBase}
+                        {...lineConfigBase}
                         data={monetizationTrendData}
+                        axis={{ y: { labelFormatter: (value: number) => formatCurrency(value) } }}
+                        tooltip={{ items: [{ field: 'value', valueFormatter: (value: number) => formatCurrency(value) }] }}
                       />
                     ) : (
                       <Empty description="暂无变现质量数据" />
@@ -691,16 +745,22 @@ const ProjectTrendDashboardPage: React.FC = () => {
                     }}
                   >
                     <Title level={5} style={{ margin: 0 }}>
-                      {query.country} 国家经营趋势
+                      {query.country} 国家收益趋势
                     </Title>
-                    <Button type="link" icon={<BarChartOutlined />} onClick={() => setQuery((prev) => ({ ...prev, country: undefined }))}>
+                    <Button
+                      type="link"
+                      icon={<BarChartOutlined />}
+                      onClick={() => setQuery((prev) => ({ ...prev, country: undefined }))}
+                    >
                       清除国家下钻
                     </Button>
                   </div>
-                  {countryTrendData.length ? (
+                  {countryRevenueTrendData.length ? (
                     <Line
-                      {...moneyLineConfigBase}
-                      data={countryTrendData}
+                      {...lineConfigBase}
+                      data={countryRevenueTrendData}
+                      axis={{ y: { labelFormatter: (value: number) => formatCurrency(value) } }}
+                      tooltip={{ items: [{ field: 'value', valueFormatter: (value: number) => formatCurrency(value) }] }}
                     />
                   ) : (
                     <Empty description="当前国家暂无趋势数据" />

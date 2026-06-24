@@ -1,11 +1,21 @@
 ## 新增功能
 
-- 新增隐藏的项目趋势 Dashboard，支持从项目报表和项目管理表格点击 `projectCode` 进入单项目趋势分析，展示经营、用户、广告漏斗、效率、成本结构和国家下钻图表（`src/pages/report/project-trend/index.tsx`）
+- 新增隐藏的项目趋势 Dashboard，支持从项目报表和项目管理表格点击 `projectCode` 进入单项目趋势分析，展示收益、用户、广告漏斗、效率、成本结构和国家下钻图表（`src/pages/report/project-trend/index.tsx`）
 
 ## 优化功能
 
-- 项目报表跳转到趋势 Dashboard 时继承当前已生效的时间范围和投放状态，减少从表格到趋势分析的上下文断裂（`src/pages/report/project/index.tsx`、`src/components/report/UniversalReportTable.tsx`）
+- 项目报表跳转到趋势 Dashboard 时继承当前已生效的时间范围，减少从表格到趋势分析的上下文断裂（`src/pages/report/project/index.tsx`、`src/components/report/UniversalReportTable.tsx`）
+- 项目趋势 Dashboard 去掉 KPI 标题中的“区间”字样，并将主图区块统一命名为“收益趋势”（`src/pages/report/project-trend/index.tsx`）
+- 项目趋势 Dashboard 的日期范围改为复用项目报表同一套快捷日期预设，保持筛选体验一致（`src/pages/report/project-trend/index.tsx`、`src/components/report/reportDatePreset.ts`）
+- 项目趋势 Dashboard 统一加粗折线图线条，提升多指标趋势对比可读性（`src/pages/report/project-trend/index.tsx`）
 
 ## Bug 修复
 
 - 项目管理表格中的 `projectCode` 增加直达趋势 Dashboard 的跳转入口，和项目报表保持一致（`src/pages/project-table/index.tsx`）
+- 项目趋势 Dashboard 移除投放状态筛选输入框，并停止使用 `adStatus` 作为隐藏查询条件，避免数据口径不透明（`src/pages/report/project-trend/index.tsx`）
+- 项目趋势 Dashboard 的多序列折线图改为显式颜色映射，修复多条折线全部显示为同一颜色的问题（`src/pages/report/project-trend/index.tsx`）
+- 项目报表的 `projectCode` 列增加 `isLimit` 状态标签，按 `true/false/null` 展示为“限流 / 正常 / 未知”，方便在列表中直接识别项目流量状态（`src/pages/report/project/index.tsx`）
+- 项目趋势 Dashboard 在跳转参数仅带单边日期时回退为最近 7 天，并修复成本结构趋势图系列颜色相同难区分的问题（`src/pages/report/project-trend/utils.ts`、`src/pages/report/project-trend/index.tsx`）
+- 项目趋势 Dashboard 页头同步展示 `isLimited` 状态标签，沿用项目报表的“限流 / 正常 / 未知”映射口径（`src/pages/report/project-trend/index.tsx`、`src/services/project/types.ts`）
+- 项目趋势 Dashboard 在跳转参数起止为同一天时同样回退为最近 7 天，避免趋势分析口径过窄（`src/pages/report/project-trend/utils.ts`）
+- 项目趋势 Dashboard 的国家贡献排行仅展示贡献值大于 `0` 的国家，避免无效国家挤占排行空间（`src/pages/report/project-trend/index.tsx`）

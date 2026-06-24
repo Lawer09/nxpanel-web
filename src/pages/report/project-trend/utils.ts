@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 export const PROJECT_TREND_DASHBOARD_PATH = '/report/project-trend';
 
 export const DEFAULT_PROJECT_TREND_RANGE_DAYS = 30;
+export const DEFAULT_PROJECT_TREND_FALLBACK_DAYS = 7;
 
 export const toSafeNumber = (value: unknown): number | null => {
   if (value === null || value === undefined || value === '') return null;
@@ -84,11 +85,28 @@ export const buildProjectTrendSearch = (params: {
 };
 
 export const resolveProjectTrendDateRange = (dateFrom?: string | null, dateTo?: string | null): [string, string] => {
-  const end = dateTo && dayjs(dateTo).isValid() ? dayjs(dateTo) : dayjs();
-  const start =
-    dateFrom && dayjs(dateFrom).isValid()
-      ? dayjs(dateFrom)
-      : end.subtract(DEFAULT_PROJECT_TREND_RANGE_DAYS - 1, 'day');
+  const hasDateFrom = Boolean(dateFrom && dayjs(dateFrom).isValid());
+  const hasDateTo = Boolean(dateTo && dayjs(dateTo).isValid());
+
+  if (hasDateFrom && hasDateTo) {
+    const normalizedDateFrom = dayjs(dateFrom);
+    const normalizedDateTo = dayjs(dateTo);
+    if (normalizedDateFrom.isSame(normalizedDateTo, 'day')) {
+      const end = dayjs();
+      const start = end.subtract(DEFAULT_PROJECT_TREND_FALLBACK_DAYS - 1, 'day');
+      return [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')];
+    }
+    return [normalizedDateFrom.format('YYYY-MM-DD'), normalizedDateTo.format('YYYY-MM-DD')];
+  }
+
+  if (hasDateFrom !== hasDateTo) {
+    const end = dayjs();
+    const start = end.subtract(DEFAULT_PROJECT_TREND_FALLBACK_DAYS - 1, 'day');
+    return [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')];
+  }
+
+  const end = dayjs();
+  const start = end.subtract(DEFAULT_PROJECT_TREND_RANGE_DAYS - 1, 'day');
   return [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')];
 };
 

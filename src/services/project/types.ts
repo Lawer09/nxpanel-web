@@ -50,6 +50,7 @@ export interface ProjectItem {
   department: string | null;
   status: 'active' | 'inactive' | 'archived';
   adStatus?: string | null;
+  isLimited?: boolean | number | string | null;
   adspowerEnv?: string | null;
   developerGmail?: string | null;
   appName?: string | null;
@@ -100,6 +101,7 @@ export interface ProjectStoreRequest {
   department?: NullableString;
   status?: string;
   adStatus?: NullableString;
+  isLimited?: boolean | number | string | null;
   adspowerEnv?: NullableString;
   developerGmail?: NullableString;
   appName?: NullableString;
@@ -134,6 +136,7 @@ export interface ProjectUpdateRequest {
   department?: NullableString;
   status?: string;
   adStatus?: NullableString;
+  isLimited?: boolean | number | string | null;
   adspowerEnv?: NullableString;
   developerGmail?: NullableString;
   appName?: NullableString;
