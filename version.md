@@ -94,6 +94,7 @@
 
 ### 新增功能
 
+- 新增广告变现账户列表行级同步操作，支持按账户主同步节点触发收入、账号元信息和应用信息三类同步，并同步更新同步服务器接口文档（src/pages/ad/components/AdAccountSyncModal.tsx, src/pages/ad/ad-revenue/components/AccountsModal.tsx, src/pages/ad/ad-accounts/index.tsx, src/services/ad/api.ts, docs/api/sync_servers_api.md）。
 - 新增 Dev 资产控制台与操作记录页面，在 `Dev` 下补充 `/dev/assets` 和 `/dev/asset-operations` 两个菜单，使用共享筛选、页内 Tabs、抽屉与弹窗集中承载供应商账号、机器、IP、SSH 密钥和异步操作追踪（config/routes.ts, src/locales/zh-CN/menu.ts, src/locales/en-US/menu.ts, src/pages/dev/Assets.tsx, src/pages/dev/AssetOperations.tsx）。
 - 新增 asset-service 独立前端请求层与类型定义，统一通过 `/v4/assets/*` 代理到 `/api/v1/assets/*` 并复用当前 Dev 管理 JWT 鉴权，对接 ProviderAccount、Machine、IP、SSHKey、Operation 与 TaskAck 接口（config/proxy.ts, src/services/dev-admin/request.ts, src/services/asset-service/）。
 - 新增 asset-service 接口文档，固化 Dev 资产控制台当前使用的资源范围、异步任务跳转规则和 `capability_not_supported` 交互约束（docs/api/asset_service_api.md）。
@@ -107,6 +108,7 @@
 
 ### 优化功能
 
+- 优化广告账号编辑弹窗：选择 AdMob 时发布商账号 ID 默认带 `accounts/` 前缀，并在提交前自动归一化缺失前缀的输入（src/pages/ad/ad-accounts/components/AdAccountFormModal.tsx）。
 - 优化运营用户动态菜单隔离：支持登录响应 `user_type=define` 时按 `menus` path 白名单展示菜单、限制直接路由访问，并在无匹配菜单时展示无可用菜单提示（src/app.tsx, src/pages/user/Login.tsx, src/utils/definedMenus.ts, src/pages/user/NoMenu.tsx）。
 - 优化项目报表流量费用展示：接入 `trafficCostRatio` 伴随字段，在“流量费用”列展示为“流量费用 (流量消耗占比)”，并支持普通行、当前页合计和总数据合计统一展示（src/pages/report/project/index.tsx, src/components/report/UniversalReportTable.tsx, docs/api/project-report-api.md, docs/api/project_report_query_api.md）。
 - 优化项目报表筛选能力：新增仅用于筛选的 `adStatuses` 条件，下拉默认展示并提交“在投状态”“暂停状态”，同时支持手动输入，查询和导出时统一透传到 `filters` 参数（src/pages/report/project/index.tsx, src/services/report/typings.d.ts, docs/api/project-report-api.md, docs/api/project_report_query_api.md）。

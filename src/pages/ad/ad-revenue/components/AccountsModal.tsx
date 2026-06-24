@@ -1,9 +1,10 @@
-import { App, Button, Input, Modal, Select, Space, Switch, Table, Tag } from 'antd';
+import { App, Button, Input, Modal, Select, Space, Switch, Table, Tag, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import React, { useCallback, useEffect, useState } from 'react';
 import { getAdAccounts, testAdAccountCredential, toggleAdAccountStatus } from '@/services/ad/api';
 import { formatUtc8 } from '../../utils/time';
 import AdAccountFormModal from '../../ad-accounts/components/AdAccountFormModal';
+import AdAccountSyncModal from '../../components/AdAccountSyncModal';
 
 const PLATFORM_OPTIONS = [
   { label: 'AdMob', value: 'admob' },
@@ -43,6 +44,8 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ open, onClose, syncServer
   const [currentRecord, setCurrentRecord] = useState<API.AdAccount | undefined>();
   const [switchLoading, setSwitchLoading] = useState<Record<number, boolean>>({});
   const [testLoading, setTestLoading] = useState<Record<number, boolean>>({});
+  const [syncOpen, setSyncOpen] = useState(false);
+  const [syncAccount, setSyncAccount] = useState<API.AdAccount | undefined>();
 
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
@@ -79,7 +82,7 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ open, onClose, syncServer
       return;
     }
     setData((prev) =>
-      prev.map((r) => (r.id === record.id ? { ...r, status: newStatus } : r)),
+      prev.map((item) => (item.id === record.id ? { ...item, status: newStatus } : item)),
     );
   };
 
@@ -117,10 +120,12 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ open, onClose, syncServer
       dataIndex: 'accountName',
       width: 180,
       fixed: 'left',
-      render: (_, r) => (
+      render: (_, record) => (
         <Space size={8}>
-          <Tag color={PLATFORM_COLORS[r.sourcePlatform] || 'default'}>{r.sourcePlatform}</Tag>
-          <span>{r.accountLabel || r.accountName || '-'}</span>
+          <Tag color={PLATFORM_COLORS[record.sourcePlatform] || 'default'}>
+            {record.sourcePlatform}
+          </Tag>
+          <span>{record.accountLabel || record.accountName || '-'}</span>
         </Space>
       ),
     },
@@ -128,32 +133,32 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ open, onClose, syncServer
       title: '同步节点',
       dataIndex: 'assignedServerId',
       width: 120,
-      render: (v) => (v || '-'),
+      render: (value) => value || '-',
     },
     {
       title: '更新时间',
       dataIndex: 'updatedAt',
       width: 170,
-      render: (v) => formatUtc8(v),
+      render: (value) => formatUtc8(value),
     },
     {
       title: '状态',
       dataIndex: 'status',
       width: 70,
       fixed: 'right',
-      render: (v, r) => (
+      render: (value, record) => (
         <Switch
           size="small"
-          checked={v === 'enabled'}
-          loading={!!switchLoading[r.id]}
-          onChange={() => handleToggleStatus(r)}
+          checked={value === 'enabled'}
+          loading={!!switchLoading[record.id]}
+          onChange={() => handleToggleStatus(record)}
         />
       ),
     },
     {
       title: '操作',
       key: 'action',
-      width: 140,
+      width: 180,
       fixed: 'right',
       render: (_, record) => (
         <Space>
@@ -171,6 +176,21 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ open, onClose, syncServer
           >
             {testLoading[record.id] ? '测试中...' : '测试凭据'}
           </a>
+          <Tooltip title={record.assignedServerId ? undefined : '请先分配同步节点'}>
+            <a
+              onClick={() => {
+                if (!record.assignedServerId) return;
+                setSyncAccount(record);
+                setSyncOpen(true);
+              }}
+              style={{
+                color: record.assignedServerId ? undefined : '#999',
+                cursor: record.assignedServerId ? 'pointer' : 'not-allowed',
+              }}
+            >
+              同步
+            </a>
+          </Tooltip>
         </Space>
       ),
     },
@@ -185,14 +205,25 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ open, onClose, syncServer
       footer={null}
       destroyOnHidden
     >
-      <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+      <div
+        style={{
+          marginBottom: 12,
+          display: 'flex',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 8,
+        }}
+      >
         <Space wrap>
           <Select
             allowClear
             placeholder="平台"
             style={{ width: 120 }}
             value={platform}
-            onChange={(v) => { setPlatform(v); setPage(1); }}
+            onChange={(value) => {
+              setPlatform(value);
+              setPage(1);
+            }}
             options={PLATFORM_OPTIONS}
           />
           <Select
@@ -200,7 +231,10 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ open, onClose, syncServer
             placeholder="状态"
             style={{ width: 100 }}
             value={status}
-            onChange={(v) => { setStatus(v); setPage(1); }}
+            onChange={(value) => {
+              setStatus(value);
+              setPage(1);
+            }}
             options={[
               { label: '启用', value: 'enabled' },
               { label: '停用', value: 'disabled' },
@@ -211,7 +245,7 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ open, onClose, syncServer
             allowClear
             style={{ width: 200 }}
             value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
+            onChange={(event) => setKeyword(event.target.value)}
             onSearch={() => setPage(1)}
           />
         </Space>
@@ -231,14 +265,17 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ open, onClose, syncServer
         columns={columns}
         loading={loading}
         size="small"
-        scroll={{ x: 800 }}
+        scroll={{ x: 860 }}
         pagination={{
           current: page,
           pageSize,
           total,
           showSizeChanger: true,
-          showTotal: (t) => `共 ${t} 条`,
-          onChange: (p, s) => { setPage(p); setPageSize(s); },
+          showTotal: (count) => `共 ${count} 条`,
+          onChange: (nextPage, nextSize) => {
+            setPage(nextPage);
+            setPageSize(nextSize);
+          },
         }}
       />
       <AdAccountFormModal
@@ -249,7 +286,15 @@ const AccountsModal: React.FC<AccountsModalProps> = ({ open, onClose, syncServer
         onSuccess={() => {
           setFormOpen(false);
           setPage(1);
+          fetchAccounts();
         }}
+      />
+      <AdAccountSyncModal
+        open={syncOpen}
+        account={syncAccount}
+        syncServers={syncServers}
+        onOpenChange={setSyncOpen}
+        onSuccess={fetchAccounts}
       />
     </Modal>
   );

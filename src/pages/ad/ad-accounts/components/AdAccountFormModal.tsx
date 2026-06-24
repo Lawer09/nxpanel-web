@@ -14,6 +14,15 @@ import {
 } from '@/services/ad/api';
 
 const { TextArea } = Input;
+const ADMOB_ACCOUNT_PREFIX = 'accounts/';
+
+function normalizeAdmobAccountName(sourcePlatform?: string, accountName?: string) {
+  const value = String(accountName ?? '').trim();
+  if (sourcePlatform !== 'admob' || !value || value.startsWith(ADMOB_ACCOUNT_PREFIX)) {
+    return value;
+  }
+  return `${ADMOB_ACCOUNT_PREFIX}${value}`;
+}
 
 interface Props {
   open: boolean;
@@ -34,6 +43,7 @@ const AdAccountFormModal: React.FC<Props> = ({
   const [form] = Form.useForm();
   const isEdit = !!current;
   const authType = Form.useWatch('authType', form);
+  const sourcePlatform = Form.useWatch('sourcePlatform', form);
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   useEffect(() => {
@@ -60,10 +70,24 @@ const AdAccountFormModal: React.FC<Props> = ({
             });
       } else {
         form.resetFields();
-        form.setFieldsValue({ status: 'enabled', authType: 'oauth' });
+        form.setFieldsValue({
+          sourcePlatform: 'admob',
+          accountName: ADMOB_ACCOUNT_PREFIX,
+          status: 'enabled',
+          authType: 'oauth',
+        });
       }
     }
   }, [open, current]);
+
+  useEffect(() => {
+    if (!open || sourcePlatform !== 'admob') return;
+    const accountName = form.getFieldValue('accountName');
+    const normalized = normalizeAdmobAccountName(sourcePlatform, accountName);
+    if (normalized !== accountName) {
+      form.setFieldValue('accountName', normalized || ADMOB_ACCOUNT_PREFIX);
+    }
+  }, [form, open, sourcePlatform]);
 
   const handleOk = async () => {
     try {
@@ -109,6 +133,7 @@ const AdAccountFormModal: React.FC<Props> = ({
       } = values;
       const payload: API.AdAccountUpsertRequest = {
         ...rest,
+        accountName: normalizeAdmobAccountName(rest.sourcePlatform, rest.accountName),
         credentialsJson: credentials as any,
       };
       const res = isEdit

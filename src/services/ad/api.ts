@@ -120,11 +120,29 @@ export async function testSyncServer(serverId: string) {
   });
 }
 
-export async function syncRevenueByDate(serverId: string, params?: { start_date?: string; end_date?: string }) {
-  return request<API.ApiResponse<any>>(`/v3/sync-servers/${serverId}/sync-revenue`, {
+export async function syncRevenueByDate(serverId: string, params: API.SyncRevenueParams) {
+  return request<API.ApiResponse<API.SyncTriggerResult>>(`/v3/sync-servers/${serverId}/sync-revenue`, {
     method: 'POST',
     params,
   });
+}
+
+export async function syncAccountMeta(serverId: string) {
+  return request<API.ApiResponse<API.SyncTriggerResult>>(
+    `/v3/sync-servers/${serverId}/sync-account-meta`,
+    {
+      method: 'POST',
+    },
+  );
+}
+
+export async function syncApps(serverId: string) {
+  return request<API.ApiResponse<API.SyncTriggerResult>>(
+    `/v3/sync-servers/${serverId}/sync-apps`,
+    {
+      method: 'POST',
+    },
+  );
 }
 
 // ── 同步监控 ──────────────────────────────────────────────────────────────────

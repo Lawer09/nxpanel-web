@@ -110,6 +110,26 @@ declare namespace API {
     body: any;
   }
 
+  interface SyncRevenueParams {
+    start_date: string;
+    end_date: string;
+  }
+
+  interface SyncTriggerResult {
+    url: string;
+    httpStatus: number;
+    code?: number;
+    msg?: string;
+    body?: any;
+    data?: {
+      job?: string;
+      start_date?: string;
+      end_date?: string;
+      elapsed?: string;
+      [key: string]: any;
+    };
+  }
+
   // ── 同步状态 & 日志 ────────────────────────────────────────────────────────
 
   interface SyncState {

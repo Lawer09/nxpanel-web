@@ -1,8 +1,8 @@
 import { App, Button, Modal, Space, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import React, { useCallback, useEffect, useState } from 'react';
-import { getSyncServers, testSyncServer, syncRevenueByDate } from '@/services/ad/api';
 import { ModalForm, ProFormDateRangePicker } from '@ant-design/pro-components';
+import { getSyncServers, syncRevenueByDate, testSyncServer } from '@/services/ad/api';
 import { formatUtc8 } from '../../utils/time';
 import SyncDetailDrawer from '../../sync-servers/components/SyncDetailDrawer';
 import SyncServerFormModal from '../../sync-servers/components/SyncServerFormModal';
@@ -13,7 +13,7 @@ interface SyncServersModalProps {
 }
 
 const SyncServersModal: React.FC<SyncServersModalProps> = ({ open, onClose }) => {
-  const { message: messageApi } = App.useApp();
+  const { message: messageApi, modal } = App.useApp();
 
   const [data, setData] = useState<API.SyncServer[]>([]);
   const [total, setTotal] = useState(0);
@@ -30,7 +30,7 @@ const SyncServersModal: React.FC<SyncServersModalProps> = ({ open, onClose }) =>
     try {
       const res = await testSyncServer(record.serverId);
       if (res.code === 0) {
-        Modal.success({
+        modal.success({
           title: '测试同步成功',
           content: (
             <div>
@@ -42,8 +42,8 @@ const SyncServersModal: React.FC<SyncServersModalProps> = ({ open, onClose }) =>
       } else {
         messageApi.error(res.msg || '测试同步失败');
       }
-    } catch (e) {
-      // handled
+    } catch {
+      // request interceptor handles errors
     }
   };
 
@@ -74,30 +74,30 @@ const SyncServersModal: React.FC<SyncServersModalProps> = ({ open, onClose }) =>
       title: '状态',
       dataIndex: 'status',
       width: 80,
-      render: (v) => {
+      render: (value) => {
         const map: Record<string, { color: string; label: string }> = {
           online: { color: 'green', label: '在线' },
           offline: { color: 'default', label: '离线' },
           maintenance: { color: 'orange', label: '维护中' },
         };
-        const s = map[v] || { color: 'default', label: v };
-        return <Tag color={s.color}>{s.label}</Tag>;
+        const status = map[value] || { color: 'default', label: value };
+        return <Tag color={status.color}>{status.label}</Tag>;
       },
     },
     {
       title: '最后心跳',
       dataIndex: 'lastHeartbeatAt',
       width: 170,
-      render: (v) => formatUtc8(String(v)),
+      render: (value) => formatUtc8(String(value)),
     },
     {
       title: '标签',
       dataIndex: 'tags',
       width: 200,
-      render: (_, r) =>
-        (r.tags ?? []).map((t) => (
-          <Tag key={t} color="blue">
-            {t}
+      render: (_, record) =>
+        (record.tags ?? []).map((tag) => (
+          <Tag key={tag} color="blue">
+            {tag}
           </Tag>
         )),
     },
@@ -169,7 +169,7 @@ const SyncServersModal: React.FC<SyncServersModalProps> = ({ open, onClose }) =>
           total,
           defaultPageSize: 20,
           showSizeChanger: true,
-          showTotal: (t) => `共 ${t} 条`,
+          showTotal: (count) => `共 ${count} 条`,
         }}
       />
       <SyncServerFormModal
@@ -187,27 +187,24 @@ const SyncServersModal: React.FC<SyncServersModalProps> = ({ open, onClose }) =>
         onClose={() => setDetailOpen(false)}
       />
       <ModalForm
-        title="执行同步"
+        title="执行收入同步"
         open={syncOpen}
         onOpenChange={setSyncOpen}
         modalProps={{ destroyOnHidden: true }}
         onFinish={async (values) => {
           if (!syncServerTarget) return false;
           try {
-            const params: any = {};
-            if (values.dateRange && values.dateRange.length === 2) {
-              params.start_date = values.dateRange[0];
-              params.end_date = values.dateRange[1];
-            }
-            const res = await syncRevenueByDate(syncServerTarget.serverId, params);
+            const res = await syncRevenueByDate(syncServerTarget.serverId, {
+              start_date: values.dateRange[0],
+              end_date: values.dateRange[1],
+            });
             if (res.code === 0) {
-              messageApi.success('同步指令已下发');
+              messageApi.success(res.msg || res.data?.msg || '同步指令已下发');
               return true;
-            } else {
-              messageApi.error(res.msg || '同步请求失败');
-              return false;
             }
-          } catch (e) {
+            messageApi.error(res.msg || '同步请求失败');
+            return false;
+          } catch {
             return false;
           }
         }}
@@ -218,7 +215,7 @@ const SyncServersModal: React.FC<SyncServersModalProps> = ({ open, onClose }) =>
         <ProFormDateRangePicker
           name="dateRange"
           label="同步日期范围"
-          help="不选择则使用节点默认全量同步策略"
+          rules={[{ required: true, message: '请选择同步日期范围' }]}
         />
       </ModalForm>
     </Modal>
