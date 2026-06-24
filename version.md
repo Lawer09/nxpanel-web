@@ -2,7 +2,7 @@
 
 ## 维护说明（必读）
 
-当前开发版本：`1.4.1`
+当前开发版本：`1.4.2`
 
 请后续严格按以下规则维护此文件。
 
@@ -56,13 +56,8 @@
 如果新版本区块不存在，则在文件末尾新增版本模板，参考模板如下：
 ---
 ## [x.y.z] - YYYY-MM-DD
-
 ### 新增功能
-
 ### 优化功能
-
-- 优化项目管理用户 App 绑定：为用户 App 关联增加非必填 `appLink` 字段，并同步到列表展示、新增/编辑弹窗、前端类型与项目 API 文档（src/pages/project/components/ResourceTabs/UserApps.tsx, src/services/project/types.ts, docs/api/project_api.md）。
-- 优化项目报表数值展示精度：将金额、比例、ROI、流量和其它小数字段的前端显示统一从 2 位小数调整为 3 位小数，并同步更新项目报表接口文档说明（src/pages/report/project/index.tsx, docs/api/project-report-api.md）。
 ### Bug 修复
 ---
 后续所有改动记录，只能写入当前开发版本对应区块。
@@ -128,6 +123,8 @@
 - 优化项目投放状态候选值：将项目管理Card和项目管理表格页的投放状态下拉统一调整为“暂停、在投、未上线”，并同步筛选项与项目 API 文档（src/pages/project/constants.ts, src/pages/project/components/ProjectForm.tsx, src/pages/project/components/ProjectDetail.tsx, src/pages/project-table/, docs/api/project_api.md）。
 - 优化用户管理添加与编辑表单：新增 `user_type` 用户类型下拉，选择 `define` 时展示 `menus` 菜单路径数组输入，并在提交时同步到用户生成和更新接口（src/pages/user-manage/components/UserFormModal.tsx, src/pages/user-manage/components/GenerateUserModal.tsx, src/services/user/typings.d.ts, docs/api/user_api.md）。
 - 优化节点汇总报表应用 ID 筛选：改为通过 `/v3/projects/user-apps/mappings` 获取用户 App 项目映射，使用 `packageNames[0]` 作为筛选值并按 `应用ID（projectCode）` 展示下拉选项（src/pages/report/node-summary-report/index.tsx, src/services/project/api.ts, src/services/project/types.ts, docs/api/project_api.md）。
+- 优化项目管理用户 App 绑定：为用户 App 关联增加非必填 `appLink` 字段，并同步到列表展示、新增/编辑弹窗、前端类型与项目 API 文档（src/pages/project/components/ResourceTabs/UserApps.tsx, src/services/project/types.ts, docs/api/project_api.md）。
+- 优化项目报表数值展示精度：将金额、比例、ROI、流量和其它小数字段的前端显示统一从 2 位小数调整为 3 位小数，并同步更新项目报表接口文档说明（src/pages/report/project/index.tsx, docs/api/project-report-api.md）。
 
 ### Bug 修复
 
