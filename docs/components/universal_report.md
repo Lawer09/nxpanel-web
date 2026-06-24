@@ -164,6 +164,22 @@ visibleFilterDimensions.includes('yourDimension')
 - 组件内部统一处理 `Blob` 下载、导出中 loading、防重复点击和成功 / 失败提示。
 - 后端返回文件名时建议页面在 service 层从 `Content-Disposition` 解析，失败时回退到业务默认文件名。
 
+## 8.1 已应用状态回调
+
+- 页面如果需要感知“当前已生效查询状态”，可以传入：
+
+```tsx
+onAppliedStateChange={(state) => {
+  // state.query
+  // state.dimensions
+  // state.metrics
+  // state.sorter
+}}
+```
+
+- 该回调返回的是当前表格真正用于查询的已应用状态，而不是尚未点击“查询”的草稿状态。
+- 适用于从报表页跳转到详情页、分析页时继承当前查询上下文。
+
 ## 9. 常见问题
 
 - `pageSize` 异常（如缓存污染成 `[]`）

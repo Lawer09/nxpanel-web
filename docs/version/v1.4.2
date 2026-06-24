@@ -1,0 +1,11 @@
+## 新增功能
+
+- 新增隐藏的项目趋势 Dashboard，支持从项目报表和项目管理表格点击 `projectCode` 进入单项目趋势分析，展示经营、用户、广告漏斗、效率、成本结构和国家下钻图表（`src/pages/report/project-trend/index.tsx`）
+
+## 优化功能
+
+- 项目报表跳转到趋势 Dashboard 时继承当前已生效的时间范围和投放状态，减少从表格到趋势分析的上下文断裂（`src/pages/report/project/index.tsx`、`src/components/report/UniversalReportTable.tsx`）
+
+## Bug 修复
+
+- 项目管理表格中的 `projectCode` 增加直达趋势 Dashboard 的跳转入口，和项目报表保持一致（`src/pages/project-table/index.tsx`）

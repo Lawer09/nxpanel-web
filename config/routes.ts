@@ -54,6 +54,11 @@ export default [
         component: './report/project',
       },
       {
+        path: '/report/project-trend',
+        hideInMenu: true,
+        component: './report/project-trend',
+      },
+      {
         path: '/report/node-summary-report',
         name: 'node-summary-report',
         component: './report/node-summary-report',

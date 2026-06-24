@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { PageContainer, type ProColumns, ProTable, type ActionType } from '@ant-design/pro-components';
+import { history } from '@umijs/max';
 import { App, Button, Modal, Space, Tag, Typography } from 'antd';
 import {
   CheckCircleOutlined,
@@ -14,6 +15,7 @@ import ProjectTableForm from './components/ProjectTableForm';
 import ProjectTableDetailDrawer from './components/ProjectTableDetailDrawer';
 import { PROJECT_TABLE_FIELDS } from './fields';
 import { PROJECT_AD_STATUS_OPTIONS } from '@/pages/project/constants';
+import { buildProjectTrendSearch, PROJECT_TREND_DASHBOARD_PATH } from '@/pages/report/project-trend/utils';
 
 const { Text } = Typography;
 
@@ -73,6 +75,16 @@ const ProjectTablePage: React.FC = () => {
     setDetailOpen(true);
   };
 
+  const jumpToProjectTrend = (record: ProjectItem) => {
+    if (!record.projectCode) return;
+    const search = buildProjectTrendSearch({
+      projectCode: record.projectCode,
+      adStatus: record.adStatus || undefined,
+      from: 'project-table',
+    });
+    history.push(`${PROJECT_TREND_DASHBOARD_PATH}?${search}`);
+  };
+
   const columns: ProColumns<ProjectItem>[] = [
     {
       title: '项目 ID',
@@ -88,6 +100,8 @@ const ProjectTablePage: React.FC = () => {
       search: false,
       fixed: 'left',
       ellipsis: true,
+      render: (_, record) =>
+        record.projectCode ? <a onClick={() => jumpToProjectTrend(record)}>{record.projectCode}</a> : '-',
     },
     {
       title: '项目名称',

@@ -1,4 +1,5 @@
 import { PageContainer } from '@ant-design/pro-components';
+import { history } from '@umijs/max';
 import { App, DatePicker, Form, Select, Tag } from 'antd';
 import type { SortOrder } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
@@ -14,6 +15,7 @@ import UniversalReportTable from '@/components/report/UniversalReportTable';
 import { getProjects } from '@/services/project/api';
 import { exportProjectReport, queryProjectReport } from '@/services/report/api';
 import { PROJECT_AD_STATUS_OPTIONS } from '@/pages/project/constants';
+import { buildProjectTrendSearch, PROJECT_TREND_DASHBOARD_PATH } from '@/pages/report/project-trend/utils';
 
 const { RangePicker } = DatePicker;
 
@@ -65,6 +67,19 @@ type QueryState = {
   projectCodes?: string[];
   countries?: string[];
   adStatuses?: string[];
+};
+
+type ReportSorterState = {
+  field?: string;
+  columnKey?: string;
+  order?: SortOrder;
+};
+
+type AppliedReportState = {
+  query: QueryState;
+  dimensions: string[];
+  metrics: string[];
+  sorter?: ReportSorterState;
 };
 
 const toSafeNumber = (v: unknown) => {
@@ -147,14 +162,30 @@ const getAdStatusColor = (adStatus?: string | null) => {
   return 'blue';
 };
 
-const renderProjectCodeWithAdStatus = (projectCode: unknown, record: API.ProjectReportItem) => {
+const renderProjectCodeWithAdStatus = (
+  projectCode: unknown,
+  record: API.ProjectReportItem,
+  onJump?: (projectCode: string, record: API.ProjectReportItem) => void,
+) => {
   const codeText = projectCode ? String(projectCode) : '--';
   const adStatus = typeof record.adStatus === 'string' ? record.adStatus : undefined;
   const adStatusLabel = getAdStatusLabel(adStatus);
 
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, maxWidth: '100%' }}>
-      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{codeText}</span>
+      {projectCode && onJump ? (
+        <a
+          onClick={(event) => {
+            event.preventDefault();
+            onJump(String(projectCode), record);
+          }}
+          style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
+        >
+          {codeText}
+        </a>
+      ) : (
+        <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{codeText}</span>
+      )}
       {adStatusLabel ? (
         <Tag color={getAdStatusColor(adStatus)} style={{ marginInlineEnd: 0 }}>
           投放-{adStatusLabel}
@@ -321,7 +352,9 @@ const METRIC_OPTIONS = [
   },
 ];
 
-const DIMENSION_OPTIONS = [
+const createDimensionOptions = (
+  onJump?: (projectCode: string, record: API.ProjectReportItem) => void,
+) => [
   {
     label: '日期',
     value: 'reportDate',
@@ -334,7 +367,7 @@ const DIMENSION_OPTIONS = [
       title: '项目编码',
       dataIndex: 'projectCode',
       width: 180,
-      render: (v: unknown, record: API.ProjectReportItem) => renderProjectCodeWithAdStatus(v, record),
+      render: (v: unknown, record: API.ProjectReportItem) => renderProjectCodeWithAdStatus(v, record, onJump),
     },
   },
   {
@@ -401,6 +434,30 @@ const ProjectAggregatesPage: React.FC = () => {
   const { message: messageApi } = App.useApp();
   const today = dayjs().format('YYYY-MM-DD');
   const [projectOptions, setProjectOptions] = useState<string[]>([]);
+  const [appliedState, setAppliedState] = useState<AppliedReportState | null>(null);
+
+  const handleJumpToDashboard = useCallback(
+    (projectCode: string, record: API.ProjectReportItem) => {
+      const dateRange =
+        resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, appliedState?.query.dateRangePreset) ||
+        appliedState?.query.dateRange ||
+        [dayjs().subtract(1, 'day').format('YYYY-MM-DD'), today];
+      const adStatus =
+        appliedState?.query.adStatuses?.[0] ||
+        (typeof record.adStatus === 'string' ? record.adStatus : undefined);
+      const search = buildProjectTrendSearch({
+        projectCode,
+        dateFrom: dateRange[0],
+        dateTo: dateRange[1],
+        adStatus,
+        from: 'report-project',
+      });
+      history.push(`${PROJECT_TREND_DASHBOARD_PATH}?${search}`);
+    },
+    [appliedState, today],
+  );
+
+  const dimensionOptions = createDimensionOptions(handleJumpToDashboard);
 
   const refreshProjectCodes = useCallback(async (keyword?: string) => {
     const res = await getProjects({
@@ -470,8 +527,9 @@ const ProjectAggregatesPage: React.FC = () => {
           if (!resolved) return query;
           return { ...query, dateRange: resolved };
         }}
-        dimensionOptions={DIMENSION_OPTIONS}
+        dimensionOptions={dimensionOptions}
         metricOptions={METRIC_OPTIONS}
+        onAppliedStateChange={setAppliedState}
         renderFilters={({ query, setQuery, visibleFilterDimensions }) => (
           <Form layout="inline" style={{ rowGap: 4 }}>
             <Form.Item label="日期范围">

@@ -140,6 +140,12 @@ interface UniversalReportTableProps<T extends AnyRecord, Q extends AnyRecord> {
   }) => Promise<ReportFetchResult<T>>;
   fetchGrandTotals?: (args: { query: Q; dimensions: string[]; sorter?: ReportSorter }) => Promise<Record<string, unknown>>;
   exportAction?: ReportExportAction<Q>;
+  onAppliedStateChange?: (state: {
+    query: Q;
+    dimensions: string[];
+    metrics: string[];
+    sorter?: ReportSorter;
+  }) => void;
 }
 
 function normalizeDimensionValues(
@@ -623,6 +629,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     fetchGrandTotals,
     transformViewQuery,
     exportAction,
+    onAppliedStateChange,
   } = props;
 
   const persisted = readLocalState(storageKey, defaultQuery, defaultDimensions, defaultPageSize);
@@ -702,6 +709,15 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
       columnsStateMap,
     );
   }, [storageKey, query, dimensions, visibleFilterDimensions, metrics, pageSize, savedViews, columnsStateMap]);
+
+  useEffect(() => {
+    onAppliedStateChange?.({
+      query: appliedQuery,
+      dimensions: appliedDimensions,
+      metrics,
+      sorter,
+    });
+  }, [appliedQuery, appliedDimensions, metrics, sorter, onAppliedStateChange]);
 
   useEffect(() => {
     let alive = true;
