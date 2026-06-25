@@ -50,6 +50,7 @@ export interface ProjectItem {
   department: string | null;
   status: 'active' | 'inactive' | 'archived';
   adStatus?: string | null;
+  appPlatform?: string | null;
   isLimited?: boolean | number | string | null;
   adspowerEnv?: string | null;
   developerGmail?: string | null;
@@ -101,6 +102,7 @@ export interface ProjectStoreRequest {
   department?: NullableString;
   status?: string;
   adStatus?: NullableString;
+  appPlatform?: NullableString;
   isLimited?: boolean | number | string | null;
   adspowerEnv?: NullableString;
   developerGmail?: NullableString;
@@ -136,6 +138,7 @@ export interface ProjectUpdateRequest {
   department?: NullableString;
   status?: string;
   adStatus?: NullableString;
+  appPlatform?: NullableString;
   isLimited?: boolean | number | string | null;
   adspowerEnv?: NullableString;
   developerGmail?: NullableString;
@@ -174,6 +177,17 @@ export interface ProjectBatchUpdateAdStatusRequest {
 }
 
 export interface ProjectBatchUpdateAdStatusResult {
+  requested: number;
+  updated: number;
+  missingIds: number[];
+}
+
+export interface ProjectBatchUpdateAppPlatformRequest {
+  ids: number[];
+  appPlatform?: NullableString;
+}
+
+export interface ProjectBatchUpdateAppPlatformResult {
   requested: number;
   updated: number;
   missingIds: number[];

@@ -44,6 +44,13 @@ export async function batchUpdateProjectAdStatus(data: Types.ProjectBatchUpdateA
   });
 }
 
+export async function batchUpdateProjectAppPlatform(data: Types.ProjectBatchUpdateAppPlatformRequest) {
+  return request<API.ApiResponse<Types.ProjectBatchUpdateAppPlatformResult>>('/v3/projects/batch-update-app-platform', {
+    method: 'POST',
+    data,
+  });
+}
+
 // Traffic Accounts
 export async function getTrafficAccounts(projectId: number) {
   return request<API.ApiResponse<{ data: Types.ProjectTrafficAccount[] }>>('/v3/projects/traffic-accounts', {

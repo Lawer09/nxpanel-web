@@ -4,3 +4,7 @@ export const PROJECT_AD_STATUS_OPTIONS = [
   { label: '未上线', value: '未上线' },
 ];
 
+export const PROJECT_AD_PLATFORM_OPTIONS = [
+  { label: 'iOS', value: 'IOS' },
+  { label: 'Android', value: 'ANDROID' },
+];

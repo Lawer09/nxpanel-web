@@ -444,3 +444,25 @@ CSS Modules 中顶层 `:global` 会生成真正的全局样式，不会自动带
 ### 相关文件
 
 - `src/pages/user/login.less`
+
+## Ant Design Descriptions 列跨度告警
+
+### 出现场景
+
+在项目详情这类信息展示卡片中，`Descriptions` 设置了固定 `column`，但某一行 `Descriptions.Item` 的 `span` 总和与列数不一致时，控制台会出现 `Sum of column span in a line not match column of Descriptions` 告警。
+
+### 问题原因
+
+`Descriptions` 会按行累计每个 Item 的 `span`。如果一行累计值不是组件声明的 `column`，即使页面看起来还能渲染，也会持续输出告警。
+
+### 解决方式
+
+调整字段顺序或 `span` 配置，保证每一行的累计列数与 `column` 完全一致；不要依赖自动换行兜底。
+
+### 影响范围
+
+所有使用 Ant Design `Descriptions` 展示详情信息的页面和 Drawer。
+
+### 相关文件
+
+- `src/pages/project/components/ProjectDetail.tsx`

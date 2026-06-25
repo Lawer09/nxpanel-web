@@ -8,6 +8,7 @@ export type ProjectTextField = keyof Pick<
   | 'ownerName'
   | 'department'
   | 'adStatus'
+  | 'appPlatform'
   | 'adspowerEnv'
   | 'developerGmail'
   | 'appName'
@@ -60,6 +61,7 @@ export const PROJECT_FIELD_GROUPS: ProjectFieldGroup[] = [
       { name: 'ownerName', label: '负责人', width: 120 },
       { name: 'department', label: '所属部门', width: 140 },
       { name: 'adStatus', label: '投放状态', options: PROJECT_AD_STATUS_OPTIONS, width: 120 },
+      { name: 'appPlatform', label: '应用平台', width: 140 },
       { name: 'adspowerEnv', label: 'Adspower 环境', width: 160 },
     ],
   },

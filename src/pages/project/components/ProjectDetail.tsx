@@ -223,9 +223,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onProjectUpdate 
             <Descriptions.Item label="部门">{project.department || '-'}</Descriptions.Item>
             <Descriptions.Item label="负责人">{project.ownerName || '-'}</Descriptions.Item>
             <Descriptions.Item label="投放状态">{project.adStatus || '-'}</Descriptions.Item>
+            <Descriptions.Item label="状态">{renderStatus(project.status)}</Descriptions.Item>
             <Descriptions.Item label="创建时间">{formatUTC8(project.createdAt)}</Descriptions.Item>
             <Descriptions.Item label="更新时间">{formatUTC8(project.updatedAt)}</Descriptions.Item>
-            <Descriptions.Item label="备注" span={2}>{project.remark || '-'}</Descriptions.Item>
+            <Descriptions.Item label="备注">{project.remark || '-'}</Descriptions.Item>
           </Descriptions>
         )}
       </Card>

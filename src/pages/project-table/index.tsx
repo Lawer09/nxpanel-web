@@ -1,14 +1,19 @@
 import React, { useRef, useState } from 'react';
 import { PageContainer, type ProColumns, ProTable, type ActionType } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { App, Button, Form, Modal, Select, Space, Tag, Typography } from 'antd';
+import { App, Button, Form, Input, Modal, Select, Space, Tag, Typography } from 'antd';
 import {
   CheckCircleOutlined,
   InboxOutlined,
   PlusOutlined,
   StopOutlined,
 } from '@ant-design/icons';
-import { batchUpdateProjectAdStatus, getProjects, updateProjectStatus } from '@/services/project/api';
+import {
+  batchUpdateProjectAdStatus,
+  batchUpdateProjectAppPlatform,
+  getProjects,
+  updateProjectStatus,
+} from '@/services/project/api';
 import type { ProjectFetchRequest, ProjectItem } from '@/services/project/types';
 import { formatUTC8 } from '@/utils/format';
 import ProjectTableForm from './components/ProjectTableForm';
@@ -18,6 +23,7 @@ import { PROJECT_AD_STATUS_OPTIONS } from '@/pages/project/constants';
 import { buildProjectTrendSearch, PROJECT_TREND_DASHBOARD_PATH } from '@/pages/report/project-trend/utils';
 
 const { Text } = Typography;
+type BatchFieldType = 'adStatus' | 'appPlatform';
 
 const renderStatus = (status?: string) => {
   switch (status) {
@@ -38,16 +44,21 @@ const countEnabled = (items?: { enabled: number }[]) => {
   return `${enabled} / ${total}`;
 };
 
+const normalizeBatchValue = (value?: string | null) => {
+  if (value === undefined || value === null) return null;
+  return value.trim() === '' ? null : value;
+};
+
 const ProjectTablePage: React.FC = () => {
   const { message } = App.useApp();
   const actionRef = useRef<ActionType>(null);
-  const [batchForm] = Form.useForm<{ adStatus?: string | null }>();
+  const [batchForm] = Form.useForm<{ adStatus?: string | null; appPlatform?: string | null }>();
   const [formOpen, setFormOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<ProjectItem>();
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailProject, setDetailProject] = useState<ProjectItem | null>(null);
   const [selectedRows, setSelectedRows] = useState<ProjectItem[]>([]);
-  const [batchModalOpen, setBatchModalOpen] = useState(false);
+  const [batchModalType, setBatchModalType] = useState<BatchFieldType | null>(null);
   const [batchLoading, setBatchLoading] = useState(false);
 
   const reloadTable = () => {
@@ -89,12 +100,12 @@ const ProjectTablePage: React.FC = () => {
     history.push(`${PROJECT_TREND_DASHBOARD_PATH}?${search}`);
   };
 
-  const openBatchAdStatusModal = () => {
+  const openBatchModal = (type: BatchFieldType) => {
     batchForm.resetFields();
-    setBatchModalOpen(true);
+    setBatchModalType(type);
   };
 
-  const handleBatchUpdateAdStatus = async () => {
+  const handleBatchUpdate = async () => {
     const ids = selectedRows.map((row) => row.id);
     if (!ids.length) {
       message.warning('请先选择项目');
@@ -108,20 +119,30 @@ const ProjectTablePage: React.FC = () => {
     const values = await batchForm.validateFields();
     setBatchLoading(true);
     try {
-      const nextAdStatus = values.adStatus ?? null;
-      const res = await batchUpdateProjectAdStatus({
-        ids,
-        adStatus: nextAdStatus,
-      });
+      if (!batchModalType) {
+        return false;
+      }
+
+      const nextValue = normalizeBatchValue(values[batchModalType]);
+      const res =
+        batchModalType === 'adStatus'
+          ? await batchUpdateProjectAdStatus({
+              ids,
+              adStatus: nextValue,
+            })
+          : await batchUpdateProjectAppPlatform({
+              ids,
+              appPlatform: nextValue,
+            });
       const result = res.data;
       const missingIds = result?.missingIds ?? [];
       const requested = result?.requested ?? ids.length;
       const updated = result?.updated ?? ids.length;
       const missingText = missingIds.length ? `，缺失 ${missingIds.length} 个` : '';
       message.success(`批量更新完成，请求 ${requested} 个，更新 ${updated} 个${missingText}`);
-      setBatchModalOpen(false);
+      setBatchModalType(null);
       if (detailProject && ids.includes(detailProject.id)) {
-        setDetailProject({ ...detailProject, adStatus: nextAdStatus });
+        setDetailProject({ ...detailProject, [batchModalType]: nextValue });
       }
       setSelectedRows([]);
       batchForm.resetFields();
@@ -189,6 +210,13 @@ const ProjectTablePage: React.FC = () => {
       ellipsis: true,
     },
     {
+      title: '应用平台',
+      dataIndex: 'appPlatform',
+      width: 140,
+      search: false,
+      ellipsis: true,
+    },
+    {
       title: '项目包名',
       dataIndex: 'packageName',
       width: 220,
@@ -208,7 +236,9 @@ const ProjectTablePage: React.FC = () => {
     },
     ...PROJECT_TABLE_FIELDS.filter(
       (field) =>
-        !['projectCode', 'projectName', 'adStatus', 'packageName', 'developerGmail', 'remark'].includes(field.name),
+        !['projectCode', 'projectName', 'adStatus', 'appPlatform', 'packageName', 'developerGmail', 'remark'].includes(
+          field.name,
+        ),
     ).map<ProColumns<ProjectItem>>((field) => ({
       title: field.label,
       dataIndex: field.name,
@@ -307,8 +337,11 @@ const ProjectTablePage: React.FC = () => {
         )}
         tableAlertOptionRender={() => (
           <Space>
-            <Button type="link" size="small" onClick={openBatchAdStatusModal}>
+            <Button type="link" size="small" onClick={() => openBatchModal('adStatus')}>
               修改投放状态
+            </Button>
+            <Button type="link" size="small" onClick={() => openBatchModal('appPlatform')}>
+              修改应用平台
             </Button>
           </Space>
         )}
@@ -381,14 +414,14 @@ const ProjectTablePage: React.FC = () => {
       />
 
       <Modal
-        title="批量修改投放状态"
-        open={batchModalOpen}
+        title={batchModalType === 'appPlatform' ? '批量修改应用平台' : '批量修改投放状态'}
+        open={!!batchModalType}
         confirmLoading={batchLoading}
         okText="确认修改"
-        onOk={handleBatchUpdateAdStatus}
+        onOk={handleBatchUpdate}
         onCancel={() => {
           if (batchLoading) return;
-          setBatchModalOpen(false);
+          setBatchModalType(null);
         }}
         destroyOnHidden
       >
@@ -397,13 +430,19 @@ const ProjectTablePage: React.FC = () => {
             已选择 {selectedRows.length} 个项目，单次最多支持 500 个项目。
           </Typography.Text>
           <Form form={batchForm} layout="vertical">
-            <Form.Item name="adStatus" label="投放状态">
-              <Select
-                allowClear
-                placeholder="请选择投放状态；清空后提交将清空投放状态"
-                options={PROJECT_AD_STATUS_OPTIONS}
-              />
-            </Form.Item>
+            {batchModalType === 'appPlatform' ? (
+              <Form.Item name="appPlatform" label="应用平台">
+                <Input placeholder="请输入应用平台；清空后提交将清空应用平台" />
+              </Form.Item>
+            ) : (
+              <Form.Item name="adStatus" label="投放状态">
+                <Select
+                  allowClear
+                  placeholder="请选择投放状态；清空后提交将清空投放状态"
+                  options={PROJECT_AD_STATUS_OPTIONS}
+                />
+              </Form.Item>
+            )}
           </Form>
         </Space>
       </Modal>

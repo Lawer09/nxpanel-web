@@ -14,7 +14,7 @@ import {
 import UniversalReportTable from '@/components/report/UniversalReportTable';
 import { getProjects } from '@/services/project/api';
 import { exportProjectReport, queryProjectReport } from '@/services/report/api';
-import { PROJECT_AD_STATUS_OPTIONS } from '@/pages/project/constants';
+import { PROJECT_AD_PLATFORM_OPTIONS, PROJECT_AD_STATUS_OPTIONS } from '@/pages/project/constants';
 import { buildProjectTrendSearch, PROJECT_TREND_DASHBOARD_PATH } from '@/pages/report/project-trend/utils';
 
 const { RangePicker } = DatePicker;
@@ -59,6 +59,7 @@ type QueryState = {
   projectCodes?: string[];
   countries?: string[];
   adStatuses?: string[];
+  adPlatforms?: string[];
 };
 
 type ReportSorterState = {
@@ -154,6 +155,21 @@ const getAdStatusColor = (adStatus?: string | null) => {
   return 'blue';
 };
 
+const getAdPlatformLabel = (adPlatform?: string | null) => {
+  const normalized = adPlatform?.trim().toUpperCase();
+  if (!normalized) return undefined;
+  if (normalized === 'IOS') return 'iOS';
+  if (normalized === 'ANDROID') return 'Android';
+  return normalized;
+};
+
+const getAdPlatformColor = (adPlatform?: string | null) => {
+  const normalized = adPlatform?.trim().toUpperCase();
+  if (normalized === 'IOS') return 'purple';
+  if (normalized === 'ANDROID') return 'cyan';
+  return 'blue';
+};
+
 const getIsLimitTagMeta = (isLimited: unknown) => {
   if (isLimited === true || isLimited === 'true' || isLimited === 1 || isLimited === '1') {
     return { label: '限流', color: 'red' as const };
@@ -172,6 +188,8 @@ const renderProjectCodeWithAdStatus = (
   const codeText = projectCode ? String(projectCode) : '--';
   const adStatus = typeof record.adStatus === 'string' ? record.adStatus : undefined;
   const adStatusLabel = getAdStatusLabel(adStatus);
+  const adPlatform = typeof record.adPlatform === 'string' ? record.adPlatform : undefined;
+  const adPlatformLabel = getAdPlatformLabel(adPlatform);
   const isLimitTagMeta = getIsLimitTagMeta(record.isLimited);
 
   return (
@@ -192,6 +210,11 @@ const renderProjectCodeWithAdStatus = (
       {adStatusLabel ? (
         <Tag color={getAdStatusColor(adStatus)} style={{ marginInlineEnd: 0 }}>
           投放-{adStatusLabel}
+        </Tag>
+      ) : null}
+      {adPlatformLabel ? (
+        <Tag color={getAdPlatformColor(adPlatform)} style={{ marginInlineEnd: 0 }}>
+          {adPlatformLabel}
         </Tag>
       ) : null}
       <Tag color={isLimitTagMeta.color} style={{ marginInlineEnd: 0 }}>
@@ -409,6 +432,14 @@ const normalizeAdStatuses = (adStatuses?: string[]) => {
   return normalized.length ? Array.from(new Set(normalized)) : undefined;
 };
 
+const normalizeAdPlatforms = (adPlatforms?: string[]) => {
+  if (!Array.isArray(adPlatforms) || !adPlatforms.length) return undefined;
+  const normalized = adPlatforms
+    .map((item) => `${item}`.trim().toUpperCase())
+    .filter(Boolean);
+  return normalized.length ? Array.from(new Set(normalized)) : undefined;
+};
+
 type ReportSorter = {
   field?: string;
   columnKey?: string;
@@ -430,6 +461,7 @@ const buildProjectReportQuery = (
       projectCodes: normalizeProjectCodes(query.projectCodes),
       countries: normalizeCountries(query.countries),
       adStatuses: normalizeAdStatuses(query.adStatuses),
+      adPlatforms: normalizeAdPlatforms(query.adPlatforms),
     },
     orderBy: sorter?.field || sorter?.columnKey,
     orderDirection: toOrderDirection(sorter?.order),
@@ -504,6 +536,7 @@ const ProjectAggregatesPage: React.FC = () => {
           projectCodes: undefined,
           countries: undefined,
           adStatuses: undefined,
+          adPlatforms: undefined,
         }}
         defaultDimensions={['projectCode']}
         defaultMetrics={[
@@ -615,6 +648,25 @@ const ProjectAggregatesPage: React.FC = () => {
                     .filter(Boolean);
                   const deduped = Array.from(new Set(normalized));
                   setQuery((prev) => ({ ...prev, adStatuses: deduped.length ? deduped : undefined }));
+                }}
+              />
+            </Form.Item>
+            <Form.Item label="应用平台">
+              <Select
+                mode="tags"
+                allowClear
+                maxTagCount="responsive"
+                style={{ width: 220 }}
+                placeholder="请选择应用平台，支持输入"
+                tokenSeparators={[',', '，', ' ']}
+                value={query.adPlatforms}
+                options={PROJECT_AD_PLATFORM_OPTIONS}
+                onChange={(value) => {
+                  const normalized = (value || [])
+                    .map((item) => `${item}`.trim().toUpperCase())
+                    .filter(Boolean);
+                  const deduped = Array.from(new Set(normalized));
+                  setQuery((prev) => ({ ...prev, adPlatforms: deduped.length ? deduped : undefined }));
                 }}
               />
             </Form.Item>
