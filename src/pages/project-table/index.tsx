@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { PageContainer, type ProColumns, ProTable, type ActionType } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { App, Button, Form, Input, Modal, Select, Space, Tag, Typography } from 'antd';
+import { App, Button, Form, Modal, Select, Space, Tag, Typography } from 'antd';
 import {
   CheckCircleOutlined,
   InboxOutlined,
@@ -19,7 +19,7 @@ import { formatUTC8 } from '@/utils/format';
 import ProjectTableForm from './components/ProjectTableForm';
 import ProjectTableDetailDrawer from './components/ProjectTableDetailDrawer';
 import { PROJECT_TABLE_FIELDS } from './fields';
-import { PROJECT_AD_STATUS_OPTIONS } from '@/pages/project/constants';
+import { PROJECT_APP_PLATFORM_OPTIONS, PROJECT_AD_STATUS_OPTIONS } from '@/pages/project/constants';
 import { buildProjectTrendSearch, PROJECT_TREND_DASHBOARD_PATH } from '@/pages/report/project-trend/utils';
 
 const { Text } = Typography;
@@ -432,7 +432,13 @@ const ProjectTablePage: React.FC = () => {
           <Form form={batchForm} layout="vertical">
             {batchModalType === 'appPlatform' ? (
               <Form.Item name="appPlatform" label="应用平台">
-                <Input placeholder="请输入应用平台；清空后提交将清空应用平台" />
+                <Select
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  placeholder="请选择应用平台；清空后提交将清空应用平台"
+                  options={PROJECT_APP_PLATFORM_OPTIONS}
+                />
               </Form.Item>
             ) : (
               <Form.Item name="adStatus" label="投放状态">

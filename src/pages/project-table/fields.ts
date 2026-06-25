@@ -1,5 +1,5 @@
 import type { ProjectItem } from '@/services/project/types';
-import { PROJECT_AD_STATUS_OPTIONS } from '@/pages/project/constants';
+import { PROJECT_APP_PLATFORM_OPTIONS, PROJECT_AD_STATUS_OPTIONS } from '@/pages/project/constants';
 
 export type ProjectTextField = keyof Pick<
   ProjectItem,
@@ -61,7 +61,6 @@ export const PROJECT_FIELD_GROUPS: ProjectFieldGroup[] = [
       { name: 'ownerName', label: '负责人', width: 120 },
       { name: 'department', label: '所属部门', width: 140 },
       { name: 'adStatus', label: '投放状态', options: PROJECT_AD_STATUS_OPTIONS, width: 120 },
-      { name: 'appPlatform', label: '应用平台', width: 140 },
       { name: 'adspowerEnv', label: 'Adspower 环境', width: 160 },
     ],
   },
@@ -69,6 +68,7 @@ export const PROJECT_FIELD_GROUPS: ProjectFieldGroup[] = [
     key: 'app',
     label: '应用信息',
     fields: [
+      { name: 'appPlatform', label: '应用平台', options: PROJECT_APP_PLATFORM_OPTIONS, width: 140 },
       { name: 'developerGmail', label: '开发者 Gmail', width: 180 },
       { name: 'appName', label: '应用名称', width: 180 },
       { name: 'packageName', label: '项目包名', width: 220 },

@@ -309,7 +309,7 @@ declare namespace API {
       projectCodes?: string[];
       countries?: string[];
       adStatuses?: string[];
-      adPlatforms?: string[];
+      appPlatforms?: string[];
     };
     page?: number;
     pageSize?: number;
