@@ -29,6 +29,7 @@ interface MetricOption<T> {
   value: string;
   column: ColumnsType<T>[number];
   formatter?: MetricFormatter;
+  tooltip?: React.ReactNode;
 }
 
 interface SavedView<Q extends AnyRecord> {
@@ -1307,7 +1308,13 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
                   setCurrent(1);
                 }}
               >
-                {item.label}
+                {item.tooltip ? (
+                  <Tooltip title={item.tooltip}>
+                    <span>{item.label}</span>
+                  </Tooltip>
+                ) : (
+                  item.label
+                )}
               </Tag.CheckableTag>
             ))}
           </Space>

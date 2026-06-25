@@ -93,6 +93,17 @@ const fmtCurrency = (v: unknown) => {
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+const fmtRevenueWithDiff = (adRevenue: unknown, record?: Record<string, unknown>) => {
+  const revenueText = fmtCurrency(adRevenue);
+  if (revenueText === '--') return revenueText;
+
+  const diffValue = record?.adRevenueDiff;
+  const diffText = fmtCurrency(diffValue);
+  if (diffText === '--') return revenueText;
+
+  return `${revenueText} (${diffText})`;
+};
+
 const fmtFixed2 = (v: unknown) => {
   const n = toSafeNumber(v);
   if (n === null) return '--';
@@ -180,6 +191,10 @@ const getIsLimitTagMeta = (isLimited: unknown) => {
   return { label: '未知', color: 'default' as const };
 };
 
+const adRevenueMetricTooltip = '广告收入（最新广告收入差值）';
+
+const trafficCostMetricTooltip = '流量费用（流量花费占比）';
+
 const renderProjectCodeWithAdStatus = (
   projectCode: unknown,
   record: API.ProjectReportItem,
@@ -247,8 +262,15 @@ const METRIC_OPTIONS = [
   {
     label: '广告收入',
     value: 'adRevenue',
-    column: { title: '广告收入', dataIndex: 'adRevenue', width: 110, render: fmtCurrency },
-    formatter: (v: number) => fmtCurrency(v),
+    tooltip: adRevenueMetricTooltip,
+    column: {
+      title: '广告收入',
+      tooltip: adRevenueMetricTooltip,
+      dataIndex: 'adRevenue',
+      width: 150,
+      render: (value: unknown, record: API.ProjectReportItem) => fmtRevenueWithDiff(value, record),
+    },
+    formatter: (v: number, record?: Record<string, unknown>) => fmtRevenueWithDiff(v, record),
   },
   {
     label: '广告请求数',
@@ -349,8 +371,10 @@ const METRIC_OPTIONS = [
   {
     label: '流量费用',
     value: 'trafficCost',
+    tooltip: trafficCostMetricTooltip,
     column: {
       title: '流量费用',
+      tooltip: trafficCostMetricTooltip,
       dataIndex: 'trafficCost',
       width: 150,
       render: (v: unknown, record: API.ProjectReportItem) => fmtTrafficCostWithRatio(v, record),

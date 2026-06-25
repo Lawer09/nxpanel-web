@@ -1,11 +1,16 @@
 import { App, DatePicker, Descriptions, Form, Modal, Radio, Typography } from 'antd';
 import React, { useEffect, useMemo, useState } from 'react';
-import { syncAccountMeta, syncApps, syncRevenueByDate } from '@/services/ad/api';
+import {
+  syncAccountMeta,
+  syncApps,
+  syncRevenueByDate,
+  syncRevenueNowBackfill,
+} from '@/services/ad/api';
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
 
-type SyncType = 'revenue' | 'accountMeta' | 'apps';
+type SyncType = 'revenue' | 'accountMeta' | 'apps' | 'revenueNowBackfill';
 
 interface Props {
   open: boolean;
@@ -19,12 +24,14 @@ const SYNC_TYPE_OPTIONS: { label: string; value: SyncType }[] = [
   { label: '同步收入', value: 'revenue' },
   { label: '同步账号元信息', value: 'accountMeta' },
   { label: '同步应用信息', value: 'apps' },
+  { label: '同步近期收益聚合表', value: 'revenueNowBackfill' },
 ];
 
 const SUCCESS_TEXT: Record<SyncType, string> = {
   revenue: '收入同步指令已下发',
   accountMeta: '账号元信息同步指令已下发',
   apps: '应用信息同步指令已下发',
+  revenueNowBackfill: '近期收益聚合表同步指令已下发',
 };
 
 function formatDateValue(value: any) {
@@ -81,8 +88,10 @@ const AdAccountSyncModal: React.FC<Props> = ({
         });
       } else if (currentSyncType === 'accountMeta') {
         res = await syncAccountMeta(account.assignedServerId);
-      } else {
+      } else if (currentSyncType === 'apps') {
         res = await syncApps(account.assignedServerId);
+      } else {
+        res = await syncRevenueNowBackfill(account.assignedServerId);
       }
 
       if (res.code !== 0) {
@@ -122,7 +131,7 @@ const AdAccountSyncModal: React.FC<Props> = ({
       onOk={handleSubmit}
       confirmLoading={confirmLoading}
       destroyOnHidden
-      width={560}
+      width={640}
     >
       <Descriptions size="small" column={1} style={{ marginBottom: 16 }}>
         <Descriptions.Item label="账户">

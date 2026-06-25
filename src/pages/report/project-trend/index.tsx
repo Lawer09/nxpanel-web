@@ -57,6 +57,8 @@ type ParsedProjectRow = {
   reportDate: string;
   country: string;
   adRevenue: number;
+  adRevenueNow: number;
+  adRevenueDiff: number;
   totalCost: number;
   profit: number;
   newUsers: number;
@@ -93,6 +95,8 @@ const DASHBOARD_THEME = {
 
 const LINE_SERIES_COLORS: Record<string, string> = {
   广告收入: '#0f766e',
+  最新广告收益: '#7c3aed',
+  广告收益差值: '#dc2626',
   总成本: '#ea580c',
   利润: '#2563eb',
   新增用户: '#2563eb',
@@ -136,6 +140,8 @@ const parseProjectRow = (record: API.ProjectReportItem): ParsedProjectRow => ({
   reportDate: typeof record.reportDate === 'string' ? record.reportDate : '',
   country: typeof record.country === 'string' ? record.country.toUpperCase() : '--',
   adRevenue: toSafeNumber(record.adRevenue) ?? 0,
+  adRevenueNow: toSafeNumber(record.adRevenueNow) ?? 0,
+  adRevenueDiff: toSafeNumber(record.adRevenueDiff) ?? 0,
   totalCost: toSafeNumber(record.totalCost) ?? 0,
   profit: toSafeNumber(record.profit) ?? 0,
   newUsers: toSafeNumber(record.newUsers) ?? 0,
@@ -362,6 +368,16 @@ const ProjectTrendDashboardPage: React.FC = () => {
     [trendRows],
   );
 
+  const adRevenueComparisonTrendData = useMemo(
+    () =>
+      buildTrendSeries(trendRows, [
+        { key: 'adRevenue', label: '广告收入' },
+        { key: 'adRevenueNow', label: '最新广告收益' },
+        { key: 'adRevenueDiff', label: '广告收益差值' },
+      ]),
+    [trendRows],
+  );
+
   const userTrendData = useMemo(
     () =>
       buildTrendSeries(trendRows, [
@@ -558,6 +574,20 @@ const ProjectTrendDashboardPage: React.FC = () => {
                   />
                 ) : (
                   <Empty description="暂无收益趋势数据" />
+                )}
+              </Card>
+
+              <Card style={CARD_STYLE} styles={{ body: { padding: 20 } }}>
+                <Title level={5} style={{ marginTop: 0 }}>广告收益对比趋势</Title>
+                {adRevenueComparisonTrendData.length ? (
+                  <Line
+                    {...lineConfigBase}
+                    data={adRevenueComparisonTrendData}
+                    axis={{ y: { labelFormatter: (value: number) => formatCurrency(value) } }}
+                    tooltip={{ items: [{ field: 'value', valueFormatter: (value: number) => formatCurrency(value) }] }}
+                  />
+                ) : (
+                  <Empty description="暂无广告收益对比数据" />
                 )}
               </Card>
 

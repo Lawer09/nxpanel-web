@@ -145,6 +145,15 @@ export async function syncApps(serverId: string) {
   );
 }
 
+export async function syncRevenueNowBackfill(serverId: string) {
+  return request<API.ApiResponse<API.SyncTriggerResult>>(
+    `/v3/sync-servers/${serverId}/sync-revenue-now-backfill`,
+    {
+      method: 'POST',
+    },
+  );
+}
+
 // ── 同步监控 ──────────────────────────────────────────────────────────────────
 
 export async function getSyncStates(params?: API.SyncStateQuery) {
