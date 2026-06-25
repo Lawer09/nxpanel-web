@@ -53,14 +53,6 @@ const COMMON_COUNTRY_OPTIONS = [
   'RU',
 ];
 
-const AD_STATUS_LABEL_MAP: Record<string, string> = {
-  activate: '在投状态',
-  deactivate: '暂停状态',
-  在投状态: '在投状态',
-  暂停状态: '暂停状态',
-};
-
-
 type QueryState = {
   dateRange: [string, string];
   dateRangePreset?: DateRangePreset;

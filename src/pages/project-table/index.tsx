@@ -1,14 +1,14 @@
 import React, { useRef, useState } from 'react';
 import { PageContainer, type ProColumns, ProTable, type ActionType } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { App, Button, Modal, Space, Tag, Typography } from 'antd';
+import { App, Button, Form, Modal, Select, Space, Tag, Typography } from 'antd';
 import {
   CheckCircleOutlined,
   InboxOutlined,
   PlusOutlined,
   StopOutlined,
 } from '@ant-design/icons';
-import { getProjects, updateProjectStatus } from '@/services/project/api';
+import { batchUpdateProjectAdStatus, getProjects, updateProjectStatus } from '@/services/project/api';
 import type { ProjectFetchRequest, ProjectItem } from '@/services/project/types';
 import { formatUTC8 } from '@/utils/format';
 import ProjectTableForm from './components/ProjectTableForm';
@@ -41,10 +41,14 @@ const countEnabled = (items?: { enabled: number }[]) => {
 const ProjectTablePage: React.FC = () => {
   const { message } = App.useApp();
   const actionRef = useRef<ActionType>(null);
+  const [batchForm] = Form.useForm<{ adStatus?: string | null }>();
   const [formOpen, setFormOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<ProjectItem>();
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailProject, setDetailProject] = useState<ProjectItem | null>(null);
+  const [selectedRows, setSelectedRows] = useState<ProjectItem[]>([]);
+  const [batchModalOpen, setBatchModalOpen] = useState(false);
+  const [batchLoading, setBatchLoading] = useState(false);
 
   const reloadTable = () => {
     actionRef.current?.reload();
@@ -83,6 +87,49 @@ const ProjectTablePage: React.FC = () => {
       from: 'project-table',
     });
     history.push(`${PROJECT_TREND_DASHBOARD_PATH}?${search}`);
+  };
+
+  const openBatchAdStatusModal = () => {
+    batchForm.resetFields();
+    setBatchModalOpen(true);
+  };
+
+  const handleBatchUpdateAdStatus = async () => {
+    const ids = selectedRows.map((row) => row.id);
+    if (!ids.length) {
+      message.warning('请先选择项目');
+      return false;
+    }
+    if (ids.length > 500) {
+      message.warning('单次最多选择 500 个项目');
+      return false;
+    }
+
+    const values = await batchForm.validateFields();
+    setBatchLoading(true);
+    try {
+      const nextAdStatus = values.adStatus ?? null;
+      const res = await batchUpdateProjectAdStatus({
+        ids,
+        adStatus: nextAdStatus,
+      });
+      const result = res.data;
+      const missingIds = result?.missingIds ?? [];
+      const requested = result?.requested ?? ids.length;
+      const updated = result?.updated ?? ids.length;
+      const missingText = missingIds.length ? `，缺失 ${missingIds.length} 个` : '';
+      message.success(`批量更新完成，请求 ${requested} 个，更新 ${updated} 个${missingText}`);
+      setBatchModalOpen(false);
+      if (detailProject && ids.includes(detailProject.id)) {
+        setDetailProject({ ...detailProject, adStatus: nextAdStatus });
+      }
+      setSelectedRows([]);
+      batchForm.resetFields();
+      reloadTable();
+      return true;
+    } finally {
+      setBatchLoading(false);
+    }
   };
 
   const columns: ProColumns<ProjectItem>[] = [
@@ -248,6 +295,23 @@ const ProjectTablePage: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         columns={columns}
+        rowSelection={{
+          selectedRowKeys: selectedRows.map((row) => row.id),
+          onChange: (_, rows) => setSelectedRows(rows),
+        }}
+        tableAlertRender={({ selectedRowKeys, onCleanSelected }) => (
+          <Space>
+            <span>已选择 {selectedRowKeys.length} 项</span>
+            <a onClick={onCleanSelected}>取消选择</a>
+          </Space>
+        )}
+        tableAlertOptionRender={() => (
+          <Space>
+            <Button type="link" size="small" onClick={openBatchAdStatusModal}>
+              修改投放状态
+            </Button>
+          </Space>
+        )}
         scroll={{ x: 5600 }}
         search={{ labelWidth: 90 }}
         options={{ density: true, fullScreen: true, reload: true, setting: true }}
@@ -315,6 +379,34 @@ const ProjectTablePage: React.FC = () => {
         onProjectChange={setDetailProject}
         onRefresh={reloadTable}
       />
+
+      <Modal
+        title="批量修改投放状态"
+        open={batchModalOpen}
+        confirmLoading={batchLoading}
+        okText="确认修改"
+        onOk={handleBatchUpdateAdStatus}
+        onCancel={() => {
+          if (batchLoading) return;
+          setBatchModalOpen(false);
+        }}
+        destroyOnHidden
+      >
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Typography.Text type="secondary">
+            已选择 {selectedRows.length} 个项目，单次最多支持 500 个项目。
+          </Typography.Text>
+          <Form form={batchForm} layout="vertical">
+            <Form.Item name="adStatus" label="投放状态">
+              <Select
+                allowClear
+                placeholder="请选择投放状态；清空后提交将清空投放状态"
+                options={PROJECT_AD_STATUS_OPTIONS}
+              />
+            </Form.Item>
+          </Form>
+        </Space>
+      </Modal>
     </PageContainer>
   );
 };

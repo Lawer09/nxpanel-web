@@ -168,6 +168,17 @@ export interface ProjectStatusUpdateRequest {
   status: 'active' | 'inactive' | 'archived';
 }
 
+export interface ProjectBatchUpdateAdStatusRequest {
+  ids: number[];
+  adStatus?: NullableString;
+}
+
+export interface ProjectBatchUpdateAdStatusResult {
+  requested: number;
+  updated: number;
+  missingIds: number[];
+}
+
 export interface ProjectTrafficAccountStoreRequest {
   projectId: number;
   trafficPlatformAccountId: number;
