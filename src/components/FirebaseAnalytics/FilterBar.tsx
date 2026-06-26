@@ -3,13 +3,15 @@ import { Card, Space, Button, Segmented, Row, Col } from 'antd';
 import { ProForm, ProFormSelect, ProFormDateRangePicker } from '@ant-design/pro-components';
 import dayjs from 'dayjs';
 import { getFilterOptions } from '@/services/firebase-analytics/api';
+import type { FilterOptionsResponse } from '@/services/firebase-analytics/types';
 
 export interface FilterBarProps {
   onFilterChange: (values: any) => void;
   initialValues?: any;
+  onOptionsLoaded?: (options: FilterOptionsResponse) => void;
 }
 
-const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, initialValues }) => {
+const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, initialValues, onOptionsLoaded }) => {
   const [options, setOptions] = useState<any>({});
   const [form] = ProForm.useForm();
 
@@ -17,9 +19,10 @@ const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, initialValues }) 
     getFilterOptions().then((res) => {
       if (res.data) {
         setOptions(res.data);
+        onOptionsLoaded?.(res.data);
       }
     });
-  }, []);
+  }, [onOptionsLoaded]);
 
   const handleValuesChange = (changedValues: any, allValues: any) => {
     // If it's a quick time button change, it might be handled differently, but ProForm handles it if we use form.setFieldsValue

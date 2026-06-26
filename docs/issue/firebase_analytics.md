@@ -25,3 +25,32 @@ Firebase 数据分析模块所有页面组件及其向下的 API Query 组装逻
 ### 相关文件
 
 - `src/pages/firebase-analytics/Dashboard.tsx`
+
+## 问题标题：地区质量分布地图国家码与 ECharts 世界地图区域名不兼容
+
+### 出现场景
+
+在 Firebase Analytics Dashboard 的“地区质量分布”卡片中，后端返回多个国家的数据时，地图着色会集中到错误国家，或仅少数国家生效。
+
+### 问题原因
+
+1. `/dashboard/region-quality` 接口返回的 `user_country` 是 ISO 国家码，例如 `SG`、`US`、`JP`。
+2. ECharts `world.json` 地图默认按区域 `name` 匹配地图数据，不会直接把 ISO 国家码当作区域名处理。
+3. 旧实现直接将 `user_country` 填到 `series.data[].name`，导致地图区域匹配失败或落到错误区域。
+
+### 解决方式
+
+1. 在 Firebase Analytics 模块内新增国家映射工具，将国家码转换为稳定的地图匹配值和展示名。
+2. 维护一份轻量的 `ISO 国家码 -> ECharts 世界地图英文区域名` 映射表，保证 `series.data[].name` 与 `world.json` 的 `properties.name` 一致。
+3. 表格列和 Tooltip 统一显示可读国家名，优先使用筛选接口 `countries` 的 `label`，再回退到浏览器内置地区名或原始国家码。
+4. 对相同国家的多条记录先在前端按国家聚合，避免地图数据同名覆盖；同时将 `rowKey` 改为稳定组合键，移除 `Math.random()`。
+
+### 影响范围
+
+Firebase Analytics Dashboard 的“地区质量分布”地图与表格展示。
+
+### 相关文件
+
+- `src/components/FirebaseAnalytics/countryMapping.ts`
+- `src/components/FirebaseAnalytics/RegionQualityPanel.tsx`
+- `src/pages/firebase-analytics/Dashboard.tsx`

@@ -23,6 +23,7 @@ import {
   getRecentEvents,
   syncReport,
 } from '@/services/firebase-analytics/api';
+import type { FilterOptionsResponse } from '@/services/firebase-analytics/types';
 import { formatNumber, formatRate } from '@/utils/firebase-analytics';
 import RealtimeLogWindow from '@/components/report/RealtimeLogWindow';
 
@@ -34,6 +35,7 @@ const Dashboard: React.FC = () => {
   const [eventTrend, setEventTrend] = useState<any[]>([]);
   const [vpnTrend, setVpnTrend] = useState<any[]>([]);
   const [regionQuality, setRegionQuality] = useState<any[]>([]);
+  const [filterOptions, setFilterOptions] = useState<FilterOptionsResponse | null>(null);
 
   // 从 URL 获取初始参数
   const getInitialFilters = () => {
@@ -217,7 +219,11 @@ const Dashboard: React.FC = () => {
         ),
       }}
     >
-      <FilterBar onFilterChange={handleFilterChange} initialValues={filters} />
+      <FilterBar
+        onFilterChange={handleFilterChange}
+        initialValues={filters}
+        onOptionsLoaded={setFilterOptions}
+      />
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col span={4}>
@@ -297,7 +303,11 @@ const Dashboard: React.FC = () => {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xl={12} lg={24} span={24}>
-          <RegionQualityPanel data={regionQuality} loading={loading} />
+          <RegionQualityPanel
+            data={regionQuality}
+            countryOptions={filterOptions?.countries}
+            loading={loading}
+          />
         </Col>
         <Col xl={12} lg={24} span={24}>
           <ErrorTopPanel filters={apiParams} />

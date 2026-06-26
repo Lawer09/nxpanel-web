@@ -1,16 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Card, Table } from 'antd';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
-import type { RegionQualityItem } from '@/services/firebase-analytics/types';
+import type { FilterOption, RegionQualityItem } from '@/services/firebase-analytics/types';
 import { formatRate } from '@/utils/firebase-analytics';
+import {
+  aggregateRegionQualityItems,
+  getCountryDisplayNameFromCode,
+} from './countryMapping';
 
 export interface RegionQualityPanelProps {
   data: RegionQualityItem[];
+  countryOptions?: FilterOption[];
   loading: boolean;
 }
 
-const RegionQualityPanel: React.FC<RegionQualityPanelProps> = ({ data, loading }) => {
+const RegionQualityPanel: React.FC<RegionQualityPanelProps> = ({ data, countryOptions, loading }) => {
   const [mapLoaded, setMapLoaded] = useState(false);
 
   useEffect(() => {
@@ -26,8 +31,19 @@ const RegionQualityPanel: React.FC<RegionQualityPanelProps> = ({ data, loading }
       });
   }, []);
 
+  const resolvedData = useMemo(
+    () => aggregateRegionQualityItems(data, countryOptions),
+    [countryOptions, data],
+  );
+
   const columns = [
-    { title: '国家/地区', dataIndex: 'user_country', key: 'user_country' },
+    {
+      title: '国家/地区',
+      dataIndex: 'displayName',
+      key: 'displayName',
+      render: (_: string, record: any) =>
+        record.countryCode ? `${record.displayName} (${record.countryCode})` : record.displayName,
+    },
     { title: '事件数', dataIndex: 'event_count', key: 'event_count', align: 'right' as const },
     { 
       title: 'VPN 成功率', 
@@ -40,16 +56,17 @@ const RegionQualityPanel: React.FC<RegionQualityPanelProps> = ({ data, loading }
     { title: '平均连接耗时', dataIndex: 'avg_connect_ms', key: 'avg_connect_ms', align: 'right' as const, render: (val: number) => val != null ? `${val}ms` : '-' },
   ];
 
-  const maxEventCount = data && data.length > 0 ? Math.max(...data.map(d => d.event_count || 0)) : 100;
+  const maxEventCount =
+    resolvedData.length > 0 ? Math.max(...resolvedData.map((d) => d.event_count || 0)) : 100;
 
   const mapOption = {
     tooltip: {
       trigger: 'item',
       formatter: function (params: any) {
         const item = params.data;
-        if (!item) return params.name;
+        if (!item) return getCountryDisplayNameFromCode(params.name, countryOptions);
         return `
-          <div style="font-weight:bold;margin-bottom:4px;">${params.name}</div>
+          <div style="font-weight:bold;margin-bottom:4px;">${item.displayName}</div>
           事件数: ${item.event_count || 0}<br/>
           VPN 成功率: ${formatRate(item.vpn_success_rate)}<br/>
           API 错误数: ${item.api_error_count || 0}<br/>
@@ -86,11 +103,13 @@ const RegionQualityPanel: React.FC<RegionQualityPanelProps> = ({ data, loading }
             areaColor: '#fbbf24'
           }
         },
-        data: data.map(item => ({
-          name: item.user_country, // 注意后端返回的国家名称最好与地图 geoJSON 中的英文名或 ISO code 对应，如果不对应可能无法染色
-          value: item.event_count,
-          ...item
-        }))
+        data: resolvedData
+          .filter((item) => item.mapName)
+          .map((item) => ({
+            name: item.mapName,
+            value: item.event_count,
+            ...item,
+          }))
       }
     ]
   };
@@ -108,10 +127,10 @@ const RegionQualityPanel: React.FC<RegionQualityPanelProps> = ({ data, loading }
       </div>
       <Table 
         size="small"
-        dataSource={data} 
+        dataSource={resolvedData} 
         columns={columns} 
         loading={loading}
-        rowKey={(record) => record.user_country || record.user_region || Math.random().toString()}
+        rowKey={(record) => record.rowKey}
         pagination={{ pageSize: 5 }}
         scroll={{ x: 'max-content' }}
       />
