@@ -214,7 +214,29 @@ export interface ProjectBatchSaveItem {
   status?: NullableString;
   adStatus?: NullableString;
   appPlatform?: NullableString;
+  adspowerEnv?: NullableString;
+  developerGmail?: NullableString;
+  appName?: NullableString;
   packageName?: NullableString;
+  domainInfoStatus?: NullableString;
+  admobPubId?: NullableString;
+  domainUrl?: NullableString;
+  privacyPolicyUrl?: NullableString;
+  termsUrl?: NullableString;
+  facebookInfoStatus?: NullableString;
+  facebookAppId?: NullableString;
+  facebookAppToken?: NullableString;
+  facebookKeyHash?: NullableString;
+  facebookClassName?: NullableString;
+  admobAccountStatus?: NullableString;
+  admobAppId?: NullableString;
+  admobAdIds?: NullableString;
+  admobAppAdsTxt?: NullableString;
+  firebaseConfigNote?: NullableString;
+  yandexAccount?: NullableString;
+  yandexAdIds?: NullableString;
+  yandexAppAdsTxt?: NullableString;
+  storePageUrl?: NullableString;
   remark?: NullableString;
 }
 
