@@ -100,6 +100,9 @@ fetchData={async ({ query, page, pageSize, dimensions, sorter }) => {
 - 维度 Tag：控制“分组维度”
 - 漏斗 Tag：控制“该维度对应筛选项是否显示”
 - 两者互不强制绑定
+- 页面可以注入“仅前端展示”的伪维度列，用于控制额外列展示；这类维度若不属于后端真实 `groupBy`，页面在发请求前必须自行过滤
+- `UniversalReportTable` 支持通过 `defaultVisibleFilterDimensions` 指定默认显示哪些筛选项；未传时仍回退为全部维度都显示漏斗
+- 单个 `dimensionOptions` 可通过 `disabled` / `isDisabled(dimensions)` 控制禁用态，并用 `disabledTooltip` 说明依赖条件；当依赖失效时，组件会自动把该维度从当前已选维度中清理掉，避免残留无效状态进入视图或查询链路
 
 渲染筛选时请使用：
 

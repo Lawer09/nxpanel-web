@@ -75,6 +75,10 @@ type AppliedReportState = {
   sorter?: ReportSorterState;
 };
 
+const APP_PLATFORM_DISPLAY_DIMENSION = 'appPlatformDisplay';
+const AD_STATUS_DISPLAY_DIMENSION = 'adStatusDisplay';
+const REAL_PROJECT_REPORT_DIMENSIONS: API.ProjectReportDimension[] = ['reportDate', 'projectCode', 'country'];
+
 const toSafeNumber = (v: unknown) => {
   if (v === null || v === undefined || v === '') return null;
   const n = Number(v);
@@ -201,10 +205,6 @@ const renderProjectCodeWithAdStatus = (
   onJump?: (projectCode: string, record: API.ProjectReportItem) => void,
 ) => {
   const codeText = projectCode ? String(projectCode) : '--';
-  const adStatus = typeof record.adStatus === 'string' ? record.adStatus : undefined;
-  const adStatusLabel = getAdStatusLabel(adStatus);
-  const appPlatform = typeof record.appPlatform === 'string' ? record.appPlatform : undefined;
-  const appPlatformLabel = getAppPlatformLabel(appPlatform);
   const isLimitTagMeta = getIsLimitTagMeta(record.isLimited);
 
   return (
@@ -222,17 +222,6 @@ const renderProjectCodeWithAdStatus = (
       ) : (
         <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{codeText}</span>
       )}
-      {appPlatformLabel ? (
-        <Tag color={getAppPlatformColor(appPlatform)} style={{ marginInlineEnd: 0 }}>
-          {appPlatformLabel}
-        </Tag>
-      ) : null}
-      {adStatusLabel ? (
-        <Tag color={getAdStatusColor(adStatus)} style={{ marginInlineEnd: 0 }}>
-          投放-{adStatusLabel}
-        </Tag>
-      ) : null}
-      
       {isLimitTagMeta ? (
         <Tag color={isLimitTagMeta.color} style={{ marginInlineEnd: 0 }}>
           {isLimitTagMeta.label}
@@ -431,6 +420,39 @@ const createDimensionOptions = (
     value: 'country',
     column: { title: '国家', dataIndex: 'country', width: 100, render: (v: string) => fmtCountry(v) },
   },
+  {
+    label: '应用平台',
+    value: APP_PLATFORM_DISPLAY_DIMENSION,
+    disabledTooltip: '需先选择项目编码',
+    isDisabled: (dimensions: string[]) => !dimensions.includes('projectCode'),
+    column: {
+      title: '应用平台',
+      key: APP_PLATFORM_DISPLAY_DIMENSION,
+      width: 110,
+      render: (_: unknown, record: API.ProjectReportItem) => {
+        const label = getAppPlatformLabel(typeof record.appPlatform === 'string' ? record.appPlatform : undefined);
+        if (!label) return '--';
+        return <Tag color={getAppPlatformColor(record.appPlatform)} style={{ marginInlineEnd: 0 }}>{label}</Tag>;
+      },
+    },
+  },
+  {
+    label: '投放状态',
+    value: AD_STATUS_DISPLAY_DIMENSION,
+    disabledTooltip: '需先选择项目编码',
+    isDisabled: (dimensions: string[]) => !dimensions.includes('projectCode'),
+    column: {
+      title: '投放状态',
+      key: AD_STATUS_DISPLAY_DIMENSION,
+      width: 130,
+      render: (_: unknown, record: API.ProjectReportItem) => {
+        const adStatus = typeof record.adStatus === 'string' ? record.adStatus : undefined;
+        const label = getAdStatusLabel(adStatus);
+        if (!label) return '--';
+        return <Tag color={getAdStatusColor(adStatus)} style={{ marginInlineEnd: 0 }}>{label}</Tag>;
+      },
+    },
+  },
 ];
 
 const toOrderDirection = (order?: SortOrder) => {
@@ -478,12 +500,16 @@ const buildProjectReportQuery = (
   dimensions: string[],
   sorter?: ReportSorter,
 ): API.ProjectReportQuery => {
+  const backendDimensions = dimensions.filter(
+    (dimension): dimension is API.ProjectReportDimension =>
+      REAL_PROJECT_REPORT_DIMENSIONS.includes(dimension as API.ProjectReportDimension),
+  );
   const resolvedDateRange =
     resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query.dateRangePreset) || query.dateRange;
   return {
     dateFrom: resolvedDateRange[0],
     dateTo: resolvedDateRange[1],
-    groupBy: dimensions.length ? (dimensions as API.ProjectReportDimension[]) : undefined,
+    groupBy: backendDimensions.length ? backendDimensions : undefined,
     filters: {
       projectCodes: normalizeProjectCodes(query.projectCodes),
       countries: normalizeCountries(query.countries),
@@ -594,6 +620,7 @@ const ProjectAggregatesPage: React.FC = () => {
           return { ...query, dateRange: resolved };
         }}
         dimensionOptions={dimensionOptions}
+        defaultVisibleFilterDimensions={['projectCode', 'country']}
         metricOptions={METRIC_OPTIONS}
         onAppliedStateChange={setAppliedState}
         renderFilters={({ query, setQuery, visibleFilterDimensions }) => (
@@ -659,44 +686,48 @@ const ProjectAggregatesPage: React.FC = () => {
                 />
               </Form.Item>
             ) : null}
-            <Form.Item label="投放状态">
-              <Select
-                mode="tags"
-                allowClear
-                maxTagCount="responsive"
-                style={{ width: 240 }}
-                placeholder="请选择投放状态，支持输入"
-                tokenSeparators={[',', '，', ' ']}
-                value={query.adStatuses}
-                options={PROJECT_AD_STATUS_OPTIONS}
-                onChange={(value) => {
-                  const normalized = (value || [])
-                    .map((item) => `${item}`.trim())
-                    .filter(Boolean);
-                  const deduped = Array.from(new Set(normalized));
-                  setQuery((prev) => ({ ...prev, adStatuses: deduped.length ? deduped : undefined }));
-                }}
-              />
-            </Form.Item>
-            <Form.Item label="应用平台">
-              <Select
-                mode="tags"
-                allowClear
-                maxTagCount="responsive"
-                style={{ width: 220 }}
-                placeholder="请选择应用平台，支持输入"
-                tokenSeparators={[',', '，', ' ']}
-                value={query.appPlatforms}
-                options={PROJECT_APP_PLATFORM_OPTIONS}
-                onChange={(value) => {
-                  const normalized = (value || [])
-                    .map((item) => `${item}`.trim().toUpperCase())
-                    .filter(Boolean);
-                  const deduped = Array.from(new Set(normalized));
-                  setQuery((prev) => ({ ...prev, appPlatforms: deduped.length ? deduped : undefined }));
-                }}
-              />
-            </Form.Item>
+            {visibleFilterDimensions.includes(AD_STATUS_DISPLAY_DIMENSION) ? (
+              <Form.Item label="投放状态">
+                <Select
+                  mode="tags"
+                  allowClear
+                  maxTagCount="responsive"
+                  style={{ width: 240 }}
+                  placeholder="请选择投放状态，支持输入"
+                  tokenSeparators={[',', '，', ' ']}
+                  value={query.adStatuses}
+                  options={PROJECT_AD_STATUS_OPTIONS}
+                  onChange={(value) => {
+                    const normalized = (value || [])
+                      .map((item) => `${item}`.trim())
+                      .filter(Boolean);
+                    const deduped = Array.from(new Set(normalized));
+                    setQuery((prev) => ({ ...prev, adStatuses: deduped.length ? deduped : undefined }));
+                  }}
+                />
+              </Form.Item>
+            ) : null}
+            {visibleFilterDimensions.includes(APP_PLATFORM_DISPLAY_DIMENSION) ? (
+              <Form.Item label="应用平台">
+                <Select
+                  mode="tags"
+                  allowClear
+                  maxTagCount="responsive"
+                  style={{ width: 220 }}
+                  placeholder="请选择应用平台，支持输入"
+                  tokenSeparators={[',', '，', ' ']}
+                  value={query.appPlatforms}
+                  options={PROJECT_APP_PLATFORM_OPTIONS}
+                  onChange={(value) => {
+                    const normalized = (value || [])
+                      .map((item) => `${item}`.trim().toUpperCase())
+                      .filter(Boolean);
+                    const deduped = Array.from(new Set(normalized));
+                    setQuery((prev) => ({ ...prev, appPlatforms: deduped.length ? deduped : undefined }));
+                  }}
+                />
+              </Form.Item>
+            ) : null}
           </Form>
         )}
         fetchData={async ({ query, page, pageSize, dimensions, sorter }) => {

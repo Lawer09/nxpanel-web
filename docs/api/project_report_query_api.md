@@ -41,6 +41,7 @@
 | filters.projectCodes | array | 否 | 项目编码过滤 |
 | filters.countries | array | 否 | 国家过滤，内部会转为大写 |
 | filters.adStatuses | array | 否 | 投放状态过滤，前端默认候选展示并提交“在投状态”“暂停状态”，也支持手动输入 |
+| filters.appPlatforms | array | 否 | 应用平台过滤，前端默认候选展示 `IOS / Android`，也支持手动输入 |
 | page | integer | 否 | 页码，默认 `1` |
 | pageSize | integer | 否 | 每页条数，默认 `50`，最大 `200` |
 | orderBy | string | 否 | 排序字段 |
@@ -240,7 +241,8 @@
 
 - 导出按钮调用：`POST /api/v3/{secure_path}/report/project/export`
 - 请求体直接复用当前项目日报查询表单条件，可以不传 `page`、`pageSize`
-- `adStatuses` 仅作为筛选条件使用，不进入维度或指标；接口返回的 `adStatus` 伴随字段在前端合并到项目编码列右侧以 Tag 展示。
+- `adStatuses`、`appPlatforms` 仅作为筛选条件使用，不进入后端 `groupBy`。
+- 前端项目报表中 `adStatus`、`appPlatform` 已改为“前端可选展示列”，可在维度区单独勾选显示，但发请求时仍需从 `groupBy` 中过滤掉。
 - 前端项目报表中 `trafficCostRatio` 不单独作为指标列展示，接口返回比例小数，合并到 `trafficCost` 列显示为 `流量费用 (流量消耗占比)`。
 - Axios 示例：
 

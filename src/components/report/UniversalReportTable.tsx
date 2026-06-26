@@ -67,6 +67,9 @@ interface DimensionOption<T> {
   label: string;
   value: string;
   column: ColumnsType<T>[number];
+  disabled?: boolean;
+  disabledTooltip?: React.ReactNode;
+  isDisabled?: (dimensions: string[]) => boolean;
 }
 
 interface ReportFetchResult<T> {
@@ -114,6 +117,7 @@ interface UniversalReportTableProps<T extends AnyRecord, Q extends AnyRecord> {
   defaultMetrics: string[];
   dimensionOptions: DimensionOption<T>[];
   metricOptions: MetricOption<T>[];
+  defaultVisibleFilterDimensions?: string[];
   defaultPageSize?: number;
   normalizeDimensionValue?: (value: string) => string;
   normalizeMetricValue?: (value: string) => string;
@@ -193,6 +197,15 @@ function normalizeMetricValues(
     pushIfValid(value);
   });
   return uniq;
+}
+
+function resolveDimensionDisabled<T>(
+  option: DimensionOption<T> | undefined,
+  dimensions: string[],
+) {
+  if (!option) return false;
+  if (option.disabled) return true;
+  return option.isDisabled?.(dimensions) ?? false;
 }
 
 function safeNumber(v: any) {
@@ -618,6 +631,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     defaultMetrics,
     dimensionOptions,
     metricOptions,
+    defaultVisibleFilterDimensions,
     defaultPageSize = 50,
     normalizeDimensionValue,
     normalizeMetricValue,
@@ -636,6 +650,10 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   const persisted = readLocalState(storageKey, defaultQuery, defaultDimensions, defaultPageSize);
   const validDimensionValues = useMemo(() => new Set(dimensionOptions.map((item) => item.value)), [dimensionOptions]);
   const validMetricValues = useMemo(() => new Set(metricOptions.map((item) => item.value)), [metricOptions]);
+  const dimensionOptionMap = useMemo(
+    () => new Map(dimensionOptions.map((item) => [item.value, item])),
+    [dimensionOptions],
+  );
 
   const normalizeDimensions = useCallback(
     (rawValues: string[]) =>
@@ -653,9 +671,48 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     () => normalizeDimensions(dimensionOptions.map((item) => item.value)),
     [dimensionOptions, normalizeDimensions],
   );
-  const initialDimensions = normalizeDimensions(persisted.dimensions.length ? persisted.dimensions : defaultDimensions);
+  const fallbackVisibleFilterDimensions = useMemo(
+    () =>
+      normalizeDimensions(
+        defaultVisibleFilterDimensions?.length ? defaultVisibleFilterDimensions : dimensionOptions.map((item) => item.value),
+      ),
+    [defaultVisibleFilterDimensions, dimensionOptions, normalizeDimensions],
+  );
+
+  const sanitizeDimensions = useCallback(
+    (rawValues: string[], fallbackValues: string[] = defaultDimensions) => {
+      const sanitize = (source: string[]) => {
+        let next = normalizeDimensionValues(source, validDimensionValues, fallbackValues, normalizeDimensionValue);
+        let changed = true;
+        while (changed) {
+          changed = false;
+          const filtered = next.filter((value) => {
+            const option = dimensionOptionMap.get(value);
+            return !resolveDimensionDisabled(option, next);
+          });
+          if (filtered.length !== next.length) {
+            next = filtered;
+            changed = true;
+          }
+        }
+        return next;
+      };
+
+      const sanitized = sanitize(rawValues);
+      if (sanitized.length) return sanitized;
+      const fallbackSanitized = sanitize(fallbackValues);
+      if (fallbackSanitized.length) return fallbackSanitized;
+      return sanitize(defaultDimensions);
+    },
+    [defaultDimensions, dimensionOptionMap, normalizeDimensionValue, validDimensionValues],
+  );
+
+  const initialDimensions = sanitizeDimensions(
+    persisted.dimensions.length ? persisted.dimensions : defaultDimensions,
+    defaultDimensions,
+  );
   const initialVisibleFilterDimensions = normalizeDimensions(
-    persisted.visibleFilterDimensions?.length ? persisted.visibleFilterDimensions : allDimensionValues,
+    persisted.visibleFilterDimensions?.length ? persisted.visibleFilterDimensions : fallbackVisibleFilterDimensions,
   );
   const initialMetrics = persisted.metrics.length
     ? normalizeMetrics(persisted.metrics)
@@ -670,7 +727,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   const [visibleFilterDimensions, setVisibleFilterDimensions] = useState<string[]>(
     initialVisibleFilterDimensions.length
       ? initialVisibleFilterDimensions
-      : normalizeDimensions(dimensionOptions.map((item) => item.value)),
+      : fallbackVisibleFilterDimensions,
   );
   const [metrics, setMetrics] = useState<string[]>(
     initialMetrics.length ? initialMetrics : normalizeMetrics(defaultMetrics),
@@ -719,6 +776,18 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
       sorter,
     });
   }, [appliedQuery, appliedDimensions, metrics, sorter, onAppliedStateChange]);
+
+  useEffect(() => {
+    const nextDimensions = sanitizeDimensions(dimensions, defaultDimensions);
+    if (stableSerialize(nextDimensions) !== stableSerialize(dimensions)) {
+      setDimensions(nextDimensions);
+    }
+
+    const nextAppliedDimensions = sanitizeDimensions(appliedDimensions, defaultDimensions);
+    if (stableSerialize(nextAppliedDimensions) !== stableSerialize(appliedDimensions)) {
+      setAppliedDimensions(nextAppliedDimensions);
+    }
+  }, [appliedDimensions, defaultDimensions, dimensions, sanitizeDimensions]);
 
   useEffect(() => {
     let alive = true;
@@ -832,15 +901,17 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   const selectedViewSnapshot = useMemo(() => {
     if (!selectedView) return undefined;
     const resolvedQuery = transformViewQuery ? transformViewQuery(selectedView.query) : selectedView.query;
-    const nextDimensions = normalizeDimensions(selectedView.dimensions);
+    const nextDimensions = sanitizeDimensions(selectedView.dimensions, defaultDimensions);
     const nextVisibleFilterDimensions = selectedView.visibleFilterDimensions?.length
       ? normalizeDimensions(selectedView.visibleFilterDimensions)
-      : allDimensionValues;
+      : fallbackVisibleFilterDimensions;
     const nextMetrics = normalizeMetrics(selectedView.metrics);
     return createViewSnapshot({
       query: resolvedQuery,
       dimensions: nextDimensions.length ? nextDimensions : defaultDimensions,
-      visibleFilterDimensions: nextVisibleFilterDimensions.length ? nextVisibleFilterDimensions : allDimensionValues,
+      visibleFilterDimensions: nextVisibleFilterDimensions.length
+        ? nextVisibleFilterDimensions
+        : fallbackVisibleFilterDimensions,
       metrics: nextMetrics.length ? nextMetrics : normalizeMetrics(defaultMetrics),
       sorter: selectedView.sorter,
       columnsStateMap: selectedView.columnsStateMap ?? {},
@@ -848,8 +919,9 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   }, [
     selectedView,
     transformViewQuery,
+    sanitizeDimensions,
     normalizeDimensions,
-    allDimensionValues,
+    fallbackVisibleFilterDimensions,
     normalizeMetrics,
     defaultDimensions,
     defaultMetrics,
@@ -1103,21 +1175,24 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   );
 
   const handleSearch = () => {
+    const nextDimensions = sanitizeDimensions(dimensions, defaultDimensions);
     setCurrent(1);
     setAppliedQuery(query);
-    setAppliedDimensions(dimensions);
+    setDimensions(nextDimensions);
+    setAppliedDimensions(nextDimensions);
   };
 
   const handleExport = async () => {
     if (!exportAction || exporting) return;
 
     const nextQuery = query;
-    const nextDimensions = dimensions;
+    const nextDimensions = sanitizeDimensions(dimensions, defaultDimensions);
     const nextSorter = enableServerSort ? sorter : undefined;
 
     setCurrent(1);
     setAppliedQuery(nextQuery);
     setAppliedDimensions(nextDimensions);
+    setDimensions(nextDimensions);
     setExporting(true);
 
     try {
@@ -1142,10 +1217,10 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   const handleReset = () => {
     setQuery(defaultQuery);
     setAppliedQuery(defaultQuery);
-    const nextDefaultDimensions = normalizeDimensions(defaultDimensions);
+    const nextDefaultDimensions = sanitizeDimensions(defaultDimensions, defaultDimensions);
     setDimensions(nextDefaultDimensions.length ? nextDefaultDimensions : defaultDimensions);
     setAppliedDimensions(nextDefaultDimensions.length ? nextDefaultDimensions : defaultDimensions);
-    setVisibleFilterDimensions(allDimensionValues);
+    setVisibleFilterDimensions(fallbackVisibleFilterDimensions);
     setMetrics(normalizeMetrics(defaultMetrics));
     setSorter(undefined);
     setColumnsStateMap({});
@@ -1194,17 +1269,17 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     const resolvedQuery = transformViewQuery ? transformViewQuery(target.query) : target.query;
     setQuery(resolvedQuery);
     setAppliedQuery(resolvedQuery);
-    const nextDimensions = normalizeDimensions(target.dimensions);
+    const nextDimensions = sanitizeDimensions(target.dimensions, defaultDimensions);
     const nextVisibleFilterDimensions = target.visibleFilterDimensions?.length
       ? normalizeDimensions(target.visibleFilterDimensions)
-      : allDimensionValues;
+      : fallbackVisibleFilterDimensions;
     const nextMetrics = normalizeMetrics(target.metrics);
     setDimensions(nextDimensions.length ? nextDimensions : defaultDimensions);
     setAppliedDimensions(nextDimensions.length ? nextDimensions : defaultDimensions);
     setVisibleFilterDimensions(
       nextVisibleFilterDimensions.length
         ? nextVisibleFilterDimensions
-        : allDimensionValues,
+        : fallbackVisibleFilterDimensions,
     );
     setMetrics(nextMetrics.length ? nextMetrics : normalizeMetrics(defaultMetrics));
     setSorter(restoreViewSorter(target.sorter));
@@ -1259,18 +1334,31 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
             {dimensionOptions.map((item) => {
               const dimSelected = dimensions.includes(item.value);
               const filterVisible = visibleFilterDimensions.includes(item.value);
+              const dimDisabled = resolveDimensionDisabled(item, dimensions);
+              const dimensionLabel = item.disabledTooltip && dimDisabled ? (
+                <Tooltip title={item.disabledTooltip}>
+                  <span>{item.label}</span>
+                </Tooltip>
+              ) : (
+                item.label
+              );
               return (
               <span key={item.value} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
                 <Tag.CheckableTag
                   checked={dimSelected}
-                  style={{ marginInlineEnd: 0 }}
+                  style={{
+                    marginInlineEnd: 0,
+                    opacity: dimDisabled ? 0.45 : 1,
+                    cursor: dimDisabled ? 'not-allowed' : 'pointer',
+                  }}
                   onChange={(checked) => {
+                    if (dimDisabled) return;
                     const next = checked ? [...dimensions, item.value] : dimensions.filter((v) => v !== item.value);
-                    const normalized = next.length ? Array.from(new Set(next)) : defaultDimensions;
+                    const normalized = sanitizeDimensions(Array.from(new Set(next)), defaultDimensions);
                     setDimensions(normalized);
                   }}
                 >
-                  {item.label}
+                  {dimensionLabel}
                 </Tag.CheckableTag>
                 <Tag.CheckableTag
                   checked={filterVisible}
