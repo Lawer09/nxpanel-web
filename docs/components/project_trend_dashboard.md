@@ -30,7 +30,7 @@
 - 趋势分析区：
   - KPI 卡片
   - 收益趋势
-  - 广告收益对比趋势（`adRevenue` / `adRevenueNow` / `adRevenueDiff`）
+  - 广告收益对比趋势（堆叠面积图，`adRevenueNow` + `adRevenueDiff` 绝对值）
   - 用户趋势
   - 广告漏斗量级趋势
   - 广告效率趋势
@@ -41,9 +41,11 @@
 ## 数据来源
 
 - 继续复用 `queryProjectReport`
-- 主趋势：`groupBy: ['reportDate']`
-- 国家排行：`groupBy: ['country']`
-- 国家下钻：`groupBy: ['reportDate', 'country']`
+- Dashboard 查询会默认补上 `projectCode`
+- 主趋势：`groupBy: ['projectCode', 'reportDate']`
+- 国家排行：`groupBy: ['projectCode', 'country']`
+- 国家下钻：`groupBy: ['projectCode', 'reportDate', 'country']`
+- 国家排行数据只在 `projectCode / dateRange` 变化时查询一次，切换 `广告收入 / 利润 / 新增用户` 由前端本地重算
 
 ## 参数约定
 
@@ -66,6 +68,9 @@
 ## 展示约定
 
 - KPI 标题不再携带“区间”前缀
+- `广告收入` 卡片除主值外，会在下方补充一行弱化辅助信息：`最新收入（差值）`
+- 该辅助信息优先读取 `summary.adRevenueNow / summary.adRevenueDiff`，缺失时回退到当前趋势数据全量求和结果，并通过 tooltip 说明字段含义
+- `广告收入` 主值右上角会展示一个比例角标，口径为 `AdRevenueNow / AdRevenue`，保留 1 位小数
 - 金额保留 2 位小数
 - 比例字段按百分比展示
 - `roi` 前端按 `roi * 100` 展示
@@ -75,10 +80,11 @@
 - 折线图线条统一略微加粗，提升多指标趋势对比可读性
 - 成本结构趋势图同样对 `投放成本 / 流量花费` 使用显式分色，避免堆叠面积图颜色混同
 - 国家贡献排行仅展示贡献值大于 `0` 的国家，隐藏 `0` 或负值国家，减少无效干扰
-- 项目报表中的广告收入列可显示为 `广告收入（广告收益差值）`，对应趋势分析区提供 `adRevenue`、`adRevenueNow`、`adRevenueDiff` 三线对比图，便于观察累计收入、最新收入与差值变化
+- 国家贡献排行中，当前指标占比小于 `0.1%` 的国家会合并为 `其他`
+- 项目报表中的广告收入列可显示为 `广告收入（广告收益差值）`，对应趋势分析区提供 `adRevenueNow` 与 `adRevenueDiff` 绝对值的堆叠面积对比图，便于观察最新广告收益与差值构成关系
 
 ## 注意事项
 
 - 项目报表跳转时，仍会透传当前 URL 中的 `adStatus`，但 Dashboard 会忽略该值，不作为筛选条件
 - 页面头部保留项目当前投放状态标签，仅做只读展示，不参与查询
-- 图表点击国家排行柱子后，会进入该国家的收益趋势下钻
+- 图表点击国家排行柱子后，会进入该国家的收益趋势下钻；`其他` 为聚合项，不支持下钻

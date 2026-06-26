@@ -15,6 +15,7 @@ import {
   Spin,
   Statistic,
   Tag,
+  Tooltip,
   Typography,
 } from 'antd';
 import { history, useSearchParams } from '@umijs/max';
@@ -51,6 +52,8 @@ type KpiItem = {
   key: string;
   title: string;
   value: React.ReactNode;
+  customValue?: React.ReactNode;
+  extra?: React.ReactNode;
 };
 
 type ParsedProjectRow = {
@@ -81,6 +84,12 @@ type TrendPoint = {
   date: string;
   value: number;
   series: string;
+};
+
+type CountryRankingItem = {
+  country: string;
+  value: number;
+  isMerged?: boolean;
 };
 
 const COUNTRY_METRIC_OPTIONS: Array<{ label: string; value: CountryMetric }> = [
@@ -119,6 +128,10 @@ const COST_SERIES_COLORS: Record<string, string> = {
 };
 
 const COST_SERIES_COLOR_RANGE = [COST_SERIES_COLORS.投放成本, COST_SERIES_COLORS.流量花费];
+const AD_REVENUE_COMPARE_COLOR_RANGE = [
+  LINE_SERIES_COLORS.最新广告收益,
+  LINE_SERIES_COLORS.广告收益差值,
+];
 
 const getIsLimitedTagMeta = (isLimited: unknown) => {
   if (isLimited === true || isLimited === 'true' || isLimited === 1 || isLimited === '1') {
@@ -177,6 +190,7 @@ const buildProjectTrendQuery = (
   groupBy: API.ProjectReportDimension[],
   extra?: { country?: string; orderBy?: string; orderDirection?: 'asc' | 'desc' },
 ): API.ProjectReportQuery => {
+  const normalizedGroupBy = Array.from(new Set<API.ProjectReportDimension>(['projectCode', ...groupBy]));
   const filters: API.ProjectReportQuery['filters'] = {
     projectCodes: [query.projectCode],
   };
@@ -189,7 +203,7 @@ const buildProjectTrendQuery = (
   return {
     dateFrom: query.dateRange[0],
     dateTo: query.dateRange[1],
-    groupBy,
+    groupBy: normalizedGroupBy,
     filters,
     page: 1,
     pageSize: 400,
@@ -274,29 +288,12 @@ const ProjectTrendDashboardPage: React.FC = () => {
     const run = async () => {
       setLoading(true);
       try {
-        const [trendRes, countryRes, countryTrendRes] = await Promise.all([
-          queryProjectReport(
-            buildProjectTrendQuery(query, ['reportDate'], {
-              orderBy: 'reportDate',
-              orderDirection: 'asc',
-            }),
-          ),
-          queryProjectReport(
-            buildProjectTrendQuery(query, ['country'], {
-              orderBy: countryMetric,
-              orderDirection: 'desc',
-            }),
-          ),
-          query.country
-            ? queryProjectReport(
-                buildProjectTrendQuery(query, ['reportDate', 'country'], {
-                  country: query.country,
-                  orderBy: 'reportDate',
-                  orderDirection: 'asc',
-                }),
-              )
-            : Promise.resolve(null),
-        ]);
+        const trendRes = await queryProjectReport(
+          buildProjectTrendQuery(query, ['reportDate'], {
+            orderBy: 'reportDate',
+            orderDirection: 'asc',
+          }),
+        );
 
         if (!alive) return;
 
@@ -308,25 +305,6 @@ const ProjectTrendDashboardPage: React.FC = () => {
           setTrendRows((trendRes.data?.data ?? []).map(parseProjectRow));
           setSummary((trendRes.data?.summary as Record<string, unknown>) ?? {});
         }
-
-        if (countryRes.code !== 0) {
-          message.error(countryRes.msg || '获取国家排行失败');
-          setCountryRows([]);
-        } else {
-          setCountryRows((countryRes.data?.data ?? []) as Array<Record<string, unknown>>);
-        }
-
-        if (countryTrendRes) {
-          if (countryTrendRes.code !== 0) {
-            message.error(countryTrendRes.msg || '获取国家趋势失败');
-            setCountryTrendRows([]);
-          } else {
-            const rows = (countryTrendRes.data?.data ?? []) as API.ProjectReportItem[];
-            setCountryTrendRows(rows.map(parseProjectRow).filter((item) => item.country === query.country));
-          }
-        } else {
-          setCountryTrendRows([]);
-        }
       } finally {
         if (alive) setLoading(false);
       }
@@ -335,16 +313,107 @@ const ProjectTrendDashboardPage: React.FC = () => {
     return () => {
       alive = false;
     };
-  }, [query, countryMetric, message]);
+  }, [query.projectCode, query.dateRange, message]);
+
+  useEffect(() => {
+    if (!query.projectCode) return;
+    let alive = true;
+    const run = async () => {
+      const countryRes = await queryProjectReport(
+        buildProjectTrendQuery(query, ['country'], {
+          orderBy: 'adRevenue',
+          orderDirection: 'desc',
+        }),
+      );
+
+      if (!alive) return;
+
+      if (countryRes.code !== 0) {
+        message.error(countryRes.msg || '获取国家排行失败');
+        setCountryRows([]);
+      } else {
+        setCountryRows((countryRes.data?.data ?? []) as Array<Record<string, unknown>>);
+      }
+    };
+    void run();
+    return () => {
+      alive = false;
+    };
+  }, [query.projectCode, query.dateRange, message]);
+
+  useEffect(() => {
+    if (!query.projectCode || !query.country || query.country === '其他') {
+      setCountryTrendRows([]);
+      return;
+    }
+    let alive = true;
+    const run = async () => {
+      const countryTrendRes = await queryProjectReport(
+        buildProjectTrendQuery(query, ['reportDate', 'country'], {
+          country: query.country,
+          orderBy: 'reportDate',
+          orderDirection: 'asc',
+        }),
+      );
+
+      if (!alive) return;
+
+      if (countryTrendRes.code !== 0) {
+        message.error(countryTrendRes.msg || '获取国家趋势失败');
+        setCountryTrendRows([]);
+      } else {
+        const rows = (countryTrendRes.data?.data ?? []) as API.ProjectReportItem[];
+        setCountryTrendRows(rows.map(parseProjectRow).filter((item) => item.country === query.country));
+      }
+    };
+    void run();
+    return () => {
+      alive = false;
+    };
+  }, [query.projectCode, query.dateRange, query.country, message]);
 
   const kpiItems = useMemo<KpiItem[]>(() => {
     const latestRow = trendRows[trendRows.length - 1];
     const latestDau = latestRow?.dauUsers ?? 0;
     const avgDau =
       trendRows.length > 0 ? trendRows.reduce((sum, item) => sum + item.dauUsers, 0) / trendRows.length : 0;
+    const aggregatedAdRevenueNow = trendRows.reduce((sum, item) => sum + item.adRevenueNow, 0);
+    const aggregatedAdRevenueDiff = trendRows.reduce((sum, item) => sum + item.adRevenueDiff, 0);
+    const adRevenueBaseValue = summary.adRevenue ?? trendRows.reduce((sum, item) => sum + item.adRevenue, 0);
+    const adRevenueNowValue = summary.adRevenueNow ?? aggregatedAdRevenueNow;
+    const adRevenueDiffValue = summary.adRevenueDiff ?? aggregatedAdRevenueDiff;
+    const adRevenueHelperText = `${formatCurrency(adRevenueNowValue)}（${formatCurrency(adRevenueDiffValue)}）`;
+    const adRevenueBaseNumber = toSafeNumber(adRevenueBaseValue);
+    const adRevenueNowNumber = toSafeNumber(adRevenueNowValue);
+    const adRevenueRatioText =
+      adRevenueBaseNumber && adRevenueNowNumber !== null
+        ? `${((adRevenueNowNumber / adRevenueBaseNumber) * 100).toFixed(1)}%`
+        : '--';
 
     return [
-      { key: 'adRevenue', title: '广告收入', value: formatCurrency(summary.adRevenue) },
+      {
+        key: 'adRevenue',
+        title: '广告收入',
+        value: formatCurrency(adRevenueBaseValue),
+        customValue: (
+          <span style={{ position: 'relative', display: 'inline-block', paddingRight: 34 }}>
+            <span>{formatCurrency(adRevenueBaseValue)}</span>
+            <Text
+              type="secondary"
+              style={{ position: 'absolute', right: 0, top: -10, fontSize: 12, lineHeight: 1 }}
+            >
+              {adRevenueRatioText}
+            </Text>
+          </span>
+        ),
+        extra: (
+          <Tooltip title="最新收入（广告收益差值）">
+            <Text type="secondary" style={{ fontSize: 12, display: 'inline-block', marginTop: 8 }}>
+              {adRevenueHelperText}
+            </Text>
+          </Tooltip>
+        ),
+      },
       { key: 'totalCost', title: '总成本', value: formatCurrency(summary.totalCost) },
       { key: 'profit', title: '利润', value: formatCurrency(summary.profit) },
       { key: 'roi', title: 'ROI', value: formatRoiPercent(summary.roi) },
@@ -370,10 +439,17 @@ const ProjectTrendDashboardPage: React.FC = () => {
 
   const adRevenueComparisonTrendData = useMemo(
     () =>
-      buildTrendSeries(trendRows, [
-        { key: 'adRevenue', label: '广告收入' },
-        { key: 'adRevenueNow', label: '最新广告收益' },
-        { key: 'adRevenueDiff', label: '广告收益差值' },
+      trendRows.flatMap((item) => [
+        {
+          date: item.reportDate,
+          value: item.adRevenueNow,
+          series: '最新广告收益',
+        },
+        {
+          date: item.reportDate,
+          value: Math.abs(item.adRevenueDiff),
+          series: '广告收益差值',
+        },
       ]),
     [trendRows],
   );
@@ -427,15 +503,35 @@ const ProjectTrendDashboardPage: React.FC = () => {
     [trendRows],
   );
 
-  const countryRankingData = useMemo(
-    () =>
-      countryRows
-        .map((item) => ({
-          country: typeof item.country === 'string' ? item.country.toUpperCase() : '--',
-          value: toSafeNumber(item[countryMetric]) ?? 0,
-        }))
-        .filter((item) => item.country !== '--' && item.value > 0),
-    [countryRows, countryMetric],
+  const countryRankingData = useMemo<CountryRankingItem[]>(() => {
+    const rows = countryRows
+      .map((item) => ({
+        country: typeof item.country === 'string' ? item.country.toUpperCase() : '--',
+        value: toSafeNumber(item[countryMetric]) ?? 0,
+      }))
+      .filter((item) => item.country !== '--' && item.value > 0);
+
+    const total = rows.reduce((sum, item) => sum + item.value, 0);
+    if (total <= 0) return [];
+
+    const majorRows: CountryRankingItem[] = [];
+    let otherValue = 0;
+
+    rows.forEach((item) => {
+      if (item.value / total < 0.001) {
+        otherValue += item.value;
+        return;
+      }
+      majorRows.push(item);
+    });
+
+    const mergedRows = otherValue > 0 ? [...majorRows, { country: '其他', value: otherValue, isMerged: true }] : majorRows;
+    return mergedRows.sort((a, b) => b.value - a.value);
+  }, [countryRows, countryMetric]);
+
+  const countrySelectOptions = useMemo(
+    () => countryRankingData.filter((item) => !item.isMerged).map((item) => ({ label: item.country, value: item.country })),
+    [countryRankingData],
   );
 
   const countryRevenueTrendData = useMemo(
@@ -535,7 +631,7 @@ const ProjectTrendDashboardPage: React.FC = () => {
                 placeholder="国家下钻"
                 style={{ width: 140 }}
                 value={query.country}
-                options={countryRankingData.map((item) => ({ label: item.country, value: item.country }))}
+                options={countrySelectOptions}
                 onChange={(value) => setQuery((prev) => ({ ...prev, country: normalizeCountry(value) }))}
               />
             </Space>
@@ -558,7 +654,17 @@ const ProjectTrendDashboardPage: React.FC = () => {
               >
                 {kpiItems.map((item) => (
                   <Card key={item.key} style={CARD_STYLE} styles={{ body: { padding: 18 } }}>
-                    <Statistic title={item.title} value={item.value as any} />
+                    {item.customValue ? (
+                      <div>
+                        <div style={{ marginBottom: 8, color: 'rgba(0, 0, 0, 0.45)', fontSize: 14 }}>{item.title}</div>
+                        <div style={{ fontSize: 30, fontWeight: 600, lineHeight: 1.2, color: 'rgba(0, 0, 0, 0.88)' }}>
+                          {item.customValue}
+                        </div>
+                      </div>
+                    ) : (
+                      <Statistic title={item.title} value={item.value as any} />
+                    )}
+                    {item.extra ? <div>{item.extra}</div> : null}
                   </Card>
                 ))}
               </div>
@@ -580,9 +686,17 @@ const ProjectTrendDashboardPage: React.FC = () => {
               <Card style={CARD_STYLE} styles={{ body: { padding: 20 } }}>
                 <Title level={5} style={{ marginTop: 0 }}>广告收益对比趋势</Title>
                 {adRevenueComparisonTrendData.length ? (
-                  <Line
-                    {...lineConfigBase}
+                  <Area
                     data={adRevenueComparisonTrendData}
+                    xField="date"
+                    yField="value"
+                    seriesField="series"
+                    colorField="series"
+                    scale={{ color: { range: AD_REVENUE_COMPARE_COLOR_RANGE } }}
+                    stack
+                    height={300}
+                    theme={DASHBOARD_THEME}
+                    legend={{ position: 'top-right' }}
                     axis={{ y: { labelFormatter: (value: number) => formatCurrency(value) } }}
                     tooltip={{ items: [{ field: 'value', valueFormatter: (value: number) => formatCurrency(value) }] }}
                   />
@@ -749,7 +863,9 @@ const ProjectTrendDashboardPage: React.FC = () => {
                         }}
                         onReady={(plot: any) => {
                           plot.on('element:click', (event: any) => {
-                            const country = event?.data?.data?.country;
+                            const target = event?.data?.data as CountryRankingItem | undefined;
+                            const country = target?.country;
+                            if (!country || target?.isMerged) return;
                             if (!country) return;
                             setQuery((prev) => ({ ...prev, country }));
                           });

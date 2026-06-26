@@ -162,6 +162,7 @@
 
 - `summary` 为当前筛选条件下的整体汇总，不受分页影响
 - `summary` 与 `data`、`total`、`page`、`pageSize` 同级，位于 `data` 对象内部
+- Dashboard 广告收入卡片会优先读取 `summary.adRevenueNow`、`summary.adRevenueDiff`；若后端未返回，前端会回退到当前趋势数据的全量求和结果
 - `totalCost = adSpendCost + trafficCost`
 - `trafficCostRatio = trafficCost / totalCost`，前端展示为百分比时乘以 100
 - `impressionsPerUser = adImpressions / dauUsers`
