@@ -186,7 +186,7 @@ const getIsLimitTagMeta = (isLimited: unknown) => {
     return { label: '限流', color: 'red' as const };
   }
   if (isLimited === false || isLimited === 'false' || isLimited === 0 || isLimited === '0') {
-    return { label: '正常', color: 'green' as const };
+    return null;
   }
   return { label: '未知', color: 'default' as const };
 };
@@ -233,9 +233,11 @@ const renderProjectCodeWithAdStatus = (
         </Tag>
       ) : null}
       
-      <Tag color={isLimitTagMeta.color} style={{ marginInlineEnd: 0 }}>
-        {isLimitTagMeta.label}
-      </Tag>
+      {isLimitTagMeta ? (
+        <Tag color={isLimitTagMeta.color} style={{ marginInlineEnd: 0 }}>
+          {isLimitTagMeta.label}
+        </Tag>
+      ) : null}
     </span>
   );
 };

@@ -374,7 +374,7 @@ const ProjectTablePage: React.FC = () => {
         pagination={{ showSizeChanger: true, defaultPageSize: 20 }}
         toolBarRender={() => [
           <Button key="import" icon={<UploadOutlined />} onClick={() => setImportOpen(true)}>
-            导入 CSV
+            导入数据
           </Button>,
           <Button
             key="new"
