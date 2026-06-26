@@ -206,6 +206,35 @@ export interface ProjectBatchUpdateDepartmentResult {
 
 export type ProjectDepartmentListResult = string[];
 
+export interface ProjectBatchSaveItem {
+  projectCode: string;
+  projectName?: NullableString;
+  ownerName?: NullableString;
+  department?: NullableString;
+  status?: NullableString;
+  adStatus?: NullableString;
+  appPlatform?: NullableString;
+  packageName?: NullableString;
+  remark?: NullableString;
+}
+
+export interface ProjectBatchSaveRequest {
+  items: ProjectBatchSaveItem[];
+}
+
+export interface ProjectBatchSaveResultItem {
+  projectCode: string;
+  action: 'created' | 'updated' | string;
+  id: number;
+}
+
+export interface ProjectBatchSaveResult {
+  created: number;
+  updated: number;
+  total: number;
+  items: ProjectBatchSaveResultItem[];
+}
+
 export interface ProjectTrafficAccountStoreRequest {
   projectId: number;
   trafficPlatformAccountId: number;

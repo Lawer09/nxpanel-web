@@ -7,6 +7,7 @@ import {
   InboxOutlined,
   PlusOutlined,
   StopOutlined,
+  UploadOutlined,
 } from '@ant-design/icons';
 import {
   batchUpdateProjectAdStatus,
@@ -20,6 +21,7 @@ import type { ProjectFetchRequest, ProjectItem } from '@/services/project/types'
 import { formatUTC8 } from '@/utils/format';
 import ProjectTableForm from './components/ProjectTableForm';
 import ProjectTableDetailDrawer from './components/ProjectTableDetailDrawer';
+import ProjectBatchImportModal from './components/ProjectBatchImportModal';
 import { PROJECT_TABLE_FIELDS } from './fields';
 import { PROJECT_APP_PLATFORM_OPTIONS, PROJECT_AD_STATUS_OPTIONS } from '@/pages/project/constants';
 import { buildProjectTrendSearch, PROJECT_TREND_DASHBOARD_PATH } from '@/pages/report/project-trend/utils';
@@ -64,6 +66,7 @@ const ProjectTablePage: React.FC = () => {
   const [batchLoading, setBatchLoading] = useState(false);
   const [departmentOptions, setDepartmentOptions] = useState<Array<{ label: string; value: string }>>([]);
   const [departmentOptionsLoaded, setDepartmentOptionsLoaded] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const reloadTable = () => {
     actionRef.current?.reload();
@@ -370,6 +373,9 @@ const ProjectTablePage: React.FC = () => {
         options={{ density: true, fullScreen: true, reload: true, setting: true }}
         pagination={{ showSizeChanger: true, defaultPageSize: 20 }}
         toolBarRender={() => [
+          <Button key="import" icon={<UploadOutlined />} onClick={() => setImportOpen(true)}>
+            导入 CSV
+          </Button>,
           <Button
             key="new"
             type="primary"
@@ -431,6 +437,15 @@ const ProjectTablePage: React.FC = () => {
         }}
         onProjectChange={setDetailProject}
         onRefresh={reloadTable}
+      />
+
+      <ProjectBatchImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onSuccess={() => {
+          setImportOpen(false);
+          reloadTable();
+        }}
       />
 
       <Modal

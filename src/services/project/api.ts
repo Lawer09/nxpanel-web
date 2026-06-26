@@ -64,6 +64,13 @@ export async function getProjectDepartments() {
   });
 }
 
+export async function batchSaveProjects(data: Types.ProjectBatchSaveRequest) {
+  return request<API.ApiResponse<Types.ProjectBatchSaveResult>>('/v3/projects/batch-save', {
+    method: 'POST',
+    data,
+  });
+}
+
 // Traffic Accounts
 export async function getTrafficAccounts(projectId: number) {
   return request<API.ApiResponse<{ data: Types.ProjectTrafficAccount[] }>>('/v3/projects/traffic-accounts', {

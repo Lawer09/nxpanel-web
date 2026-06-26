@@ -13,6 +13,7 @@
 | POST | `/projects/create` | 创建项目 | `ProjectController::store` |
 | POST | `/projects/update` | 编辑项目 | `ProjectController::update` |
 | POST | `/projects/update-status` | 更新项目状态 | `ProjectController::updateStatus` |
+| POST | `/projects/batch-save` | 按项目代号批量新增或更新项目 | `ProjectController::batchSave` |
 | POST | `/projects/batch-update-department` | 批量更新项目部门 | `ProjectController::batchUpdateDepartment` |
 | GET | `/projects/departments` | 部门列表 | `ProjectController::departments` |
 | POST | `/projects/aggregate` | 手动聚合（同步） | `ProjectController::aggregate` |
@@ -309,6 +310,65 @@
 | HTTP 状态码 | 说明 |
 | --- | --- |
 | 404 | 项目不存在 |
+
+---
+
+## 5.1 按项目代号批量新增或更新
+
+- **方法/路径**：`POST /v3/projects/batch-save`
+- **说明**：按 `projectCode` 执行“存在则更新，不存在则新增”。
+
+### 5.1.1 请求参数（body JSON）
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| items | array | 是 | 项目数组 |
+| items[].projectCode | string | 是 | 项目代号，作为更新或新增识别键 |
+| items[].projectName | string | 否 | 项目名称 |
+| items[].ownerName | string | 否 | 负责人 |
+| items[].department | string/null | 否 | 所属部门 |
+| items[].status | string | 否 | 项目状态 |
+| items[].adStatus | string | 否 | 投放状态 |
+| items[].appPlatform | string | 否 | 应用平台 |
+| items[].packageName | string | 否 | 项目包名 |
+| items[].remark | string | 否 | 备注 |
+
+### 5.1.2 请求示例
+
+```json
+{
+  "items": [
+    {
+      "projectCode": "A001",
+      "projectName": "Project A",
+      "ownerName": "Alice",
+      "department": "技术部",
+      "status": "active",
+      "adStatus": "running",
+      "appPlatform": "android",
+      "packageName": "com.example.app",
+      "remark": "optional"
+    }
+  ]
+}
+```
+
+### 5.1.3 返回示例
+
+```json
+{
+  "created": 1,
+  "updated": 0,
+  "total": 1,
+  "items": [
+    {
+      "projectCode": "A001",
+      "action": "created",
+      "id": 101
+    }
+  ]
+}
+```
 
 ---
 
