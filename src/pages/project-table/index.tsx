@@ -11,6 +11,8 @@ import {
 import {
   batchUpdateProjectAdStatus,
   batchUpdateProjectAppPlatform,
+  batchUpdateProjectDepartment,
+  getProjectDepartments,
   getProjects,
   updateProjectStatus,
 } from '@/services/project/api';
@@ -23,7 +25,7 @@ import { PROJECT_APP_PLATFORM_OPTIONS, PROJECT_AD_STATUS_OPTIONS } from '@/pages
 import { buildProjectTrendSearch, PROJECT_TREND_DASHBOARD_PATH } from '@/pages/report/project-trend/utils';
 
 const { Text } = Typography;
-type BatchFieldType = 'adStatus' | 'appPlatform';
+type BatchFieldType = 'adStatus' | 'appPlatform' | 'department';
 
 const renderStatus = (status?: string) => {
   switch (status) {
@@ -52,7 +54,7 @@ const normalizeBatchValue = (value?: string | null) => {
 const ProjectTablePage: React.FC = () => {
   const { message } = App.useApp();
   const actionRef = useRef<ActionType>(null);
-  const [batchForm] = Form.useForm<{ adStatus?: string | null; appPlatform?: string | null }>();
+  const [batchForm] = Form.useForm<{ adStatus?: string | null; appPlatform?: string | null; department?: string | null }>();
   const [formOpen, setFormOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<ProjectItem>();
   const [detailOpen, setDetailOpen] = useState(false);
@@ -60,6 +62,8 @@ const ProjectTablePage: React.FC = () => {
   const [selectedRows, setSelectedRows] = useState<ProjectItem[]>([]);
   const [batchModalType, setBatchModalType] = useState<BatchFieldType | null>(null);
   const [batchLoading, setBatchLoading] = useState(false);
+  const [departmentOptions, setDepartmentOptions] = useState<Array<{ label: string; value: string }>>([]);
+  const [departmentOptionsLoaded, setDepartmentOptionsLoaded] = useState(false);
 
   const reloadTable = () => {
     actionRef.current?.reload();
@@ -103,6 +107,14 @@ const ProjectTablePage: React.FC = () => {
   const openBatchModal = (type: BatchFieldType) => {
     batchForm.resetFields();
     setBatchModalType(type);
+    if (type === 'department' && !departmentOptionsLoaded) {
+      void (async () => {
+        const res = await getProjectDepartments();
+        const rows = Array.isArray(res.data) ? res.data : [];
+        setDepartmentOptions(rows.filter(Boolean).map((item) => ({ label: item, value: item })));
+        setDepartmentOptionsLoaded(true);
+      })();
+    }
   };
 
   const handleBatchUpdate = async () => {
@@ -130,9 +142,14 @@ const ProjectTablePage: React.FC = () => {
               ids,
               adStatus: nextValue,
             })
-          : await batchUpdateProjectAppPlatform({
+          : batchModalType === 'appPlatform'
+            ? await batchUpdateProjectAppPlatform({
               ids,
               appPlatform: nextValue,
+            })
+            : await batchUpdateProjectDepartment({
+              ids,
+              department: nextValue,
             });
       const result = res.data;
       const missingIds = result?.missingIds ?? [];
@@ -343,6 +360,9 @@ const ProjectTablePage: React.FC = () => {
             <Button type="link" size="small" onClick={() => openBatchModal('appPlatform')}>
               修改应用平台
             </Button>
+            <Button type="link" size="small" onClick={() => openBatchModal('department')}>
+              修改部门
+            </Button>
           </Space>
         )}
         scroll={{ x: 5600 }}
@@ -414,7 +434,13 @@ const ProjectTablePage: React.FC = () => {
       />
 
       <Modal
-        title={batchModalType === 'appPlatform' ? '批量修改应用平台' : '批量修改投放状态'}
+        title={
+          batchModalType === 'appPlatform'
+            ? '批量修改应用平台'
+            : batchModalType === 'department'
+              ? '批量修改部门'
+              : '批量修改投放状态'
+        }
         open={!!batchModalType}
         confirmLoading={batchLoading}
         okText="确认修改"
@@ -438,6 +464,26 @@ const ProjectTablePage: React.FC = () => {
                   optionFilterProp="label"
                   placeholder="请选择应用平台；清空后提交将清空应用平台"
                   options={PROJECT_APP_PLATFORM_OPTIONS}
+                />
+              </Form.Item>
+            ) : batchModalType === 'department' ? (
+              <Form.Item name="department" label="所属部门">
+                <Select
+                  mode="tags"
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  maxTagCount={1}
+                  tokenSeparators={[',', '，']}
+                  placeholder="请选择或输入部门；清空后提交将清空部门"
+                  options={departmentOptions}
+                  onChange={(value) => {
+                    const normalized = Array.isArray(value)
+                      ? value.map((item) => `${item}`.trim()).filter(Boolean)
+                      : [];
+                    const nextValue = normalized.length ? normalized[normalized.length - 1] : undefined;
+                    batchForm.setFieldsValue({ department: nextValue });
+                  }}
                 />
               </Form.Item>
             ) : (

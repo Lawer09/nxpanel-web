@@ -13,6 +13,8 @@
 | POST | `/projects/create` | 创建项目 | `ProjectController::store` |
 | POST | `/projects/update` | 编辑项目 | `ProjectController::update` |
 | POST | `/projects/update-status` | 更新项目状态 | `ProjectController::updateStatus` |
+| POST | `/projects/batch-update-department` | 批量更新项目部门 | `ProjectController::batchUpdateDepartment` |
+| GET | `/projects/departments` | 部门列表 | `ProjectController::departments` |
 | POST | `/projects/aggregate` | 手动聚合（同步） | `ProjectController::aggregate` |
 | POST | `/projects/aggregate-async` | 手动聚合（异步） | `ProjectController::aggregateAsync` |
 | GET | `/projects/traffic-accounts` | 流量账号列表 | `ProjectTrafficAccountController::index` |
@@ -307,6 +309,58 @@
 | HTTP 状态码 | 说明 |
 | --- | --- |
 | 404 | 项目不存在 |
+
+---
+
+## 6. 流量账号关联管理
+
+---
+
+## 5.1 批量更新项目部门
+
+- **方法/路径**：`POST /v3/projects/batch-update-department`
+- **说明**：批量更新 `project_projects.department`，传 `null` 可清空部门。
+
+### 5.1.1 请求参数（body JSON）
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| ids | int[] | 是 | 项目 ID 数组，单次最多 500 个，不能重复 |
+| department | string/null | 否 | 所属部门，最大 100 字符；传 `null` 可清空 |
+
+### 5.1.2 请求示例
+
+```json
+{
+  "ids": [1, 2, 3],
+  "department": "技术部"
+}
+```
+
+### 5.1.3 返回示例
+
+```json
+{
+  "requested": 3,
+  "updated": 3,
+  "missingIds": []
+}
+```
+
+---
+
+## 5.2 部门列表
+
+- **方法/路径**：`GET /v3/projects/departments`
+- **说明**：从现有 `project_projects.department` 数据中查询非空部门，去重后按部门名称升序返回；不新增独立部门配置表。
+
+### 5.2.1 返回示例
+
+```json
+{
+  "data": ["产品部", "技术部", "运营部"]
+}
+```
 
 ---
 

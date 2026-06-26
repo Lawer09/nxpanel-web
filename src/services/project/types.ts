@@ -193,6 +193,19 @@ export interface ProjectBatchUpdateAppPlatformResult {
   missingIds: number[];
 }
 
+export interface ProjectBatchUpdateDepartmentRequest {
+  ids: number[];
+  department?: NullableString;
+}
+
+export interface ProjectBatchUpdateDepartmentResult {
+  requested: number;
+  updated: number;
+  missingIds: number[];
+}
+
+export type ProjectDepartmentListResult = string[];
+
 export interface ProjectTrafficAccountStoreRequest {
   projectId: number;
   trafficPlatformAccountId: number;
