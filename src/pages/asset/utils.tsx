@@ -18,12 +18,29 @@ export const formatText = (value?: string | number | null | boolean) => {
     return '-';
   }
   if (typeof value === 'boolean') {
-    return value ? 'Yes' : 'No';
+    return value ? '是' : '否';
   }
   return String(value);
 };
 
 export const formatTime = (value?: string | null) => formatText(value);
+
+export const getMachineStatusColor = (status?: string | null) => {
+  switch (status) {
+    case 'active':
+      return 'success';
+    case 'creating':
+      return 'processing';
+    case 'create_failed':
+      return 'error';
+    case 'stopped':
+      return 'warning';
+    case 'destroyed':
+      return 'default';
+    default:
+      return 'default';
+  }
+};
 
 export const parseJsonText = (value: string | undefined, fieldName: string) => {
   const text = value?.trim();
@@ -69,12 +86,12 @@ const isCapabilityNotSupportedDetail = (
 
 export const normalizeDevErrorMessage = (error: any) => {
   if (error instanceof DevAdminUnauthorizedError) {
-    return 'Management login required. Sign in again and retry.';
+    return '管理端登录已失效，请重新登录后重试。';
   }
 
   if (error instanceof DevAdminRequestError) {
     if (error.errorType === 'IP_PULL_RUN_EXPIRED') {
-      return 'The pulled IP cache has expired. Pull provider IPs again.';
+      return '云上 IP 拉取缓存已过期，请重新拉取。';
     }
 
     if (
@@ -84,41 +101,41 @@ export const normalizeDevErrorMessage = (error: any) => {
         error.message,
       )
     ) {
-      return 'Current provider capability does not support this action.';
+      return '当前供应商能力暂不支持此操作。';
     }
 
     if (error.httpStatus === 403) {
-      return 'You do not have permission to access this asset action.';
+      return '当前账号无权执行该资产操作。';
     }
 
     if (error.httpStatus === 400 || error.errorType === 'INVALID_REQUEST') {
-      return error.message || 'The submitted asset request is invalid.';
+      return error.message || '提交的数据不合法，请检查后重试。';
     }
 
     if (error.httpStatus === 404 || error.errorType === 'COMMON_NOT_FOUND') {
-      return 'The requested asset resource no longer exists.';
+      return '目标资产不存在，可能已被删除。';
     }
 
     if (error.httpStatus === 409 || error.errorType === 'COMMON_CONFLICT') {
-      return error.message || 'The request conflicts with the current asset state.';
+      return error.message || '当前请求与资产现状冲突，请刷新后重试。';
     }
 
     if (error.httpStatus === 502) {
-      return error.message || 'Provider request failed. Retry later or check provider status.';
+      return error.message || '供应商侧请求失败，请稍后重试或检查供应商状态。';
     }
 
     if (error.httpStatus === 503 || error.errorType === 'COMMON_UNAVAILABLE') {
-      return error.message || 'Dependent service is unavailable. Retry later.';
+      return error.message || '依赖服务暂不可用，请稍后重试。';
     }
 
     if (error.httpStatus === 401) {
-      return 'Management login required. Sign in again and retry.';
+      return '管理端登录已失效，请重新登录后重试。';
     }
 
-    return error.message || error.errorDetail || 'Request failed.';
+    return error.message || error.errorDetail || '请求失败。';
   }
 
-  const messageText = error?.message || 'Request failed.';
+  const messageText = error?.message || '请求失败。';
   if (
     isCapabilityNotSupportedDetail(
       error?.errorType,
@@ -126,7 +143,7 @@ export const normalizeDevErrorMessage = (error: any) => {
       messageText,
     )
   ) {
-    return 'Current provider capability does not support this action.';
+    return '当前供应商能力暂不支持此操作。';
   }
   return messageText;
 };
@@ -165,11 +182,56 @@ export const getStatusOptions = (tab: AssetResourceKey) => {
   }
   if (tab === 'scripts') {
     return [
-      { label: 'active', value: 'active' },
-      { label: 'disabled', value: 'disabled' },
+      { label: '启用', value: 'active' },
+      { label: '停用', value: 'disabled' },
     ];
   }
   return SSH_KEY_STATUS_OPTIONS;
+};
+
+export const getAssetSourceLabel = (source?: string | null) => {
+  switch (source) {
+    case 'provider':
+      return '云上创建';
+    case 'import':
+      return '云上导入';
+    case 'manual':
+      return '手动录入';
+    default:
+      return formatText(source);
+  }
+};
+
+export const getOperationStatusLabel = (status?: string | null) => {
+  switch (status) {
+    case 'pending':
+      return '排队中';
+    case 'running':
+      return '执行中';
+    case 'succeeded':
+      return '成功';
+    case 'failed':
+      return '失败';
+    case 'cancelled':
+      return '已取消';
+    default:
+      return formatText(status);
+  }
+};
+
+export const getOperationStatusColor = (status?: string | null) => {
+  switch (status) {
+    case 'succeeded':
+      return 'success';
+    case 'failed':
+      return 'error';
+    case 'running':
+      return 'processing';
+    case 'cancelled':
+      return 'default';
+    default:
+      return 'warning';
+  }
 };
 
 export const getCapabilityValue = (

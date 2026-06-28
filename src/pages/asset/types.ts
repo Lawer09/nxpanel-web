@@ -11,6 +11,8 @@ export type SharedFilters = {
   account_id?: number;
   region?: string;
   status?: string;
+  source?: string;
+  name?: string;
   tag_key?: string;
   tag_value?: string;
 };

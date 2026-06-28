@@ -1,29 +1,29 @@
 export const ACCOUNT_STATUS_OPTIONS = [
-  { label: 'active', value: 'active' },
-  { label: 'disabled', value: 'disabled' },
-  { label: 'deleted', value: 'deleted' },
+  { label: '启用', value: 'active' },
+  { label: '停用', value: 'disabled' },
+  { label: '已删除', value: 'deleted' },
 ];
 
 export const MACHINE_STATUS_OPTIONS = [
-  { label: 'active', value: 'active' },
-  { label: 'creating', value: 'creating' },
-  { label: 'create_failed', value: 'create_failed' },
-  { label: 'stopped', value: 'stopped' },
-  { label: 'destroyed', value: 'destroyed' },
+  { label: '运行中', value: 'active' },
+  { label: '创建中', value: 'creating' },
+  { label: '创建失败', value: 'create_failed' },
+  { label: '已停机', value: 'stopped' },
+  { label: '已销毁', value: 'destroyed' },
 ];
 
 export const IP_STATUS_OPTIONS = [
-  { label: 'available', value: 'available' },
-  { label: 'bound', value: 'bound' },
-  { label: 'reserved', value: 'reserved' },
-  { label: 'released', value: 'released' },
-  { label: 'unknown', value: 'unknown' },
+  { label: '可用', value: 'available' },
+  { label: '已绑定', value: 'bound' },
+  { label: '已保留', value: 'reserved' },
+  { label: '已释放', value: 'released' },
+  { label: '未知', value: 'unknown' },
 ];
 
 export const SSH_KEY_STATUS_OPTIONS = [
-  { label: 'active', value: 'active' },
-  { label: 'disabled', value: 'disabled' },
-  { label: 'deleted', value: 'deleted' },
+  { label: '启用', value: 'active' },
+  { label: '停用', value: 'disabled' },
+  { label: '已删除', value: 'deleted' },
 ];
 
 export const ACCOUNT_PROVIDER_ACTION_KEYS = ['test_connection'];

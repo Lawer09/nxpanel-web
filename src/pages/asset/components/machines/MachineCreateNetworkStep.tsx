@@ -1,8 +1,9 @@
-import { Alert, Form, Input, InputNumber, Space } from 'antd';
+import { Form, Input, InputNumber, Space, Tag } from 'antd';
 import React from 'react';
 import AssetTagEditor from '../AssetTagEditor';
 import {
   MachineCreateCatalogSelect,
+  MachineCreateHint,
   MachineCreateSection,
 } from './MachineCreateShared';
 import type { MachineCreateCatalogController } from './useMachineCreateCatalogs';
@@ -29,25 +30,20 @@ const MachineCreateNetworkStep: React.FC<Props> = ({ catalog, zoneReady }) => {
   return (
     <>
       {!zoneReady ? (
-        <Alert
-          type="info"
-          showIcon
-          style={{ marginBottom: 16 }}
-          message="Select zone before editing VPC and internet settings"
-          description="VPC, VSwitch and internet option catalogs are loaded after the zone is selected."
-        />
+        <MachineCreateHint message="网络配置还没解锁。VPC、VSwitch 和公网参数会在可用区确定后继续收敛。" />
       ) : null}
 
       <MachineCreateSection
         title="VPC"
-        description="The new contract submits a VPC object. `vpc_id` is always part of the request, while `vswitch_id` only appears for providers such as Alibaba Cloud ECS."
+        description="先绑定网络归属，再补充可选的网段快照。"
+        extra={showVswitch ? <Tag color="gold">含 VSwitch</Tag> : null}
       >
-        <Space size={16} align="start" style={{ width: '100%' }}>
+        <Space size={16} align="start" style={{ width: '100%' }} wrap>
           <Form.Item
             name={['vpc', 'vpc_id']}
             label="VPC"
-            style={{ flex: 1 }}
-            rules={[{ required: true, message: 'Please select VPC.' }]}
+            style={{ flex: 1, minWidth: 240 }}
+            rules={[{ required: true, message: '请选择 VPC。' }]}
           >
             <MachineCreateCatalogSelect
               options={vpcField.options}
@@ -61,10 +57,10 @@ const MachineCreateNetworkStep: React.FC<Props> = ({ catalog, zoneReady }) => {
             <Form.Item
               name={['vpc', 'vswitch_id']}
               label="VSwitch"
-              style={{ flex: 1 }}
+              style={{ flex: 1, minWidth: 240 }}
               rules={
                 vswitchField.options.length
-                  ? [{ required: true, message: 'Please select VSwitch.' }]
+                  ? [{ required: true, message: '请选择 VSwitch。' }]
                   : undefined
               }
             >
@@ -79,36 +75,33 @@ const MachineCreateNetworkStep: React.FC<Props> = ({ catalog, zoneReady }) => {
           ) : null}
         </Space>
 
-        <Space size={16} align="start" style={{ width: '100%' }}>
+        <Space size={16} align="start" style={{ width: '100%' }} wrap>
           <Form.Item
             name={['vpc', 'cidr_block_v4']}
-            label="IPv4 CIDR"
-            style={{ flex: 1 }}
+            label="IPv4 网段"
+            style={{ flex: 1, minWidth: 240 }}
           >
             <Input placeholder="10.0.0.0/8" disabled={!zoneReady} />
           </Form.Item>
           <Form.Item
             name={['vpc', 'cidr_block_v6']}
-            label="IPv6 CIDR"
-            style={{ flex: 1 }}
+            label="IPv6 网段"
+            style={{ flex: 1, minWidth: 240 }}
           >
-            <Input
-              placeholder="Optional local snapshot"
-              disabled={!zoneReady}
-            />
+            <Input placeholder="可选，本地快照字段" disabled={!zoneReady} />
           </Form.Item>
         </Space>
       </MachineCreateSection>
 
       <MachineCreateSection
-        title="Internet"
-        description="Internet settings are now provider-neutral fields under `internet.*`. The top-level compatibility field `bandwidth_mbps` is filled from `internet.bandwidth_mbps`."
+        title="公网"
+        description="公网参数尽量控制在一屏内，先填带宽，再补充可选项。"
       >
-        <Space size={16} align="start" style={{ width: '100%' }}>
+        <Space size={16} align="start" style={{ width: '100%' }} wrap>
           <Form.Item
             name={['internet', 'charge_type']}
-            label="Charge Type"
-            style={{ flex: 1 }}
+            label="计费类型"
+            style={{ flex: 1, minWidth: 220 }}
           >
             {chargeTypeField.options.length ? (
               <MachineCreateCatalogSelect
@@ -124,9 +117,9 @@ const MachineCreateNetworkStep: React.FC<Props> = ({ catalog, zoneReady }) => {
           </Form.Item>
           <Form.Item
             name={['internet', 'bandwidth_mbps']}
-            label="Bandwidth (Mbps)"
-            style={{ width: 220 }}
-            rules={[{ required: true, message: 'Please provide bandwidth.' }]}
+            label="带宽（Mbps）"
+            style={{ width: 200 }}
+            rules={[{ required: true, message: '请填写带宽。' }]}
           >
             {bandwidthField.options.length ? (
               <MachineCreateCatalogSelect
@@ -147,11 +140,11 @@ const MachineCreateNetworkStep: React.FC<Props> = ({ catalog, zoneReady }) => {
           </Form.Item>
         </Space>
 
-        <Space size={16} align="start" style={{ width: '100%' }}>
+        <Space size={16} align="start" style={{ width: '100%' }} wrap>
           <Form.Item
             name={['internet', 'traffic_package_size']}
-            label="Traffic Package Size"
-            style={{ flex: 1 }}
+            label="流量包大小"
+            style={{ flex: 1, minWidth: 220 }}
           >
             {trafficPackageField.options.length ? (
               <MachineCreateCatalogSelect
@@ -167,8 +160,8 @@ const MachineCreateNetworkStep: React.FC<Props> = ({ catalog, zoneReady }) => {
           </Form.Item>
           <Form.Item
             name={['internet', 'eip_v4_type']}
-            label="IPv4 EIP Type"
-            style={{ flex: 1 }}
+            label="IPv4 EIP 类型"
+            style={{ flex: 1, minWidth: 220 }}
           >
             {eipTypeField.options.length ? (
               <MachineCreateCatalogSelect
@@ -186,8 +179,8 @@ const MachineCreateNetworkStep: React.FC<Props> = ({ catalog, zoneReady }) => {
       </MachineCreateSection>
 
       <MachineCreateSection
-        title="Tags"
-        description="Tags are stored on the local asset record and submitted in the provider-neutral tag array format."
+        title="资源标签"
+        description="标签写入本地资产记录，建议只放检索和归类字段。"
       >
         <AssetTagEditor name="tags" />
       </MachineCreateSection>

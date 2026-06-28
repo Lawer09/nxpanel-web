@@ -52,6 +52,19 @@ import {
 } from '../../utils';
 import AssetTagEditor from '../AssetTagEditor';
 
+const getAccountStatusColor = (status?: string | null) => {
+  if (status === 'active') {
+    return 'success';
+  }
+  if (status === 'disabled') {
+    return 'warning';
+  }
+  if (status === 'deleted') {
+    return 'default';
+  }
+  return 'default';
+};
+
 const ProviderAccountsPanel: React.FC<{
   filters: SharedFilters;
   providers: API.AssetProvider[];
@@ -129,62 +142,81 @@ const ProviderAccountsPanel: React.FC<{
   };
 
   const columns: ProColumns<API.AssetProviderAccount>[] = [
-    { title: 'Name', dataIndex: 'name' },
     {
-      title: 'Provider',
+      title: '账号',
+      dataIndex: 'name',
+      width: 220,
+      render: (_, record) => (
+        <div>
+          <div>{record.name || '-'}</div>
+          <div style={{ color: 'rgba(0, 0, 0, 0.45)', fontSize: 12 }}>
+            #{record.id}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: '供应商',
       dataIndex: 'provider_code',
+      width: 140,
       render: (_, record) => <Tag>{record.provider_code || '-'}</Tag>,
     },
     {
-      title: 'Status',
+      title: '状态',
       dataIndex: 'status',
-      render: (_, record) => <Tag color="blue">{record.status || '-'}</Tag>,
+      width: 110,
+      render: (_, record) => (
+        <Tag color={getAccountStatusColor(record.status)}>
+          {ACCOUNT_STATUS_OPTIONS.find((item) => item.value === record.status)?.label ||
+            formatText(record.status)}
+        </Tag>
+      ),
     },
     {
-      title: 'Tags',
-      dataIndex: 'tags',
-      render: (_, record) =>
-        record.tags?.length ? (
-          <Space wrap>
-            {record.tags.map((item) => (
-              <Tag key={`${item.key}-${item.value}-${item.label || ''}`}>
-                {item.label || `${item.key}:${item.value}`}
-              </Tag>
-            ))}
-          </Space>
-        ) : (
-          '-'
-        ),
-    },
-    {
-      title: 'Credential',
+      title: '凭证',
       dataIndex: 'has_credential',
+      width: 120,
       render: (_, record) =>
         record.has_credential ? (
-          <Tag color="green">Configured</Tag>
+          <Tag color="success">已配置</Tag>
         ) : (
-          <Tag color="default">Missing</Tag>
+          <Tag>缺失</Tag>
         ),
     },
-    { title: 'Version', dataIndex: 'credential_version', width: 100 },
     {
-      title: 'Last Synced',
+      title: '标签',
+      dataIndex: 'tags',
+      width: 90,
+      render: (_, record) =>
+        record.tags?.length ? `${record.tags.length} 个` : '-',
+    },
+    {
+      title: '最近同步',
       dataIndex: 'last_synced_at',
+      width: 180,
+      ellipsis: true,
       renderText: formatTime,
     },
-    { title: 'Updated At', dataIndex: 'updated_at', renderText: formatTime },
     {
-      title: 'Actions',
+      title: '更新时间',
+      dataIndex: 'updated_at',
+      width: 180,
+      ellipsis: true,
+      renderText: formatTime,
+    },
+    {
+      title: '操作',
       valueType: 'option',
+      width: 220,
+      fixed: 'right',
       render: (_, record) => {
         const supported = isProviderCapabilitySupported(
           providerMap.get(record.provider_code || ''),
           ACCOUNT_PROVIDER_ACTION_KEYS,
         );
         const unsupportedReason =
-          supported === false
-            ? 'Current provider capability does not support connection test.'
-            : undefined;
+          supported === false ? '当前供应商不支持连通性测试。' : undefined;
+
         return [
           <a
             key="detail"
@@ -193,10 +225,10 @@ const ProviderAccountsPanel: React.FC<{
               void loadCounts(record);
             }}
           >
-            Detail
+            详情
           </a>,
           <a key="edit" onClick={() => openEdit(record)}>
-            Edit
+            编辑
           </a>,
           renderActionButton(
             <a
@@ -204,23 +236,23 @@ const ProviderAccountsPanel: React.FC<{
               onClick={async () => {
                 try {
                   await testAssetProviderAccountConnection(record.id);
-                  message.success('Connection test passed.');
+                  message.success('连通性测试通过。');
                 } catch (error: any) {
                   message.error(normalizeDevErrorMessage(error));
                 }
               }}
             >
-              Test Connection
+              测试
             </a>,
             unsupportedReason,
           ),
           <Popconfirm
             key="delete"
-            title="Delete this provider account?"
+            title="确认删除该供应商账号？"
             onConfirm={async () => {
               try {
                 await deleteAssetProviderAccount(record.id);
-                message.success('Provider account deleted.');
+                message.success('供应商账号已删除。');
                 await onAccountCatalogChanged();
                 actionRef.current?.reload();
               } catch (error: any) {
@@ -228,7 +260,7 @@ const ProviderAccountsPanel: React.FC<{
               }
             }}
           >
-            <a>Delete</a>
+            <a>删除</a>
           </Popconfirm>,
         ];
       },
@@ -241,6 +273,7 @@ const ProviderAccountsPanel: React.FC<{
         rowKey="id"
         actionRef={actionRef}
         search={false}
+        scroll={{ x: 1180 }}
         columns={columns}
         request={async (params) => {
           try {
@@ -269,22 +302,20 @@ const ProviderAccountsPanel: React.FC<{
             icon={<PlusOutlined />}
             onClick={openCreate}
           >
-            New Account
+            新建账号
           </Button>,
           <Button
             key="refresh"
             icon={<ReloadOutlined />}
             onClick={() => actionRef.current?.reload()}
           >
-            Refresh
+            刷新
           </Button>,
         ]}
       />
 
       <Modal
-        title={
-          editing ? `Edit Account #${editing.id}` : 'Create Provider Account'
-        }
+        title={editing ? `编辑账号 #${editing.id}` : '新建供应商账号'}
         open={open}
         destroyOnHidden
         confirmLoading={saving}
@@ -304,9 +335,7 @@ const ProviderAccountsPanel: React.FC<{
               api_base_url: values.api_base_url?.trim(),
             });
             if (!editing && Object.keys(credential).length === 0) {
-              message.error(
-                'Credential is required when creating a provider account.',
-              );
+              message.error('新建账号时必须填写凭证。');
               return;
             }
 
@@ -323,7 +352,7 @@ const ProviderAccountsPanel: React.FC<{
                   tags: values.tags ? normalizeAssetTags(values.tags) : undefined,
                 }),
               );
-              message.success('Provider account updated.');
+              message.success('供应商账号已更新。');
             } else {
               await createAssetProviderAccount({
                 provider_code: values.provider_code,
@@ -332,7 +361,7 @@ const ProviderAccountsPanel: React.FC<{
                 credential,
                 tags: normalizeAssetTags(values.tags),
               });
-              message.success('Provider account created.');
+              message.success('供应商账号已创建。');
             }
             setOpen(false);
             setEditing(null);
@@ -349,8 +378,8 @@ const ProviderAccountsPanel: React.FC<{
         <Form<AccountFormValues> form={form} layout="vertical">
           <Form.Item
             name="provider_code"
-            label="Provider"
-            rules={[{ required: true, message: 'Please select provider.' }]}
+            label="供应商"
+            rules={[{ required: true, message: '请选择供应商。' }]}
           >
             <Select
               disabled={Boolean(editing)}
@@ -362,12 +391,12 @@ const ProviderAccountsPanel: React.FC<{
           </Form.Item>
           <Form.Item
             name="name"
-            label="Account Name"
-            rules={[{ required: true, message: 'Please enter account name.' }]}
+            label="账号名称"
+            rules={[{ required: true, message: '请输入账号名称。' }]}
           >
             <Input />
           </Form.Item>
-          <Form.Item name="status" label="Status">
+          <Form.Item name="status" label="状态">
             <Select options={ACCOUNT_STATUS_OPTIONS} />
           </Form.Item>
           <AssetTagEditor name="tags" />
@@ -380,8 +409,8 @@ const ProviderAccountsPanel: React.FC<{
               {
                 key: 'credential',
                 label: editing
-                  ? 'Credential Update (leave blank to keep current value)'
-                  : 'Credential',
+                  ? '更新凭证（留空表示保持原值）'
+                  : '账号凭证',
                 children: (
                   <>
                     <Form.Item name="access_key_id" label="Access Key ID">
@@ -408,11 +437,9 @@ const ProviderAccountsPanel: React.FC<{
       </Modal>
 
       <Drawer
-        title={
-          detail ? `Provider Account #${detail.id}` : 'Provider Account Detail'
-        }
+        title={detail ? `账号详情 #${detail.id}` : '供应商账号详情'}
         open={Boolean(detail)}
-        width={680}
+        width={700}
         onClose={() => {
           setDetail(null);
           setRelatedCounts(null);
@@ -420,35 +447,36 @@ const ProviderAccountsPanel: React.FC<{
       >
         {detail ? (
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
-            <Descriptions bordered column={1}>
-              <Descriptions.Item label="Name">{detail.name}</Descriptions.Item>
-              <Descriptions.Item label="Provider">
+            <Descriptions bordered column={1} title="基本信息">
+              <Descriptions.Item label="账号名称">{detail.name}</Descriptions.Item>
+              <Descriptions.Item label="供应商">
                 {detail.provider_code || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="Status">
-                {detail.status || '-'}
+              <Descriptions.Item label="状态">
+                {ACCOUNT_STATUS_OPTIONS.find((item) => item.value === detail.status)
+                  ?.label || formatText(detail.status)}
               </Descriptions.Item>
-              <Descriptions.Item label="Credential">
-                {detail.has_credential ? 'Configured' : 'Missing'}
+              <Descriptions.Item label="凭证状态">
+                {detail.has_credential ? '已配置' : '缺失'}
               </Descriptions.Item>
-              <Descriptions.Item label="Credential Version">
+              <Descriptions.Item label="凭证版本">
                 {formatText(detail.credential_version)}
               </Descriptions.Item>
-              <Descriptions.Item label="Credential Summary">
+              <Descriptions.Item label="凭证摘要">
                 {detail.credential_masked || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="Last Synced">
+              <Descriptions.Item label="最近同步">
                 {formatTime(detail.last_synced_at)}
               </Descriptions.Item>
-              <Descriptions.Item label="Created At">
+              <Descriptions.Item label="创建时间">
                 {formatTime(detail.created_at)}
               </Descriptions.Item>
-              <Descriptions.Item label="Updated At">
+              <Descriptions.Item label="更新时间">
                 {formatTime(detail.updated_at)}
               </Descriptions.Item>
             </Descriptions>
-            <Descriptions bordered column={1} title="Tags">
-              <Descriptions.Item label="Tags">
+            <Descriptions bordered column={1} title="标签">
+              <Descriptions.Item label="标签">
                 {detail.tags?.length ? (
                   <Space wrap>
                     {detail.tags.map((item) => (
@@ -462,15 +490,15 @@ const ProviderAccountsPanel: React.FC<{
                 )}
               </Descriptions.Item>
             </Descriptions>
-            <Descriptions bordered column={1} title="Related Resources">
-              <Descriptions.Item label="Machines">
-                {relatedCounts ? relatedCounts.machines : 'Loading...'}
+            <Descriptions bordered column={1} title="关联资源">
+              <Descriptions.Item label="机器">
+                {relatedCounts ? relatedCounts.machines : '加载中...'}
               </Descriptions.Item>
-              <Descriptions.Item label="IPs">
-                {relatedCounts ? relatedCounts.ips : 'Loading...'}
+              <Descriptions.Item label="IP">
+                {relatedCounts ? relatedCounts.ips : '加载中...'}
               </Descriptions.Item>
-              <Descriptions.Item label="SSH Keys">
-                {relatedCounts ? relatedCounts.sshKeys : 'Loading...'}
+              <Descriptions.Item label="SSH 密钥">
+                {relatedCounts ? relatedCounts.sshKeys : '加载中...'}
               </Descriptions.Item>
             </Descriptions>
             <Space wrap>
@@ -481,7 +509,7 @@ const ProviderAccountsPanel: React.FC<{
                   onJumpToResource('machines', detail.id);
                 }}
               >
-                View Machines
+                查看机器
               </Button>
               <Button
                 icon={<LinkOutlined />}
@@ -490,7 +518,7 @@ const ProviderAccountsPanel: React.FC<{
                   onJumpToResource('ips', detail.id);
                 }}
               >
-                View IPs
+                查看 IP
               </Button>
               <Button
                 icon={<CloudDownloadOutlined />}
@@ -499,7 +527,7 @@ const ProviderAccountsPanel: React.FC<{
                   onJumpToResource('ssh-keys', detail.id);
                 }}
               >
-                View SSH Keys
+                查看 SSH 密钥
               </Button>
             </Space>
           </Space>

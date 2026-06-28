@@ -36,6 +36,7 @@ import {
   cleanupObject,
   formatText,
   formatTime,
+  getAssetSourceLabel,
   isProviderCapabilitySupported,
   normalizeAssetTags,
   normalizeDevErrorMessage,
@@ -48,6 +49,22 @@ import IpPullFromProviderModal from '../ips/IpPullFromProviderModal';
 import IpPullRunDrawer from '../ips/IpPullRunDrawer';
 
 const { TextArea } = Input;
+
+const getIpStatusColor = (status?: string | null) => {
+  if (status === 'available') {
+    return 'success';
+  }
+  if (status === 'bound') {
+    return 'processing';
+  }
+  if (status === 'reserved') {
+    return 'warning';
+  }
+  if (status === 'released') {
+    return 'default';
+  }
+  return 'default';
+};
 
 const IpsPanel: React.FC<{
   filters: SharedFilters;
@@ -67,14 +84,12 @@ const IpsPanel: React.FC<{
   const [pullRunOpen, setPullRunOpen] = useState(false);
   const [pullInitialValues, setPullInitialValues] = useState<
     Partial<API.AssetIpPullFromProviderParams>
-  >(
-    {
-      account_id: filters.account_id,
-      region: filters.region,
-      page: 1,
-      page_size: 50,
-    },
-  );
+  >({
+    account_id: filters.account_id,
+    region: filters.region,
+    page: 1,
+    page_size: 50,
+  });
 
   const providerMap = useMemo(
     () => new Map(providers.map((item) => [item.code, item])),
@@ -110,47 +125,79 @@ const IpsPanel: React.FC<{
     });
 
   const columns: ProColumns<API.AssetIp>[] = [
-    { title: 'IP', dataIndex: 'ip' },
-    { title: 'Version', dataIndex: 'ip_version', width: 90 },
-    { title: 'Type', dataIndex: 'type', renderText: formatText },
     {
-      title: 'Provider',
+      title: 'IP',
+      dataIndex: 'ip',
+      width: 180,
+    },
+    {
+      title: '版本/类型',
+      width: 140,
+      render: (_, record) => `${record.ip_version || '-'} / ${record.type || '-'}`,
+    },
+    {
+      title: '来源',
+      dataIndex: 'source',
+      width: 110,
+      render: (_, record) => formatText(getAssetSourceLabel(record.source)),
+    },
+    {
+      title: '供应商',
       dataIndex: 'provider_code',
+      width: 120,
       render: (_, record) => <Tag>{record.provider_code || '-'}</Tag>,
     },
-    { title: 'Account', dataIndex: 'account_name', renderText: formatText },
-    { title: 'Region', dataIndex: 'region', renderText: formatText },
     {
-      title: 'Status',
-      dataIndex: 'status',
-      render: (_, record) => <Tag>{record.status || '-'}</Tag>,
-    },
-    {
-      title: 'Tags',
-      dataIndex: 'tags',
-      render: (_, record) =>
-        record.tags?.length ? (
-          <Space wrap>
-            {record.tags.map((item) => (
-              <Tag key={`${item.key}-${item.value}-${item.label || ''}`}>
-                {item.label || `${item.key}:${item.value}`}
-              </Tag>
-            ))}
-          </Space>
-        ) : (
-          '-'
-        ),
-    },
-    { title: 'Ownership', dataIndex: 'ownership', renderText: formatText },
-    {
-      title: 'External IP ID',
-      dataIndex: 'external_ip_id',
+      title: '账号',
+      dataIndex: 'account_name',
+      width: 180,
+      ellipsis: true,
       renderText: formatText,
     },
-    { title: 'Updated At', dataIndex: 'updated_at', renderText: formatTime },
     {
-      title: 'Actions',
+      title: '地域',
+      dataIndex: 'region',
+      width: 140,
+      ellipsis: true,
+      renderText: formatText,
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      width: 110,
+      render: (_, record) => (
+        <Tag color={getIpStatusColor(record.status)}>
+          {IP_STATUS_OPTIONS.find((item) => item.value === record.status)?.label ||
+            formatText(record.status)}
+        </Tag>
+      ),
+    },
+    {
+      title: '归属',
+      dataIndex: 'ownership',
+      width: 140,
+      ellipsis: true,
+      renderText: formatText,
+    },
+    {
+      title: '标签',
+      dataIndex: 'tags',
+      width: 90,
+      render: (_, record) =>
+        record.tags?.length ? `${record.tags.length} 个` : '-',
+    },
+    {
+      title: '更新时间',
+      dataIndex: 'updated_at',
+      width: 180,
+      ellipsis: true,
+      renderText: formatTime,
+    },
+    {
+      title: '操作',
       valueType: 'option',
+      width: 180,
+      fixed: 'right',
       render: (_, record) => [
         <a
           key="detail"
@@ -163,7 +210,7 @@ const IpsPanel: React.FC<{
             }
           }}
         >
-          Detail
+          详情
         </a>,
         <a
           key="edit"
@@ -190,31 +237,29 @@ const IpsPanel: React.FC<{
             }
           }}
         >
-          Edit
+          编辑
         </a>,
         <Popconfirm
           key="delete"
-          title="Delete this IP record?"
+          title="确认删除该 IP 记录？"
           onConfirm={async () => {
             try {
               await deleteAssetIp(record.id);
-              message.success('IP deleted.');
+              message.success('IP 已删除。');
               actionRef.current?.reload();
             } catch (error: any) {
               message.error(normalizeDevErrorMessage(error));
             }
           }}
         >
-          <a>Delete</a>
+          <a>删除</a>
         </Popconfirm>,
       ],
     },
   ];
 
   const noAccountReason =
-    filteredAccounts.length === 0
-      ? 'Create a provider account first.'
-      : undefined;
+    filteredAccounts.length === 0 ? '请先创建供应商账号。' : undefined;
 
   return (
     <>
@@ -223,8 +268,8 @@ const IpsPanel: React.FC<{
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          message="No provider account available"
-          description="Create a provider account first, then return here for provider-side IP import."
+          message="暂无可用供应商账号"
+          description="请先创建供应商账号，再进行云上 IP 拉取。"
         />
       ) : null}
 
@@ -232,6 +277,7 @@ const IpsPanel: React.FC<{
         rowKey="id"
         actionRef={actionRef}
         search={false}
+        scroll={{ x: 1400 }}
         columns={columns}
         request={async (params) => {
           try {
@@ -271,7 +317,7 @@ const IpsPanel: React.FC<{
               setOpen(true);
             }}
           >
-            Import Manual
+            手动录入
           </Button>,
           renderActionButton(
             <Button
@@ -287,7 +333,7 @@ const IpsPanel: React.FC<{
                 setPullOpen(true);
               }}
             >
-              Pull From Provider
+              云上拉取
             </Button>,
             noAccountReason ||
               (filters.provider_code &&
@@ -295,7 +341,7 @@ const IpsPanel: React.FC<{
                 providerMap.get(filters.provider_code),
                 IP_IMPORT_ACTION_KEYS,
               ) === false
-                ? 'Current provider capability does not support provider-side IP import.'
+                ? '当前供应商不支持云上 IP 拉取。'
                 : undefined),
           ),
           <Button
@@ -303,13 +349,13 @@ const IpsPanel: React.FC<{
             icon={<ReloadOutlined />}
             onClick={() => actionRef.current?.reload()}
           >
-            Refresh
+            刷新
           </Button>,
         ]}
       />
 
       <Modal
-        title={editing ? `Edit IP #${editing.id}` : 'Import Manual IP'}
+        title={editing ? `编辑 IP #${editing.id}` : '手动录入 IP'}
         open={open}
         destroyOnHidden
         width={760}
@@ -335,12 +381,12 @@ const IpsPanel: React.FC<{
                 metadata: payload.metadata,
                 tags: payload.tags,
               });
-              message.success('IP updated.');
+              message.success('IP 已更新。');
             } else {
               await importAssetIpManual(
                 payload as API.AssetIpImportManualParams,
               );
-              message.success('IP imported.');
+              message.success('IP 已录入。');
             }
             setOpen(false);
             setEditing(null);
@@ -357,35 +403,33 @@ const IpsPanel: React.FC<{
           <Form.Item
             name="ip"
             label="IP"
-            rules={
-              !editing ? [{ required: true, message: 'Please enter IP.' }] : []
-            }
+            rules={!editing ? [{ required: true, message: '请输入 IP。' }] : []}
           >
             <Input disabled={Boolean(editing)} />
           </Form.Item>
           <Space size={16} align="start" style={{ width: '100%' }}>
-            <Form.Item name="ip_version" label="IP Version" style={{ flex: 1 }}>
+            <Form.Item name="ip_version" label="IP 版本" style={{ flex: 1 }}>
               <InputNumber style={{ width: '100%' }} precision={0} />
             </Form.Item>
-            <Form.Item name="type" label="Type" style={{ flex: 1 }}>
+            <Form.Item name="type" label="类型" style={{ flex: 1 }}>
               <Input />
             </Form.Item>
-            <Form.Item name="source" label="Source" style={{ flex: 1 }}>
+            <Form.Item name="source" label="来源" style={{ flex: 1 }}>
               <Input disabled={Boolean(editing)} />
             </Form.Item>
           </Space>
           <Space size={16} align="start" style={{ width: '100%' }}>
-            <Form.Item name="region" label="Region" style={{ flex: 1 }}>
+            <Form.Item name="region" label="地域" style={{ flex: 1 }}>
               <Input />
             </Form.Item>
-            <Form.Item name="status" label="Status" style={{ flex: 1 }}>
+            <Form.Item name="status" label="状态" style={{ flex: 1 }}>
               <Select options={IP_STATUS_OPTIONS} />
             </Form.Item>
-            <Form.Item name="ownership" label="Ownership" style={{ flex: 1 }}>
+            <Form.Item name="ownership" label="归属" style={{ flex: 1 }}>
               <Input />
             </Form.Item>
           </Space>
-          <Form.Item name="external_ip_id" label="External IP ID">
+          <Form.Item name="external_ip_id" label="外部 IP ID">
             <Input />
           </Form.Item>
           <AssetTagEditor name="tags" />
@@ -415,15 +459,15 @@ const IpsPanel: React.FC<{
             const nextPullRunId =
               response.data.pull_run_id || response.data.task_id;
             if (!nextPullRunId) {
-              throw new Error('Provider IP pull did not return a pull run id.');
+              throw new Error('云上 IP 拉取未返回 pull run id。');
             }
             setPullOpen(false);
             setPullRunId(nextPullRunId);
             setPullRunOpen(true);
             message.success(
               response.data.cached
-                ? 'Loaded cached provider IP pull result.'
-                : 'Provider IP pull submitted.',
+                ? '已加载缓存的云上 IP 拉取结果。'
+                : '云上 IP 拉取任务已提交。',
             );
           } catch (error: any) {
             message.error(normalizeDevErrorMessage(error));
@@ -434,66 +478,70 @@ const IpsPanel: React.FC<{
       />
 
       <Drawer
-        title={detail ? `IP #${detail.id}` : 'IP Detail'}
+        title={detail ? `IP 详情 #${detail.id}` : 'IP 详情'}
         open={Boolean(detail)}
         width={720}
         onClose={() => setDetail(null)}
       >
         {detail ? (
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
-            <Descriptions bordered column={1} title="Basic">
+            <Descriptions bordered column={1} title="基本信息">
               <Descriptions.Item label="IP">
                 {detail.ip || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="IP Version">
+              <Descriptions.Item label="IP 版本">
                 {formatText(detail.ip_version)}
               </Descriptions.Item>
-              <Descriptions.Item label="Type">
+              <Descriptions.Item label="类型">
                 {detail.type || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="Provider">
+              <Descriptions.Item label="来源">
+                {getAssetSourceLabel(detail.source)}
+              </Descriptions.Item>
+              <Descriptions.Item label="供应商">
                 {detail.provider_code || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="Account">
+              <Descriptions.Item label="账号">
                 {detail.account_name || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="Region">
+              <Descriptions.Item label="地域">
                 {detail.region || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="Status">
-                {detail.status || '-'}
+              <Descriptions.Item label="状态">
+                {IP_STATUS_OPTIONS.find((item) => item.value === detail.status)?.label ||
+                  formatText(detail.status)}
               </Descriptions.Item>
-              <Descriptions.Item label="Ownership">
+              <Descriptions.Item label="归属">
                 {detail.ownership || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="External IP ID">
+              <Descriptions.Item label="外部 IP ID">
                 {detail.external_ip_id || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="Created At">
+              <Descriptions.Item label="创建时间">
                 {formatTime(detail.created_at)}
               </Descriptions.Item>
-              <Descriptions.Item label="Updated At">
+              <Descriptions.Item label="更新时间">
                 {formatTime(detail.updated_at)}
               </Descriptions.Item>
             </Descriptions>
-            <JsonBlock title="tags" value={detail.tags} />
-            <Descriptions bordered column={1} title="Machine Binding">
-              <Descriptions.Item label="Machine">
+            <Descriptions bordered column={1} title="机器绑定">
+              <Descriptions.Item label="机器">
                 {detail.machine_binding?.machine_business_id || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="Machine Local ID">
+              <Descriptions.Item label="机器本地 ID">
                 {formatText(detail.machine_binding?.machine_id)}
               </Descriptions.Item>
-              <Descriptions.Item label="Bind Type">
+              <Descriptions.Item label="绑定类型">
                 {detail.machine_binding?.bind_type || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="Primary">
+              <Descriptions.Item label="是否主 IP">
                 {formatText(detail.machine_binding?.is_primary)}
               </Descriptions.Item>
-              <Descriptions.Item label="Bound At">
+              <Descriptions.Item label="绑定时间">
                 {formatTime(detail.machine_binding?.bound_at)}
               </Descriptions.Item>
             </Descriptions>
+            <JsonBlock title="tags" value={detail.tags} />
             <JsonBlock title="metadata" value={detail.metadata} />
           </Space>
         ) : null}

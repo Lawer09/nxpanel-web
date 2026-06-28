@@ -24,7 +24,7 @@ const MachineManualModal: React.FC<Props> = ({
   onSubmit,
 }) => (
   <Modal
-    title={editing ? `Edit Machine #${editing.id}` : 'Create Manual Machine'}
+    title={editing ? `编辑机器 #${editing.id}` : '手动录入机器'}
     open={open}
     destroyOnHidden
     width={880}
@@ -40,10 +40,10 @@ const MachineManualModal: React.FC<Props> = ({
           size="small"
           style={{ marginBottom: 16 }}
         >
-          <Descriptions.Item label="Machine ID">
+          <Descriptions.Item label="机器 ID">
             {editing.machine_id || '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="External Instance ID">
+          <Descriptions.Item label="外部实例 ID">
             {editing.external_instance_id || '-'}
           </Descriptions.Item>
         </Descriptions>

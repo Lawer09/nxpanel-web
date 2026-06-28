@@ -403,7 +403,7 @@ export default [
   },
   {
     path: '/asset',
-    name: 'asset',
+    name: '资源资产',
     icon: 'appstore',
     routes: [
       {
@@ -412,32 +412,32 @@ export default [
       },
       {
         path: '/asset/provider-accounts',
-        name: 'provider-accounts',
+        name: '供应商账号',
         component: './asset/ProviderAccounts',
       },
       {
         path: '/asset/machines',
-        name: 'machines',
+        name: '机器',
         component: './asset/Machines',
       },
       {
         path: '/asset/ips',
-        name: 'ips',
+        name: 'IP',
         component: './asset/Ips',
       },
       {
         path: '/asset/ssh-keys',
-        name: 'ssh-keys',
+        name: 'SSH 密钥',
         component: './asset/SshKeys',
       },
       {
         path: '/asset/scripts',
-        name: 'scripts',
+        name: '脚本',
         component: './asset/Scripts',
       },
       {
         path: '/asset/operations',
-        name: 'operations',
+        name: '操作记录',
         component: './asset/Operations',
       },
       {

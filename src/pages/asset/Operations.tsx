@@ -1,3 +1,4 @@
+import { ReloadOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
 import { useSearchParams } from '@umijs/max';
@@ -6,6 +7,8 @@ import {
   Button,
   Descriptions,
   Drawer,
+  Form,
+  Input,
   Select,
   Space,
   Tabs,
@@ -21,7 +24,13 @@ import {
 } from '@/services/asset-service/api';
 import DevAuthGate from '../dev/components/DevAuthGate';
 import JsonBlock from '../dev/components/JsonBlock';
-import { normalizeDevErrorMessage } from './utils';
+import {
+  formatText,
+  formatTime,
+  getOperationStatusColor,
+  getOperationStatusLabel,
+  normalizeDevErrorMessage,
+} from './utils';
 
 const { Text } = Typography;
 
@@ -29,16 +38,8 @@ type OperationFilters = {
   provider_code?: string;
   account_id?: number;
   status?: string;
+  operation_type?: string;
 };
-
-const formatText = (value?: string | number | null) => {
-  if (value === undefined || value === null || value === '') {
-    return '-';
-  }
-  return String(value);
-};
-
-const formatTime = (value?: string | null) => formatText(value);
 
 const OperationFiltersBar: React.FC<{
   filters: OperationFilters;
@@ -47,105 +48,94 @@ const OperationFiltersBar: React.FC<{
   onApply: (filters: OperationFilters) => void;
   onReset: () => void;
 }> = ({ filters, providers, accounts, onApply, onReset }) => {
-  const [local, setLocal] = useState<OperationFilters>(filters);
+  const [form] = Form.useForm<OperationFilters>();
+  const providerCode = Form.useWatch('provider_code', form);
 
   useEffect(() => {
-    setLocal(filters);
-  }, [filters]);
+    form.setFieldsValue(filters);
+  }, [filters, form]);
 
   const accountOptions = useMemo(
     () =>
       accounts
-        .filter(
-          (item) =>
-            !local.provider_code || item.provider_code === local.provider_code,
-        )
+        .filter((item) => !providerCode || item.provider_code === providerCode)
         .map((item) => ({
           label: `${item.name} (#${item.id})`,
           value: item.id,
         })),
-    [accounts, local.provider_code],
+    [accounts, providerCode],
   );
 
   return (
-    <Space wrap size={12}>
-      <Select
-        allowClear
-        showSearch
-        style={{ width: 180 }}
-        placeholder="Provider"
-        optionFilterProp="label"
-        value={local.provider_code}
-        options={providers.map((item) => ({
-          label: `${item.name} (${item.code})`,
-          value: item.code,
-        }))}
-        onChange={(value) =>
-          setLocal((current) => ({
-            ...current,
-            provider_code: value,
-            account_id:
-              current.provider_code === value ? current.account_id : undefined,
-          }))
-        }
-      />
-      <Select
-        allowClear
-        showSearch
-        style={{ width: 220 }}
-        placeholder="Account"
-        optionFilterProp="label"
-        value={local.account_id}
-        options={accountOptions}
-        onChange={(value) =>
-          setLocal((current) => ({ ...current, account_id: value }))
-        }
-      />
-      <Select
-        allowClear
-        style={{ width: 160 }}
-        placeholder="Status"
-        value={local.status}
-        options={[
-          { label: 'pending', value: 'pending' },
-          { label: 'running', value: 'running' },
-          { label: 'succeeded', value: 'succeeded' },
-          { label: 'failed', value: 'failed' },
-          { label: 'cancelled', value: 'cancelled' },
-        ]}
-        onChange={(value) =>
-          setLocal((current) => ({ ...current, status: value }))
-        }
-      />
-      <Button type="primary" onClick={() => onApply(local)}>
-        Apply
-      </Button>
-      <Button
-        onClick={() => {
-          setLocal({});
-          onReset();
-        }}
-      >
-        Reset
-      </Button>
-    </Space>
+    <Form<OperationFilters>
+      form={form}
+      layout="inline"
+      onFinish={(values) =>
+        onApply({
+          provider_code: values.provider_code,
+          account_id: values.account_id,
+          status: values.status,
+          operation_type: values.operation_type?.trim() || undefined,
+        })
+      }
+    >
+      <Form.Item name="provider_code" label="供应商">
+        <Select
+          allowClear
+          showSearch
+          style={{ width: 180 }}
+          placeholder="全部供应商"
+          optionFilterProp="label"
+          options={providers.map((item) => ({
+            label: `${item.name} (${item.code})`,
+            value: item.code,
+          }))}
+        />
+      </Form.Item>
+      <Form.Item name="account_id" label="账号">
+        <Select
+          allowClear
+          showSearch
+          style={{ width: 220 }}
+          placeholder="全部账号"
+          optionFilterProp="label"
+          options={accountOptions}
+        />
+      </Form.Item>
+      <Form.Item name="status" label="状态">
+        <Select
+          allowClear
+          style={{ width: 160 }}
+          placeholder="全部状态"
+          options={[
+            { label: '排队中', value: 'pending' },
+            { label: '执行中', value: 'running' },
+            { label: '成功', value: 'succeeded' },
+            { label: '失败', value: 'failed' },
+            { label: '已取消', value: 'cancelled' },
+          ]}
+        />
+      </Form.Item>
+      <Form.Item name="operation_type" label="操作类型">
+        <Input placeholder="例如 create_machine" style={{ width: 220 }} />
+      </Form.Item>
+      <Form.Item>
+        <Space>
+          <Button type="primary" htmlType="submit">
+            应用
+          </Button>
+          <Button
+            onClick={() => {
+              form.resetFields();
+              onReset();
+            }}
+          >
+            重置
+          </Button>
+        </Space>
+      </Form.Item>
+    </Form>
   );
-};
-
-const getStatusColor = (status?: string) => {
-  if (status === 'succeeded') {
-    return 'green';
-  }
-  if (status === 'failed') {
-    return 'red';
-  }
-  if (status === 'running') {
-    return 'blue';
-  }
-  if (status === 'cancelled') {
-    return 'default';
-  }
-  return 'gold';
 };
 
 const AssetOperationsContent: React.FC = () => {
@@ -194,7 +184,7 @@ const AssetOperationsContent: React.FC = () => {
         setDetail(response.data);
         setDetailTab('summary');
       } catch {
-        // keep list usable even when the hinted task is not a valid asset operation id
+        // Ignore invalid task hint and keep the list usable.
       }
     };
     void loadDetail();
@@ -203,37 +193,73 @@ const AssetOperationsContent: React.FC = () => {
   const columns: ProColumns<API.AssetOperation>[] = [
     { title: 'ID', dataIndex: 'id', width: 90 },
     {
-      title: 'Operation Type',
+      title: '操作类型',
       dataIndex: 'operation_type',
-      renderText: formatText,
-    },
-    { title: 'Target Type', dataIndex: 'target_type', renderText: formatText },
-    { title: 'Target ID', dataIndex: 'target_id', renderText: formatText },
-    {
-      title: 'Provider',
-      dataIndex: 'provider_code',
-      render: (_, record) => <Tag>{record.provider_code || '-'}</Tag>,
-    },
-    { title: 'Account', dataIndex: 'account_name', renderText: formatText },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      render: (_, record) => (
-        <Tag color={getStatusColor(record.status)}>{record.status || '-'}</Tag>
-      ),
-    },
-    {
-      title: 'Error Summary',
-      dataIndex: 'error_summary',
+      width: 180,
       ellipsis: true,
       renderText: formatText,
     },
-    { title: 'Created By', dataIndex: 'created_by', renderText: formatText },
-    { title: 'Created At', dataIndex: 'created_at', renderText: formatTime },
-    { title: 'Updated At', dataIndex: 'updated_at', renderText: formatTime },
     {
-      title: 'Actions',
+      title: '目标',
+      width: 200,
+      render: (_, record) => (
+        <div>
+          <div>{formatText(record.target_type)}</div>
+          <div style={{ color: 'rgba(0, 0, 0, 0.45)', fontSize: 12 }}>
+            #{formatText(record.target_id)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: '供应商',
+      dataIndex: 'provider_code',
+      width: 120,
+      render: (_, record) => <Tag>{record.provider_code || '-'}</Tag>,
+    },
+    {
+      title: '账号',
+      dataIndex: 'account_name',
+      width: 180,
+      ellipsis: true,
+      renderText: formatText,
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      width: 110,
+      render: (_, record) => (
+        <Tag color={getOperationStatusColor(record.status)}>
+          {getOperationStatusLabel(record.status)}
+        </Tag>
+      ),
+    },
+    {
+      title: '错误摘要',
+      dataIndex: 'error_summary',
+      width: 260,
+      ellipsis: true,
+      renderText: formatText,
+    },
+    {
+      title: '发起人',
+      dataIndex: 'created_by',
+      width: 140,
+      ellipsis: true,
+      renderText: formatText,
+    },
+    {
+      title: '更新时间',
+      dataIndex: 'updated_at',
+      width: 180,
+      ellipsis: true,
+      renderText: formatTime,
+    },
+    {
+      title: '操作',
       valueType: 'option',
+      width: 100,
+      fixed: 'right',
       render: (_, record) => [
         <a
           key="detail"
@@ -247,17 +273,17 @@ const AssetOperationsContent: React.FC = () => {
             }
           }}
         >
-          Detail
+          详情
         </a>,
       ],
     },
   ];
 
   return (
-    <PageContainer>
+    <PageContainer title="操作记录">
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         {initialTaskId ? (
-          <Text type="secondary">Latest task hint: #{initialTaskId}</Text>
+          <Text type="secondary">当前高亮任务：#{initialTaskId}</Text>
         ) : null}
         <OperationFiltersBar
           filters={filters}
@@ -280,6 +306,7 @@ const AssetOperationsContent: React.FC = () => {
           rowKey="id"
           actionRef={actionRef}
           search={false}
+          scroll={{ x: 1420 }}
           columns={columns}
           request={async (params) => {
             try {
@@ -289,6 +316,7 @@ const AssetOperationsContent: React.FC = () => {
                 provider_code: filters.provider_code,
                 account_id: filters.account_id,
                 status: filters.status,
+                operation_type: filters.operation_type,
               });
               const items = response.data?.items || [];
               const sortedItems = initialTaskId
@@ -310,8 +338,12 @@ const AssetOperationsContent: React.FC = () => {
             }
           }}
           toolBarRender={() => [
-            <Button key="refresh" onClick={() => actionRef.current?.reload()}>
-              Refresh
+            <Button
+              key="refresh"
+              icon={<ReloadOutlined />}
+              onClick={() => actionRef.current?.reload()}
+            >
+              刷新
             </Button>,
           ]}
           rowClassName={(record) =>
@@ -323,7 +355,7 @@ const AssetOperationsContent: React.FC = () => {
       </Space>
 
       <Drawer
-        title={detail ? `Operation #${detail.id}` : 'Operation Detail'}
+        title={detail ? `操作详情 #${detail.id}` : '操作详情'}
         open={Boolean(detail)}
         width={920}
         onClose={() => setDetail(null)}
@@ -335,42 +367,42 @@ const AssetOperationsContent: React.FC = () => {
             items={[
               {
                 key: 'summary',
-                label: 'Summary',
+                label: '概览',
                 children: (
                   <Descriptions bordered column={2}>
                     <Descriptions.Item label="ID">
                       {detail.id}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Status">
-                      <Tag color={getStatusColor(detail.status)}>
-                        {detail.status || '-'}
+                    <Descriptions.Item label="状态">
+                      <Tag color={getOperationStatusColor(detail.status)}>
+                        {getOperationStatusLabel(detail.status)}
                       </Tag>
                     </Descriptions.Item>
-                    <Descriptions.Item label="Operation Type">
+                    <Descriptions.Item label="操作类型">
                       {detail.operation_type || '-'}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Target Type">
+                    <Descriptions.Item label="目标类型">
                       {detail.target_type || '-'}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Target ID">
+                    <Descriptions.Item label="目标 ID">
                       {detail.target_id || '-'}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Provider">
+                    <Descriptions.Item label="供应商">
                       {detail.provider_code || '-'}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Account">
+                    <Descriptions.Item label="账号">
                       {detail.account_name || '-'}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Created By">
+                    <Descriptions.Item label="发起人">
                       {formatText(detail.created_by)}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Created At">
+                    <Descriptions.Item label="创建时间">
                       {formatTime(detail.created_at)}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Updated At">
+                    <Descriptions.Item label="更新时间">
                       {formatTime(detail.updated_at)}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Error Summary" span={2}>
+                    <Descriptions.Item label="错误摘要" span={2}>
                       {detail.error_summary || '-'}
                     </Descriptions.Item>
                   </Descriptions>
@@ -378,12 +410,12 @@ const AssetOperationsContent: React.FC = () => {
               },
               {
                 key: 'request',
-                label: 'Request Data',
+                label: '请求数据',
                 children: <JsonBlock value={detail.request} />,
               },
               {
                 key: 'result',
-                label: 'Result Data',
+                label: '结果数据',
                 children: <JsonBlock value={detail.result} />,
               },
             ]}

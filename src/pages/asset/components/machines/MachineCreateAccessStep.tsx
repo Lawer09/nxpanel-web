@@ -1,7 +1,8 @@
-import { Alert, Form, Input, Select, Space } from 'antd';
+import { Form, Input, Select, Space, Tag } from 'antd';
 import React from 'react';
 import {
   MachineCreateCatalogSelect,
+  MachineCreateHint,
   MachineCreateSection,
 } from './MachineCreateShared';
 import type { MachineCreateCatalogController } from './useMachineCreateCatalogs';
@@ -11,8 +12,8 @@ type Props = {
 };
 
 const AUTH_TYPE_OPTIONS = [
-  { label: 'Provider SSH Key', value: 'provider_key' },
-  { label: 'Password', value: 'password' },
+  { label: '供应商 SSH 密钥', value: 'provider_key' },
+  { label: '密码', value: 'password' },
 ];
 
 const MachineCreateAccessStep: React.FC<Props> = ({ catalog }) => {
@@ -26,31 +27,32 @@ const MachineCreateAccessStep: React.FC<Props> = ({ catalog }) => {
 
   return (
     <>
-      <Alert
-        type="info"
-        showIcon
-        style={{ marginBottom: 16 }}
-        message="Sensitive login fields stay out of public previews"
-        description="`login.password` is only sent in the final request body and is not written into preview JSON or retry source snapshots."
-      />
+      <MachineCreateHint message="敏感字段不会进入预览 JSON。密码只会在最终提交时进入请求体。" />
 
       <MachineCreateSection
-        title="Login"
-        description="Use the new `login` object. `provider_key` and `password` follow backend validation and provider capability checks."
+        title="登录方式"
+        description="优先选择能长期稳定复用的登录方式，避免后续注入失败。"
+        extra={
+          authType ? (
+            <Tag color={authType === 'provider_key' ? 'blue' : 'orange'}>
+              {authType === 'provider_key' ? 'SSH 密钥' : '密码'}
+            </Tag>
+          ) : null
+        }
       >
-        <Space size={16} align="start" style={{ width: '100%' }}>
+        <Space size={16} align="start" style={{ width: '100%' }} wrap>
           <Form.Item
             name={['login', 'auth_type']}
-            label="Auth Type"
+            label="认证方式"
             style={{ width: 220 }}
-            rules={[{ required: true, message: 'Please select auth type.' }]}
+            rules={[{ required: true, message: '请选择认证方式。' }]}
           >
             <Select options={AUTH_TYPE_OPTIONS} />
           </Form.Item>
           <Form.Item
             name={['login', 'username']}
-            label="Username"
-            style={{ flex: 1 }}
+            label="用户名"
+            style={{ flex: 1, minWidth: 240 }}
             rules={[
               ({ getFieldValue }) => ({
                 validator: async (_, value) => {
@@ -59,27 +61,23 @@ const MachineCreateAccessStep: React.FC<Props> = ({ catalog }) => {
                     nextAuthType === 'password' &&
                     !String(value || '').trim()
                   ) {
-                    throw new Error('Please enter username.');
+                    throw new Error('请输入用户名。');
                   }
                 },
               }),
             ]}
-            extra={
-              authType === 'provider_key'
-                ? 'Optional display username. `root` is commonly used.'
-                : undefined
-            }
+            extra={authType === 'provider_key' ? '通常使用 root。' : undefined}
           >
-            <Input placeholder={authType === 'password' ? 'root' : 'root'} />
+            <Input placeholder="root" />
           </Form.Item>
         </Space>
 
         {authType === 'provider_key' ? (
           <Form.Item
             name={['login', 'provider_key_id']}
-            label="Provider SSH Key"
+            label="供应商 SSH 密钥"
             rules={[
-              { required: true, message: 'Please select provider SSH key.' },
+              { required: true, message: '请选择供应商 SSH 密钥。' },
             ]}
           >
             <MachineCreateCatalogSelect
@@ -95,22 +93,22 @@ const MachineCreateAccessStep: React.FC<Props> = ({ catalog }) => {
         {authType === 'password' ? (
           <Form.Item
             name={['login', 'password']}
-            label="Password"
-            rules={[{ required: true, message: 'Please enter password.' }]}
+            label="密码"
+            rules={[{ required: true, message: '请输入密码。' }]}
           >
-            <Input.Password placeholder="Sensitive field" />
+            <Input.Password placeholder="敏感字段" />
           </Form.Item>
         ) : null}
       </MachineCreateSection>
 
       <MachineCreateSection
-        title="Time Zone And Metadata"
-        description="`time_zone` is part of the public create contract. Metadata stays local to the asset record."
+        title="时区与元数据"
+        description="时区参与创建请求，metadata 只用于本地资产标注。"
       >
         <Form.Item
           name="time_zone"
-          label="Time Zone"
-          rules={[{ required: true, message: 'Please select time zone.' }]}
+          label="时区"
+          rules={[{ required: true, message: '请选择时区。' }]}
         >
           <MachineCreateCatalogSelect
             options={timezoneField.options}
@@ -123,9 +121,9 @@ const MachineCreateAccessStep: React.FC<Props> = ({ catalog }) => {
         <Form.Item
           name="metadata_text"
           label="Metadata JSON"
-          extra="Local display metadata only. Do not place credentials, passwords or provider secrets here."
+          extra="只写归属、用途、备注，不要写凭证、密码或供应商敏感信息。"
         >
-          <Input.TextArea rows={6} placeholder='{"owner":"ops"}' />
+          <Input.TextArea rows={5} placeholder='{"owner":"ops"}' />
         </Form.Item>
       </MachineCreateSection>
     </>

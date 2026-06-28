@@ -195,19 +195,19 @@ const FIELD_DEPENDENCIES: Record<
 };
 
 const FIELD_PLACEHOLDER_MAP: Record<MachineCreateCatalogField, string> = {
-  'zone.zone_id': 'Select zone',
-  'spec.type': 'Select instance type',
-  'os.image_id': 'Select image',
-  'vpc.vpc_id': 'Select VPC',
-  'vpc.vswitch_id': 'Select VSwitch',
-  'internet.charge_type': 'Select charge type',
-  'internet.bandwidth_mbps': 'Select bandwidth',
-  'internet.traffic_package_size': 'Select traffic package size',
-  'internet.eip_v4_type': 'Select IPv4 type',
-  'billing.mode': 'Select billing mode',
-  'billing.period_unit': 'Select period unit',
-  'login.provider_key_id': 'Select provider SSH key',
-  time_zone: 'Select time zone',
+  'zone.zone_id': '请选择可用区',
+  'spec.type': '请选择实例规格',
+  'os.image_id': '请选择系统镜像',
+  'vpc.vpc_id': '请选择 VPC',
+  'vpc.vswitch_id': '请选择 VSwitch',
+  'internet.charge_type': '请选择计费类型',
+  'internet.bandwidth_mbps': '请选择带宽',
+  'internet.traffic_package_size': '请选择流量包大小',
+  'internet.eip_v4_type': '请选择 IPv4 类型',
+  'billing.mode': '请选择计费模式',
+  'billing.period_unit': '请选择周期单位',
+  'login.provider_key_id': '请选择供应商 SSH 密钥',
+  time_zone: '请选择时区',
 };
 
 const getDependencyMessage = (
@@ -219,10 +219,10 @@ const getDependencyMessage = (
 
   for (const dependency of dependencies) {
     if (dependency === 'account_id' && !accountReady) {
-      return 'Select provider account first.';
+      return '请先选择供应商账号。';
     }
     if (dependency === 'zone_id' && !zoneReady) {
-      return 'Select zone first.';
+      return '请先选择可用区。';
     }
   }
 
@@ -238,41 +238,41 @@ const getFieldEmptyText = (
   switch (field) {
     case 'zone.zone_id':
       if (countryCode || city) {
-        return `No zones were returned for ${countryCode || '-'} ${city || ''}.`.trim();
+        return `${countryCode || '-'} ${city || ''} 未返回可用区候选。`.trim();
       }
-      return 'No zone candidates were returned for the current provider account.';
+      return '当前供应商账号未返回可用区候选。';
     case 'spec.type':
       return zoneId
-        ? `No instance type candidates were returned for zone ${zoneId}.`
-        : 'No instance type candidates were returned for the current selection.';
+        ? `可用区 ${zoneId} 未返回实例规格候选。`
+        : '当前选择未返回实例规格候选。';
     case 'os.image_id':
       return zoneId
-        ? `No image candidates were returned for zone ${zoneId}.`
-        : 'No image candidates were returned for the current selection.';
+        ? `可用区 ${zoneId} 未返回系统镜像候选。`
+        : '当前选择未返回系统镜像候选。';
     case 'vpc.vpc_id':
       return zoneId
-        ? `No VPC candidates were returned for zone ${zoneId}.`
-        : 'No VPC candidates were returned for the current selection.';
+        ? `可用区 ${zoneId} 未返回 VPC 候选。`
+        : '当前选择未返回 VPC 候选。';
     case 'vpc.vswitch_id':
       return zoneId
-        ? `No VSwitch candidates were returned for zone ${zoneId}.`
-        : 'No VSwitch candidates were returned for the current selection.';
+        ? `可用区 ${zoneId} 未返回 VSwitch 候选。`
+        : '当前选择未返回 VSwitch 候选。';
     case 'internet.charge_type':
     case 'internet.bandwidth_mbps':
     case 'internet.traffic_package_size':
     case 'internet.eip_v4_type':
       return zoneId
-        ? `No bandwidth candidates were returned for zone ${zoneId}.`
-        : 'No bandwidth candidates were returned for the current selection.';
+        ? `可用区 ${zoneId} 未返回公网候选。`
+        : '当前选择未返回公网候选。';
     case 'billing.mode':
     case 'billing.period_unit':
-      return 'No billing candidates were returned for the current provider account.';
+      return '当前供应商账号未返回计费候选。';
     case 'login.provider_key_id':
-      return 'No provider SSH key candidates were returned for the current provider account.';
+      return '当前供应商账号未返回 SSH 密钥候选。';
     case 'time_zone':
-      return 'No time zone candidates were returned for the current provider account.';
+      return '当前供应商账号未返回时区候选。';
     default:
-      return 'No candidate values were returned for the current selection.';
+      return '当前选择未返回候选值。';
   }
 };
 

@@ -582,7 +582,9 @@ declare namespace API {
     tags?: AssetTagItem[];
   }
 
-  interface AssetOperationListParams extends AssetListParams {}
+  interface AssetOperationListParams extends AssetListParams {
+    operation_type?: string;
+  }
 
   interface AssetMachineScriptListParams {
     page?: number;

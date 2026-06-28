@@ -1,7 +1,7 @@
 import { Form, Input, Modal, Select } from 'antd';
 import React, { useEffect } from 'react';
-import AssetTagEditor from '../AssetTagEditor';
 import type { MachineScriptFormValues } from '../../types';
+import AssetTagEditor from '../AssetTagEditor';
 
 const { TextArea } = Input;
 
@@ -40,7 +40,7 @@ const MachineScriptFormModal: React.FC<Props> = ({
 
   return (
     <Modal
-      title={editingId ? `Edit Script #${editingId}` : 'New Machine Script'}
+      title={editingId ? `编辑脚本 #${editingId}` : '新建机器脚本'}
       open={open}
       width={960}
       destroyOnHidden
@@ -57,26 +57,26 @@ const MachineScriptFormModal: React.FC<Props> = ({
       <Form<MachineScriptFormValues> form={form} layout="vertical">
         <Form.Item
           name="name"
-          label="Name"
-          rules={[{ required: true, message: 'Please enter script name.' }]}
+          label="名称"
+          rules={[{ required: true, message: '请输入脚本名称。' }]}
         >
           <Input placeholder="install-agent" />
         </Form.Item>
-        <Form.Item name="description" label="Description">
-          <Input placeholder="Describe what this script does" />
+        <Form.Item name="description" label="说明">
+          <Input placeholder="简要说明脚本用途" />
         </Form.Item>
-        <Form.Item name="status" label="Status">
+        <Form.Item name="status" label="状态">
           <Select
             options={[
-              { label: 'active', value: 'active' },
-              { label: 'disabled', value: 'disabled' },
+              { label: '启用', value: 'active' },
+              { label: '停用', value: 'disabled' },
             ]}
           />
         </Form.Item>
         <Form.Item
           name="content"
-          label="Script Content"
-          rules={[{ required: true, message: 'Please enter script content.' }]}
+          label="脚本内容"
+          rules={[{ required: true, message: '请输入脚本内容。' }]}
         >
           <TextArea
             rows={14}

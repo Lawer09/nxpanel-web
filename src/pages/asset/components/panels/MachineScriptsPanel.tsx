@@ -7,6 +7,7 @@ import {
   Descriptions,
   Drawer,
   Form,
+  Input,
   InputNumber,
   Modal,
   Popconfirm,
@@ -50,6 +51,21 @@ const normalizeTags = (
     .map((item) => cleanupObject(item))
     .filter((item) => item.key && item.value) as API.AssetTagItem[];
 
+type ScriptFilters = {
+  name?: string;
+  status?: string;
+};
+
+const getScriptStatusColor = (status?: string | null) => {
+  if (status === 'active') {
+    return 'success';
+  }
+  if (status === 'disabled') {
+    return 'default';
+  }
+  return 'default';
+};
+
 const MachineScriptsPanel: React.FC<{
   onTaskAck: TaskAckHandler;
 }> = ({ onTaskAck }) => {
@@ -63,6 +79,8 @@ const MachineScriptsPanel: React.FC<{
   const [runningScript, setRunningScript] = useState<API.AssetMachineScript | null>(
     null,
   );
+  const [filters, setFilters] = useState<ScriptFilters>({});
+  const [filterForm] = Form.useForm<ScriptFilters>();
   const [runForm] = Form.useForm<MachineScriptRunFormValues>();
   const [machineOptions, setMachineOptions] = useState<API.AssetMachine[]>([]);
   const [loadingMachines, setLoadingMachines] = useState(false);
@@ -103,46 +121,48 @@ const MachineScriptsPanel: React.FC<{
   const columns: ProColumns<API.AssetMachineScript>[] = useMemo(
     () => [
       { title: 'ID', dataIndex: 'id', width: 80 },
-      { title: 'Name', dataIndex: 'name' },
       {
-        title: 'Description',
+        title: '名称',
+        dataIndex: 'name',
+        width: 220,
+        ellipsis: true,
+      },
+      {
+        title: '说明',
         dataIndex: 'description',
+        width: 280,
         ellipsis: true,
         renderText: formatText,
       },
       {
-        title: 'Status',
+        title: '状态',
         dataIndex: 'status',
+        width: 110,
         render: (_, record) => (
-          <Tag color={record.status === 'active' ? 'green' : 'default'}>
-            {record.status || '-'}
+          <Tag color={getScriptStatusColor(record.status)}>
+            {record.status === 'active' ? '启用' : '停用'}
           </Tag>
         ),
       },
       {
-        title: 'Tags',
+        title: '标签',
         dataIndex: 'tags',
+        width: 90,
         render: (_, record) =>
-          record.tags?.length ? (
-            <Space wrap>
-              {record.tags.map((item) => (
-                <Tag key={`${item.key}-${item.value}-${item.label || ''}`}>
-                  {item.label || `${item.key}:${item.value}`}
-                </Tag>
-              ))}
-            </Space>
-          ) : (
-            '-'
-          ),
+          record.tags?.length ? `${record.tags.length} 个` : '-',
       },
       {
-        title: 'Updated At',
+        title: '更新时间',
         dataIndex: 'updated_at',
+        width: 180,
+        ellipsis: true,
         renderText: formatTime,
       },
       {
-        title: 'Actions',
+        title: '操作',
         valueType: 'option',
+        width: 220,
+        fixed: 'right',
         render: (_, record) => [
           <a
             key="detail"
@@ -154,7 +174,7 @@ const MachineScriptsPanel: React.FC<{
               }
             }}
           >
-            Detail
+            详情
           </a>,
           <a
             key="edit"
@@ -167,25 +187,25 @@ const MachineScriptsPanel: React.FC<{
               }
             }}
           >
-            Edit
+            编辑
           </a>,
           <a key="run" onClick={() => void openRunModal(record)}>
-            Run
+            执行
           </a>,
           <Popconfirm
             key="delete"
-            title="Delete this script?"
+            title="确认删除该脚本？"
             onConfirm={async () => {
               try {
                 await deleteAssetMachineScript(record.id);
-                message.success('Machine script deleted.');
+                message.success('机器脚本已删除。');
                 actionRef.current?.reload();
               } catch (error: any) {
                 message.error(normalizeDevErrorMessage(error));
               }
             }}
           >
-            <a>Delete</a>
+            <a>删除</a>
           </Popconfirm>,
         ],
       },
@@ -195,51 +215,60 @@ const MachineScriptsPanel: React.FC<{
 
   return (
     <>
+      <Form<ScriptFilters>
+        form={filterForm}
+        layout="inline"
+        onFinish={(values) =>
+          setFilters({
+            name: values.name?.trim() || undefined,
+            status: values.status || undefined,
+          })
+        }
+      >
+        <Form.Item name="name" label="名称">
+          <Input placeholder="按脚本名搜索" style={{ width: 220 }} />
+        </Form.Item>
+        <Form.Item name="status" label="状态">
+          <Select
+            allowClear
+            placeholder="全部状态"
+            style={{ width: 160 }}
+            options={[
+              { label: '启用', value: 'active' },
+              { label: '停用', value: 'disabled' },
+            ]}
+          />
+        </Form.Item>
+        <Form.Item>
+          <Space>
+            <Button type="primary" htmlType="submit">
+              应用
+            </Button>
+            <Button
+              onClick={() => {
+                filterForm.resetFields();
+                setFilters({});
+              }}
+            >
+              重置
+            </Button>
+          </Space>
+        </Form.Item>
+      </Form>
+
       <ProTable<API.AssetMachineScript>
         rowKey="id"
         actionRef={actionRef}
-        search={{
-          labelWidth: 'auto',
-        }}
-        columns={[
-          ...columns,
-          {
-            title: 'Name',
-            dataIndex: 'name',
-            hideInTable: true,
-          },
-          {
-            title: 'Status',
-            dataIndex: 'status',
-            hideInTable: true,
-            valueType: 'select',
-            fieldProps: {
-              options: [
-                { label: 'active', value: 'active' },
-                { label: 'disabled', value: 'disabled' },
-              ],
-            },
-          },
-          {
-            title: 'Tag Key',
-            dataIndex: 'tag_key',
-            hideInTable: true,
-          },
-          {
-            title: 'Tag Value',
-            dataIndex: 'tag_value',
-            hideInTable: true,
-          },
-        ]}
+        search={false}
+        scroll={{ x: 1120 }}
+        columns={columns}
         request={async (params) => {
           try {
             const response = await listAssetMachineScripts({
               page: Number(params.current || 1),
               page_size: Number(params.pageSize || 10),
-              name: params.name as string | undefined,
-              status: params.status as string | undefined,
-              tag_key: params.tag_key as string | undefined,
-              tag_value: params.tag_value as string | undefined,
+              name: filters.name,
+              status: filters.status,
             });
             return {
               data: response.data?.items || [],
@@ -261,14 +290,14 @@ const MachineScriptsPanel: React.FC<{
               setOpen(true);
             }}
           >
-            New Script
+            新建脚本
           </Button>,
           <Button
             key="refresh"
             icon={<ReloadOutlined />}
             onClick={() => actionRef.current?.reload()}
           >
-            Refresh
+            刷新
           </Button>,
         ]}
       />
@@ -312,10 +341,10 @@ const MachineScriptsPanel: React.FC<{
                 id: editing.id,
                 ...payload,
               });
-              message.success('Machine script updated.');
+              message.success('机器脚本已更新。');
             } else {
               await createAssetMachineScript(payload);
-              message.success('Machine script created.');
+              message.success('机器脚本已创建。');
             }
             setOpen(false);
             setEditing(null);
@@ -329,9 +358,7 @@ const MachineScriptsPanel: React.FC<{
       />
 
       <Modal
-        title={
-          runningScript ? `Run Script: ${runningScript.name}` : 'Run Machine Script'
-        }
+        title={runningScript ? `执行脚本：${runningScript.name}` : '执行机器脚本'}
         open={runOpen}
         destroyOnHidden
         confirmLoading={saving}
@@ -356,10 +383,7 @@ const MachineScriptsPanel: React.FC<{
             setRunOpen(false);
             setRunningScript(null);
             runForm.resetFields();
-            onTaskAck(
-              response.data,
-              `Script "${runningScript.name}" execution submitted.`,
-            );
+            onTaskAck(response.data, `脚本「${runningScript.name}」执行任务已提交。`);
           } catch (error: any) {
             message.error(normalizeDevErrorMessage(error));
           } finally {
@@ -370,8 +394,8 @@ const MachineScriptsPanel: React.FC<{
         <Form<MachineScriptRunFormValues> form={runForm} layout="vertical">
           <Form.Item
             name="machine_ids"
-            label="Target Machines"
-            rules={[{ required: true, message: 'Please select target machines.' }]}
+            label="目标机器"
+            rules={[{ required: true, message: '请选择目标机器。' }]}
           >
             <Select
               mode="multiple"
@@ -385,42 +409,42 @@ const MachineScriptsPanel: React.FC<{
               }))}
             />
           </Form.Item>
-          <Form.Item name="timeout_seconds" label="Timeout Seconds">
+          <Form.Item name="timeout_seconds" label="超时时间（秒）">
             <InputNumber min={1} max={1800} precision={0} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="port" label="SSH Port">
+          <Form.Item name="port" label="SSH 端口">
             <InputNumber min={1} max={65535} precision={0} style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>
 
       <Drawer
-        title={detail ? `Script #${detail.id}` : 'Machine Script Detail'}
+        title={detail ? `脚本详情 #${detail.id}` : '机器脚本详情'}
         open={Boolean(detail)}
         width={960}
         onClose={() => setDetail(null)}
       >
         {detail ? (
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
-            <Descriptions bordered column={2}>
-              <Descriptions.Item label="Name">
+            <Descriptions bordered column={2} title="基本信息">
+              <Descriptions.Item label="名称">
                 {detail.name}
               </Descriptions.Item>
-              <Descriptions.Item label="Status">
-                <Tag color={detail.status === 'active' ? 'green' : 'default'}>
-                  {detail.status || '-'}
+              <Descriptions.Item label="状态">
+                <Tag color={getScriptStatusColor(detail.status)}>
+                  {detail.status === 'active' ? '启用' : '停用'}
                 </Tag>
               </Descriptions.Item>
-              <Descriptions.Item label="Description" span={2}>
+              <Descriptions.Item label="说明" span={2}>
                 {detail.description || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="Created By">
+              <Descriptions.Item label="创建人">
                 {formatText(detail.created_by)}
               </Descriptions.Item>
-              <Descriptions.Item label="Created At">
+              <Descriptions.Item label="创建时间">
                 {formatTime(detail.created_at)}
               </Descriptions.Item>
-              <Descriptions.Item label="Updated At">
+              <Descriptions.Item label="更新时间" span={2}>
                 {formatTime(detail.updated_at)}
               </Descriptions.Item>
             </Descriptions>

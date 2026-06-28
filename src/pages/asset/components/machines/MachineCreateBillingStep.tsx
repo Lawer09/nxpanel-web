@@ -1,7 +1,8 @@
-import { Alert, Form, InputNumber, Space } from 'antd';
+import { Form, InputNumber, Space } from 'antd';
 import React from 'react';
 import {
   MachineCreateCatalogSelect,
+  MachineCreateHint,
   MachineCreateSection,
 } from './MachineCreateShared';
 import type { MachineCreateCatalogController } from './useMachineCreateCatalogs';
@@ -18,25 +19,19 @@ const MachineCreateBillingStep: React.FC<Props> = ({ catalog, zoneReady }) => {
   return (
     <>
       {!zoneReady ? (
-        <Alert
-          type="info"
-          showIcon
-          style={{ marginBottom: 16 }}
-          message="Select zone before editing disk and billing"
-          description="Billing mode loads from account scope. System disk size and most provider-side pricing context only make sense after the zone is fixed."
-        />
+        <MachineCreateHint message="先确认可用区。计费模式和系统盘大小通常依赖可用区后才能准确选择。" />
       ) : null}
 
       <MachineCreateSection
-        title="Billing"
-        description="The new create contract uses `billing.mode`, `billing.period` and `billing.period_unit`."
+        title="计费"
+        description="这里只保留实际提交给创建接口的核心计费字段。"
       >
-        <Space size={16} align="start" style={{ width: '100%' }}>
+        <Space size={16} align="start" style={{ width: '100%' }} wrap>
           <Form.Item
             name={['billing', 'mode']}
-            label="Billing Mode"
-            style={{ flex: 1 }}
-            rules={[{ required: true, message: 'Please select billing mode.' }]}
+            label="计费模式"
+            style={{ flex: 1, minWidth: 220 }}
+            rules={[{ required: true, message: '请选择计费模式。' }]}
           >
             <MachineCreateCatalogSelect
               options={billingModeField.options}
@@ -46,17 +41,13 @@ const MachineCreateBillingStep: React.FC<Props> = ({ catalog, zoneReady }) => {
               notFoundContent={billingModeField.emptyText}
             />
           </Form.Item>
-          <Form.Item
-            name={['billing', 'period']}
-            label="Period"
-            style={{ width: 160 }}
-          >
+          <Form.Item name={['billing', 'period']} label="周期" style={{ width: 140 }}>
             <InputNumber min={1} precision={0} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item
             name={['billing', 'period_unit']}
-            label="Period Unit"
-            style={{ width: 220 }}
+            label="周期单位"
+            style={{ width: 180 }}
           >
             <MachineCreateCatalogSelect
               options={periodUnitField.options}
@@ -70,16 +61,16 @@ const MachineCreateBillingStep: React.FC<Props> = ({ catalog, zoneReady }) => {
       </MachineCreateSection>
 
       <MachineCreateSection
-        title="Disk"
-        description="The current public create contract only accepts `disk.system_size_gb`."
+        title="系统盘"
+        description="系统盘大小是询价和创建都依赖的必填项。"
       >
         <Form.Item
           name={['disk', 'system_size_gb']}
-          label="System Disk Size (GiB)"
+          label="系统盘大小（GiB）"
           rules={[
-            { required: true, message: 'Please enter system disk size.' },
+            { required: true, message: '请输入系统盘大小。' },
           ]}
-          extra="Provider-specific disk category and extra payload are no longer exposed in the new contract."
+          extra="当前不再暴露供应商专属磁盘类型，避免创建参数过散。"
         >
           <InputNumber
             min={1}

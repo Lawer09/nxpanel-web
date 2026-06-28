@@ -154,7 +154,7 @@ export const collectMachineCreateCatalogMessages = (
     (catalog?.option_groups || []).forEach((group) => {
       const extra = asPlainObject(group.extra) || {};
       if (extra.stale === true) {
-        staleMessages.push(`${group.field} options are using stale cache.`);
+        staleMessages.push(`${group.field} 候选正在使用缓存结果。`);
       }
     });
   });

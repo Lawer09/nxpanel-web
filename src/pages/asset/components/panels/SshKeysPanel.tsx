@@ -58,6 +58,19 @@ import AssetTagEditor from '../AssetTagEditor';
 
 const { TextArea } = Input;
 
+const getSshStatusColor = (status?: string | null) => {
+  if (status === 'active') {
+    return 'success';
+  }
+  if (status === 'disabled') {
+    return 'warning';
+  }
+  if (status === 'deleted') {
+    return 'default';
+  }
+  return 'default';
+};
+
 const SshKeysPanel: React.FC<{
   filters: SharedFilters;
   providers: API.AssetProvider[];
@@ -101,55 +114,80 @@ const SshKeysPanel: React.FC<{
   }, [filters]);
 
   const columns: ProColumns<API.AssetSshKey>[] = [
-    { title: 'Name', dataIndex: 'name' },
-    { title: 'Scope', dataIndex: 'scope', renderText: formatText },
     {
-      title: 'Provider',
-      dataIndex: 'provider_code',
-      render: (_, record) => <Tag>{record.provider_code || '-'}</Tag>,
+      title: '名称',
+      dataIndex: 'name',
+      width: 220,
+      ellipsis: true,
     },
-    { title: 'Account', dataIndex: 'account_name', renderText: formatText },
     {
-      title: 'External Key ID',
-      dataIndex: 'external_key_id',
+      title: '作用域',
+      dataIndex: 'scope',
+      width: 120,
+      ellipsis: true,
       renderText: formatText,
     },
-    { title: 'Fingerprint', dataIndex: 'fingerprint', renderText: formatText },
     {
-      title: 'Private Key',
+      title: '供应商',
+      dataIndex: 'provider_code',
+      width: 120,
+      render: (_, record) => <Tag>{record.provider_code || '-'}</Tag>,
+    },
+    {
+      title: '账号',
+      dataIndex: 'account_name',
+      width: 180,
+      ellipsis: true,
+      renderText: formatText,
+    },
+    {
+      title: '指纹',
+      dataIndex: 'fingerprint',
+      width: 220,
+      ellipsis: true,
+      renderText: formatText,
+    },
+    {
+      title: '私钥',
       dataIndex: 'has_private_key',
+      width: 100,
       render: (_, record) =>
         record.has_private_key ? (
-          <Tag color="green">Present</Tag>
+          <Tag color="success">已存储</Tag>
         ) : (
-          <Tag>Not Stored</Tag>
+          <Tag>未存储</Tag>
         ),
     },
     {
-      title: 'Status',
+      title: '状态',
       dataIndex: 'status',
-      render: (_, record) => <Tag>{record.status || '-'}</Tag>,
+      width: 110,
+      render: (_, record) => (
+        <Tag color={getSshStatusColor(record.status)}>
+          {SSH_KEY_STATUS_OPTIONS.find((item) => item.value === record.status)?.label ||
+            formatText(record.status)}
+        </Tag>
+      ),
     },
     {
-      title: 'Tags',
+      title: '标签',
       dataIndex: 'tags',
+      width: 90,
       render: (_, record) =>
-        record.tags?.length ? (
-          <Space wrap>
-            {record.tags.map((item) => (
-              <Tag key={`${item.key}-${item.value}-${item.label || ''}`}>
-                {item.label || `${item.key}:${item.value}`}
-              </Tag>
-            ))}
-          </Space>
-        ) : (
-          '-'
-        ),
+        record.tags?.length ? `${record.tags.length} 个` : '-',
     },
-    { title: 'Updated At', dataIndex: 'updated_at', renderText: formatTime },
     {
-      title: 'Actions',
+      title: '更新时间',
+      dataIndex: 'updated_at',
+      width: 180,
+      ellipsis: true,
+      renderText: formatTime,
+    },
+    {
+      title: '操作',
       valueType: 'option',
+      width: 180,
+      fixed: 'right',
       render: (_, record) => [
         <a
           key="detail"
@@ -162,7 +200,7 @@ const SshKeysPanel: React.FC<{
             }
           }}
         >
-          Detail
+          详情
         </a>,
         <a
           key="edit"
@@ -185,31 +223,29 @@ const SshKeysPanel: React.FC<{
             }
           }}
         >
-          Edit
+          编辑
         </a>,
         <Popconfirm
           key="delete"
-          title="Delete this SSH key?"
+          title="确认删除该 SSH 密钥？"
           onConfirm={async () => {
             try {
               await deleteAssetSshKey(record.id);
-              message.success('SSH key deleted.');
+              message.success('SSH 密钥已删除。');
               actionRef.current?.reload();
             } catch (error: any) {
               message.error(normalizeDevErrorMessage(error));
             }
           }}
         >
-          <a>Delete</a>
+          <a>删除</a>
         </Popconfirm>,
       ],
     },
   ];
 
   const noAccountReason =
-    filteredAccounts.length === 0
-      ? 'Create a provider account first.'
-      : undefined;
+    filteredAccounts.length === 0 ? '请先创建供应商账号。' : undefined;
 
   return (
     <>
@@ -218,8 +254,8 @@ const SshKeysPanel: React.FC<{
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          message="No provider account available"
-          description="Create a provider account first, then return here for provider-side SSH key operations."
+          message="暂无可用供应商账号"
+          description="请先创建供应商账号，再进行云上 SSH 密钥相关操作。"
         />
       ) : null}
 
@@ -227,6 +263,7 @@ const SshKeysPanel: React.FC<{
         rowKey="id"
         actionRef={actionRef}
         search={false}
+        scroll={{ x: 1500 }}
         columns={columns}
         request={async (params) => {
           try {
@@ -259,7 +296,7 @@ const SshKeysPanel: React.FC<{
               setCustomOpen(true);
             }}
           >
-            Create Custom Key
+            新建自定义
           </Button>,
           renderActionButton(
             <Button
@@ -271,7 +308,7 @@ const SshKeysPanel: React.FC<{
                 setProviderImportOpen(true);
               }}
             >
-              Import Single Provider Key
+              单个导入
             </Button>,
             noAccountReason ||
               (filters.provider_code &&
@@ -279,7 +316,7 @@ const SshKeysPanel: React.FC<{
                 providerMap.get(filters.provider_code),
                 SSH_IMPORT_ACTION_KEYS,
               ) === false
-                ? 'Current provider capability does not support provider-side SSH import.'
+                ? '当前供应商不支持云上 SSH 密钥导入。'
                 : undefined),
           ),
           renderActionButton(
@@ -291,7 +328,7 @@ const SshKeysPanel: React.FC<{
                 setProviderBatchOpen(true);
               }}
             >
-              Import From Provider
+              批量导入
             </Button>,
             noAccountReason ||
               (filters.provider_code &&
@@ -299,7 +336,7 @@ const SshKeysPanel: React.FC<{
                 providerMap.get(filters.provider_code),
                 SSH_IMPORT_ACTION_KEYS,
               ) === false
-                ? 'Current provider capability does not support provider-side SSH import.'
+                ? '当前供应商不支持云上 SSH 密钥导入。'
                 : undefined),
           ),
           renderActionButton(
@@ -312,7 +349,7 @@ const SshKeysPanel: React.FC<{
                 setProviderCreateOpen(true);
               }}
             >
-              Create Provider Key
+              云上创建
             </Button>,
             noAccountReason ||
               (filters.provider_code &&
@@ -320,7 +357,7 @@ const SshKeysPanel: React.FC<{
                 providerMap.get(filters.provider_code),
                 SSH_CREATE_ACTION_KEYS,
               ) === false
-                ? 'Current provider capability does not support provider-side SSH create.'
+                ? '当前供应商不支持云上 SSH 密钥创建。'
                 : undefined),
           ),
           <Button
@@ -328,13 +365,13 @@ const SshKeysPanel: React.FC<{
             icon={<ReloadOutlined />}
             onClick={() => actionRef.current?.reload()}
           >
-            Refresh
+            刷新
           </Button>,
         ]}
       />
 
       <Modal
-        title="Create Custom SSH Key"
+        title="新建自定义 SSH 密钥"
         open={customOpen}
         destroyOnHidden
         width={760}
@@ -357,7 +394,7 @@ const SshKeysPanel: React.FC<{
             });
             setCustomOpen(false);
             customForm.resetFields();
-            message.success('Custom SSH key created.');
+            message.success('自定义 SSH 密钥已创建。');
             actionRef.current?.reload();
           } catch (error: any) {
             message.error(normalizeDevErrorMessage(error));
@@ -369,22 +406,22 @@ const SshKeysPanel: React.FC<{
         <Form<SshKeyCustomFormValues> form={customForm} layout="vertical">
           <Form.Item
             name="name"
-            label="Name"
-            rules={[{ required: true, message: 'Please enter name.' }]}
+            label="名称"
+            rules={[{ required: true, message: '请输入名称。' }]}
           >
             <Input />
           </Form.Item>
-          <Form.Item name="scope" label="Scope">
+          <Form.Item name="scope" label="作用域">
             <Input placeholder="custom" />
           </Form.Item>
           <Form.Item
             name="public_key"
-            label="Public Key"
-            rules={[{ required: true, message: 'Please enter public key.' }]}
+            label="公钥"
+            rules={[{ required: true, message: '请输入公钥。' }]}
           >
             <TextArea rows={5} />
           </Form.Item>
-          <Form.Item name="private_key" label="Private Key">
+          <Form.Item name="private_key" label="私钥">
             <TextArea rows={5} />
           </Form.Item>
           <AssetTagEditor name="tags" />
@@ -395,7 +432,7 @@ const SshKeysPanel: React.FC<{
       </Modal>
 
       <Modal
-        title="Import Single Provider SSH Key"
+        title="导入单个云上 SSH 密钥"
         open={providerImportOpen}
         destroyOnHidden
         width={760}
@@ -418,7 +455,7 @@ const SshKeysPanel: React.FC<{
             });
             setProviderImportOpen(false);
             providerForm.resetFields();
-            message.success('Provider SSH key metadata imported.');
+            message.success('云上 SSH 密钥元数据已导入。');
             actionRef.current?.reload();
           } catch (error: any) {
             message.error(normalizeDevErrorMessage(error));
@@ -430,8 +467,8 @@ const SshKeysPanel: React.FC<{
         <Form<SshKeyProviderFormValues> form={providerForm} layout="vertical">
           <Form.Item
             name="account_id"
-            label="Provider Account"
-            rules={[{ required: true, message: 'Please select account.' }]}
+            label="供应商账号"
+            rules={[{ required: true, message: '请选择供应商账号。' }]}
           >
             <Select
               showSearch
@@ -444,26 +481,26 @@ const SshKeysPanel: React.FC<{
           </Form.Item>
           <Form.Item
             name="name"
-            label="Name"
-            rules={[{ required: true, message: 'Please enter name.' }]}
+            label="名称"
+            rules={[{ required: true, message: '请输入名称。' }]}
           >
             <Input />
           </Form.Item>
-          <Form.Item name="external_key_id" label="External Key ID">
+          <Form.Item name="external_key_id" label="外部 Key ID">
             <Input />
           </Form.Item>
-          <Form.Item name="public_key" label="Public Key">
+          <Form.Item name="public_key" label="公钥">
             <TextArea rows={4} />
           </Form.Item>
           <AssetTagEditor name="tags" />
-          <Form.Item name="payload_text" label="Advanced Payload JSON">
+          <Form.Item name="payload_text" label="高级 Payload JSON">
             <TextArea rows={5} />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title="Create Provider SSH Key"
+        title="云上创建 SSH 密钥"
         open={providerCreateOpen}
         destroyOnHidden
         width={760}
@@ -486,7 +523,7 @@ const SshKeysPanel: React.FC<{
             });
             setProviderCreateOpen(false);
             providerForm.resetFields();
-            onTaskAck(response.data, 'Provider-side SSH key create submitted.');
+            onTaskAck(response.data, '云上 SSH 密钥创建任务已提交。');
           } catch (error: any) {
             message.error(normalizeDevErrorMessage(error));
           } finally {
@@ -497,8 +534,8 @@ const SshKeysPanel: React.FC<{
         <Form<SshKeyProviderFormValues> form={providerForm} layout="vertical">
           <Form.Item
             name="account_id"
-            label="Provider Account"
-            rules={[{ required: true, message: 'Please select account.' }]}
+            label="供应商账号"
+            rules={[{ required: true, message: '请选择供应商账号。' }]}
           >
             <Select
               showSearch
@@ -511,33 +548,33 @@ const SshKeysPanel: React.FC<{
           </Form.Item>
           <Form.Item
             name="name"
-            label="Name"
-            rules={[{ required: true, message: 'Please enter name.' }]}
+            label="名称"
+            rules={[{ required: true, message: '请输入名称。' }]}
           >
             <Input />
           </Form.Item>
-          <Form.Item name="external_key_id" label="External Key ID">
+          <Form.Item name="external_key_id" label="外部 Key ID">
             <Input />
           </Form.Item>
-          <Form.Item name="public_key" label="Public Key">
+          <Form.Item name="public_key" label="公钥">
             <TextArea rows={4} />
           </Form.Item>
           <AssetTagEditor name="tags" />
-          <Form.Item name="payload_text" label="Advanced Payload JSON">
+          <Form.Item name="payload_text" label="高级 Payload JSON">
             <TextArea rows={5} />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title="Import SSH Keys From Provider"
+        title="批量导入云上 SSH 密钥"
         open={providerBatchOpen}
         destroyOnHidden
         confirmLoading={saving}
         onCancel={() => setProviderBatchOpen(false)}
         onOk={async () => {
           if (!batchAccountId) {
-            message.error('Please select provider account.');
+            message.error('请选择供应商账号。');
             return;
           }
           try {
@@ -546,7 +583,7 @@ const SshKeysPanel: React.FC<{
               account_id: batchAccountId,
             });
             setProviderBatchOpen(false);
-            onTaskAck(response.data, 'Provider-side SSH key import submitted.');
+            onTaskAck(response.data, '云上 SSH 密钥批量导入任务已提交。');
           } catch (error: any) {
             message.error(normalizeDevErrorMessage(error));
           } finally {
@@ -563,12 +600,12 @@ const SshKeysPanel: React.FC<{
             value: item.id,
           }))}
           onChange={setBatchAccountId}
-          placeholder="Select account"
+          placeholder="选择账号"
         />
       </Modal>
 
       <Modal
-        title={editing ? `Edit SSH Key #${editing.id}` : 'Edit SSH Key'}
+        title={editing ? `编辑 SSH 密钥 #${editing.id}` : '编辑 SSH 密钥'}
         open={editOpen}
         destroyOnHidden
         width={760}
@@ -597,7 +634,7 @@ const SshKeysPanel: React.FC<{
             setEditOpen(false);
             setEditing(null);
             editForm.resetFields();
-            message.success('SSH key updated.');
+            message.success('SSH 密钥已更新。');
             actionRef.current?.reload();
           } catch (error: any) {
             message.error(normalizeDevErrorMessage(error));
@@ -609,20 +646,20 @@ const SshKeysPanel: React.FC<{
         <Form<SshKeyEditFormValues> form={editForm} layout="vertical">
           <Form.Item
             name="name"
-            label="Name"
-            rules={[{ required: true, message: 'Please enter name.' }]}
+            label="名称"
+            rules={[{ required: true, message: '请输入名称。' }]}
           >
             <Input />
           </Form.Item>
           <Space size={16} align="start" style={{ width: '100%' }}>
-            <Form.Item name="scope" label="Scope" style={{ flex: 1 }}>
+            <Form.Item name="scope" label="作用域" style={{ flex: 1 }}>
               <Input />
             </Form.Item>
-            <Form.Item name="status" label="Status" style={{ flex: 1 }}>
+            <Form.Item name="status" label="状态" style={{ flex: 1 }}>
               <Select options={SSH_KEY_STATUS_OPTIONS} />
             </Form.Item>
           </Space>
-          <Form.Item name="public_key" label="Public Key">
+          <Form.Item name="public_key" label="公钥">
             <TextArea rows={5} />
           </Form.Item>
           <AssetTagEditor name="tags" />
@@ -633,45 +670,46 @@ const SshKeysPanel: React.FC<{
       </Modal>
 
       <Drawer
-        title={detail ? `SSH Key #${detail.id}` : 'SSH Key Detail'}
+        title={detail ? `SSH 密钥详情 #${detail.id}` : 'SSH 密钥详情'}
         open={Boolean(detail)}
         width={760}
         onClose={() => setDetail(null)}
       >
         {detail ? (
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
-            <Descriptions bordered column={1}>
-              <Descriptions.Item label="Name">
+            <Descriptions bordered column={1} title="基本信息">
+              <Descriptions.Item label="名称">
                 {detail.name || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="Scope">
+              <Descriptions.Item label="作用域">
                 {detail.scope || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="Provider">
+              <Descriptions.Item label="供应商">
                 {detail.provider_code || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="Account">
+              <Descriptions.Item label="账号">
                 {detail.account_name || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="External Key ID">
+              <Descriptions.Item label="外部 Key ID">
                 {detail.external_key_id || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="Fingerprint">
+              <Descriptions.Item label="指纹">
                 {detail.fingerprint || '-'}
               </Descriptions.Item>
-              <Descriptions.Item label="Private Key">
-                {detail.has_private_key ? 'Stored' : 'Not Stored'}
+              <Descriptions.Item label="私钥状态">
+                {detail.has_private_key ? '已存储' : '未存储'}
               </Descriptions.Item>
-              <Descriptions.Item label="Status">
-                {detail.status || '-'}
+              <Descriptions.Item label="状态">
+                {SSH_KEY_STATUS_OPTIONS.find((item) => item.value === detail.status)
+                  ?.label || formatText(detail.status)}
               </Descriptions.Item>
-              <Descriptions.Item label="Created By">
+              <Descriptions.Item label="创建人">
                 {formatText(detail.created_by)}
               </Descriptions.Item>
-              <Descriptions.Item label="Created At">
+              <Descriptions.Item label="创建时间">
                 {formatTime(detail.created_at)}
               </Descriptions.Item>
-              <Descriptions.Item label="Updated At">
+              <Descriptions.Item label="更新时间">
                 {formatTime(detail.updated_at)}
               </Descriptions.Item>
             </Descriptions>

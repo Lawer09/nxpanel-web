@@ -1,5 +1,7 @@
-import { Input, Modal, Select, Space } from 'antd';
+import { Input, Modal, Select, Space, Typography } from 'antd';
 import React from 'react';
+
+const { Text } = Typography;
 
 type Props = {
   open: boolean;
@@ -25,30 +27,42 @@ const MachineImportModal: React.FC<Props> = ({
   onSubmit,
 }) => (
   <Modal
-    title="Import Machines From Provider"
+    title="供应商导入机器"
     open={open}
+    width={640}
     destroyOnHidden
     confirmLoading={saving}
     onCancel={onCancel}
     onOk={onSubmit}
   >
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Select
-        showSearch
-        value={accountId}
-        optionFilterProp="label"
-        options={accounts.map((item) => ({
-          label: `${item.name} (#${item.id})`,
-          value: item.id,
-        }))}
-        onChange={onAccountIdChange}
-        placeholder="Select account"
-      />
-      <Input
-        value={region}
-        onChange={(event) => onRegionChange(event.target.value)}
-        placeholder="Region"
-      />
+      <div>
+        <Text strong style={{ display: 'block', marginBottom: 8 }}>
+          供应商账号
+        </Text>
+        <Select
+          showSearch
+          value={accountId}
+          style={{ width: '100%' }}
+          optionFilterProp="label"
+          options={accounts.map((item) => ({
+            label: `${item.name} (#${item.id})`,
+            value: item.id,
+          }))}
+          onChange={onAccountIdChange}
+          placeholder="选择供应商账号"
+        />
+      </div>
+      <div>
+        <Text strong style={{ display: 'block', marginBottom: 8 }}>
+          地域
+        </Text>
+        <Input
+          value={region}
+          onChange={(event) => onRegionChange(event.target.value)}
+          placeholder="可选，用于按地域过滤导入"
+        />
+      </div>
     </Space>
   </Modal>
 );

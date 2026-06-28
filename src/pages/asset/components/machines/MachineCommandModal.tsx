@@ -34,7 +34,7 @@ const MachineCommandModal: React.FC<Props> = ({
   onSubmit,
 }) => (
   <Modal
-    title={`Run Command on ${selectedRows.length} Machine(s)`}
+    title={`批量执行命令（${selectedRows.length} 台机器）`}
     open={open}
     destroyOnHidden
     width={760}
@@ -51,22 +51,22 @@ const MachineCommandModal: React.FC<Props> = ({
         <Alert
           type="warning"
           showIcon
-          message={`Selected machines: ${selectedRows
+          message={`已选机器：${selectedRows
             .map((item) => item.name || item.machine_id || item.id)
             .join(', ')}`}
         />
       ) : (
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="Select machines in the table first."
+          description="请先在表格中勾选机器。"
         />
       )}
     </Space>
     <Form<MachineCommandFormValues> form={form} layout="vertical">
       <Form.Item
         name="ssh_key_id"
-        label="SSH Key"
-        rules={[{ required: true, message: 'Please select SSH key.' }]}
+        label="SSH 密钥"
+        rules={[{ required: true, message: '请选择 SSH 密钥。' }]}
       >
         <Select
           showSearch
@@ -80,18 +80,18 @@ const MachineCommandModal: React.FC<Props> = ({
       <Space size={16} align="start" style={{ width: '100%' }}>
         <Form.Item
           name="username"
-          label="Username"
+          label="用户名"
           style={{ flex: 1 }}
-          rules={[{ required: true, message: 'Please enter username.' }]}
+          rules={[{ required: true, message: '请输入用户名。' }]}
         >
           <Input />
         </Form.Item>
-        <Form.Item name="port" label="Port" style={{ width: 160 }}>
+        <Form.Item name="port" label="端口" style={{ width: 160 }}>
           <InputNumber style={{ width: '100%' }} precision={0} min={1} />
         </Form.Item>
         <Form.Item
           name="timeout_seconds"
-          label="Timeout Seconds"
+          label="超时时间（秒）"
           style={{ width: 180 }}
         >
           <InputNumber style={{ width: '100%' }} precision={0} min={1} />
@@ -99,8 +99,8 @@ const MachineCommandModal: React.FC<Props> = ({
       </Space>
       <Form.Item
         name="command"
-        label="Command"
-        rules={[{ required: true, message: 'Please enter command.' }]}
+        label="命令"
+        rules={[{ required: true, message: '请输入命令。' }]}
       >
         <TextArea rows={6} />
       </Form.Item>
@@ -113,14 +113,12 @@ const MachineCommandModal: React.FC<Props> = ({
               if (value) {
                 return;
               }
-              throw new Error('Please confirm this high-risk action.');
+              throw new Error('请确认这是高风险操作。');
             },
           },
         ]}
       >
-        <Checkbox>
-          I understand this command will run on all selected machines.
-        </Checkbox>
+        <Checkbox>我已知晓该命令会在所有已选机器上执行。</Checkbox>
       </Form.Item>
     </Form>
   </Modal>

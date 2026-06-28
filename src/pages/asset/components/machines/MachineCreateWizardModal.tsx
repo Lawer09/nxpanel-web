@@ -19,7 +19,10 @@ import MachineCreateBasicStep from './MachineCreateBasicStep';
 import MachineCreateBillingStep from './MachineCreateBillingStep';
 import MachineCreateNetworkStep from './MachineCreateNetworkStep';
 import MachineCreateReviewStep from './MachineCreateReviewStep';
-import { MachineCreateCatalogStatus } from './MachineCreateShared';
+import {
+  MachineCreateCatalogStatus,
+  MachineCreateSummaryStrip,
+} from './MachineCreateShared';
 import {
   buildMachineCreateRequest,
   buildMachineRetryRequest,
@@ -46,16 +49,15 @@ const STEP_FIELDS: NamePath[][] = [
     ['spec', 'type'],
     ['os', 'image_id'],
     'count',
-  ],
-  [
     ['billing', 'mode'],
     ['disk', 'system_size_gb'],
   ],
   [
     ['vpc', 'vpc_id'],
     ['internet', 'bandwidth_mbps'],
+    ['login', 'auth_type'],
+    'time_zone',
   ],
-  [['login', 'auth_type'], 'time_zone'],
   [],
 ];
 
@@ -186,6 +188,11 @@ const MachineCreateWizardModal: React.FC<Props> = ({
   const requestSignature = useMemo(
     () => JSON.stringify(requestPreview.payload || null),
     [requestPreview.payload],
+  );
+
+  const selectedAccount = useMemo(
+    () => accounts.find((item) => item.id === effectiveAccountId),
+    [accounts, effectiveAccountId],
   );
 
   const canQuote = Boolean(
@@ -475,7 +482,7 @@ const MachineCreateWizardModal: React.FC<Props> = ({
   const handleNext = async () => {
     try {
       await validateCurrentStep();
-      setCurrentStep((current) => Math.min(current + 1, 4));
+      setCurrentStep((current) => Math.min(current + 1, 2));
     } catch {
       return;
     }
@@ -484,7 +491,7 @@ const MachineCreateWizardModal: React.FC<Props> = ({
   const handleQuote = async () => {
     const accountId = effectiveAccountId;
     if (!accountId) {
-      message.error('Provider account is required before quoting.');
+      message.error('请先选择供应商账号后再询价。');
       return;
     }
 
@@ -498,7 +505,7 @@ const MachineCreateWizardModal: React.FC<Props> = ({
       const response = await quoteAssetMachineCreatePrice(accountId, payload);
       setQuote(response.data);
       setQuotedSignature(JSON.stringify(payload));
-      message.success('Price quote loaded.');
+      message.success('报价已获取。');
     } catch (error: any) {
       if (isCapabilityNotSupportedError(error)) {
         setQuote(null);
@@ -531,15 +538,12 @@ const MachineCreateWizardModal: React.FC<Props> = ({
           retrying.id,
           buildMachineRetryRequest(values),
         );
-        onSuccess(
-          response.data,
-          `Provider-side retry for machine #${retrying.id} submitted.`,
-        );
+        onSuccess(response.data, `机器 #${retrying.id} 的供应商重试创建任务已提交。`);
       } else {
         const response = await createAssetMachineFromProvider(
           buildMachineCreateRequest(values),
         );
-        onSuccess(response.data, 'Provider-side machine create submitted.');
+        onSuccess(response.data, '供应商机器创建任务已提交。');
       }
     } catch (error: any) {
       if (error?.errorFields) {
@@ -552,19 +556,17 @@ const MachineCreateWizardModal: React.FC<Props> = ({
   };
 
   const stepItems = [
-    { key: 'basic', title: 'Basic' },
-    { key: 'billing', title: 'Billing & Disk' },
-    { key: 'network', title: 'VPC & Internet' },
-    { key: 'access', title: 'Access' },
-    { key: 'review', title: 'Review & Quote' },
+    { key: 'resource', title: '资源基础' },
+    { key: 'network-access', title: '网络与访问' },
+    { key: 'review', title: '检查与报价' },
   ];
 
   return (
     <Modal
       title={
         mode === 'retry' && retrying
-          ? `Retry Provider Create #${retrying.id}`
-          : 'Create Machine From Provider'
+          ? `重试供应商创建 #${retrying.id}`
+          : '供应商创建机器'
       }
       open={open}
       destroyOnHidden
@@ -572,7 +574,7 @@ const MachineCreateWizardModal: React.FC<Props> = ({
       onCancel={onCancel}
       footer={[
         <Button key="cancel" onClick={onCancel}>
-          Cancel
+          取消
         </Button>,
         currentStep > 0 ? (
           <Button
@@ -581,12 +583,12 @@ const MachineCreateWizardModal: React.FC<Props> = ({
               setCurrentStep((current) => Math.max(current - 1, 0))
             }
           >
-            Back
+            上一步
           </Button>
         ) : null,
         currentStep < stepItems.length - 1 ? (
           <Button key="next" type="primary" onClick={() => void handleNext()}>
-            Next
+            下一步
           </Button>
         ) : (
           <Button
@@ -595,13 +597,13 @@ const MachineCreateWizardModal: React.FC<Props> = ({
             loading={submitting}
             onClick={() => void handleSubmit()}
           >
-            {mode === 'retry' ? 'Submit Retry' : 'Submit Create'}
+            {mode === 'retry' ? '提交重试' : '提交创建'}
           </Button>
         ),
       ]}
       styles={{
         body: {
-          maxHeight: '72vh',
+          maxHeight: '76vh',
           overflow: 'auto',
           paddingTop: 12,
         },
@@ -610,7 +612,7 @@ const MachineCreateWizardModal: React.FC<Props> = ({
       <Steps
         current={currentStep}
         items={stepItems}
-        style={{ marginBottom: 24 }}
+        style={{ marginBottom: 16 }}
         onChange={(nextStep) => {
           if (nextStep <= currentStep) {
             setCurrentStep(nextStep);
@@ -629,31 +631,44 @@ const MachineCreateWizardModal: React.FC<Props> = ({
         }}
       />
 
+      {(effectiveAccountId || watchedZoneId || watchedValues?.spec?.type) && (
+        <MachineCreateSummaryStrip
+          items={[
+            { label: '账号', value: selectedAccount?.name || effectiveAccountId },
+            { label: '国家', value: watchedValues?.zone?.country_code },
+            { label: '可用区', value: watchedValues?.zone?.zone_id },
+            { label: '规格', value: watchedValues?.spec?.type },
+            { label: '镜像', value: watchedValues?.os?.image_id },
+            { label: '计费', value: watchedValues?.billing?.mode },
+          ]}
+        />
+      )}
+
       <Form<MachineCreateFormValues> form={form} layout="vertical">
         {currentStep === 0 ? (
-          <MachineCreateBasicStep
-            mode={mode}
-            accounts={accounts}
-            catalog={catalog}
-            retrying={retrying}
-          />
+          <>
+            <MachineCreateBasicStep
+              mode={mode}
+              accounts={accounts}
+              catalog={catalog}
+              retrying={retrying}
+            />
+            <MachineCreateBillingStep
+              catalog={catalog}
+              zoneReady={Boolean(watchedZoneId)}
+            />
+          </>
         ) : null}
         {currentStep === 1 ? (
-          <MachineCreateBillingStep
-            catalog={catalog}
-            zoneReady={Boolean(watchedZoneId)}
-          />
+          <>
+            <MachineCreateNetworkStep
+              catalog={catalog}
+              zoneReady={Boolean(watchedZoneId)}
+            />
+            <MachineCreateAccessStep catalog={catalog} />
+          </>
         ) : null}
         {currentStep === 2 ? (
-          <MachineCreateNetworkStep
-            catalog={catalog}
-            zoneReady={Boolean(watchedZoneId)}
-          />
-        ) : null}
-        {currentStep === 3 ? (
-          <MachineCreateAccessStep catalog={catalog} />
-        ) : null}
-        {currentStep === 4 ? (
           <MachineCreateReviewStep
             mode={mode}
             requestPayload={previewPayload}

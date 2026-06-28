@@ -36,11 +36,11 @@ const getAssetPath = (kind: AssetResourceKey) => {
 
 const getAssetTitle = (kind: AssetPageKind) => {
   const titleMap: Record<AssetPageKind, string> = {
-    accounts: 'Provider Accounts',
-    machines: 'Machines',
-    ips: 'IPs',
-    'ssh-keys': 'SSH Keys',
-    scripts: 'Machine Scripts',
+    accounts: '供应商账号',
+    machines: '机器',
+    ips: 'IP',
+    'ssh-keys': 'SSH 密钥',
+    scripts: '脚本',
   };
   return titleMap[kind];
 };
@@ -111,10 +111,10 @@ const AssetPageContent: React.FC<{ kind: AssetPageKind }> = ({ kind }) => {
     const taskPath = buildAssetTaskDetailPath(ack.task_id);
     notification.success({
       message: title,
-      description: `Task ID: ${ack.task_id}, status: ${ack.status || 'pending'}.`,
+      description: `任务 ID：${ack.task_id}，状态：${ack.status || 'pending'}。`,
       actions: (
         <Button size="small" onClick={() => history.push(taskPath)}>
-          View Task
+          查看任务
         </Button>
       ),
     });
@@ -131,16 +131,20 @@ const AssetPageContent: React.FC<{ kind: AssetPageKind }> = ({ kind }) => {
   return (
     <PageContainer
       title={getAssetTitle(kind)}
-      extra={[
-        <Button
-          key="reload-meta"
-          icon={<ReloadOutlined />}
-          loading={loadingMeta}
-          onClick={() => void reloadReferenceData()}
-        >
-          Reload Reference Data
-        </Button>,
-      ]}
+      extra={
+        showSharedFilters
+          ? [
+              <Button
+                key="reload-meta"
+                icon={<ReloadOutlined />}
+                loading={loadingMeta}
+                onClick={() => void reloadReferenceData()}
+              >
+                刷新引用数据
+              </Button>,
+            ]
+          : undefined
+      }
     >
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         {showSharedFilters ? (
@@ -170,6 +174,8 @@ const AssetPageContent: React.FC<{ kind: AssetPageKind }> = ({ kind }) => {
             accounts={accounts}
             sshKeys={sshKeys}
             onTaskAck={handleTaskAck}
+            onResetFilters={() => setFilters({})}
+            onApplyFilters={setFilters}
           />
         ) : null}
         {kind === 'ips' ? (
