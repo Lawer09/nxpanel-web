@@ -75,6 +75,7 @@ export default {
   'menu.asset.machines': 'Machines',
   'menu.asset.ips': 'IPs',
   'menu.asset.ssh-keys': 'SSH Keys',
+  'menu.asset.scripts': 'Scripts',
   'menu.asset.operations': 'Operations',
   'menu.iam': 'IAM',
   'menu.iam.users': 'Users',

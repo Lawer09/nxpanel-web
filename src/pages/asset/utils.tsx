@@ -1,6 +1,9 @@
 import { Tooltip } from 'antd';
 import React from 'react';
-import { DevAdminRequestError } from '@/services/dev-admin/request';
+import {
+  DevAdminRequestError,
+  DevAdminUnauthorizedError,
+} from '@/services/dev-admin/request';
 import {
   ACCOUNT_STATUS_OPTIONS,
   IP_STATUS_OPTIONS,
@@ -8,6 +11,7 @@ import {
   SSH_KEY_STATUS_OPTIONS,
 } from './constants';
 import type { AssetResourceKey } from './types';
+import type { AssetTagFormValue } from './types';
 
 export const formatText = (value?: string | number | null | boolean) => {
   if (value === undefined || value === null || value === '') {
@@ -44,17 +48,83 @@ export const stringifyJson = (value: unknown) => {
   }
 };
 
+export const buildAssetTaskDetailPath = (taskId: number | string) =>
+  `/asset/tasks/${encodeURIComponent(String(taskId))}`;
+
+const isCapabilityNotSupportedDetail = (
+  errorType?: string,
+  errorDetail?: string,
+  message?: string,
+) => {
+  const normalizedType = errorType?.toUpperCase();
+  const normalizedDetail = errorDetail?.toLowerCase();
+  const normalizedMessage = message?.toLowerCase();
+
+  return (
+    normalizedType === 'CAPABILITY_NOT_SUPPORTED' ||
+    normalizedDetail === 'capability_not_supported' ||
+    normalizedMessage?.includes('capability_not_supported') === true
+  );
+};
+
 export const normalizeDevErrorMessage = (error: any) => {
+  if (error instanceof DevAdminUnauthorizedError) {
+    return 'Management login required. Sign in again and retry.';
+  }
+
   if (error instanceof DevAdminRequestError) {
-    if (error.errorType === 'CAPABILITY_NOT_SUPPORTED') {
-      return error.errorDetail || 'Current provider capability does not support this action.';
+    if (error.errorType === 'IP_PULL_RUN_EXPIRED') {
+      return 'The pulled IP cache has expired. Pull provider IPs again.';
     }
+
+    if (
+      isCapabilityNotSupportedDetail(
+        error.errorType,
+        error.errorDetail,
+        error.message,
+      )
+    ) {
+      return 'Current provider capability does not support this action.';
+    }
+
+    if (error.httpStatus === 403) {
+      return 'You do not have permission to access this asset action.';
+    }
+
+    if (error.httpStatus === 400 || error.errorType === 'INVALID_REQUEST') {
+      return error.message || 'The submitted asset request is invalid.';
+    }
+
+    if (error.httpStatus === 404 || error.errorType === 'COMMON_NOT_FOUND') {
+      return 'The requested asset resource no longer exists.';
+    }
+
+    if (error.httpStatus === 409 || error.errorType === 'COMMON_CONFLICT') {
+      return error.message || 'The request conflicts with the current asset state.';
+    }
+
+    if (error.httpStatus === 502) {
+      return error.message || 'Provider request failed. Retry later or check provider status.';
+    }
+
+    if (error.httpStatus === 503 || error.errorType === 'COMMON_UNAVAILABLE') {
+      return error.message || 'Dependent service is unavailable. Retry later.';
+    }
+
+    if (error.httpStatus === 401) {
+      return 'Management login required. Sign in again and retry.';
+    }
+
     return error.message || error.errorDetail || 'Request failed.';
   }
+
   const messageText = error?.message || 'Request failed.';
   if (
-    typeof messageText === 'string' &&
-    messageText.includes('capability_not_supported')
+    isCapabilityNotSupportedDetail(
+      error?.errorType,
+      error?.errorDetail,
+      messageText,
+    )
   ) {
     return 'Current provider capability does not support this action.';
   }
@@ -63,7 +133,7 @@ export const normalizeDevErrorMessage = (error: any) => {
 
 export const isCapabilityNotSupportedError = (error: unknown) =>
   error instanceof DevAdminRequestError &&
-  error.errorType === 'CAPABILITY_NOT_SUPPORTED';
+  isCapabilityNotSupportedDetail(error.errorType, error.errorDetail, error.message);
 
 export const cleanupObject = <T extends Record<string, any>>(value: T): T =>
   Object.fromEntries(
@@ -71,6 +141,17 @@ export const cleanupObject = <T extends Record<string, any>>(value: T): T =>
       ([, item]) => item !== undefined && item !== null && item !== '',
     ),
   ) as T;
+
+export const normalizeAssetTags = (values?: AssetTagFormValue[]) =>
+  (values || [])
+    .map((item) =>
+      cleanupObject({
+        key: item.key?.trim(),
+        value: item.value?.trim(),
+        label: item.label?.trim(),
+      }),
+    )
+    .filter((item) => item.key && item.value) as API.AssetTagItem[];
 
 export const getStatusOptions = (tab: AssetResourceKey) => {
   if (tab === 'accounts') {
@@ -81,6 +162,12 @@ export const getStatusOptions = (tab: AssetResourceKey) => {
   }
   if (tab === 'ips') {
     return IP_STATUS_OPTIONS;
+  }
+  if (tab === 'scripts') {
+    return [
+      { label: 'active', value: 'active' },
+      { label: 'disabled', value: 'disabled' },
+    ];
   }
   return SSH_KEY_STATUS_OPTIONS;
 };

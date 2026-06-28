@@ -46,9 +46,11 @@ import {
   formatText,
   formatTime,
   isProviderCapabilitySupported,
+  normalizeAssetTags,
   normalizeDevErrorMessage,
   renderActionButton,
 } from '../../utils';
+import AssetTagEditor from '../AssetTagEditor';
 
 const ProviderAccountsPanel: React.FC<{
   filters: SharedFilters;
@@ -103,6 +105,7 @@ const ProviderAccountsPanel: React.FC<{
       access_key_secret: undefined,
       access_token: undefined,
       api_base_url: undefined,
+      tags: record.tags || [],
     });
     setOpen(true);
   };
@@ -136,6 +139,22 @@ const ProviderAccountsPanel: React.FC<{
       title: 'Status',
       dataIndex: 'status',
       render: (_, record) => <Tag color="blue">{record.status || '-'}</Tag>,
+    },
+    {
+      title: 'Tags',
+      dataIndex: 'tags',
+      render: (_, record) =>
+        record.tags?.length ? (
+          <Space wrap>
+            {record.tags.map((item) => (
+              <Tag key={`${item.key}-${item.value}-${item.label || ''}`}>
+                {item.label || `${item.key}:${item.value}`}
+              </Tag>
+            ))}
+          </Space>
+        ) : (
+          '-'
+        ),
     },
     {
       title: 'Credential',
@@ -230,6 +249,8 @@ const ProviderAccountsPanel: React.FC<{
               page_size: Number(params.pageSize || 10),
               provider_code: filters.provider_code,
               status: filters.status,
+              tag_key: filters.tag_key,
+              tag_value: filters.tag_value,
             });
             return {
               data: response.data?.items || [],
@@ -299,6 +320,7 @@ const ProviderAccountsPanel: React.FC<{
                   credential: Object.keys(credential).length
                     ? credential
                     : undefined,
+                  tags: values.tags ? normalizeAssetTags(values.tags) : undefined,
                 }),
               );
               message.success('Provider account updated.');
@@ -308,6 +330,7 @@ const ProviderAccountsPanel: React.FC<{
                 name: values.name.trim(),
                 status: values.status,
                 credential,
+                tags: normalizeAssetTags(values.tags),
               });
               message.success('Provider account created.');
             }
@@ -347,6 +370,7 @@ const ProviderAccountsPanel: React.FC<{
           <Form.Item name="status" label="Status">
             <Select options={ACCOUNT_STATUS_OPTIONS} />
           </Form.Item>
+          <AssetTagEditor name="tags" />
           <Collapse
             activeKey={credentialExpanded}
             onChange={(keys) =>
@@ -416,8 +440,26 @@ const ProviderAccountsPanel: React.FC<{
               <Descriptions.Item label="Last Synced">
                 {formatTime(detail.last_synced_at)}
               </Descriptions.Item>
+              <Descriptions.Item label="Created At">
+                {formatTime(detail.created_at)}
+              </Descriptions.Item>
               <Descriptions.Item label="Updated At">
                 {formatTime(detail.updated_at)}
+              </Descriptions.Item>
+            </Descriptions>
+            <Descriptions bordered column={1} title="Tags">
+              <Descriptions.Item label="Tags">
+                {detail.tags?.length ? (
+                  <Space wrap>
+                    {detail.tags.map((item) => (
+                      <Tag key={`${item.key}-${item.value}-${item.label || ''}`}>
+                        {item.label || `${item.key}:${item.value}`}
+                      </Tag>
+                    ))}
+                  </Space>
+                ) : (
+                  '-'
+                )}
               </Descriptions.Item>
             </Descriptions>
             <Descriptions bordered column={1} title="Related Resources">

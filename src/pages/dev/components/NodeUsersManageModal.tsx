@@ -18,11 +18,13 @@ import {
   createNodeUser,
   deleteNodeUser,
   getNodeUserClientConfig,
+  getUserClientConfigs,
   listNodeUsers,
   updateNodeUser,
 } from '@/services/node-control/api';
 import { NodeControlConfigError } from '@/services/node-control/request';
 import NodeUserClientConfigModal from './NodeUserClientConfigModal';
+import NodeUserClientConfigsModal from './NodeUserClientConfigsModal';
 import UnitNumberInput, { speedLimitUnits } from './UnitNumberInput';
 
 const { Text } = Typography;
@@ -70,6 +72,9 @@ const NodeUsersManageModal: React.FC<{
   const [clientConfigOpen, setClientConfigOpen] = useState(false);
   const [clientConfigLoading, setClientConfigLoading] = useState(false);
   const [clientConfig, setClientConfig] = useState<API.ControlNodeUserClientConfig | null>(null);
+  const [clientConfigsOpen, setClientConfigsOpen] = useState(false);
+  const [clientConfigsLoading, setClientConfigsLoading] = useState(false);
+  const [clientConfigs, setClientConfigs] = useState<API.ControlUserClientConfigsResponse | null>(null);
 
   const loadUsers = async () => {
     if (!nodeId) return;
@@ -95,6 +100,8 @@ const NodeUsersManageModal: React.FC<{
       setSelectedUserIds([]);
       setClientConfig(null);
       setClientConfigOpen(false);
+      setClientConfigs(null);
+      setClientConfigsOpen(false);
       return;
     }
     void loadUsers();
@@ -335,6 +342,32 @@ const NodeUsersManageModal: React.FC<{
     }
   };
 
+  const handleGetUserClientConfigs = async (row: EditableUserRow) => {
+    if (!row.user_id) {
+      return;
+    }
+    setClientConfigsLoading(true);
+    setClientConfigsOpen(true);
+    try {
+      const response = await getUserClientConfigs(Number(row.user_id));
+      if (response.code !== 0) {
+        message.error(response.message || 'Failed to load client configs.');
+        setClientConfigs(null);
+        return;
+      }
+      setClientConfigs(response.data);
+    } catch (error: any) {
+      setClientConfigs(null);
+      message.error(
+        error instanceof NodeControlConfigError
+          ? error.message
+          : error?.message || 'Failed to load client configs.',
+      );
+    } finally {
+      setClientConfigsLoading(false);
+    }
+  };
+
   return (
     <>
       <Modal
@@ -461,7 +494,10 @@ const NodeUsersManageModal: React.FC<{
                     {record.isNew ? 'Create' : 'Save'}
                   </a>
                   {!record.isNew ? (
-                    <a onClick={() => void handleGetClientConfig(record)}>Get Config</a>
+                    <>
+                      <a onClick={() => void handleGetClientConfig(record)}>Get Config</a>
+                      <a onClick={() => void handleGetUserClientConfigs(record)}>All Configs</a>
+                    </>
                   ) : null}
                   {record.isNew ? (
                     <a onClick={() => removeLocalNewRow(record.key)}>Remove</a>
@@ -484,6 +520,17 @@ const NodeUsersManageModal: React.FC<{
           setClientConfigOpen(nextOpen);
           if (!nextOpen) {
             setClientConfig(null);
+          }
+        }}
+      />
+      <NodeUserClientConfigsModal
+        open={clientConfigsOpen}
+        loading={clientConfigsLoading}
+        value={clientConfigs}
+        onOpenChange={(nextOpen) => {
+          setClientConfigsOpen(nextOpen);
+          if (!nextOpen) {
+            setClientConfigs(null);
           }
         }}
       />

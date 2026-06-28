@@ -1,5 +1,6 @@
-import { Alert, Form, Input, InputNumber, Space, Switch } from 'antd';
+import { Alert, Form, Input, InputNumber, Space } from 'antd';
 import React from 'react';
+import AssetTagEditor from '../AssetTagEditor';
 import {
   MachineCreateCatalogSelect,
   MachineCreateSection,
@@ -12,20 +13,18 @@ type Props = {
 };
 
 const MachineCreateNetworkStep: React.FC<Props> = ({ catalog, zoneReady }) => {
-  const form = Form.useFormInstance();
-  const ipMode = Form.useWatch(['ip_assignment', 'mode'], form) as
-    | string
-    | undefined;
-
-  const vpcField = catalog.getFieldStatus('network.vpc_id');
-  const subnetField = catalog.getFieldStatus('network.subnet_id');
-  const securityGroupField = catalog.getFieldStatus(
-    'network.security_group_id',
+  const vpcField = catalog.getFieldStatus('vpc.vpc_id');
+  const vswitchField = catalog.getFieldStatus('vpc.vswitch_id');
+  const chargeTypeField = catalog.getFieldStatus('internet.charge_type');
+  const bandwidthField = catalog.getFieldStatus('internet.bandwidth_mbps');
+  const trafficPackageField = catalog.getFieldStatus(
+    'internet.traffic_package_size',
   );
-  const ipModeField = catalog.getFieldStatus('ip_assignment.mode');
-  const ipField = catalog.getFieldStatus('ip_assignment.ip_ids');
-  const ipExistingMode =
-    ipMode === 'provider_existing' || ipMode === 'self_owned';
+  const eipTypeField = catalog.getFieldStatus('internet.eip_v4_type');
+  const showVswitch =
+    !!vswitchField.group ||
+    vswitchField.options.length > 0 ||
+    vswitchField.loading;
 
   return (
     <>
@@ -34,24 +33,22 @@ const MachineCreateNetworkStep: React.FC<Props> = ({ catalog, zoneReady }) => {
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          message="Select zone before editing network"
-          description="Network, subnet, and security group candidates are loaded after the zone is selected."
+          message="Select zone before editing VPC and internet settings"
+          description="VPC, VSwitch and internet option catalogs are loaded after the zone is selected."
         />
       ) : null}
 
       <MachineCreateSection
-        title="Network"
-        description="VPC is used for selection and record keeping. The actual create request depends on `network.subnet_id`."
+        title="VPC"
+        description="The new contract submits a VPC object. `vpc_id` is always part of the request, while `vswitch_id` only appears for providers such as Alibaba Cloud ECS."
       >
-        <Alert
-          type="info"
-          showIcon
-          style={{ marginBottom: 16 }}
-          message="VPC is not the final create key"
-          description="For Zenlayer and the current generic API, `network.subnet_id` is the actual create field. `network.vpc_id` is still shown to narrow subnet choices and record network context."
-        />
         <Space size={16} align="start" style={{ width: '100%' }}>
-          <Form.Item name={['network', 'vpc_id']} label="VPC" style={{ flex: 1 }}>
+          <Form.Item
+            name={['vpc', 'vpc_id']}
+            label="VPC"
+            style={{ flex: 1 }}
+            rules={[{ required: true, message: 'Please select VPC.' }]}
+          >
             <MachineCreateCatalogSelect
               options={vpcField.options}
               loading={vpcField.loading}
@@ -60,183 +57,139 @@ const MachineCreateNetworkStep: React.FC<Props> = ({ catalog, zoneReady }) => {
               notFoundContent={vpcField.emptyText}
             />
           </Form.Item>
-          <Form.Item
-            name={['network', 'subnet_id']}
-            label="Subnet"
-            style={{ flex: 1 }}
-            rules={[{ required: true, message: 'Please select subnet.' }]}
-          >
-            <MachineCreateCatalogSelect
-              options={subnetField.options}
-              loading={subnetField.loading}
-              disabled={subnetField.disabled}
-              placeholder={subnetField.placeholder}
-              notFoundContent={subnetField.emptyText}
-            />
-          </Form.Item>
+          {showVswitch ? (
+            <Form.Item
+              name={['vpc', 'vswitch_id']}
+              label="VSwitch"
+              style={{ flex: 1 }}
+              rules={
+                vswitchField.options.length
+                  ? [{ required: true, message: 'Please select VSwitch.' }]
+                  : undefined
+              }
+            >
+              <MachineCreateCatalogSelect
+                options={vswitchField.options}
+                loading={vswitchField.loading}
+                disabled={vswitchField.disabled}
+                placeholder={vswitchField.placeholder}
+                notFoundContent={vswitchField.emptyText}
+              />
+            </Form.Item>
+          ) : null}
         </Space>
+
         <Space size={16} align="start" style={{ width: '100%' }}>
           <Form.Item
-            name={['network', 'security_group_id']}
-            label="Security Group"
+            name={['vpc', 'cidr_block_v4']}
+            label="IPv4 CIDR"
             style={{ flex: 1 }}
           >
-            <MachineCreateCatalogSelect
-              options={securityGroupField.options}
-              loading={securityGroupField.loading}
-              disabled={securityGroupField.disabled}
-              placeholder={securityGroupField.placeholder}
-              notFoundContent={securityGroupField.emptyText}
+            <Input placeholder="10.0.0.0/8" disabled={!zoneReady} />
+          </Form.Item>
+          <Form.Item
+            name={['vpc', 'cidr_block_v6']}
+            label="IPv6 CIDR"
+            style={{ flex: 1 }}
+          >
+            <Input
+              placeholder="Optional local snapshot"
+              disabled={!zoneReady}
             />
-          </Form.Item>
-          <Form.Item
-            name={['network', 'nic_network_type']}
-            label="NIC Network Type"
-            style={{ width: 220 }}
-          >
-            <Input disabled={!zoneReady} />
-          </Form.Item>
-          <Form.Item
-            name={['network', 'lan_ip']}
-            label="LAN IP"
-            style={{ width: 220 }}
-          >
-            <Input disabled={!zoneReady} />
-          </Form.Item>
-        </Space>
-        <Space size={16} align="start" style={{ width: '100%' }}>
-          <Form.Item
-            name={['network', 'resource_group_id']}
-            label="Resource Group ID"
-            style={{ flex: 1 }}
-          >
-            <Input disabled={!zoneReady} />
-          </Form.Item>
-          <Form.Item
-            name={['network', 'enable_agent']}
-            label="Enable Agent"
-            valuePropName="checked"
-            style={{ width: 160 }}
-          >
-            <Switch disabled={!zoneReady} />
-          </Form.Item>
-          <Form.Item
-            name={['network', 'enable_ip_forward']}
-            label="Enable IP Forward"
-            valuePropName="checked"
-            style={{ width: 180 }}
-          >
-            <Switch disabled={!zoneReady} />
           </Form.Item>
         </Space>
       </MachineCreateSection>
 
       <MachineCreateSection
-        title="IP Assignment"
-        description="The mode controls whether the provider auto-allocates a public IP or whether existing local IP records are bound after create."
+        title="Internet"
+        description="Internet settings are now provider-neutral fields under `internet.*`. The top-level compatibility field `bandwidth_mbps` is filled from `internet.bandwidth_mbps`."
       >
-        <Form.Item
-          name={['ip_assignment', 'mode']}
-          label="IP Assignment Mode"
-        >
-          <MachineCreateCatalogSelect
-            options={ipModeField.options}
-            loading={ipModeField.loading}
-            disabled={ipModeField.disabled}
-            placeholder={ipModeField.placeholder}
-            notFoundContent={ipModeField.emptyText}
-          />
-        </Form.Item>
-
-        {ipExistingMode ? (
+        <Space size={16} align="start" style={{ width: '100%' }}>
           <Form.Item
-            name={['ip_assignment', 'ip_ids']}
-            label="Existing IPs"
-            rules={[
-              {
-                validator: async (_, value) => {
-                  const count = form.getFieldValue('count') || 1;
-                  const nextValue = Array.isArray(value) ? value : [];
-
-                  if (nextValue.length === 0) {
-                    throw new Error('Please select at least one IP.');
-                  }
-
-                  if (count > 1 && nextValue.length !== count) {
-                    throw new Error(
-                      `When count is ${count}, selected IP count must also be ${count}.`,
-                    );
-                  }
-                },
-              },
-            ]}
+            name={['internet', 'charge_type']}
+            label="Charge Type"
+            style={{ flex: 1 }}
           >
-            <MachineCreateCatalogSelect
-              mode="multiple"
-              options={ipField.options}
-              loading={ipField.loading}
-              disabled={ipField.disabled}
-              placeholder={ipField.placeholder}
-              notFoundContent={ipField.emptyText}
-            />
+            {chargeTypeField.options.length ? (
+              <MachineCreateCatalogSelect
+                options={chargeTypeField.options}
+                loading={chargeTypeField.loading}
+                disabled={chargeTypeField.disabled}
+                placeholder={chargeTypeField.placeholder}
+                notFoundContent={chargeTypeField.emptyText}
+              />
+            ) : (
+              <Input placeholder="ByTrafficPackage" disabled={!zoneReady} />
+            )}
           </Form.Item>
-        ) : (
-          <>
-            <Space size={16} align="start" style={{ width: '100%' }}>
-              <Form.Item
-                name={['ip_assignment', 'quantity']}
-                label="IP Quantity"
-                style={{ width: 180 }}
-              >
-                <InputNumber min={0} precision={0} style={{ width: '100%' }} />
-              </Form.Item>
-              <Form.Item
-                name={['ip_assignment', 'bandwidth_mbps']}
-                label="Bandwidth (Mbps)"
-                style={{ width: 220 }}
-              >
-                <InputNumber min={0} precision={0} style={{ width: '100%' }} />
-              </Form.Item>
-              <Form.Item
-                name={['ip_assignment', 'internet_charge_type']}
-                label="Internet Charge Type"
-                style={{ flex: 1 }}
-              >
-                <Input />
-              </Form.Item>
-              <Form.Item
-                name={['ip_assignment', 'traffic_package_size']}
-                label="Traffic Package Size"
-                style={{ width: 220 }}
-              >
-                <InputNumber min={0} style={{ width: '100%' }} />
-              </Form.Item>
-            </Space>
-            <Space size={16} align="start" style={{ width: '100%' }}>
-              <Form.Item
-                name={['ip_assignment', 'eip_bind_type']}
-                label="EIP Bind Type"
-                style={{ flex: 1 }}
-              >
-                <Input />
-              </Form.Item>
-              <Form.Item
-                name={['ip_assignment', 'eip_v4_type']}
-                label="EIP IPv4 Type"
-                style={{ flex: 1 }}
-              >
-                <Input />
-              </Form.Item>
-              <Form.Item
-                name={['ip_assignment', 'cluster_id']}
-                label="Cluster ID"
-                style={{ flex: 1 }}
-              >
-                <Input />
-              </Form.Item>
-            </Space>
-          </>
-        )}
+          <Form.Item
+            name={['internet', 'bandwidth_mbps']}
+            label="Bandwidth (Mbps)"
+            style={{ width: 220 }}
+            rules={[{ required: true, message: 'Please provide bandwidth.' }]}
+          >
+            {bandwidthField.options.length ? (
+              <MachineCreateCatalogSelect
+                options={bandwidthField.options}
+                loading={bandwidthField.loading}
+                disabled={bandwidthField.disabled}
+                placeholder={bandwidthField.placeholder}
+                notFoundContent={bandwidthField.emptyText}
+              />
+            ) : (
+              <InputNumber
+                min={1}
+                precision={0}
+                style={{ width: '100%' }}
+                disabled={!zoneReady}
+              />
+            )}
+          </Form.Item>
+        </Space>
+
+        <Space size={16} align="start" style={{ width: '100%' }}>
+          <Form.Item
+            name={['internet', 'traffic_package_size']}
+            label="Traffic Package Size"
+            style={{ flex: 1 }}
+          >
+            {trafficPackageField.options.length ? (
+              <MachineCreateCatalogSelect
+                options={trafficPackageField.options}
+                loading={trafficPackageField.loading}
+                disabled={trafficPackageField.disabled}
+                placeholder={trafficPackageField.placeholder}
+                notFoundContent={trafficPackageField.emptyText}
+              />
+            ) : (
+              <InputNumber min={0} precision={0} style={{ width: '100%' }} />
+            )}
+          </Form.Item>
+          <Form.Item
+            name={['internet', 'eip_v4_type']}
+            label="IPv4 EIP Type"
+            style={{ flex: 1 }}
+          >
+            {eipTypeField.options.length ? (
+              <MachineCreateCatalogSelect
+                options={eipTypeField.options}
+                loading={eipTypeField.loading}
+                disabled={eipTypeField.disabled}
+                placeholder={eipTypeField.placeholder}
+                notFoundContent={eipTypeField.emptyText}
+              />
+            ) : (
+              <Input placeholder="BGP" disabled={!zoneReady} />
+            )}
+          </Form.Item>
+        </Space>
+      </MachineCreateSection>
+
+      <MachineCreateSection
+        title="Tags"
+        description="Tags are stored on the local asset record and submitted in the provider-neutral tag array format."
+      >
+        <AssetTagEditor name="tags" />
       </MachineCreateSection>
     </>
   );

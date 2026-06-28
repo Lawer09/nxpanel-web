@@ -21,7 +21,7 @@ export default {
       changeOrigin: true,
       secure: false,
     },
-    '/v4/nodes/': {
+    '/v4/nodes': {
       target: 'http://8.220.74.20:8080',
       changeOrigin: true,
       pathRewrite: { '^/v4/nodes': '/api/v1/nodes' },
@@ -52,6 +52,13 @@ export default {
       changeOrigin: true,
       pathRewrite: {
         '^/v4/assets': '/api/v1/assets',
+      },
+    },
+    '/v4/tasks/': {
+      target: 'http://8.220.74.20:8080',
+      changeOrigin: true,
+      pathRewrite: {
+        '^/v4/tasks': '/api/v1/tasks',
       },
     },
   },

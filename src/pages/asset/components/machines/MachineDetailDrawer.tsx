@@ -1,4 +1,5 @@
 import { ProTable } from '@ant-design/pro-components';
+import { history } from '@umijs/max';
 import type { FormInstance } from 'antd';
 import {
   Alert,
@@ -23,6 +24,7 @@ import {
 import JsonBlock from '../../../dev/components/JsonBlock';
 import { IP_SWITCH_PRIMARY_ACTION_KEYS } from '../../constants';
 import {
+  buildAssetTaskDetailPath,
   formatText,
   formatTime,
   isProviderCapabilitySupported,
@@ -111,7 +113,17 @@ const MachineDetailDrawer: React.FC<Props> = ({
                   {detail.sync_status || '-'}
                 </Descriptions.Item>
                 <Descriptions.Item label="Create Task ID">
-                  {formatText(detail.create_task_id)}
+                  {detail.create_task_id ? (
+                    <a
+                      onClick={() =>
+                        history.push(buildAssetTaskDetailPath(detail.create_task_id || ''))
+                      }
+                    >
+                      {detail.create_task_id}
+                    </a>
+                  ) : (
+                    '-'
+                  )}
                 </Descriptions.Item>
                 <Descriptions.Item label="Create Attempts">
                   {formatText(detail.create_attempt)}
@@ -124,6 +136,15 @@ const MachineDetailDrawer: React.FC<Props> = ({
                 </Descriptions.Item>
                 <Descriptions.Item label="Last Synced">
                   {formatTime(detail.last_synced_at)}
+                </Descriptions.Item>
+                <Descriptions.Item label="Created By">
+                  {formatText(detail.created_by)}
+                </Descriptions.Item>
+                <Descriptions.Item label="Created At">
+                  {formatTime(detail.created_at)}
+                </Descriptions.Item>
+                <Descriptions.Item label="Updated At">
+                  {formatTime(detail.updated_at)}
                 </Descriptions.Item>
                 <Descriptions.Item label="CPU Cores">
                   {formatText(detail.spec?.cpu_cores)}
@@ -310,8 +331,18 @@ const MachineDetailDrawer: React.FC<Props> = ({
                   />
                 ) : null}
                 <Descriptions bordered column={2}>
-                  <Descriptions.Item label="Create Task ID">
-                    {formatText(detail.create_task_id)}
+                <Descriptions.Item label="Create Task ID">
+                    {detail.create_task_id ? (
+                      <a
+                        onClick={() =>
+                          history.push(buildAssetTaskDetailPath(detail.create_task_id || ''))
+                        }
+                      >
+                        {detail.create_task_id}
+                      </a>
+                    ) : (
+                      '-'
+                    )}
                   </Descriptions.Item>
                   <Descriptions.Item label="Create Attempts">
                     {formatText(detail.create_attempt)}
@@ -332,6 +363,7 @@ const MachineDetailDrawer: React.FC<Props> = ({
             label: 'Metadata',
             children: (
               <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                <JsonBlock title="tags" value={detail.tags} />
                 <JsonBlock title="metadata" value={detail.metadata} />
                 <JsonBlock title="spec.extra" value={detail.spec?.spec} />
               </Space>

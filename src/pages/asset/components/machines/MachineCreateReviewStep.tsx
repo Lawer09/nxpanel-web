@@ -8,7 +8,7 @@ const { Text } = Typography;
 
 type Props = {
   mode: MachineCreateWizardMode;
-  requestPayload?: API.AssetMachineCreateFromProviderParams;
+  requestPayload?: Partial<API.AssetMachineCreateFromProviderParams>;
   requestError?: string;
   quote?: API.AssetMachineCreatePriceQuote | null;
   quoteLoading: boolean;
@@ -49,23 +49,35 @@ const MachineCreateReviewStep: React.FC<Props> = ({
           <Text type="secondary">Not quoted</Text>
         )}
       </Descriptions.Item>
-      <Descriptions.Item label="Region">
-        {requestPayload?.region || '-'}
-      </Descriptions.Item>
-      <Descriptions.Item label="Zone">
-        {requestPayload?.zone || '-'}
-      </Descriptions.Item>
-      <Descriptions.Item label="Instance Type">
-        {requestPayload?.instance_type || '-'}
-      </Descriptions.Item>
-      <Descriptions.Item label="Image">
-        {requestPayload?.image_id || '-'}
-      </Descriptions.Item>
-      <Descriptions.Item label="Subnet">
-        {requestPayload?.network?.subnet_id || '-'}
+      <Descriptions.Item label="Name">
+        {requestPayload?.name || '-'}
       </Descriptions.Item>
       <Descriptions.Item label="Count">
         {requestPayload?.count || 1}
+      </Descriptions.Item>
+      <Descriptions.Item label="Country">
+        {requestPayload?.zone?.country_code || '-'}
+      </Descriptions.Item>
+      <Descriptions.Item label="Zone">
+        {requestPayload?.zone?.zone_id || '-'}
+      </Descriptions.Item>
+      <Descriptions.Item label="Instance Type">
+        {requestPayload?.spec?.type || '-'}
+      </Descriptions.Item>
+      <Descriptions.Item label="OS Image">
+        {requestPayload?.os?.image_id || '-'}
+      </Descriptions.Item>
+      <Descriptions.Item label="System Disk">
+        {requestPayload?.disk?.system_size_gb || '-'}
+      </Descriptions.Item>
+      <Descriptions.Item label="VPC">
+        {requestPayload?.vpc?.vpc_id || '-'}
+      </Descriptions.Item>
+      <Descriptions.Item label="Login">
+        {requestPayload?.login?.auth_type || '-'}
+      </Descriptions.Item>
+      <Descriptions.Item label="Time Zone">
+        {requestPayload?.time_zone || '-'}
       </Descriptions.Item>
     </Descriptions>
 
@@ -109,7 +121,7 @@ const MachineCreateReviewStep: React.FC<Props> = ({
       </Button>
       {!canQuote ? (
         <Text type="secondary">
-          Complete required create fields before requesting a quote.
+          Complete the required create fields before requesting a quote.
         </Text>
       ) : null}
     </Space>

@@ -11,8 +11,10 @@ import {
   Alert,
   App,
   Button,
+  Descriptions,
   Form,
   Input,
+  Modal,
   Popconfirm,
   Space,
   Tag,
@@ -48,16 +50,19 @@ import {
   formatText,
   formatTime,
   isProviderCapabilitySupported,
+  buildAssetTaskDetailPath,
   normalizeDevErrorMessage,
   renderActionButton,
   stringifyJson,
 } from '../../utils';
+import JsonBlock from '../../../dev/components/JsonBlock';
 import MachineCommandModal from '../machines/MachineCommandModal';
 import MachineCreateWizardModal from '../machines/MachineCreateWizardModal';
 import MachineDetailDrawer from '../machines/MachineDetailDrawer';
 import MachineImportModal from '../machines/MachineImportModal';
 import MachineManualModal from '../machines/MachineManualModal';
 import { buildMachinePayload } from '../machines/machinePayload';
+import { history } from '@umijs/max';
 
 const { Text, Paragraph } = Typography;
 
@@ -88,6 +93,12 @@ const MachinesPanel: React.FC<{
   const [detailTab, setDetailTab] = useState('basic');
   const [bindOptions, setBindOptions] = useState<API.AssetIp[]>([]);
   const [bindLoading, setBindLoading] = useState(false);
+  const [manualCreateResult, setManualCreateResult] =
+    useState<API.AssetMachineCreateManualResult | null>(null);
+  const [tableQuery, setTableQuery] = useState<{
+    source?: string;
+    name?: string;
+  }>({});
   const [importAccountId, setImportAccountId] = useState<number | undefined>(
     filters.account_id,
   );
@@ -180,7 +191,7 @@ const MachinesPanel: React.FC<{
 
   const columns: ProColumns<API.AssetMachine>[] = [
     { title: 'Machine ID', dataIndex: 'machine_id', width: 160 },
-    { title: 'Name', dataIndex: 'name' },
+    { title: 'Name', dataIndex: 'name', hideInSearch: true },
     {
       title: 'Provider',
       dataIndex: 'provider_code',
@@ -198,7 +209,23 @@ const MachinesPanel: React.FC<{
       dataIndex: 'status',
       render: (_, record) => <Tag color="blue">{record.status || '-'}</Tag>,
     },
-    { title: 'Source', dataIndex: 'source', renderText: formatText },
+    { title: 'Source', dataIndex: 'source', renderText: formatText, hideInSearch: true },
+    {
+      title: 'Tags',
+      dataIndex: 'tags',
+      render: (_, record) =>
+        record.tags?.length ? (
+          <Space wrap>
+            {record.tags.map((item) => (
+              <Tag key={`${item.key}-${item.value}-${item.label || ''}`}>
+                {item.label || `${item.key}:${item.value}`}
+              </Tag>
+            ))}
+          </Space>
+        ) : (
+          '-'
+        ),
+    },
     { title: 'Sync Status', dataIndex: 'sync_status', renderText: formatText },
     {
       title: 'Create Task',
@@ -236,6 +263,8 @@ const MachinesPanel: React.FC<{
     {
       title: 'Actions',
       valueType: 'option',
+      width: 260,
+      fixed: 'right',
       render: (_, record) => {
         const provider = providerMap.get(record.provider_code || '');
         const destroySupported = isProviderCapabilitySupported(
@@ -289,6 +318,7 @@ const MachinesPanel: React.FC<{
                   disk_gb: response.data.spec?.disk_gb,
                   bandwidth_mbps: response.data.spec?.bandwidth_mbps,
                   spec_text: stringifyJson(response.data.spec?.spec),
+                  tags: response.data.tags || [],
                 });
                 setManualOpen(true);
               } catch (error: any) {
@@ -427,8 +457,33 @@ const MachinesPanel: React.FC<{
       <ProTable<API.AssetMachine>
         rowKey="id"
         actionRef={actionRef}
-        search={false}
-        columns={columns}
+        scroll={{ x: 1800 }}
+        options={false}
+        search={{
+          labelWidth: 'auto',
+        }}
+        columns={[
+          ...columns,
+          {
+            title: 'Source',
+            key: 'source_search',
+            dataIndex: 'source',
+            hideInTable: true,
+          },
+          {
+            title: 'Name',
+            key: 'name_search',
+            dataIndex: 'name',
+            hideInTable: true,
+          },
+        ]}
+        onSubmit={(params) =>
+          setTableQuery({
+            source: params.source as string | undefined,
+            name: params.name as string | undefined,
+          })
+        }
+        onReset={() => setTableQuery({})}
         rowSelection={{
           selectedRowKeys: selectedRows.map((item) => item.id),
           onChange: (_, rows) => setSelectedRows(rows),
@@ -442,6 +497,10 @@ const MachinesPanel: React.FC<{
               account_id: filters.account_id,
               region: filters.region,
               status: filters.status,
+              source: tableQuery.source,
+              name: tableQuery.name,
+              tag_key: filters.tag_key,
+              tag_value: filters.tag_value,
             });
             return {
               data: response.data?.items || [],
@@ -461,10 +520,9 @@ const MachinesPanel: React.FC<{
               onClick={() => {
                 setProviderWizardInitialValues({
                   account_id: filters.account_id,
-                  region: filters.region,
                   count: 1,
-                  ip_assignment: {
-                    mode: 'provider_auto',
+                  zone: {
+                    country_code: filters.region,
                   },
                 });
                 setProviderWizardOpen(true);
@@ -578,13 +636,15 @@ const MachinesPanel: React.FC<{
                 billing_type: payload.billing_type,
                 status: payload.status,
                 metadata: payload.metadata,
+                tags: payload.tags,
                 spec: payload.spec,
               });
               message.success('Machine updated.');
             } else {
-              await createAssetMachineManual(
+              const response = await createAssetMachineManual(
                 payload as API.AssetMachineCreateManualParams,
               );
+              setManualCreateResult(response.data);
               message.success('Machine created.');
             }
             setManualOpen(false);
@@ -709,6 +769,87 @@ const MachinesPanel: React.FC<{
         onSuccess={message.success}
         onError={message.error}
       />
+
+      <Modal
+        title={
+          manualCreateResult
+            ? `Manual Machine Created #${manualCreateResult.id}`
+            : 'Manual Machine Created'
+        }
+        open={Boolean(manualCreateResult)}
+        footer={[
+          <Button key="close" type="primary" onClick={() => setManualCreateResult(null)}>
+            Close
+          </Button>,
+        ]}
+        width={860}
+        destroyOnHidden
+        onCancel={() => setManualCreateResult(null)}
+      >
+        {manualCreateResult ? (
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Descriptions bordered column={2}>
+              <Descriptions.Item label="Machine Record ID">
+                {manualCreateResult.id}
+              </Descriptions.Item>
+              <Descriptions.Item label="Inject Task ID">
+                {manualCreateResult.trust_token?.inject_task_id ? (
+                  <a
+                    onClick={() =>
+                      history.push(
+                        buildAssetTaskDetailPath(
+                          manualCreateResult.trust_token?.inject_task_id || '',
+                        ),
+                      )
+                    }
+                  >
+                    {manualCreateResult.trust_token.inject_task_id}
+                  </a>
+                ) : (
+                  '-'
+                )}
+              </Descriptions.Item>
+              <Descriptions.Item label="Machine ID">
+                {manualCreateResult.trust_token?.machine_id || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Asset Machine ID">
+                {formatText(manualCreateResult.trust_token?.asset_machine_id)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Inject Status">
+                {manualCreateResult.trust_token?.inject_status || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Expires In Seconds">
+                {formatText(manualCreateResult.trust_token?.expires_in_seconds)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Inject Task URL" span={2}>
+                {manualCreateResult.trust_token?.inject_task_url || '-'}
+              </Descriptions.Item>
+            </Descriptions>
+            {manualCreateResult.trust_token?.trust_token ? (
+              <Typography.Paragraph copyable>
+                {manualCreateResult.trust_token.trust_token}
+              </Typography.Paragraph>
+            ) : null}
+            {manualCreateResult.trust_token?.inject_task_id ? (
+              <Button
+                onClick={() =>
+                  history.push(
+                    buildAssetTaskDetailPath(
+                      manualCreateResult.trust_token?.inject_task_id || '',
+                    ),
+                  )
+                }
+              >
+                View Inject Task
+              </Button>
+            ) : null}
+            <JsonBlock
+              title="asset.config payload"
+              value={manualCreateResult.trust_token?.config}
+            />
+          </Space>
+        ) : null}
+      </Modal>
     </>
   );
 };

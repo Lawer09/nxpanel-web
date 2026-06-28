@@ -1,4 +1,12 @@
-import { Alert, Descriptions, Form, Input, InputNumber, Select, Space } from 'antd';
+import {
+  Alert,
+  Descriptions,
+  Form,
+  Input,
+  InputNumber,
+  Select,
+  Space,
+} from 'antd';
 import React from 'react';
 import type { MachineCreateWizardMode } from '../../types';
 import {
@@ -21,12 +29,15 @@ const MachineCreateBasicStep: React.FC<Props> = ({
   retrying,
 }) => {
   const form = Form.useFormInstance();
-  const watchedRegion = Form.useWatch('region', form) as string | undefined;
-  const watchedZone = Form.useWatch('zone', form) as string | undefined;
-  const regionField = catalog.getFieldStatus('region');
-  const zoneField = catalog.getFieldStatus('zone');
-  const instanceTypeField = catalog.getFieldStatus('instance_type');
-  const imageField = catalog.getFieldStatus('image_id');
+  const watchedCountryCode = Form.useWatch(['zone', 'country_code'], form) as
+    | string
+    | undefined;
+  const watchedZoneId = Form.useWatch(['zone', 'zone_id'], form) as
+    | string
+    | undefined;
+  const zoneField = catalog.getFieldStatus('zone.zone_id');
+  const instanceTypeField = catalog.getFieldStatus('spec.type');
+  const imageField = catalog.getFieldStatus('os.image_id');
   const accountLocked = mode === 'retry';
 
   return (
@@ -56,40 +67,32 @@ const MachineCreateBasicStep: React.FC<Props> = ({
           showIcon
           style={{ marginBottom: 16 }}
           message="Select provider account first"
-          description="Region, billing, SSH key, and time zone candidates are loaded after the provider account is selected."
+          description="Zone, billing, SSH key and time zone candidates are loaded after the provider account is selected."
         />
       ) : null}
 
-      {catalog.available && !watchedRegion ? (
+      {catalog.available && !watchedZoneId ? (
         <Alert
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          message="Select region to continue placement"
-          description="Zone candidates and IP assignment candidates are requested after the region is selected."
-        />
-      ) : null}
-
-      {catalog.available && watchedRegion && !watchedZone ? (
-        <Alert
-          type="info"
-          showIcon
-          style={{ marginBottom: 16 }}
-          message="Select zone to load zone-scoped candidates"
-          description="Instance type, image, storage, and network catalogs are only loaded after the zone is selected. The image catalog is zone-scoped and is not requested before that."
+          message="Select zone to continue"
+          description="Instance type, image, VPC and internet candidates are requested after the zone is selected."
         />
       ) : null}
 
       <MachineCreateSection
         title="Placement"
-        description="Choose the provider account, region, zone, instance type, and image. All selectable values are driven by the machine-create catalog."
+        description="Create now follows the latest public contract: account, machine name, zone object, spec and OS are submitted as structured objects."
       >
         <Space size={16} align="start" style={{ width: '100%' }}>
           <Form.Item
             name="account_id"
             label="Provider Account"
             style={{ flex: 1 }}
-            rules={[{ required: true, message: 'Please select provider account.' }]}
+            rules={[
+              { required: true, message: 'Please select provider account.' },
+            ]}
           >
             <Select
               showSearch
@@ -102,23 +105,35 @@ const MachineCreateBasicStep: React.FC<Props> = ({
             />
           </Form.Item>
           <Form.Item
-            name="region"
-            label="Region"
+            name="name"
+            label="Machine Name"
             style={{ flex: 1 }}
-            rules={[{ required: true, message: 'Please select region.' }]}
+            rules={[{ required: true, message: 'Please enter machine name.' }]}
+            extra="Batch create appends a numeric suffix on the backend."
           >
-            <MachineCreateCatalogSelect
-              options={regionField.options}
-              disabled={regionField.disabled}
-              loading={regionField.loading}
-              placeholder={regionField.placeholder}
-              notFoundContent={regionField.emptyText}
-            />
+            <Input placeholder="na-edge" />
           </Form.Item>
         </Space>
+
         <Space size={16} align="start" style={{ width: '100%' }}>
           <Form.Item
-            name="zone"
+            name={['zone', 'country_code']}
+            label="Country Code"
+            style={{ width: 180 }}
+            rules={[{ required: true, message: 'Please enter country code.' }]}
+          >
+            <Input placeholder="US" maxLength={8} />
+          </Form.Item>
+          <Form.Item
+            name={['zone', 'city']}
+            label="City"
+            style={{ flex: 1 }}
+            extra="Optional provider filter. Zenlayer can stay empty."
+          >
+            <Input placeholder="Los Angeles" />
+          </Form.Item>
+          <Form.Item
+            name={['zone', 'zone_id']}
             label="Zone"
             style={{ flex: 1 }}
             rules={[{ required: true, message: 'Please select zone.' }]}
@@ -131,11 +146,16 @@ const MachineCreateBasicStep: React.FC<Props> = ({
               notFoundContent={zoneField.emptyText}
             />
           </Form.Item>
+        </Space>
+
+        <Space size={16} align="start" style={{ width: '100%' }}>
           <Form.Item
-            name="instance_type"
+            name={['spec', 'type']}
             label="Instance Type"
             style={{ flex: 1 }}
-            rules={[{ required: true, message: 'Please select instance type.' }]}
+            rules={[
+              { required: true, message: 'Please select instance type.' },
+            ]}
           >
             <MachineCreateCatalogSelect
               options={instanceTypeField.options}
@@ -145,25 +165,61 @@ const MachineCreateBasicStep: React.FC<Props> = ({
               notFoundContent={instanceTypeField.emptyText}
             />
           </Form.Item>
+          <Form.Item
+            name={['os', 'image_id']}
+            label="OS Image"
+            style={{ flex: 1 }}
+            rules={[{ required: true, message: 'Please select image.' }]}
+          >
+            <MachineCreateCatalogSelect
+              options={imageField.options}
+              disabled={imageField.disabled}
+              loading={imageField.loading}
+              placeholder={imageField.placeholder}
+              notFoundContent={imageField.emptyText}
+            />
+          </Form.Item>
         </Space>
-        <Form.Item
-          name="image_id"
-          label="Image"
-          rules={[{ required: true, message: 'Please select image.' }]}
-        >
-          <MachineCreateCatalogSelect
-            options={imageField.options}
-            disabled={imageField.disabled}
-            loading={imageField.loading}
-            placeholder={imageField.placeholder}
-            notFoundContent={imageField.emptyText}
-          />
-        </Form.Item>
+
+        <Space size={16} align="start" style={{ width: '100%' }}>
+          <Form.Item
+            name={['spec', 'cpu_cores']}
+            label="CPU Cores"
+            style={{ width: 180 }}
+            extra="Optional local snapshot"
+          >
+            <InputNumber min={1} precision={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item
+            name={['spec', 'memory_mb']}
+            label="Memory (MiB)"
+            style={{ width: 220 }}
+            extra="Optional local snapshot"
+          >
+            <InputNumber min={1} precision={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item
+            name={['os', 'name']}
+            label="OS Name"
+            style={{ flex: 1 }}
+            extra="Optional local snapshot"
+          >
+            <Input placeholder="AlmaLinux" />
+          </Form.Item>
+          <Form.Item
+            name={['os', 'version']}
+            label="OS Version"
+            style={{ width: 200 }}
+            extra="Optional local snapshot"
+          >
+            <Input placeholder="10.1" />
+          </Form.Item>
+        </Space>
       </MachineCreateSection>
 
       <MachineCreateSection
-        title="Templates"
-        description="Templates are optional. `{index}` and `{id}` are the only supported variables."
+        title="Request Control"
+        description="Only `count` and `client_request_id` remain as create-level controls. Retry mode keeps the current machine scope."
       >
         <Space size={16} align="start" style={{ width: '100%' }}>
           <Form.Item name="count" label="Count" style={{ width: 180 }}>
@@ -179,23 +235,18 @@ const MachineCreateBasicStep: React.FC<Props> = ({
             name="client_request_id"
             label="Client Request ID"
             style={{ flex: 1 }}
+            extra={
+              watchedCountryCode
+                ? `Current country filter: ${watchedCountryCode.toUpperCase()}`
+                : undefined
+            }
           >
-            <Input placeholder="Idempotency key" disabled={mode === 'retry'} />
+            <Input
+              placeholder="create-na-edge-001"
+              disabled={mode === 'retry'}
+            />
           </Form.Item>
         </Space>
-        <Form.Item
-          name="machine_id_template"
-          label="Machine ID Template"
-          extra="Inherited on retry; not resubmitted in retry requests."
-        >
-          <Input
-            placeholder="edge-{index}"
-            disabled={mode === 'retry'}
-          />
-        </Form.Item>
-        <Form.Item name="name_template" label="Name Template">
-          <Input placeholder="edge-{index}" />
-        </Form.Item>
       </MachineCreateSection>
     </>
   );

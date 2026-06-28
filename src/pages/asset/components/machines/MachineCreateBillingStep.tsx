@@ -1,13 +1,4 @@
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
-import {
-  Alert,
-  Button,
-  Form,
-  Input,
-  InputNumber,
-  Space,
-  Switch,
-} from 'antd';
+import { Alert, Form, InputNumber, Space } from 'antd';
 import React from 'react';
 import {
   MachineCreateCatalogSelect,
@@ -21,15 +12,8 @@ type Props = {
 };
 
 const MachineCreateBillingStep: React.FC<Props> = ({ catalog, zoneReady }) => {
-  const billingTypeField = catalog.getFieldStatus('billing.type');
+  const billingModeField = catalog.getFieldStatus('billing.mode');
   const periodUnitField = catalog.getFieldStatus('billing.period_unit');
-  const billingInternetField = catalog.getFieldStatus(
-    'billing.internet_charge_type',
-  );
-  const systemDiskField = catalog.getFieldStatus(
-    'storage.system_disk.category',
-  );
-  const dataDiskField = catalog.getFieldStatus('storage.data_disks.category');
 
   return (
     <>
@@ -38,41 +22,41 @@ const MachineCreateBillingStep: React.FC<Props> = ({ catalog, zoneReady }) => {
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          message="Select zone before editing storage"
-          description="Billing options can load after account selection, while storage candidates are loaded after the zone is selected."
+          message="Select zone before editing disk and billing"
+          description="Billing mode loads from account scope. System disk size and most provider-side pricing context only make sense after the zone is fixed."
         />
       ) : null}
 
       <MachineCreateSection
         title="Billing"
-        description="Use catalog values for billing type and period unit. Extra JSON is limited to the documented provider-neutral extension object."
+        description="The new create contract uses `billing.mode`, `billing.period` and `billing.period_unit`."
       >
         <Space size={16} align="start" style={{ width: '100%' }}>
           <Form.Item
-            name={['billing', 'type']}
-            label="Billing Type"
+            name={['billing', 'mode']}
+            label="Billing Mode"
             style={{ flex: 1 }}
-            rules={[{ required: true, message: 'Please select billing type.' }]}
+            rules={[{ required: true, message: 'Please select billing mode.' }]}
           >
             <MachineCreateCatalogSelect
-              options={billingTypeField.options}
-              loading={billingTypeField.loading}
-              disabled={billingTypeField.disabled}
-              placeholder={billingTypeField.placeholder}
-              notFoundContent={billingTypeField.emptyText}
+              options={billingModeField.options}
+              loading={billingModeField.loading}
+              disabled={billingModeField.disabled}
+              placeholder={billingModeField.placeholder}
+              notFoundContent={billingModeField.emptyText}
             />
           </Form.Item>
           <Form.Item
             name={['billing', 'period']}
-            label="Billing Period"
-            style={{ width: 180 }}
+            label="Period"
+            style={{ width: 160 }}
           >
             <InputNumber min={1} precision={0} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item
             name={['billing', 'period_unit']}
             label="Period Unit"
-            style={{ width: 200 }}
+            style={{ width: 220 }}
           >
             <MachineCreateCatalogSelect
               options={periodUnitField.options}
@@ -83,176 +67,27 @@ const MachineCreateBillingStep: React.FC<Props> = ({ catalog, zoneReady }) => {
             />
           </Form.Item>
         </Space>
-        <Space size={16} align="start" style={{ width: '100%' }}>
-          <Form.Item
-            name={['billing', 'internet_charge_type']}
-            label="Internet Charge Type"
-            style={{ flex: 1 }}
-          >
-            <MachineCreateCatalogSelect
-              options={billingInternetField.options}
-              loading={billingInternetField.loading}
-              disabled={billingInternetField.disabled}
-              placeholder={billingInternetField.placeholder}
-              notFoundContent={billingInternetField.emptyText}
-            />
-          </Form.Item>
-          <Form.Item
-            name={['billing', 'traffic_package_size']}
-            label="Traffic Package Size"
-            style={{ width: 220 }}
-          >
-            <InputNumber min={0} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item
-            name={['billing', 'auto_renew']}
-            label="Auto Renew"
-            valuePropName="checked"
-            style={{ width: 160 }}
-          >
-            <Switch />
-          </Form.Item>
-        </Space>
-        <Form.Item name={['billing', 'extra_text']} label="Billing Extra JSON">
-          <Input.TextArea
-            rows={4}
-            placeholder='{"provider_option": "..."}'
-          />
-        </Form.Item>
       </MachineCreateSection>
 
       <MachineCreateSection
-        title="Storage"
-        description="System disk is required. Data disks are optional and can be added as repeated blocks."
+        title="Disk"
+        description="The current public create contract only accepts `disk.system_size_gb`."
       >
-        <Space size={16} align="start" style={{ width: '100%' }}>
-          <Form.Item
-            name={['storage', 'system_disk', 'category']}
-            label="System Disk Category"
-            style={{ flex: 1 }}
-          >
-            <MachineCreateCatalogSelect
-              options={systemDiskField.options}
-              loading={systemDiskField.loading}
-              disabled={systemDiskField.disabled}
-              placeholder={systemDiskField.placeholder}
-              notFoundContent={systemDiskField.emptyText}
-            />
-          </Form.Item>
-          <Form.Item
-            name={['storage', 'system_disk', 'size_gb']}
-            label="System Disk Size (GiB)"
-            style={{ width: 220 }}
-            rules={[
-              { required: true, message: 'Please enter system disk size.' },
-            ]}
-          >
-            <InputNumber
-              min={1}
-              precision={0}
-              style={{ width: '100%' }}
-              disabled={!zoneReady}
-            />
-          </Form.Item>
-        </Space>
         <Form.Item
-          name={['storage', 'system_disk', 'extra_text']}
-          label="System Disk Extra JSON"
+          name={['disk', 'system_size_gb']}
+          label="System Disk Size (GiB)"
+          rules={[
+            { required: true, message: 'Please enter system disk size.' },
+          ]}
+          extra="Provider-specific disk category and extra payload are no longer exposed in the new contract."
         >
-          <Input.TextArea
-            rows={4}
+          <InputNumber
+            min={1}
+            precision={0}
+            style={{ width: 240 }}
             disabled={!zoneReady}
-            placeholder='{"provider_option": "..."}'
           />
         </Form.Item>
-
-        <Form.List name={['storage', 'data_disks']}>
-          {(fields, { add, remove }) => (
-            <Space direction="vertical" size={16} style={{ width: '100%' }}>
-              {fields.map((field, index) => (
-                <div
-                  key={field.key}
-                  style={{
-                    border: '1px solid #f0f0f0',
-                    borderRadius: 8,
-                    padding: 16,
-                  }}
-                >
-                  <Space
-                    align="center"
-                    style={{
-                      width: '100%',
-                      justifyContent: 'space-between',
-                      marginBottom: 12,
-                    }}
-                  >
-                    <strong>Data Disk #{index + 1}</strong>
-                    <Button
-                      danger
-                      type="text"
-                      icon={<DeleteOutlined />}
-                      onClick={() => remove(field.name)}
-                    >
-                      Remove
-                    </Button>
-                  </Space>
-                  <Space size={16} align="start" style={{ width: '100%' }}>
-                    <Form.Item
-                      {...field}
-                      name={[field.name, 'category']}
-                      label="Disk Category"
-                      style={{ flex: 1 }}
-                    >
-                      <MachineCreateCatalogSelect
-                        options={dataDiskField.options}
-                        loading={dataDiskField.loading}
-                        disabled={dataDiskField.disabled}
-                        placeholder={dataDiskField.placeholder}
-                        notFoundContent={dataDiskField.emptyText}
-                      />
-                    </Form.Item>
-                    <Form.Item
-                      {...field}
-                      name={[field.name, 'size_gb']}
-                      label="Size (GiB)"
-                      style={{ width: 220 }}
-                      rules={[
-                        { required: true, message: 'Please enter disk size.' },
-                      ]}
-                    >
-                      <InputNumber
-                        min={1}
-                        precision={0}
-                        style={{ width: '100%' }}
-                        disabled={!zoneReady}
-                      />
-                    </Form.Item>
-                  </Space>
-                  <Form.Item
-                    {...field}
-                    name={[field.name, 'extra_text']}
-                    label="Disk Extra JSON"
-                  >
-                    <Input.TextArea
-                      rows={3}
-                      disabled={!zoneReady}
-                      placeholder='{"provider_option": "..."}'
-                    />
-                  </Form.Item>
-                </div>
-              ))}
-              <Button
-                type="dashed"
-                icon={<PlusOutlined />}
-                onClick={() => add({})}
-                disabled={!zoneReady}
-                block
-              >
-                Add Data Disk
-              </Button>
-            </Space>
-          )}
-        </Form.List>
       </MachineCreateSection>
     </>
   );

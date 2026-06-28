@@ -48,11 +48,13 @@ import {
   formatText,
   formatTime,
   isProviderCapabilitySupported,
+  normalizeAssetTags,
   normalizeDevErrorMessage,
   parseJsonText,
   renderActionButton,
   stringifyJson,
 } from '../../utils';
+import AssetTagEditor from '../AssetTagEditor';
 
 const { TextArea } = Input;
 
@@ -128,6 +130,22 @@ const SshKeysPanel: React.FC<{
       dataIndex: 'status',
       render: (_, record) => <Tag>{record.status || '-'}</Tag>,
     },
+    {
+      title: 'Tags',
+      dataIndex: 'tags',
+      render: (_, record) =>
+        record.tags?.length ? (
+          <Space wrap>
+            {record.tags.map((item) => (
+              <Tag key={`${item.key}-${item.value}-${item.label || ''}`}>
+                {item.label || `${item.key}:${item.value}`}
+              </Tag>
+            ))}
+          </Space>
+        ) : (
+          '-'
+        ),
+    },
     { title: 'Updated At', dataIndex: 'updated_at', renderText: formatTime },
     {
       title: 'Actions',
@@ -159,6 +177,7 @@ const SshKeysPanel: React.FC<{
                 status: current.status || undefined,
                 public_key: current.public_key || undefined,
                 metadata_text: stringifyJson(current.metadata),
+                tags: current.tags || [],
               });
               setEditOpen(true);
             } catch (error: any) {
@@ -217,6 +236,8 @@ const SshKeysPanel: React.FC<{
               provider_code: filters.provider_code,
               account_id: filters.account_id,
               status: filters.status,
+              tag_key: filters.tag_key,
+              tag_value: filters.tag_value,
             });
             return {
               data: response.data?.items || [],
@@ -328,9 +349,11 @@ const SshKeysPanel: React.FC<{
             setSaving(true);
             await createAssetSshKeyCustom({
               name: values.name.trim(),
+              scope: values.scope?.trim() || undefined,
               public_key: values.public_key.trim(),
               private_key: values.private_key?.trim() || undefined,
               metadata: parseJsonText(values.metadata_text, 'Metadata'),
+              tags: normalizeAssetTags(values.tags),
             });
             setCustomOpen(false);
             customForm.resetFields();
@@ -351,6 +374,9 @@ const SshKeysPanel: React.FC<{
           >
             <Input />
           </Form.Item>
+          <Form.Item name="scope" label="Scope">
+            <Input placeholder="custom" />
+          </Form.Item>
           <Form.Item
             name="public_key"
             label="Public Key"
@@ -361,6 +387,7 @@ const SshKeysPanel: React.FC<{
           <Form.Item name="private_key" label="Private Key">
             <TextArea rows={5} />
           </Form.Item>
+          <AssetTagEditor name="tags" />
           <Form.Item name="metadata_text" label="Metadata JSON">
             <TextArea rows={5} />
           </Form.Item>
@@ -387,6 +414,7 @@ const SshKeysPanel: React.FC<{
               external_key_id: values.external_key_id?.trim() || undefined,
               public_key: values.public_key?.trim() || undefined,
               payload: parseJsonText(values.payload_text, 'Payload'),
+              tags: normalizeAssetTags(values.tags),
             });
             setProviderImportOpen(false);
             providerForm.resetFields();
@@ -427,6 +455,7 @@ const SshKeysPanel: React.FC<{
           <Form.Item name="public_key" label="Public Key">
             <TextArea rows={4} />
           </Form.Item>
+          <AssetTagEditor name="tags" />
           <Form.Item name="payload_text" label="Advanced Payload JSON">
             <TextArea rows={5} />
           </Form.Item>
@@ -453,6 +482,7 @@ const SshKeysPanel: React.FC<{
               external_key_id: values.external_key_id?.trim() || undefined,
               public_key: values.public_key?.trim() || undefined,
               payload: parseJsonText(values.payload_text, 'Payload'),
+              tags: normalizeAssetTags(values.tags),
             });
             setProviderCreateOpen(false);
             providerForm.resetFields();
@@ -492,6 +522,7 @@ const SshKeysPanel: React.FC<{
           <Form.Item name="public_key" label="Public Key">
             <TextArea rows={4} />
           </Form.Item>
+          <AssetTagEditor name="tags" />
           <Form.Item name="payload_text" label="Advanced Payload JSON">
             <TextArea rows={5} />
           </Form.Item>
@@ -561,6 +592,7 @@ const SshKeysPanel: React.FC<{
               status: values.status?.trim() || undefined,
               public_key: values.public_key?.trim() || undefined,
               metadata: parseJsonText(values.metadata_text, 'Metadata'),
+              tags: values.tags ? normalizeAssetTags(values.tags) : undefined,
             });
             setEditOpen(false);
             setEditing(null);
@@ -593,6 +625,7 @@ const SshKeysPanel: React.FC<{
           <Form.Item name="public_key" label="Public Key">
             <TextArea rows={5} />
           </Form.Item>
+          <AssetTagEditor name="tags" />
           <Form.Item name="metadata_text" label="Metadata JSON">
             <TextArea rows={5} />
           </Form.Item>
@@ -632,7 +665,17 @@ const SshKeysPanel: React.FC<{
               <Descriptions.Item label="Status">
                 {detail.status || '-'}
               </Descriptions.Item>
+              <Descriptions.Item label="Created By">
+                {formatText(detail.created_by)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Created At">
+                {formatTime(detail.created_at)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Updated At">
+                {formatTime(detail.updated_at)}
+              </Descriptions.Item>
             </Descriptions>
+            <JsonBlock title="tags" value={detail.tags} />
             <JsonBlock title="public_key" value={detail.public_key || ''} />
             <JsonBlock title="metadata" value={detail.metadata} />
           </Space>

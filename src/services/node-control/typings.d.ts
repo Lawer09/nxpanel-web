@@ -41,6 +41,7 @@ declare namespace API {
     id: number;
     agent_id: string;
     machine_id: string;
+    asset_machine_id?: number;
     status: string;
     snapshot_version?: string;
     pull_interval: number;
@@ -231,6 +232,13 @@ declare namespace API {
     configs: ControlNodeUserClientConfig[];
   }
 
+  interface ControlTaskAck {
+    task_id: number;
+    status?: string;
+    task_url?: string;
+    [key: string]: unknown;
+  }
+
   interface ControlRuntimeNodeSummary {
     node_id: number;
     client?: Partial<ControlNodeClientConfig> | null;
@@ -369,10 +377,27 @@ declare namespace API {
   interface ControlAgentCreateParams {
     agent_id: string;
     machine_id: string;
-    agent_secret?: string;
     status?: string;
     pull_interval?: number;
     report_interval?: number;
+  }
+
+  interface ControlAgentDeployParams {
+    asset_machine_id: number;
+    agent_id?: string;
+    binary_url?: string;
+    node_service_base_url?: string;
+    pull_interval?: number;
+    report_interval?: number;
+    timeout_seconds?: number;
+    force?: boolean;
+  }
+
+  interface ControlAgentDeployResponse {
+    agent: ControlAgent;
+    agent_secret: string;
+    machine?: Record<string, unknown> | null;
+    deploy_task?: ControlTaskAck | null;
   }
 
   interface ControlAgentUpdateParams {

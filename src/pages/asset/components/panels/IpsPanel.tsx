@@ -25,8 +25,8 @@ import {
   deleteAssetIp,
   getAssetIpDetail,
   importAssetIpManual,
-  importAssetIpsFromProvider,
   listAssetIps,
+  pullAssetIpsFromProvider,
   updateAssetIp,
 } from '@/services/asset-service/api';
 import JsonBlock from '../../../dev/components/JsonBlock';
@@ -37,11 +37,15 @@ import {
   formatText,
   formatTime,
   isProviderCapabilitySupported,
+  normalizeAssetTags,
   normalizeDevErrorMessage,
   parseJsonText,
   renderActionButton,
   stringifyJson,
 } from '../../utils';
+import AssetTagEditor from '../AssetTagEditor';
+import IpPullFromProviderModal from '../ips/IpPullFromProviderModal';
+import IpPullRunDrawer from '../ips/IpPullRunDrawer';
 
 const { TextArea } = Input;
 
@@ -58,12 +62,18 @@ const IpsPanel: React.FC<{
   const [editing, setEditing] = useState<API.AssetIp | null>(null);
   const [saving, setSaving] = useState(false);
   const [detail, setDetail] = useState<API.AssetIp | null>(null);
-  const [importOpen, setImportOpen] = useState(false);
-  const [importAccountId, setImportAccountId] = useState<number | undefined>(
-    filters.account_id,
-  );
-  const [importRegion, setImportRegion] = useState<string | undefined>(
-    filters.region,
+  const [pullOpen, setPullOpen] = useState(false);
+  const [pullRunId, setPullRunId] = useState<number | undefined>();
+  const [pullRunOpen, setPullRunOpen] = useState(false);
+  const [pullInitialValues, setPullInitialValues] = useState<
+    Partial<API.AssetIpPullFromProviderParams>
+  >(
+    {
+      account_id: filters.account_id,
+      region: filters.region,
+      page: 1,
+      page_size: 50,
+    },
   );
 
   const providerMap = useMemo(
@@ -96,6 +106,7 @@ const IpsPanel: React.FC<{
       ownership: values.ownership?.trim(),
       external_ip_id: values.external_ip_id?.trim(),
       metadata: parseJsonText(values.metadata_text, 'Metadata'),
+      tags: normalizeAssetTags(values.tags),
     });
 
   const columns: ProColumns<API.AssetIp>[] = [
@@ -113,6 +124,22 @@ const IpsPanel: React.FC<{
       title: 'Status',
       dataIndex: 'status',
       render: (_, record) => <Tag>{record.status || '-'}</Tag>,
+    },
+    {
+      title: 'Tags',
+      dataIndex: 'tags',
+      render: (_, record) =>
+        record.tags?.length ? (
+          <Space wrap>
+            {record.tags.map((item) => (
+              <Tag key={`${item.key}-${item.value}-${item.label || ''}`}>
+                {item.label || `${item.key}:${item.value}`}
+              </Tag>
+            ))}
+          </Space>
+        ) : (
+          '-'
+        ),
     },
     { title: 'Ownership', dataIndex: 'ownership', renderText: formatText },
     {
@@ -155,6 +182,7 @@ const IpsPanel: React.FC<{
                 ownership: current.ownership,
                 external_ip_id: current.external_ip_id,
                 metadata_text: stringifyJson(current.metadata),
+                tags: current.tags || [],
               });
               setOpen(true);
             } catch (error: any) {
@@ -214,6 +242,8 @@ const IpsPanel: React.FC<{
               account_id: filters.account_id,
               region: filters.region,
               status: filters.status,
+              tag_key: filters.tag_key,
+              tag_value: filters.tag_value,
             });
             return {
               data: response.data?.items || [],
@@ -248,12 +278,16 @@ const IpsPanel: React.FC<{
               key="provider-import"
               icon={<CloudDownloadOutlined />}
               onClick={() => {
-                setImportAccountId(filters.account_id);
-                setImportRegion(filters.region);
-                setImportOpen(true);
+                setPullInitialValues({
+                  account_id: filters.account_id,
+                  region: filters.region,
+                  page: 1,
+                  page_size: 50,
+                });
+                setPullOpen(true);
               }}
             >
-              Import From Provider
+              Pull From Provider
             </Button>,
             noAccountReason ||
               (filters.provider_code &&
@@ -299,6 +333,7 @@ const IpsPanel: React.FC<{
                 ownership: payload.ownership,
                 external_ip_id: payload.external_ip_id,
                 metadata: payload.metadata,
+                tags: payload.tags,
               });
               message.success('IP updated.');
             } else {
@@ -353,57 +388,50 @@ const IpsPanel: React.FC<{
           <Form.Item name="external_ip_id" label="External IP ID">
             <Input />
           </Form.Item>
+          <AssetTagEditor name="tags" />
           <Form.Item name="metadata_text" label="Metadata JSON">
             <TextArea rows={6} />
           </Form.Item>
         </Form>
       </Modal>
 
-      <Modal
-        title="Import IPs From Provider"
-        open={importOpen}
-        destroyOnHidden
-        confirmLoading={saving}
-        onCancel={() => setImportOpen(false)}
-        onOk={async () => {
-          if (!importAccountId) {
-            message.error('Please select provider account.');
-            return;
-          }
+      <IpPullFromProviderModal
+        open={pullOpen}
+        loading={saving}
+        accounts={filteredAccounts}
+        initialValues={pullInitialValues}
+        onCancel={() => setPullOpen(false)}
+        onSubmit={async (values) => {
           try {
             setSaving(true);
-            const response = await importAssetIpsFromProvider({
-              account_id: importAccountId,
-              region: importRegion?.trim() || undefined,
+            const response = await pullAssetIpsFromProvider({
+              account_id: values.account_id,
+              region: values.region?.trim() || undefined,
+              status: values.status,
+              page: values.page,
+              page_size: values.page_size,
+              refresh: values.refresh,
             });
-            setImportOpen(false);
-            onTaskAck(response.data, 'Provider-side IP import submitted.');
+            const nextPullRunId =
+              response.data.pull_run_id || response.data.task_id;
+            if (!nextPullRunId) {
+              throw new Error('Provider IP pull did not return a pull run id.');
+            }
+            setPullOpen(false);
+            setPullRunId(nextPullRunId);
+            setPullRunOpen(true);
+            message.success(
+              response.data.cached
+                ? 'Loaded cached provider IP pull result.'
+                : 'Provider IP pull submitted.',
+            );
           } catch (error: any) {
             message.error(normalizeDevErrorMessage(error));
           } finally {
             setSaving(false);
           }
         }}
-      >
-        <Space direction="vertical" size={16} style={{ width: '100%' }}>
-          <Select
-            showSearch
-            value={importAccountId}
-            optionFilterProp="label"
-            options={filteredAccounts.map((item) => ({
-              label: `${item.name} (#${item.id})`,
-              value: item.id,
-            }))}
-            onChange={setImportAccountId}
-            placeholder="Select account"
-          />
-          <Input
-            value={importRegion}
-            onChange={(event) => setImportRegion(event.target.value)}
-            placeholder="Region"
-          />
-        </Space>
-      </Modal>
+      />
 
       <Drawer
         title={detail ? `IP #${detail.id}` : 'IP Detail'}
@@ -441,7 +469,14 @@ const IpsPanel: React.FC<{
               <Descriptions.Item label="External IP ID">
                 {detail.external_ip_id || '-'}
               </Descriptions.Item>
+              <Descriptions.Item label="Created At">
+                {formatTime(detail.created_at)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Updated At">
+                {formatTime(detail.updated_at)}
+              </Descriptions.Item>
             </Descriptions>
+            <JsonBlock title="tags" value={detail.tags} />
             <Descriptions bordered column={1} title="Machine Binding">
               <Descriptions.Item label="Machine">
                 {detail.machine_binding?.machine_business_id || '-'}
@@ -463,6 +498,13 @@ const IpsPanel: React.FC<{
           </Space>
         ) : null}
       </Drawer>
+      <IpPullRunDrawer
+        open={pullRunOpen}
+        pullRunId={pullRunId}
+        onClose={() => setPullRunOpen(false)}
+        onImported={onTaskAck}
+        onImportedDone={() => actionRef.current?.reload()}
+      />
     </>
   );
 };

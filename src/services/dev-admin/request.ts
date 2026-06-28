@@ -8,6 +8,7 @@ const DEV_ADMIN_ALIAS_PREFIX = '/v4/admin';
 const IAM_ALIAS_PREFIX = '/v4/iam';
 const NODE_CONTROL_ALIAS_PREFIX = '/v4/nodes';
 const ASSET_SERVICE_ALIAS_PREFIX = '/v4/assets';
+const TASK_SERVICE_ALIAS_PREFIX = '/v4/tasks';
 
 type DevAdminRequestOptions = {
   method?: 'GET' | 'POST';
@@ -49,7 +50,8 @@ const normalizePath = (path: string) => {
     !path.startsWith(DEV_ADMIN_ALIAS_PREFIX) &&
     !path.startsWith(IAM_ALIAS_PREFIX) &&
     !path.startsWith(NODE_CONTROL_ALIAS_PREFIX) &&
-    !path.startsWith(ASSET_SERVICE_ALIAS_PREFIX)
+    !path.startsWith(ASSET_SERVICE_ALIAS_PREFIX) &&
+    !path.startsWith(TASK_SERVICE_ALIAS_PREFIX)
   ) {
     throw new Error(`Unsupported management path: ${path}`);
   }

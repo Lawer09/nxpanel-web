@@ -1,6 +1,7 @@
 import { Line } from '@ant-design/charts';
 import type { ProColumns } from '@ant-design/pro-components';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
+import { history } from '@umijs/max';
 import dayjs, { type Dayjs } from 'dayjs';
 import {
   App,
@@ -26,6 +27,8 @@ import {
   createAgentBinding,
   deleteAgent,
   deleteAgentBinding,
+  deployAgent,
+  getAgentDetail,
   getAgentRuntime,
   getAgentRuntimeSamples,
   getAgentTrafficSeries,
@@ -38,6 +41,7 @@ import {
   updateAgentBinding,
 } from '@/services/node-control/api';
 import AgentFormModal from './components/AgentFormModal';
+import AgentDeployModal from './components/AgentDeployModal';
 import DevAuthGate from './components/DevAuthGate';
 import JsonBlock from './components/JsonBlock';
 import {
@@ -52,6 +56,7 @@ import {
   summarizeTls,
   type RuntimeMetricKey,
 } from './components/nodeRuntimeUtils';
+import { buildAssetTaskDetailPath } from '../asset/utils';
 
 const { Paragraph, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -80,14 +85,20 @@ const AgentsContent: React.FC = () => {
   const [rows, setRows] = useState<API.ControlAgent[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [deployModalOpen, setDeployModalOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<API.ControlAgent | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailTab, setDetailTab] = useState('basic');
+  const [detailAgent, setDetailAgent] = useState<API.ControlAgent | null>(null);
   const [runtime, setRuntime] = useState<API.ControlAgentRuntime | null>(null);
   const [bindings, setBindings] = useState<API.ControlBinding[]>([]);
   const [bindingModalOpen, setBindingModalOpen] = useState(false);
   const [nodeOptions, setNodeOptions] = useState<{ label: string; value: number }[]>([]);
-  const [secretResult, setSecretResult] = useState<{ agent_id: string; agent_secret: string } | null>(null);
+  const [secretResult, setSecretResult] = useState<{
+    agent_id: string;
+    agent_secret: string;
+    deploy_task?: API.ControlTaskAck | null;
+  } | null>(null);
   const [bindingForm] = Form.useForm();
 
   const [metricsLoading, setMetricsLoading] = useState(false);
@@ -138,11 +149,13 @@ const AgentsContent: React.FC = () => {
 
   const loadDetail = async (agentId: string) => {
     try {
-      const [runtimeResponse, bindingsResponse, nodesResponse] = await Promise.all([
+      const [detailResponse, runtimeResponse, bindingsResponse, nodesResponse] = await Promise.all([
+        getAgentDetail(agentId),
         getAgentRuntime(agentId),
         listAgentBindings(agentId),
         listNodeSummaries(),
       ]);
+      if (detailResponse.code === 0) setDetailAgent(detailResponse.data);
       if (runtimeResponse.code === 0) setRuntime(runtimeResponse.data);
       if (bindingsResponse.code === 0) setBindings(bindingsResponse.data);
       if (nodesResponse.code === 0) {
@@ -274,11 +287,20 @@ const AgentsContent: React.FC = () => {
   const columns: ProColumns<API.ControlAgent>[] = [
     { title: 'Agent ID', dataIndex: 'agent_id' },
     { title: 'Machine ID', dataIndex: 'machine_id' },
+    {
+      title: 'Asset Machine ID',
+      dataIndex: 'asset_machine_id',
+      renderText: (_, record) => record.asset_machine_id || '-',
+    },
     { title: 'Status', dataIndex: 'status', render: (_, record) => <Tag>{record.status}</Tag> },
     { title: 'Snapshot', dataIndex: 'snapshot_version', renderText: (_, record) => record.snapshot_version || '-' },
     { title: 'Pull', dataIndex: 'pull_interval', width: 90 },
     { title: 'Report', dataIndex: 'report_interval', width: 90 },
-    { title: 'Last Seen', dataIndex: 'last_seen_at', renderText: (_, record) => record.last_seen_at || '-' },
+    {
+      title: 'Last Seen',
+      dataIndex: 'last_seen_at',
+      renderText: (_, record) => formatDateTime(record.last_seen_at),
+    },
     {
       title: 'Actions',
       valueType: 'option',
@@ -312,6 +334,7 @@ const AgentsContent: React.FC = () => {
             setSecretResult({
               agent_id: record.agent_id,
               agent_secret: response.data.agent_secret,
+              deploy_task: null,
             });
             void loadRows();
           }}
@@ -366,6 +389,14 @@ const AgentsContent: React.FC = () => {
           >
             Create Agent
           </Button>,
+          <Button
+            key="deploy"
+            onClick={() => {
+              setDeployModalOpen(true);
+            }}
+          >
+            Deploy Agent
+          </Button>,
           <Button key="refresh" onClick={() => void loadRows()}>
             Refresh
           </Button>,
@@ -400,12 +431,39 @@ const AgentsContent: React.FC = () => {
         }}
       />
 
+      <AgentDeployModal
+        open={deployModalOpen}
+        onOpenChange={setDeployModalOpen}
+        onSubmit={async (values) => {
+          const response = await deployAgent(values);
+          if (response.code !== 0) {
+            message.error(response.message || 'Deploy failed.');
+            return;
+          }
+          setSecretResult({
+            agent_id: response.data.agent.agent_id,
+            agent_secret: response.data.agent_secret,
+            deploy_task: response.data.deploy_task,
+          });
+          message.success('Agent deploy submitted.');
+          setDeployModalOpen(false);
+          await loadRows();
+        }}
+      />
+
       <Drawer
-        title={runtime ? `Agent ${runtime.agent.agent_id}` : 'Agent Detail'}
+        title={
+          detailAgent?.agent_id
+            ? `Agent ${detailAgent.agent_id}`
+            : runtime?.agent.agent_id
+              ? `Agent ${runtime.agent.agent_id}`
+              : 'Agent Detail'
+        }
         open={detailOpen}
         width={1100}
         onClose={() => {
           setDetailOpen(false);
+          setDetailAgent(null);
           setRuntime(null);
           setBindings([]);
           setMetricsData(null);
@@ -415,7 +473,7 @@ const AgentsContent: React.FC = () => {
           bindingForm.resetFields();
         }}
       >
-        {runtime ? (
+        {detailAgent || runtime ? (
           <Tabs
             activeKey={detailTab}
             onChange={setDetailTab}
@@ -426,25 +484,65 @@ const AgentsContent: React.FC = () => {
                 children: (
                   <>
                     <Descriptions bordered column={2} style={{ marginBottom: 16 }}>
-                      <Descriptions.Item label="Agent ID">{runtime.agent.agent_id}</Descriptions.Item>
-                      <Descriptions.Item label="Machine ID">{runtime.agent.machine_id}</Descriptions.Item>
-                      <Descriptions.Item label="Status">{runtime.agent.status}</Descriptions.Item>
-                      <Descriptions.Item label="Last Seen">
-                        {formatDateTime(runtime.agent.last_seen_at)}
+                      <Descriptions.Item label="Agent ID">
+                        {detailAgent?.agent_id || runtime?.agent.agent_id || '-'}
                       </Descriptions.Item>
-                      <Descriptions.Item label="Snapshot">{runtime.agent.snapshot_version || '-'}</Descriptions.Item>
+                      <Descriptions.Item label="Machine ID">
+                        {detailAgent?.machine_id || runtime?.agent.machine_id || '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Asset Machine ID">
+                        {detailAgent?.asset_machine_id || runtime?.agent.asset_machine_id || '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Status">
+                        {detailAgent?.status || runtime?.agent.status || '-'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Last Seen">
+                        {formatDateTime(detailAgent?.last_seen_at || runtime?.agent.last_seen_at)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Snapshot">
+                        {detailAgent?.snapshot_version || runtime?.agent.snapshot_version || '-'}
+                      </Descriptions.Item>
                       <Descriptions.Item label="Pull / Report">
-                        {runtime.agent.pull_interval}s / {runtime.agent.report_interval}s
+                        {(detailAgent?.pull_interval ?? runtime?.agent.pull_interval ?? '-')}s /{' '}
+                        {(detailAgent?.report_interval ?? runtime?.agent.report_interval ?? '-')}s
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Created At">
+                        {formatDateTime(detailAgent?.created_at)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Updated At">
+                        {formatDateTime(detailAgent?.updated_at)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Kernel Healthy">
+                        {runtime?.kernel?.healthy === undefined
+                          ? 'Not reported'
+                          : runtime.kernel.healthy
+                            ? 'true'
+                            : 'false'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Kernel State">
+                        {runtime?.kernel?.state || 'Not reported'}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Kernel Reported At">
+                        {formatDateTime(runtime?.kernel?.reported_at)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Kernel Started At">
+                        {formatDateTime(runtime?.kernel?.started_at)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Kernel Updated At">
+                        {formatDateTime(runtime?.kernel?.updated_at)}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="Kernel Error" span={2}>
+                        {runtime?.kernel?.last_error || '-'}
                       </Descriptions.Item>
                     </Descriptions>
-                    <JsonBlock title="kernel" value={runtime.kernel} />
+                    <JsonBlock title="kernel" value={runtime?.kernel} />
                   </>
                 ),
               },
               {
                 key: 'nodes',
                 label: 'Nodes',
-                children: runtime.nodes.length ? (
+                children: runtime?.nodes?.length ? (
                   <Table
                     rowKey="node_id"
                     pagination={false}
@@ -476,6 +574,16 @@ const AgentsContent: React.FC = () => {
                           renderFreshTag(record.fresh, record.source, record.stale_seconds),
                       },
                       {
+                        title: 'Source',
+                        dataIndex: 'source',
+                        render: (_, record: API.ControlRuntimeNodeSummary) => record.source || '-',
+                      },
+                      {
+                        title: 'Stale',
+                        render: (_, record) =>
+                          record.stale_seconds === undefined ? '-' : `${record.stale_seconds}s`,
+                      },
+                      {
                         title: 'Startup',
                         render: (_, record) => summarizeStartup(record.startup),
                       },
@@ -493,6 +601,19 @@ const AgentsContent: React.FC = () => {
                         title: 'Download',
                         render: (_, record) => formatBytes(record.traffic_download_bytes),
                       },
+                      {
+                        title: 'Reported At',
+                        render: (_, record) =>
+                          formatDateTime(record.runtime_reported_at || record.reported_at),
+                      },
+                      {
+                        title: 'Online Reported',
+                        render: (_, record) => formatDateTime(record.online_reported_at),
+                      },
+                      {
+                        title: 'Traffic Reported',
+                        render: (_, record) => formatDateTime(record.traffic_reported_at),
+                      },
                     ]}
                   />
                 ) : (
@@ -507,6 +628,7 @@ const AgentsContent: React.FC = () => {
                     <Space style={{ marginBottom: 16 }}>
                       <Button
                         type="primary"
+                        disabled={!runtime}
                         onClick={() => {
                           bindingForm.resetFields();
                           setBindingModalOpen(true);
@@ -587,7 +709,15 @@ const AgentsContent: React.FC = () => {
                         value={metricsKey}
                         onChange={(value) => setMetricsKey(value as RuntimeMetricKey)}
                       />
-                      <Button onClick={() => void loadMetrics(runtime.agent.agent_id)}>Refresh</Button>
+                      <Button
+                        onClick={() => {
+                          if (runtime?.agent.agent_id) {
+                            void loadMetrics(runtime.agent.agent_id);
+                          }
+                        }}
+                      >
+                        Refresh
+                      </Button>
                     </Space>
                     {metricChartData.length ? (
                       <Line
@@ -649,7 +779,15 @@ const AgentsContent: React.FC = () => {
                         value={trafficStep}
                         onChange={setTrafficStep}
                       />
-                      <Button onClick={() => void loadTraffic(runtime.agent.agent_id)}>Refresh</Button>
+                      <Button
+                        onClick={() => {
+                          if (runtime?.agent.agent_id) {
+                            void loadTraffic(runtime.agent.agent_id);
+                          }
+                        }}
+                      >
+                        Refresh
+                      </Button>
                     </Space>
                     {trafficChartData.length ? (
                       <Line
@@ -694,7 +832,15 @@ const AgentsContent: React.FC = () => {
                         value={eventsLimit}
                         onChange={(value) => setEventsLimit(value ?? 50)}
                       />
-                      <Button onClick={() => void loadEvents(runtime.agent.agent_id)}>Refresh</Button>
+                      <Button
+                        onClick={() => {
+                          if (runtime?.agent.agent_id) {
+                            void loadEvents(runtime.agent.agent_id);
+                          }
+                        }}
+                      >
+                        Refresh
+                      </Button>
                     </Space>
                     <Table
                       rowKey="id"
@@ -737,15 +883,16 @@ const AgentsContent: React.FC = () => {
         onCancel={() => setBindingModalOpen(false)}
         onOk={async () => {
           if (!runtime) return;
+          const agentId = runtime.agent.agent_id;
           const values = await bindingForm.validateFields();
-          const response = await createAgentBinding(runtime.agent.agent_id, values);
+          const response = await createAgentBinding(agentId, values);
           if (response.code !== 0) {
             message.error(response.message || 'Binding create failed.');
             return;
           }
           message.success('Binding created.');
           setBindingModalOpen(false);
-          await loadDetail(runtime.agent.agent_id);
+          await loadDetail(agentId);
         }}
       >
         <Form form={bindingForm} layout="vertical">
@@ -775,6 +922,15 @@ const AgentsContent: React.FC = () => {
         <Paragraph copyable code style={{ marginBottom: 0 }}>
           {secretResult?.agent_secret}
         </Paragraph>
+        {secretResult?.deploy_task?.task_id ? (
+          <Button
+            type="link"
+            style={{ paddingLeft: 0, marginTop: 8 }}
+            onClick={() => history.push(buildAssetTaskDetailPath(secretResult.deploy_task!.task_id))}
+          >
+            Open Deploy Task #{secretResult.deploy_task.task_id}
+          </Button>
+        ) : null}
       </Modal>
     </PageContainer>
   );

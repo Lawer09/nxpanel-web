@@ -1,4 +1,4 @@
-import { Alert, Form, Input, Space } from 'antd';
+import { Alert, Form, Input, Select, Space } from 'antd';
 import React from 'react';
 import {
   MachineCreateCatalogSelect,
@@ -10,8 +10,18 @@ type Props = {
   catalog: MachineCreateCatalogController;
 };
 
+const AUTH_TYPE_OPTIONS = [
+  { label: 'Provider SSH Key', value: 'provider_key' },
+  { label: 'Password', value: 'password' },
+];
+
 const MachineCreateAccessStep: React.FC<Props> = ({ catalog }) => {
-  const sshKeyField = catalog.getFieldStatus('ssh_key.provider_key_id');
+  const form = Form.useFormInstance();
+  const authType = Form.useWatch(['login', 'auth_type'], form) as
+    | 'provider_key'
+    | 'password'
+    | undefined;
+  const sshKeyField = catalog.getFieldStatus('login.provider_key_id');
   const timezoneField = catalog.getFieldStatus('time_zone');
 
   return (
@@ -20,19 +30,57 @@ const MachineCreateAccessStep: React.FC<Props> = ({ catalog }) => {
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
-        message="Credential fields follow backend capability checks"
-        description="The form exposes both provider SSH key and password inputs. Whether they can be combined is decided by the provider adapter and backend validation."
+        message="Sensitive login fields stay out of public previews"
+        description="`login.password` is only sent in the final request body and is not written into preview JSON or retry source snapshots."
       />
 
       <MachineCreateSection
         title="Login"
-        description="Select a provider SSH key or specify a password when supported."
+        description="Use the new `login` object. `provider_key` and `password` follow backend validation and provider capability checks."
       >
         <Space size={16} align="start" style={{ width: '100%' }}>
           <Form.Item
-            name={['ssh_key', 'provider_key_id']}
-            label="Provider SSH Key"
+            name={['login', 'auth_type']}
+            label="Auth Type"
+            style={{ width: 220 }}
+            rules={[{ required: true, message: 'Please select auth type.' }]}
+          >
+            <Select options={AUTH_TYPE_OPTIONS} />
+          </Form.Item>
+          <Form.Item
+            name={['login', 'username']}
+            label="Username"
             style={{ flex: 1 }}
+            rules={[
+              ({ getFieldValue }) => ({
+                validator: async (_, value) => {
+                  const nextAuthType = getFieldValue(['login', 'auth_type']);
+                  if (
+                    nextAuthType === 'password' &&
+                    !String(value || '').trim()
+                  ) {
+                    throw new Error('Please enter username.');
+                  }
+                },
+              }),
+            ]}
+            extra={
+              authType === 'provider_key'
+                ? 'Optional display username. `root` is commonly used.'
+                : undefined
+            }
+          >
+            <Input placeholder={authType === 'password' ? 'root' : 'root'} />
+          </Form.Item>
+        </Space>
+
+        {authType === 'provider_key' ? (
+          <Form.Item
+            name={['login', 'provider_key_id']}
+            label="Provider SSH Key"
+            rules={[
+              { required: true, message: 'Please select provider SSH key.' },
+            ]}
           >
             <MachineCreateCatalogSelect
               options={sshKeyField.options}
@@ -42,18 +90,27 @@ const MachineCreateAccessStep: React.FC<Props> = ({ catalog }) => {
               notFoundContent={sshKeyField.emptyText}
             />
           </Form.Item>
+        ) : null}
+
+        {authType === 'password' ? (
           <Form.Item
-            name={['ssh_key', 'password']}
+            name={['login', 'password']}
             label="Password"
-            style={{ flex: 1 }}
+            rules={[{ required: true, message: 'Please enter password.' }]}
           >
             <Input.Password placeholder="Sensitive field" />
           </Form.Item>
-        </Space>
+        ) : null}
+      </MachineCreateSection>
+
+      <MachineCreateSection
+        title="Time Zone And Metadata"
+        description="`time_zone` is part of the public create contract. Metadata stays local to the asset record."
+      >
         <Form.Item
           name="time_zone"
           label="Time Zone"
-          extra="Loaded from the provider account scope. Region and zone are not required for this catalog."
+          rules={[{ required: true, message: 'Please select time zone.' }]}
         >
           <MachineCreateCatalogSelect
             options={timezoneField.options}
@@ -63,24 +120,12 @@ const MachineCreateAccessStep: React.FC<Props> = ({ catalog }) => {
             notFoundContent={timezoneField.emptyText}
           />
         </Form.Item>
-      </MachineCreateSection>
-
-      <MachineCreateSection
-        title="Initialization"
-        description="The init command template is rendered by the backend. Only `{index}` and `{id}` are supported."
-      >
-        <Form.Item name="init_command_template" label="Init Command Template">
-          <Input.TextArea
-            rows={6}
-            placeholder="hostnamectl set-hostname edge-{index}"
-          />
-        </Form.Item>
         <Form.Item
           name="metadata_text"
           label="Metadata JSON"
-          extra="Local metadata only. This is not provider passthrough."
+          extra="Local display metadata only. Do not place credentials, passwords or provider secrets here."
         >
-          <Input.TextArea rows={6} placeholder='{"owner": "ops"}' />
+          <Input.TextArea rows={6} placeholder='{"owner":"ops"}' />
         </Form.Item>
       </MachineCreateSection>
     </>

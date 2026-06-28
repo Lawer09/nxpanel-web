@@ -552,8 +552,10 @@ const buildSnapshotFromForm = (raw: API.ControlNodeSnapshotConfig) => {
   const limiter = (isObject(raw.limiter) ? raw.limiter : {}) as JsonObject;
   const block = (isObject(limiter.block) ? limiter.block : {}) as JsonObject;
   const client = (isObject(raw.client) ? raw.client : {}) as JsonObject;
+  const tlsInput = (raw.tls ?? {}) as JsonObject;
   const nextId = raw.id === undefined || raw.id === null ? undefined : Number(raw.id);
   const nextTag = typeof raw.tag === 'string' && raw.tag.trim() ? raw.tag.trim() : undefined;
+  const tlsMode = String(tlsInput.mode ?? 'none');
 
   return assertSnapshotConfig({
     ...(nextId !== undefined ? { id: nextId } : {}),
@@ -576,7 +578,7 @@ const buildSnapshotFromForm = (raw: API.ControlNodeSnapshotConfig) => {
       tcp_fast_open: Boolean(raw.listen?.tcp_fast_open),
     },
     settings: buildSettings(type, (raw.settings ?? {}) as JsonObject),
-    tls: buildTls(type === 'vless' ? ((raw.tls ?? {}) as JsonObject) : { mode: 'none' }),
+    tls: buildTls(type !== 'vless' && tlsMode === 'reality' ? { mode: 'none' } : tlsInput),
     transport:
       type === 'vless'
         ? buildTransport(type, (raw.transport ?? {}) as JsonObject)

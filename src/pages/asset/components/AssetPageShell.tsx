@@ -15,8 +15,9 @@ import type {
   JumpToResourceHandler,
   SharedFilters,
 } from '../types';
-import { normalizeDevErrorMessage } from '../utils';
+import { buildAssetTaskDetailPath, normalizeDevErrorMessage } from '../utils';
 import IpsPanel from './panels/IpsPanel';
+import MachineScriptsPanel from './panels/MachineScriptsPanel';
 import MachinesPanel from './panels/MachinesPanel';
 import ProviderAccountsPanel from './panels/ProviderAccountsPanel';
 import SshKeysPanel from './panels/SshKeysPanel';
@@ -28,6 +29,7 @@ const getAssetPath = (kind: AssetResourceKey) => {
     machines: '/asset/machines',
     ips: '/asset/ips',
     'ssh-keys': '/asset/ssh-keys',
+    scripts: '/asset/scripts',
   };
   return pathMap[kind];
 };
@@ -38,6 +40,7 @@ const getAssetTitle = (kind: AssetPageKind) => {
     machines: 'Machines',
     ips: 'IPs',
     'ssh-keys': 'SSH Keys',
+    scripts: 'Machine Scripts',
   };
   return titleMap[kind];
 };
@@ -49,6 +52,7 @@ const AssetPageContent: React.FC<{ kind: AssetPageKind }> = ({ kind }) => {
   const [accounts, setAccounts] = useState<API.AssetProviderAccount[]>([]);
   const [sshKeys, setSshKeys] = useState<API.AssetSshKey[]>([]);
   const [loadingMeta, setLoadingMeta] = useState(false);
+  const showSharedFilters = kind !== 'scripts';
 
   const loadProviders = async () => {
     const response = await listAssetProviders({ page: 1, page_size: 200 });
@@ -69,6 +73,9 @@ const AssetPageContent: React.FC<{ kind: AssetPageKind }> = ({ kind }) => {
   };
 
   const reloadReferenceData = async () => {
+    if (!showSharedFilters) {
+      return;
+    }
     setLoadingMeta(true);
     try {
       await Promise.all([
@@ -84,8 +91,10 @@ const AssetPageContent: React.FC<{ kind: AssetPageKind }> = ({ kind }) => {
   };
 
   useEffect(() => {
-    void reloadReferenceData();
-  }, []);
+    if (showSharedFilters) {
+      void reloadReferenceData();
+    }
+  }, [showSharedFilters]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(history.location.search);
@@ -99,21 +108,17 @@ const AssetPageContent: React.FC<{ kind: AssetPageKind }> = ({ kind }) => {
   }, []);
 
   const handleTaskAck = (ack: API.AssetTaskAck, title: string) => {
+    const taskPath = buildAssetTaskDetailPath(ack.task_id);
     notification.success({
       message: title,
       description: `Task ID: ${ack.task_id}, status: ${ack.status || 'pending'}.`,
       actions: (
-        <Button
-          size="small"
-          onClick={() =>
-            history.push(`/asset/operations?task_id=${ack.task_id}`)
-          }
-        >
-          View Operations
+        <Button size="small" onClick={() => history.push(taskPath)}>
+          View Task
         </Button>
       ),
     });
-    history.push(`/asset/operations?task_id=${ack.task_id}`);
+    history.push(taskPath);
   };
 
   const handleJumpToResource: JumpToResourceHandler = (resource, accountId) => {
@@ -138,14 +143,16 @@ const AssetPageContent: React.FC<{ kind: AssetPageKind }> = ({ kind }) => {
       ]}
     >
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
-        <SharedFilterBar
-          activeResource={kind}
-          filters={filters}
-          providers={providers}
-          accounts={accounts}
-          onApply={setFilters}
-          onReset={() => setFilters({})}
-        />
+        {showSharedFilters ? (
+          <SharedFilterBar
+            activeResource={kind}
+            filters={filters}
+            providers={providers}
+            accounts={accounts}
+            onApply={setFilters}
+            onReset={() => setFilters({})}
+          />
+        ) : null}
         {kind === 'accounts' ? (
           <ProviderAccountsPanel
             filters={filters}
@@ -183,6 +190,9 @@ const AssetPageContent: React.FC<{ kind: AssetPageKind }> = ({ kind }) => {
               handleTaskAck(ack, title);
             }}
           />
+        ) : null}
+        {kind === 'scripts' ? (
+          <MachineScriptsPanel onTaskAck={handleTaskAck} />
         ) : null}
       </Space>
     </PageContainer>

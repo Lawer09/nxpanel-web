@@ -431,9 +431,19 @@ export default [
         component: './asset/SshKeys',
       },
       {
+        path: '/asset/scripts',
+        name: 'scripts',
+        component: './asset/Scripts',
+      },
+      {
         path: '/asset/operations',
         name: 'operations',
         component: './asset/Operations',
+      },
+      {
+        path: '/asset/tasks/:taskId',
+        hideInMenu: true,
+        component: './asset/TaskDetail',
       },
     ],
   },

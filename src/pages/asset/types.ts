@@ -1,4 +1,9 @@
-export type AssetResourceKey = 'accounts' | 'machines' | 'ips' | 'ssh-keys';
+export type AssetResourceKey =
+  | 'accounts'
+  | 'machines'
+  | 'ips'
+  | 'ssh-keys'
+  | 'scripts';
 export type AssetPageKind = AssetResourceKey;
 
 export type SharedFilters = {
@@ -6,6 +11,8 @@ export type SharedFilters = {
   account_id?: number;
   region?: string;
   status?: string;
+  tag_key?: string;
+  tag_value?: string;
 };
 
 export type AccountFormValues = {
@@ -16,6 +23,7 @@ export type AccountFormValues = {
   access_key_secret?: string;
   access_token?: string;
   api_base_url?: string;
+  tags?: AssetTagFormValue[];
 };
 
 export type MachineFormValues = {
@@ -34,92 +42,92 @@ export type MachineFormValues = {
   disk_gb?: number;
   bandwidth_mbps?: number;
   spec_text?: string;
+  tags?: AssetTagFormValue[];
 };
 
 export type MachineCreateWizardMode = 'create' | 'retry';
 
 export type MachineCreateCatalogField =
-  | 'region'
-  | 'zone'
-  | 'instance_type'
-  | 'billing.type'
+  | 'zone.zone_id'
+  | 'spec.type'
+  | 'os.image_id'
+  | 'vpc.vpc_id'
+  | 'vpc.vswitch_id'
+  | 'internet.charge_type'
+  | 'internet.bandwidth_mbps'
+  | 'internet.traffic_package_size'
+  | 'internet.eip_v4_type'
+  | 'billing.mode'
   | 'billing.period_unit'
-  | 'billing.internet_charge_type'
-  | 'image_id'
-  | 'storage.system_disk.category'
-  | 'storage.data_disks.category'
-  | 'network.vpc_id'
-  | 'network.subnet_id'
-  | 'network.security_group_id'
-  | 'ip_assignment.mode'
-  | 'ip_assignment.ip_ids'
-  | 'ssh_key.provider_key_id'
+  | 'login.provider_key_id'
   | 'time_zone';
 
+export type MachineCreateZoneFormValues = {
+  country_code?: string;
+  city?: string;
+  zone_id?: string;
+};
+
+export type MachineCreateSpecFormValues = {
+  type?: string;
+  cpu_cores?: number;
+  memory_mb?: number;
+};
+
+export type MachineCreateOsFormValues = {
+  image_id?: string;
+  name?: string;
+  version?: string;
+};
+
 export type MachineCreateDiskFormValues = {
-  category?: string;
-  size_gb?: number;
-  extra_text?: string;
+  system_size_gb?: number;
+};
+
+export type MachineCreateVpcFormValues = {
+  vpc_id?: string;
+  vswitch_id?: string;
+  cidr_block_v4?: string;
+  cidr_block_v6?: string;
+};
+
+export type MachineCreateInternetFormValues = {
+  charge_type?: string;
+  bandwidth_mbps?: number;
+  traffic_package_size?: number;
+  eip_v4_type?: string;
+};
+
+export type MachineCreateLoginFormValues = {
+  auth_type?: 'provider_key' | 'password';
+  provider_key_id?: string;
+  ssh_key_id?: number;
+  username?: string;
+  password?: string;
 };
 
 export type MachineCreateBillingFormValues = {
-  type?: string;
+  mode?: string;
   period?: number;
   period_unit?: string;
-  auto_renew?: boolean;
-  internet_charge_type?: string;
-  traffic_package_size?: number;
-  extra_text?: string;
-};
-
-export type MachineCreateNetworkFormValues = {
-  vpc_id?: string;
-  subnet_id?: string;
-  security_group_id?: string;
-  nic_network_type?: string;
-  lan_ip?: string;
-  enable_agent?: boolean;
-  enable_ip_forward?: boolean;
-  resource_group_id?: string;
-};
-
-export type MachineCreateIpAssignmentFormValues = {
-  mode?: string;
-  ip_ids?: number[];
-  quantity?: number;
-  bandwidth_mbps?: number;
-  internet_charge_type?: string;
-  traffic_package_size?: number;
-  eip_bind_type?: string;
-  eip_v4_type?: string;
-  cluster_id?: string;
-};
-
-export type MachineCreateSshKeyFormValues = {
-  provider_key_id?: string;
-  password?: string;
 };
 
 export type MachineCreateFormValues = {
   account_id?: number;
-  region?: string;
-  zone?: string;
-  instance_type?: string;
-  image_id?: string;
-  count?: number;
-  machine_id_template?: string;
-  name_template?: string;
-  client_request_id?: string;
+  name?: string;
+  zone?: MachineCreateZoneFormValues;
+  spec?: MachineCreateSpecFormValues;
+  os?: MachineCreateOsFormValues;
+  disk?: MachineCreateDiskFormValues;
+  vpc?: MachineCreateVpcFormValues;
+  bandwidth_mbps?: number;
+  internet?: MachineCreateInternetFormValues;
+  login?: MachineCreateLoginFormValues;
   billing?: MachineCreateBillingFormValues;
-  storage?: {
-    system_disk?: MachineCreateDiskFormValues;
-    data_disks?: MachineCreateDiskFormValues[];
-  };
-  network?: MachineCreateNetworkFormValues;
-  ip_assignment?: MachineCreateIpAssignmentFormValues;
-  ssh_key?: MachineCreateSshKeyFormValues;
+  tags?: AssetTagFormValue[];
   time_zone?: string;
-  init_command_template?: string;
+  count?: number;
+  client_request_id?: string;
   metadata_text?: string;
 };
 
@@ -142,13 +150,16 @@ export type IpFormValues = {
   ownership?: string;
   external_ip_id?: string;
   metadata_text?: string;
+  tags?: AssetTagFormValue[];
 };
 
 export type SshKeyCustomFormValues = {
   name: string;
+  scope?: string;
   public_key: string;
   private_key?: string;
   metadata_text?: string;
+  tags?: AssetTagFormValue[];
 };
 
 export type SshKeyProviderFormValues = {
@@ -157,6 +168,7 @@ export type SshKeyProviderFormValues = {
   external_key_id?: string;
   public_key?: string;
   payload_text?: string;
+  tags?: AssetTagFormValue[];
 };
 
 export type SshKeyEditFormValues = {
@@ -165,6 +177,28 @@ export type SshKeyEditFormValues = {
   status?: string;
   public_key?: string;
   metadata_text?: string;
+  tags?: AssetTagFormValue[];
+};
+
+export type AssetTagFormValue = {
+  key?: string;
+  value?: string;
+  label?: string;
+};
+
+export type MachineScriptFormValues = {
+  name: string;
+  description?: string;
+  content: string;
+  status?: string;
+  metadata_text?: string;
+  tags?: AssetTagFormValue[];
+};
+
+export type MachineScriptRunFormValues = {
+  machine_ids?: number[];
+  timeout_seconds?: number;
+  port?: number;
 };
 
 export type JumpToResourceHandler = (

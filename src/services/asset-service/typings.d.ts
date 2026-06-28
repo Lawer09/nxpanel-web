@@ -1,4 +1,10 @@
 declare namespace API {
+  interface AssetTagItem {
+    key: string;
+    value: string;
+    label?: string;
+  }
+
   interface AssetApiResponse<T> {
     code: number;
     message: string;
@@ -44,26 +50,27 @@ declare namespace API {
     has_credential?: boolean;
     credential_masked?: string;
     credential_version?: number;
+    tags?: AssetTagItem[];
     last_synced_at?: string | null;
     created_at?: string;
     updated_at?: string;
   }
 
   type AssetMachineCreateCatalogCategory =
-    | 'regions'
     | 'zones'
     | 'instance-types'
+    | 'os-images'
+    | 'vpcs'
+    | 'bandwidth-options'
+    | 'tag-options'
     | 'billing-options'
-    | 'images'
-    | 'storage-options'
-    | 'network-options'
-    | 'ip-options'
     | 'ssh-keys'
     | 'timezones';
 
   interface AssetMachineCreateCatalogQuery {
-    region?: string;
-    zone?: string;
+    zone_id?: string;
+    country_code?: string;
+    city?: string;
     vpc_id?: string;
     refresh?: boolean;
   }
@@ -95,8 +102,9 @@ declare namespace API {
     account_id: number;
     provider_code?: string;
     category: AssetMachineCreateCatalogCategory;
-    region?: string;
-    zone?: string;
+    country_code?: string;
+    city?: string;
+    zone_id?: string;
     vpc_id?: string;
     refresh?: boolean;
     cache_ttl_seconds?: number;
@@ -155,6 +163,7 @@ declare namespace API {
     source?: string;
     sync_status?: string;
     metadata?: Record<string, any> | null;
+    tags?: AssetTagItem[];
     client_request_id?: string;
     create_task_id?: number;
     create_request_json?: Record<string, any> | null;
@@ -184,6 +193,7 @@ declare namespace API {
     status?: string;
     ownership?: string;
     metadata?: Record<string, any> | null;
+    tags?: AssetTagItem[];
     machine_binding?: AssetMachineIpBinding | null;
     created_at?: string;
     updated_at?: string;
@@ -205,6 +215,72 @@ declare namespace API {
     status?: string;
     created_by?: number;
     metadata?: Record<string, any> | null;
+    tags?: AssetTagItem[];
+    created_at?: string;
+    updated_at?: string;
+    [key: string]: any;
+  }
+
+  interface AssetIpPullRun {
+    id: number;
+    account_id?: number | null;
+    account_name?: string;
+    provider_id?: number | null;
+    provider_code?: string;
+    region?: string;
+    status_filter?: string;
+    task_id?: number;
+    status?: string;
+    page?: number;
+    page_size?: number;
+    page_count?: number;
+    cached?: boolean;
+    total_count?: number;
+    pulled_count?: number;
+    imported_count?: number;
+    error_summary?: string;
+    request?: Record<string, any> | null;
+    expires_at?: string | null;
+    created_by?: number;
+    created_at?: string;
+    updated_at?: string;
+    [key: string]: any;
+  }
+
+  interface AssetIpPullItem {
+    id: number;
+    pull_run_id?: number;
+    provider_id?: number | null;
+    provider_code?: string;
+    account_id?: number | null;
+    account_name?: string;
+    external_ip_id?: string;
+    ip?: string;
+    ip_version?: number;
+    type?: string;
+    region?: string;
+    status?: string;
+    ownership?: string;
+    provider_binding_id?: string;
+    raw?: Record<string, any> | null;
+    import_status?: string;
+    imported?: boolean;
+    imported_ip_id?: number | null;
+    error_summary?: string;
+    created_at?: string;
+    updated_at?: string;
+    [key: string]: any;
+  }
+
+  interface AssetMachineScript {
+    id: number;
+    name: string;
+    description?: string;
+    content?: string;
+    tags?: AssetTagItem[];
+    metadata?: Record<string, any> | null;
+    status?: string;
+    created_by?: number;
     created_at?: string;
     updated_at?: string;
     [key: string]: any;
@@ -234,6 +310,19 @@ declare namespace API {
     status?: string;
     task_url?: string;
     machines?: AssetMachine[];
+    pull_run_id?: number;
+    cached?: boolean;
+  }
+
+  interface AssetMachineTrustToken {
+    machine_id: string;
+    asset_machine_id: number;
+    trust_token: string;
+    config?: Record<string, any> | null;
+    expires_in_seconds?: number;
+    inject_task_id?: number;
+    inject_task_url?: string;
+    inject_status?: string;
   }
 
   interface AssetListParams {
@@ -243,6 +332,10 @@ declare namespace API {
     account_id?: number;
     region?: string;
     status?: string;
+    source?: string;
+    name?: string;
+    tag_key?: string;
+    tag_value?: string;
   }
 
   interface AssetProviderAccountCreateParams {
@@ -250,6 +343,7 @@ declare namespace API {
     name: string;
     status?: string;
     credential: AssetProviderCredentialInput;
+    tags?: AssetTagItem[];
   }
 
   interface AssetProviderAccountUpdateParams {
@@ -257,6 +351,7 @@ declare namespace API {
     name?: string;
     status?: string;
     credential?: AssetProviderCredentialInput;
+    tags?: AssetTagItem[];
   }
 
   interface AssetMachineCreateManualParams {
@@ -270,91 +365,97 @@ declare namespace API {
     status?: string;
     external_instance_id?: string;
     metadata?: Record<string, any>;
+    tags?: AssetTagItem[];
     spec?: AssetMachineSpec;
   }
 
-  interface AssetMachineCreateBilling {
+  interface AssetMachineCreateManualResult {
+    id: number;
+    trust_token?: AssetMachineTrustToken | null;
+  }
+
+  interface AssetMachineCreateZone {
+    country_code: string;
+    city?: string;
+    zone_id: string;
+  }
+
+  interface AssetMachineCreateSpec {
     type: string;
-    period?: number;
-    period_unit?: string;
-    auto_renew?: boolean;
-    internet_charge_type?: string;
-    traffic_package_size?: number;
-    extra?: Record<string, any> | null;
+    cpu_cores?: number;
+    memory_mb?: number;
+  }
+
+  interface AssetMachineCreateOs {
+    image_id: string;
+    name?: string;
+    version?: string;
   }
 
   interface AssetMachineCreateDisk {
-    category?: string;
-    size_gb: number;
-    extra?: Record<string, any> | null;
+    system_size_gb: number;
   }
 
-  interface AssetMachineCreateStorage {
-    system_disk: AssetMachineCreateDisk;
-    data_disks?: AssetMachineCreateDisk[];
+  interface AssetMachineCreateVpc {
+    vpc_id: string;
+    vswitch_id?: string;
+    cidr_block_v4?: string;
+    cidr_block_v6?: string;
   }
 
-  interface AssetMachineCreateNetwork {
-    vpc_id?: string;
-    subnet_id: string;
-    security_group_id?: string;
-    nic_network_type?: string;
-    lan_ip?: string;
-    enable_agent?: boolean;
-    enable_ip_forward?: boolean;
-    resource_group_id?: string;
-  }
-
-  interface AssetMachineCreateIpAssignment {
-    mode?: string;
-    ip_ids?: number[];
-    quantity?: number;
+  interface AssetMachineCreateInternet {
+    charge_type?: string;
     bandwidth_mbps?: number;
-    internet_charge_type?: string;
     traffic_package_size?: number;
-    eip_bind_type?: string;
     eip_v4_type?: string;
-    cluster_id?: string;
   }
 
-  interface AssetMachineCreateSshKey {
+  interface AssetMachineCreateLogin {
+    auth_type: string;
     provider_key_id?: string;
+    ssh_key_id?: number;
+    username?: string;
     password?: string;
+  }
+
+  interface AssetMachineCreateBilling {
+    mode: string;
+    period?: number;
+    period_unit?: string;
   }
 
   interface AssetMachineCreateFromProviderParams {
     account_id: number;
-    region: string;
-    zone: string;
-    instance_type: string;
-    image_id: string;
+    name: string;
+    zone: AssetMachineCreateZone;
+    spec: AssetMachineCreateSpec;
+    os: AssetMachineCreateOs;
+    disk: AssetMachineCreateDisk;
+    vpc: AssetMachineCreateVpc;
+    bandwidth_mbps?: number;
+    internet?: AssetMachineCreateInternet;
+    login: AssetMachineCreateLogin;
+    tags?: AssetTagItem[];
+    time_zone: string;
     billing: AssetMachineCreateBilling;
-    storage: AssetMachineCreateStorage;
-    network: AssetMachineCreateNetwork;
-    ip_assignment?: AssetMachineCreateIpAssignment;
-    ssh_key?: AssetMachineCreateSshKey;
-    time_zone?: string;
     count?: number;
-    machine_id_template?: string;
-    name_template?: string;
-    init_command_template?: string;
-    metadata?: Record<string, any>;
     client_request_id?: string;
+    metadata?: Record<string, any>;
   }
 
   interface AssetMachineRetryProviderCreateParams {
-    region?: string;
-    zone?: string;
-    instance_type?: string;
-    image_id?: string;
-    billing?: AssetMachineCreateBilling;
-    storage?: AssetMachineCreateStorage;
-    network?: AssetMachineCreateNetwork;
-    ip_assignment?: AssetMachineCreateIpAssignment;
-    ssh_key?: AssetMachineCreateSshKey;
+    name?: string;
+    zone?: Partial<AssetMachineCreateZone>;
+    spec?: Partial<AssetMachineCreateSpec>;
+    os?: Partial<AssetMachineCreateOs>;
+    disk?: Partial<AssetMachineCreateDisk>;
+    vpc?: Partial<AssetMachineCreateVpc>;
+    bandwidth_mbps?: number;
+    internet?: Partial<AssetMachineCreateInternet>;
+    login?: Partial<AssetMachineCreateLogin>;
+    tags?: AssetTagItem[];
     time_zone?: string;
-    name_template?: string;
-    init_command_template?: string;
+    billing?: Partial<AssetMachineCreateBilling>;
     metadata?: Record<string, any>;
   }
 
@@ -368,6 +469,7 @@ declare namespace API {
     billing_type?: string;
     status?: string;
     metadata?: Record<string, any>;
+    tags?: AssetTagItem[];
     spec?: AssetMachineSpec;
   }
 
@@ -390,6 +492,7 @@ declare namespace API {
     ownership?: string;
     external_ip_id?: string;
     metadata?: Record<string, any>;
+    tags?: AssetTagItem[];
   }
 
   interface AssetIpUpdateParams {
@@ -400,6 +503,31 @@ declare namespace API {
     ownership?: string;
     external_ip_id?: string;
     metadata?: Record<string, any>;
+    tags?: AssetTagItem[];
+  }
+
+  interface AssetIpPullFromProviderParams {
+    account_id: number;
+    region?: string;
+    status?: string;
+    page?: number;
+    page_size?: number;
+    refresh?: boolean;
+  }
+
+  interface AssetIpPullRunItemsParams {
+    page?: number;
+    page_size?: number;
+    status?: string;
+    type?: string;
+    region?: string;
+    ip?: string;
+  }
+
+  interface AssetIpImportFromProviderParams {
+    pull_run_id: number;
+    import_all?: boolean;
+    item_ids?: number[];
   }
 
   interface AssetMachineBindIpParams {
@@ -423,6 +551,7 @@ declare namespace API {
     public_key: string;
     private_key?: string;
     metadata?: Record<string, any>;
+    tags?: AssetTagItem[];
   }
 
   interface AssetSshKeyImportProviderParams {
@@ -431,6 +560,7 @@ declare namespace API {
     external_key_id?: string;
     public_key?: string;
     payload?: Record<string, any>;
+    tags?: AssetTagItem[];
   }
 
   interface AssetSshKeyCreateProviderParams {
@@ -439,6 +569,7 @@ declare namespace API {
     external_key_id?: string;
     public_key?: string;
     payload?: Record<string, any>;
+    tags?: AssetTagItem[];
   }
 
   interface AssetSshKeyUpdateParams {
@@ -448,7 +579,34 @@ declare namespace API {
     status?: string;
     public_key?: string;
     metadata?: Record<string, any>;
+    tags?: AssetTagItem[];
   }
 
   interface AssetOperationListParams extends AssetListParams {}
+
+  interface AssetMachineScriptListParams {
+    page?: number;
+    page_size?: number;
+    name?: string;
+    status?: string;
+    tag_key?: string;
+    tag_value?: string;
+  }
+
+  interface AssetMachineScriptUpsertParams {
+    id?: number;
+    name: string;
+    description?: string;
+    content: string;
+    tags?: AssetTagItem[];
+    metadata?: Record<string, any>;
+    status?: string;
+  }
+
+  interface AssetMachineScriptRunParams {
+    script_name: string;
+    machine_ids: number[];
+    timeout_seconds?: number;
+    port?: number;
+  }
 }

@@ -1,6 +1,7 @@
 import { Form, Input, InputNumber, Select, Space, Typography } from 'antd';
 import React from 'react';
 import { MACHINE_STATUS_OPTIONS } from '../../constants';
+import AssetTagEditor from '../AssetTagEditor';
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -54,6 +55,7 @@ export const MachineManualBaseFields: React.FC<{
         <Input />
       </Form.Item>
     ) : null}
+    <AssetTagEditor name="tags" />
   </>
 );
 

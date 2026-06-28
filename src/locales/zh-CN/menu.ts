@@ -50,6 +50,7 @@ export default {
   'menu.asset.machines': '机器',
   'menu.asset.ips': 'IP',
   'menu.asset.ssh-keys': 'SSH 密钥',
+  'menu.asset.scripts': '脚本',
   'menu.asset.operations': '操作记录',
   'menu.iam': 'IAM',
   'menu.iam.users': '用户管理',

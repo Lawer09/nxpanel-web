@@ -40,29 +40,32 @@ type Props = {
 const STEP_FIELDS: NamePath[][] = [
   [
     'account_id',
-    'region',
-    'zone',
-    'instance_type',
-    'image_id',
+    'name',
+    ['zone', 'country_code'],
+    ['zone', 'zone_id'],
+    ['spec', 'type'],
+    ['os', 'image_id'],
     'count',
-    'machine_id_template',
-    'name_template',
-    'client_request_id',
   ],
-  [['billing', 'type'], ['storage', 'system_disk', 'size_gb']],
-  [['network', 'subnet_id'], ['ip_assignment', 'ip_ids']],
-  [],
+  [
+    ['billing', 'mode'],
+    ['disk', 'system_size_gb'],
+  ],
+  [
+    ['vpc', 'vpc_id'],
+    ['internet', 'bandwidth_mbps'],
+  ],
+  [['login', 'auth_type'], 'time_zone'],
   [],
 ];
 
 const buildDefaultValues = (): Partial<MachineCreateFormValues> => ({
   count: 1,
-  ip_assignment: {
-    mode: 'provider_auto',
+  login: {
+    auth_type: 'provider_key',
+    username: 'root',
   },
-  storage: {
-    data_disks: [],
-  },
+  tags: [],
 });
 
 const deepMerge = <T,>(base: T, override?: Partial<T>): T => {
@@ -80,14 +83,18 @@ const deepMerge = <T,>(base: T, override?: Partial<T>): T => {
     override &&
     typeof override === 'object'
   ) {
-    const result: Record<string, unknown> = { ...(base as Record<string, unknown>) };
+    const result: Record<string, unknown> = {
+      ...(base as Record<string, unknown>),
+    };
 
-    Object.entries(override as Record<string, unknown>).forEach(([key, value]) => {
-      result[key] = deepMerge(
-        (result[key] as never) ?? (value as never),
-        value as never,
-      );
-    });
+    Object.entries(override as Record<string, unknown>).forEach(
+      ([key, value]) => {
+        result[key] = deepMerge(
+          (result[key] as never) ?? (value as never),
+          value as never,
+        );
+      },
+    );
 
     return result as T;
   }
@@ -130,9 +137,19 @@ const MachineCreateWizardModal: React.FC<Props> = ({
     form,
     preserve: true,
   });
-  const watchedRegion = Form.useWatch('region', { form, preserve: true });
-  const watchedZone = Form.useWatch('zone', { form, preserve: true });
-  const watchedVpcId = Form.useWatch(['network', 'vpc_id'], {
+  const watchedCountryCode = Form.useWatch(['zone', 'country_code'], {
+    form,
+    preserve: true,
+  });
+  const watchedCity = Form.useWatch(['zone', 'city'], {
+    form,
+    preserve: true,
+  });
+  const watchedZoneId = Form.useWatch(['zone', 'zone_id'], {
+    form,
+    preserve: true,
+  });
+  const watchedVpcId = Form.useWatch(['vpc', 'vpc_id'], {
     form,
     preserve: true,
   });
@@ -141,13 +158,16 @@ const MachineCreateWizardModal: React.FC<Props> = ({
     | undefined;
 
   const effectiveAccountId =
-    mode === 'retry' ? retrying?.account_id || watchedAccountId : watchedAccountId;
+    mode === 'retry'
+      ? retrying?.account_id || watchedAccountId
+      : watchedAccountId;
 
   const catalog = useMachineCreateCatalogs({
     open,
     accountId: effectiveAccountId || undefined,
-    region: watchedRegion,
-    zone: watchedZone,
+    countryCode: watchedCountryCode,
+    city: watchedCity,
+    zoneId: watchedZoneId,
     vpcId: watchedVpcId,
   });
 
@@ -170,31 +190,37 @@ const MachineCreateWizardModal: React.FC<Props> = ({
 
   const canQuote = Boolean(
     requestPreview.payload?.account_id &&
-      requestPreview.payload.region &&
-      requestPreview.payload.zone &&
-      requestPreview.payload.instance_type &&
-      requestPreview.payload.image_id &&
-      requestPreview.payload.billing?.type &&
-      requestPreview.payload.storage?.system_disk?.size_gb &&
-      requestPreview.payload.network?.subnet_id,
+      requestPreview.payload?.name &&
+      requestPreview.payload?.zone?.country_code &&
+      requestPreview.payload?.zone?.zone_id &&
+      requestPreview.payload?.spec?.type &&
+      requestPreview.payload?.os?.image_id &&
+      requestPreview.payload?.disk?.system_size_gb &&
+      requestPreview.payload?.vpc?.vpc_id &&
+      requestPreview.payload?.internet?.bandwidth_mbps &&
+      requestPreview.payload?.login?.auth_type &&
+      requestPreview.payload?.time_zone &&
+      requestPreview.payload?.billing?.mode,
   );
 
-  const previewPayload = useMemo(() => {
+  const previewPayload = useMemo<
+    Partial<API.AssetMachineCreateFromProviderParams> | undefined
+  >(() => {
     if (!requestPreview.payload) {
       return undefined;
     }
 
     return {
       ...requestPreview.payload,
-      ssh_key: requestPreview.payload.ssh_key
+      login: requestPreview.payload.login
         ? {
-            ...requestPreview.payload.ssh_key,
-            password: requestPreview.payload.ssh_key.password
+            ...requestPreview.payload.login,
+            password: requestPreview.payload.login.password
               ? '******'
               : undefined,
           }
         : undefined,
-    } satisfies API.AssetMachineCreateFromProviderParams;
+    };
   }, [requestPreview.payload]);
 
   useEffect(() => {
@@ -246,64 +272,191 @@ const MachineCreateWizardModal: React.FC<Props> = ({
     }
 
     const nextValues: Partial<MachineCreateFormValues> = {};
-    const nextNetwork = { ...(form.getFieldValue('network') || {}) };
-    let hasNetworkChange = false;
+    const nextZone = { ...(form.getFieldValue('zone') || {}) };
+    const nextSpec = { ...(form.getFieldValue('spec') || {}) };
+    const nextOs = { ...(form.getFieldValue('os') || {}) };
+    const nextVpc = { ...(form.getFieldValue('vpc') || {}) };
+    const nextInternet = { ...(form.getFieldValue('internet') || {}) };
+    const nextBilling = { ...(form.getFieldValue('billing') || {}) };
+    const nextLogin = { ...(form.getFieldValue('login') || {}) };
 
-    const zoneValue = form.getFieldValue('zone');
-    if (
-      zoneValue &&
-      !isOptionAvailable(zoneValue, catalog.getFieldStatus('zone').options)
-    ) {
-      nextValues.zone = undefined;
-      nextValues.instance_type = undefined;
-      nextValues.image_id = undefined;
-      nextNetwork.subnet_id = undefined;
-      nextNetwork.security_group_id = undefined;
-      hasNetworkChange = true;
-    }
+    let zoneChanged = false;
+    let specChanged = false;
+    let osChanged = false;
+    let vpcChanged = false;
+    let internetChanged = false;
+    let billingChanged = false;
+    let loginChanged = false;
 
-    const instanceTypeValue = form.getFieldValue('instance_type');
     if (
-      instanceTypeValue &&
+      nextZone.zone_id &&
       !isOptionAvailable(
-        instanceTypeValue,
-        catalog.getFieldOptions('instance_type'),
+        nextZone.zone_id,
+        catalog.getFieldOptions('zone.zone_id'),
       )
     ) {
-      nextValues.instance_type = undefined;
+      nextZone.zone_id = undefined;
+      nextSpec.type = undefined;
+      nextOs.image_id = undefined;
+      nextVpc.vpc_id = undefined;
+      nextVpc.vswitch_id = undefined;
+      nextInternet.charge_type = undefined;
+      nextInternet.bandwidth_mbps = undefined;
+      nextInternet.traffic_package_size = undefined;
+      nextInternet.eip_v4_type = undefined;
+      zoneChanged = true;
+      specChanged = true;
+      osChanged = true;
+      vpcChanged = true;
+      internetChanged = true;
     }
 
-    const imageValue = form.getFieldValue('image_id');
     if (
-      imageValue &&
-      !isOptionAvailable(imageValue, catalog.getFieldOptions('image_id'))
+      nextSpec.type &&
+      !isOptionAvailable(nextSpec.type, catalog.getFieldOptions('spec.type'))
     ) {
-      nextValues.image_id = undefined;
+      nextSpec.type = undefined;
+      specChanged = true;
     }
 
-    const subnetValue = nextNetwork.subnet_id;
     if (
-      subnetValue &&
-      !isOptionAvailable(subnetValue, catalog.getFieldOptions('network.subnet_id'))
-    ) {
-      nextNetwork.subnet_id = undefined;
-      hasNetworkChange = true;
-    }
-
-    const securityGroupValue = nextNetwork.security_group_id;
-    if (
-      securityGroupValue &&
+      nextOs.image_id &&
       !isOptionAvailable(
-        securityGroupValue,
-        catalog.getFieldOptions('network.security_group_id'),
+        nextOs.image_id,
+        catalog.getFieldOptions('os.image_id'),
       )
     ) {
-      nextNetwork.security_group_id = undefined;
-      hasNetworkChange = true;
+      nextOs.image_id = undefined;
+      osChanged = true;
     }
 
-    if (hasNetworkChange) {
-      nextValues.network = nextNetwork;
+    if (
+      nextVpc.vpc_id &&
+      !isOptionAvailable(nextVpc.vpc_id, catalog.getFieldOptions('vpc.vpc_id'))
+    ) {
+      nextVpc.vpc_id = undefined;
+      nextVpc.vswitch_id = undefined;
+      vpcChanged = true;
+    }
+
+    if (
+      nextVpc.vswitch_id &&
+      !isOptionAvailable(
+        nextVpc.vswitch_id,
+        catalog.getFieldOptions('vpc.vswitch_id'),
+      )
+    ) {
+      nextVpc.vswitch_id = undefined;
+      vpcChanged = true;
+    }
+
+    if (
+      nextInternet.charge_type &&
+      !isOptionAvailable(
+        nextInternet.charge_type,
+        catalog.getFieldOptions('internet.charge_type'),
+      )
+    ) {
+      nextInternet.charge_type = undefined;
+      internetChanged = true;
+    }
+
+    if (
+      nextInternet.bandwidth_mbps &&
+      !isOptionAvailable(
+        nextInternet.bandwidth_mbps,
+        catalog.getFieldOptions('internet.bandwidth_mbps'),
+      )
+    ) {
+      nextInternet.bandwidth_mbps = undefined;
+      internetChanged = true;
+    }
+
+    if (
+      nextInternet.traffic_package_size &&
+      !isOptionAvailable(
+        nextInternet.traffic_package_size,
+        catalog.getFieldOptions('internet.traffic_package_size'),
+      )
+    ) {
+      nextInternet.traffic_package_size = undefined;
+      internetChanged = true;
+    }
+
+    if (
+      nextInternet.eip_v4_type &&
+      !isOptionAvailable(
+        nextInternet.eip_v4_type,
+        catalog.getFieldOptions('internet.eip_v4_type'),
+      )
+    ) {
+      nextInternet.eip_v4_type = undefined;
+      internetChanged = true;
+    }
+
+    if (
+      nextBilling.mode &&
+      !isOptionAvailable(
+        nextBilling.mode,
+        catalog.getFieldOptions('billing.mode'),
+      )
+    ) {
+      nextBilling.mode = undefined;
+      billingChanged = true;
+    }
+
+    if (
+      nextBilling.period_unit &&
+      !isOptionAvailable(
+        nextBilling.period_unit,
+        catalog.getFieldOptions('billing.period_unit'),
+      )
+    ) {
+      nextBilling.period_unit = undefined;
+      billingChanged = true;
+    }
+
+    if (
+      nextLogin.provider_key_id &&
+      !isOptionAvailable(
+        nextLogin.provider_key_id,
+        catalog.getFieldOptions('login.provider_key_id'),
+      )
+    ) {
+      nextLogin.provider_key_id = undefined;
+      loginChanged = true;
+    }
+
+    if (
+      form.getFieldValue('time_zone') &&
+      !isOptionAvailable(
+        form.getFieldValue('time_zone'),
+        catalog.getFieldOptions('time_zone'),
+      )
+    ) {
+      nextValues.time_zone = undefined;
+    }
+
+    if (zoneChanged) {
+      nextValues.zone = nextZone;
+    }
+    if (specChanged) {
+      nextValues.spec = nextSpec;
+    }
+    if (osChanged) {
+      nextValues.os = nextOs;
+    }
+    if (vpcChanged) {
+      nextValues.vpc = nextVpc;
+    }
+    if (internetChanged) {
+      nextValues.internet = nextInternet;
+    }
+    if (billingChanged) {
+      nextValues.billing = nextBilling;
+    }
+    if (loginChanged) {
+      nextValues.login = nextLogin;
     }
 
     if (Object.keys(nextValues).length) {
@@ -400,8 +553,8 @@ const MachineCreateWizardModal: React.FC<Props> = ({
 
   const stepItems = [
     { key: 'basic', title: 'Basic' },
-    { key: 'billing', title: 'Billing & Storage' },
-    { key: 'network', title: 'Network & IP' },
+    { key: 'billing', title: 'Billing & Disk' },
+    { key: 'network', title: 'VPC & Internet' },
     { key: 'access', title: 'Access' },
     { key: 'review', title: 'Review & Quote' },
   ];
@@ -424,7 +577,9 @@ const MachineCreateWizardModal: React.FC<Props> = ({
         currentStep > 0 ? (
           <Button
             key="back"
-            onClick={() => setCurrentStep((current) => Math.max(current - 1, 0))}
+            onClick={() =>
+              setCurrentStep((current) => Math.max(current - 1, 0))
+            }
           >
             Back
           </Button>
@@ -486,16 +641,18 @@ const MachineCreateWizardModal: React.FC<Props> = ({
         {currentStep === 1 ? (
           <MachineCreateBillingStep
             catalog={catalog}
-            zoneReady={Boolean(watchedZone)}
+            zoneReady={Boolean(watchedZoneId)}
           />
         ) : null}
         {currentStep === 2 ? (
           <MachineCreateNetworkStep
             catalog={catalog}
-            zoneReady={Boolean(watchedZone)}
+            zoneReady={Boolean(watchedZoneId)}
           />
         ) : null}
-        {currentStep === 3 ? <MachineCreateAccessStep catalog={catalog} /> : null}
+        {currentStep === 3 ? (
+          <MachineCreateAccessStep catalog={catalog} />
+        ) : null}
         {currentStep === 4 ? (
           <MachineCreateReviewStep
             mode={mode}

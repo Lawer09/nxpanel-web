@@ -1,7 +1,7 @@
 import { Tag } from 'antd';
+import dayjs from 'dayjs';
 import React from 'react';
 import { formatBytes as formatBytesBase } from '@/utils/firebase-analytics';
-import { formatUTC8 } from '@/utils/format';
 
 export type RuntimeMetricKey =
   | 'cpu'
@@ -33,7 +33,12 @@ export const formatSpeed = (value?: number | null) => {
   return `${formatBytesBase(value)}/s`;
 };
 
-export const formatDateTime = (value?: string | null) => formatUTC8(value);
+export const formatDateTime = (value?: string | null) => {
+  if (!value) return '-';
+  const parsed = dayjs(value);
+  if (!parsed.isValid()) return '-';
+  return parsed.format('YYYY-MM-DD HH:mm:ss');
+};
 
 export const formatDurationSeconds = (value?: number | null) => {
   if (value === undefined || value === null) return '-';
@@ -63,22 +68,32 @@ const asObject = (value: unknown) =>
     ? (value as Record<string, unknown>)
     : undefined;
 
+const asText = (value: unknown) =>
+  value === undefined || value === null || value === '' ? '' : String(value);
+
 export const summarizeStartup = (value?: unknown) => {
   const item = asObject(value);
   if (!item) return 'Not reported';
-  const state = item.state ? String(item.state) : 'unknown';
-  const stage = item.stage ? String(item.stage) : '';
-  const error = item.last_error ? String(item.last_error) : '';
-  return [state, stage, error].filter(Boolean).join(' / ');
+  const healthy =
+    typeof item.healthy === 'boolean' ? (item.healthy ? 'healthy' : 'unhealthy') : '';
+  const state = asText(item.state) || 'unknown';
+  const stage = asText(item.stage);
+  const error = asText(item.last_error);
+  const failedAt = asText(item.last_failed_at);
+  return [healthy, state, stage, error, failedAt].filter(Boolean).join(' / ');
 };
 
 export const summarizeTls = (value?: unknown) => {
   const item = asObject(value);
   if (!item) return 'Not reported';
-  const state = item.state ? String(item.state) : item.mode ? String(item.mode) : 'unknown';
-  const domain = item.domain ? String(item.domain) : '';
-  const error = item.last_error ? String(item.last_error) : '';
-  return [state, domain, error].filter(Boolean).join(' / ');
+  const healthy =
+    typeof item.healthy === 'boolean' ? (item.healthy ? 'healthy' : 'unhealthy') : '';
+  const state = asText(item.state) || asText(item.mode) || 'unknown';
+  const stage = asText(item.stage);
+  const domain = asText(item.domain);
+  const notAfter = asText(item.not_after);
+  const error = asText(item.last_error);
+  return [healthy, state, stage, domain, notAfter, error].filter(Boolean).join(' / ');
 };
 
 export const renderFreshTag = (

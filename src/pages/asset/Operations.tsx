@@ -21,6 +21,7 @@ import {
 } from '@/services/asset-service/api';
 import DevAuthGate from '../dev/components/DevAuthGate';
 import JsonBlock from '../dev/components/JsonBlock';
+import { normalizeDevErrorMessage } from './utils';
 
 const { Text } = Typography;
 
@@ -38,17 +39,6 @@ const formatText = (value?: string | number | null) => {
 };
 
 const formatTime = (value?: string | null) => formatText(value);
-
-const normalizeDevErrorMessage = (error: any) => {
-  const messageText = error?.message || 'Request failed.';
-  if (
-    typeof messageText === 'string' &&
-    messageText.includes('capability_not_supported')
-  ) {
-    return 'Current provider capability does not support this action.';
-  }
-  return messageText;
-};
 
 const OperationFiltersBar: React.FC<{
   filters: OperationFilters;
@@ -142,6 +132,22 @@ const OperationFiltersBar: React.FC<{
   );
 };
 
+const getStatusColor = (status?: string) => {
+  if (status === 'succeeded') {
+    return 'green';
+  }
+  if (status === 'failed') {
+    return 'red';
+  }
+  if (status === 'running') {
+    return 'blue';
+  }
+  if (status === 'cancelled') {
+    return 'default';
+  }
+  return 'gold';
+};
+
 const AssetOperationsContent: React.FC = () => {
   const { message } = App.useApp();
   const actionRef = useRef<ActionType | undefined>(undefined);
@@ -168,11 +174,31 @@ const AssetOperationsContent: React.FC = () => {
       }
     };
     void loadMeta();
-  }, []);
+  }, [message]);
 
   useEffect(() => {
     actionRef.current?.reload();
   }, [filters]);
+
+  useEffect(() => {
+    if (!initialTaskId) {
+      return;
+    }
+    const targetId = Number(initialTaskId);
+    if (!Number.isFinite(targetId)) {
+      return;
+    }
+    const loadDetail = async () => {
+      try {
+        const response = await getAssetOperationDetail(targetId);
+        setDetail(response.data);
+        setDetailTab('summary');
+      } catch {
+        // keep list usable even when the hinted task is not a valid asset operation id
+      }
+    };
+    void loadDetail();
+  }, [initialTaskId]);
 
   const columns: ProColumns<API.AssetOperation>[] = [
     { title: 'ID', dataIndex: 'id', width: 90 },
@@ -192,20 +218,9 @@ const AssetOperationsContent: React.FC = () => {
     {
       title: 'Status',
       dataIndex: 'status',
-      render: (_, record) => {
-        const status = record.status || '-';
-        const color =
-          status === 'succeeded'
-            ? 'green'
-            : status === 'failed'
-              ? 'red'
-              : status === 'running'
-                ? 'blue'
-                : status === 'cancelled'
-                  ? 'default'
-                  : 'gold';
-        return <Tag color={color}>{status}</Tag>;
-      },
+      render: (_, record) => (
+        <Tag color={getStatusColor(record.status)}>{record.status || '-'}</Tag>
+      ),
     },
     {
       title: 'Error Summary',
@@ -320,14 +335,16 @@ const AssetOperationsContent: React.FC = () => {
             items={[
               {
                 key: 'summary',
-                label: '摘要',
+                label: 'Summary',
                 children: (
                   <Descriptions bordered column={2}>
                     <Descriptions.Item label="ID">
                       {detail.id}
                     </Descriptions.Item>
                     <Descriptions.Item label="Status">
-                      {detail.status || '-'}
+                      <Tag color={getStatusColor(detail.status)}>
+                        {detail.status || '-'}
+                      </Tag>
                     </Descriptions.Item>
                     <Descriptions.Item label="Operation Type">
                       {detail.operation_type || '-'}
@@ -361,12 +378,12 @@ const AssetOperationsContent: React.FC = () => {
               },
               {
                 key: 'request',
-                label: '请求数据',
+                label: 'Request Data',
                 children: <JsonBlock value={detail.request} />,
               },
               {
                 key: 'result',
-                label: '结果数据',
+                label: 'Result Data',
                 children: <JsonBlock value={detail.result} />,
               },
             ]}

@@ -93,9 +93,18 @@ const NodesOverviewContent: React.FC = () => {
   const agentColumns: ProColumns<API.ControlAgent>[] = [
     { title: 'Agent ID', dataIndex: 'agent_id' },
     { title: 'Machine ID', dataIndex: 'machine_id' },
+    {
+      title: 'Asset Machine ID',
+      dataIndex: 'asset_machine_id',
+      renderText: (_, record) => record.asset_machine_id || '-',
+    },
     { title: 'Status', dataIndex: 'status', render: (_, record) => <Tag>{record.status}</Tag> },
     { title: 'Snapshot', dataIndex: 'snapshot_version', renderText: (_, record) => record.snapshot_version || '-' },
-    { title: 'Last Seen', dataIndex: 'last_seen_at', renderText: (_, record) => record.last_seen_at || '-' },
+    {
+      title: 'Last Seen',
+      dataIndex: 'last_seen_at',
+      renderText: (_, record) => (record.last_seen_at ? new Date(record.last_seen_at).toLocaleString() : '-'),
+    },
   ];
 
   return (

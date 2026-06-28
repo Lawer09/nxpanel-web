@@ -85,7 +85,7 @@ export async function getAssetMachineDetail(machineId: number) {
 }
 
 export async function createAssetMachineManual(body: API.AssetMachineCreateManualParams) {
-  return devAdminRequest<{ id: number }>(`${ASSET_PREFIX}/machines/create-manual`, {
+  return devAdminRequest<API.AssetMachineCreateManualResult>(`${ASSET_PREFIX}/machines/create-manual`, {
     method: 'POST',
     body,
   });
@@ -175,7 +175,36 @@ export async function importAssetIpManual(body: API.AssetIpImportManualParams) {
   });
 }
 
-export async function importAssetIpsFromProvider(body: { account_id: number; region?: string }) {
+export async function pullAssetIpsFromProvider(
+  body: API.AssetIpPullFromProviderParams,
+) {
+  return devAdminRequest<API.AssetTaskAck>(`${ASSET_PREFIX}/ips/pull-from-provider`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function getAssetIpPullRun(pullRunId: number) {
+  return devAdminRequest<API.AssetIpPullRun>(
+    `${ASSET_PREFIX}/ip-pull-runs/${pullRunId}`,
+  );
+}
+
+export async function listAssetIpPullRunItems(
+  pullRunId: number,
+  params?: API.AssetIpPullRunItemsParams,
+) {
+  return devAdminRequest<API.AssetPageResult<API.AssetIpPullItem>>(
+    `${ASSET_PREFIX}/ip-pull-runs/${pullRunId}/items`,
+    {
+      params: toQueryParams(params),
+    },
+  );
+}
+
+export async function importAssetIpsFromProvider(
+  body: API.AssetIpImportFromProviderParams,
+) {
   return devAdminRequest<API.AssetTaskAck>(`${ASSET_PREFIX}/ips/import-from-provider`, {
     method: 'POST',
     body,
@@ -286,4 +315,53 @@ export async function listAssetOperations(params?: API.AssetOperationListParams)
 
 export async function getAssetOperationDetail(operationId: number) {
   return devAdminRequest<API.AssetOperation>(`${ASSET_PREFIX}/operations/${operationId}`);
+}
+
+export async function listAssetMachineScripts(
+  params?: API.AssetMachineScriptListParams,
+) {
+  return devAdminRequest<API.AssetPageResult<API.AssetMachineScript>>(
+    `${ASSET_PREFIX}/machine-scripts`,
+    {
+      params: toQueryParams(params),
+    },
+  );
+}
+
+export async function getAssetMachineScriptDetail(scriptId: number) {
+  return devAdminRequest<API.AssetMachineScript>(
+    `${ASSET_PREFIX}/machine-scripts/${scriptId}`,
+  );
+}
+
+export async function createAssetMachineScript(
+  body: API.AssetMachineScriptUpsertParams,
+) {
+  return devAdminRequest<{ id: number }>(`${ASSET_PREFIX}/machine-scripts/create`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function updateAssetMachineScript(
+  body: API.AssetMachineScriptUpsertParams & { id: number },
+) {
+  return devAdminRequest<{ ok: boolean }>(`${ASSET_PREFIX}/machine-scripts/update`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function deleteAssetMachineScript(id: number) {
+  return devAdminRequest<{ ok: boolean }>(`${ASSET_PREFIX}/machine-scripts/delete`, {
+    method: 'POST',
+    body: { id },
+  });
+}
+
+export async function runAssetMachineScript(body: API.AssetMachineScriptRunParams) {
+  return devAdminRequest<API.AssetTaskAck>(`${ASSET_PREFIX}/machine-scripts/run`, {
+    method: 'POST',
+    body,
+  });
 }

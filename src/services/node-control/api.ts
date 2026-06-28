@@ -30,6 +30,13 @@ export async function createAgent(body: API.ControlAgentCreateParams) {
   );
 }
 
+export async function deployAgent(body: API.ControlAgentDeployParams) {
+  return nodeControlRequest<API.ControlAgentDeployResponse>('/v4/nodes/agents/deploy', {
+    method: 'POST',
+    body,
+  });
+}
+
 export async function updateAgent(agentId: string, body: API.ControlAgentUpdateParams) {
   return nodeControlRequest<API.ControlAgent>(
     `/v4/nodes/agents/${encodeURIComponent(agentId)}/update`,

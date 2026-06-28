@@ -31,6 +31,7 @@ import {
   getNodeSnapshot,
   getNodeTrafficSeries,
   getNodeUserClientConfig,
+  getUserClientConfigs,
   listNodeRuntimeEvents,
   listNodeSummaries,
   listNodeUsers,
@@ -39,6 +40,7 @@ import {
 import JsonBlock from './components/JsonBlock';
 import NodeFormModal from './components/NodeFormModal';
 import NodeUserClientConfigModal from './components/NodeUserClientConfigModal';
+import NodeUserClientConfigsModal from './components/NodeUserClientConfigsModal';
 import NodeUserModal from './components/NodeUserModal';
 import NodeUsersManageModal from './components/NodeUsersManageModal';
 import {
@@ -98,6 +100,9 @@ const NodesContent: React.FC = () => {
   const [clientConfigOpen, setClientConfigOpen] = useState(false);
   const [clientConfigLoading, setClientConfigLoading] = useState(false);
   const [clientConfig, setClientConfig] = useState<API.ControlNodeUserClientConfig | null>(null);
+  const [clientConfigsOpen, setClientConfigsOpen] = useState(false);
+  const [clientConfigsLoading, setClientConfigsLoading] = useState(false);
+  const [clientConfigs, setClientConfigs] = useState<API.ControlUserClientConfigsResponse | null>(null);
   const [detailTab, setDetailTab] = useState('basic');
 
   const [metricsLoading, setMetricsLoading] = useState(false);
@@ -326,6 +331,25 @@ const NodesContent: React.FC = () => {
     }
   };
 
+  const handleOpenUserClientConfigs = async (userId: number) => {
+    setClientConfigsLoading(true);
+    setClientConfigsOpen(true);
+    try {
+      const response = await getUserClientConfigs(userId);
+      if (response.code !== 0) {
+        message.error(response.message || 'Failed to load client configs.');
+        setClientConfigs(null);
+        return;
+      }
+      setClientConfigs(response.data);
+    } catch (error: any) {
+      setClientConfigs(null);
+      message.error(error?.message || 'Failed to load client configs.');
+    } finally {
+      setClientConfigsLoading(false);
+    }
+  };
+
   const metricChartData = useMemo(
     () => buildMetricChartData(metricsData?.series ?? [], metricsKey),
     [metricsData, metricsKey],
@@ -496,6 +520,10 @@ const NodesContent: React.FC = () => {
           setTrafficData(null);
           setOnlineData(null);
           setEventsData([]);
+          setClientConfig(null);
+          setClientConfigOpen(false);
+          setClientConfigs(null);
+          setClientConfigsOpen(false);
           setDetailTab('basic');
         }}
       >
@@ -591,9 +619,25 @@ const NodesContent: React.FC = () => {
                         { title: 'Machine ID', dataIndex: 'machine_id' },
                         { title: 'Status', dataIndex: 'agent_status' },
                         {
+                          title: 'Last Seen',
+                          render: (_, record) => formatDateTime(record.last_seen_at),
+                        },
+                        {
                           title: 'Fresh',
                           render: (_, record) =>
                             renderFreshTag(record.fresh, record.source, record.stale_seconds),
+                        },
+                        {
+                          title: 'Source',
+                          dataIndex: 'source',
+                          render: (_, record: API.ControlNodeRuntimeAgent) => record.source || '-',
+                        },
+                        {
+                          title: 'Stale',
+                          render: (_, record) =>
+                            record.stale_seconds === undefined
+                              ? '-'
+                              : `${record.stale_seconds}s`,
                         },
                         {
                           title: 'Startup',
@@ -617,6 +661,14 @@ const NodesContent: React.FC = () => {
                           title: 'Reported At',
                           render: (_, record) =>
                             formatDateTime(record.runtime_reported_at || record.reported_at),
+                        },
+                        {
+                          title: 'Online Reported',
+                          render: (_, record) => formatDateTime(record.online_reported_at),
+                        },
+                        {
+                          title: 'Traffic Reported',
+                          render: (_, record) => formatDateTime(record.traffic_reported_at),
                         },
                       ]}
                     />
@@ -883,6 +935,9 @@ const NodesContent: React.FC = () => {
                               >
                                 Get Config
                               </a>
+                              <a onClick={() => void handleOpenUserClientConfigs(record.user_id)}>
+                                All Configs
+                              </a>
                               <a
                                 onClick={() => {
                                   setEditingUser(record);
@@ -971,6 +1026,16 @@ const NodesContent: React.FC = () => {
         onOpenChange={(open) => {
           setClientConfigOpen(open);
           if (!open) setClientConfig(null);
+        }}
+      />
+
+      <NodeUserClientConfigsModal
+        open={clientConfigsOpen}
+        loading={clientConfigsLoading}
+        value={clientConfigs}
+        onOpenChange={(open) => {
+          setClientConfigsOpen(open);
+          if (!open) setClientConfigs(null);
         }}
       />
     </PageContainer>
