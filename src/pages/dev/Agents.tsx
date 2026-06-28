@@ -134,12 +134,12 @@ const AgentsContent: React.FC = () => {
   const loadRows = async () => {
     setLoading(true);
     try {
-      const response = await listAgents();
+      const response = await listAgents({ page: 1, page_size: 500 });
       if (response.code !== 0) {
         message.error(response.message || 'Failed to load agents.');
         return;
       }
-      setRows(response.data);
+      setRows(response.data.items ?? []);
     } catch (error: any) {
       message.error(error?.message || 'Failed to load agents.');
     } finally {
@@ -152,12 +152,12 @@ const AgentsContent: React.FC = () => {
       const [detailResponse, runtimeResponse, bindingsResponse, nodesResponse] = await Promise.all([
         getAgentDetail(agentId),
         getAgentRuntime(agentId),
-        listAgentBindings(agentId),
+        listAgentBindings(agentId, { page: 1, page_size: 500 }),
         listNodeSummaries(),
       ]);
       if (detailResponse.code === 0) setDetailAgent(detailResponse.data);
       if (runtimeResponse.code === 0) setRuntime(runtimeResponse.data);
-      if (bindingsResponse.code === 0) setBindings(bindingsResponse.data);
+      if (bindingsResponse.code === 0) setBindings(bindingsResponse.data.items ?? []);
       if (nodesResponse.code === 0) {
         setNodeOptions(
           nodesResponse.data.map((node) => ({
@@ -190,6 +190,10 @@ const AgentsContent: React.FC = () => {
   };
 
   const loadTraffic = async (agentId: string) => {
+    if (trafficRange[1].diff(trafficRange[0], 'hour', true) > 24) {
+      message.warning('Traffic range cannot exceed 24 hours.');
+      return;
+    }
     setTrafficLoading(true);
     try {
       const response = await getAgentTrafficSeries(agentId, {
@@ -829,6 +833,7 @@ const AgentsContent: React.FC = () => {
                       <InputNumber
                         style={{ width: 120 }}
                         min={1}
+                        max={500}
                         value={eventsLimit}
                         onChange={(value) => setEventsLimit(value ?? 50)}
                       />
@@ -900,7 +905,12 @@ const AgentsContent: React.FC = () => {
             <Select options={nodeOptions} showSearch optionFilterProp="label" />
           </Form.Item>
           <Form.Item name="status" label="Status" initialValue="active">
-            <Select options={[{ label: 'active', value: 'active' }, { label: 'deleted', value: 'deleted' }]} />
+            <Select
+              options={[
+                { label: 'active', value: 'active' },
+                { label: 'deleted', value: 'deleted' },
+              ]}
+            />
           </Form.Item>
         </Form>
       </Modal>

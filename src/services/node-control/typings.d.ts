@@ -13,6 +13,13 @@ declare namespace API {
 
   type ControlJsonObject = Record<string, unknown>;
 
+  interface ControlPageResult<T> {
+    items: T[];
+    page?: number;
+    page_size?: number;
+    total?: number;
+  }
+
   interface ControlConfigJson {
     listen?: ControlJsonObject;
     settings?: ControlJsonObject;
@@ -402,9 +409,15 @@ declare namespace API {
 
   interface ControlAgentUpdateParams {
     machine_id?: string;
+    asset_machine_id?: number;
     status?: string;
     pull_interval?: number;
     report_interval?: number;
+  }
+
+  interface ControlListParams {
+    page?: number;
+    page_size?: number;
   }
 
   interface ControlNodeCreateParams extends ControlNodeSnapshotConfig {}

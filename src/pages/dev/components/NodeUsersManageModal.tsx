@@ -42,7 +42,7 @@ type EditableUserRow = {
 
 const defaultStatusOptions = [
   { label: 'active', value: 'active' },
-  { label: 'deleted', value: 'deleted' },
+  { label: 'disabled', value: 'disabled' },
 ];
 
 const normalizeRows = (rows: API.ControlNodeUser[]): EditableUserRow[] =>
@@ -80,12 +80,12 @@ const NodeUsersManageModal: React.FC<{
     if (!nodeId) return;
     setLoading(true);
     try {
-      const response = await listNodeUsers(nodeId);
+      const response = await listNodeUsers(nodeId, { page: 1, page_size: 500 });
       if (response.code !== 0) {
         message.error(response.message || 'Failed to load users.');
         return;
       }
-      setRows(normalizeRows(response.data));
+      setRows(normalizeRows(response.data.items ?? []));
       setSelectedUserIds([]);
     } catch (error: any) {
       message.error(error?.message || 'Failed to load users.');

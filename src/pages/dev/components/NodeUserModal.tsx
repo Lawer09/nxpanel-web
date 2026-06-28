@@ -61,7 +61,12 @@ const NodeUserModal: React.FC<{
           <InputNumber style={{ width: '100%' }} min={0} />
         </Form.Item>
         <Form.Item name="status" label="Status" rules={[{ required: true }]}>
-          <Select options={[{ label: 'active', value: 'active' }, { label: 'deleted', value: 'deleted' }]} />
+          <Select
+            options={[
+              { label: 'active', value: 'active' },
+              { label: 'disabled', value: 'disabled' },
+            ]}
+          />
         </Form.Item>
       </Form>
     </Modal>

@@ -64,21 +64,21 @@ const AgentDeployModal: React.FC<{
           <Input />
         </Form.Item>
         <Form.Item name="pull_interval" label="Pull Interval" tooltip="Snapshot pull interval in seconds.">
-          <InputNumber style={{ width: '100%' }} min={1} />
+          <InputNumber style={{ width: '100%' }} min={1} max={3600} />
         </Form.Item>
         <Form.Item
           name="report_interval"
           label="Report Interval"
           tooltip="Runtime report interval in seconds."
         >
-          <InputNumber style={{ width: '100%' }} min={1} />
+          <InputNumber style={{ width: '100%' }} min={1} max={3600} />
         </Form.Item>
         <Form.Item
           name="timeout_seconds"
           label="Timeout Seconds"
           tooltip="Asset SSH execution timeout in seconds."
         >
-          <InputNumber style={{ width: '100%' }} min={1} />
+          <InputNumber style={{ width: '100%' }} min={1} max={1800} />
         </Form.Item>
         <Form.Item
           name="force"

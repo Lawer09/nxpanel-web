@@ -162,12 +162,12 @@ const NodesContent: React.FC = () => {
         getNodeDetail(nodeId),
         getNodeRuntime(nodeId),
         getNodeSnapshot(nodeId),
-        listNodeUsers(nodeId),
+        listNodeUsers(nodeId, { page: 1, page_size: 500 }),
       ]);
       if (detailResponse.code === 0) setDetailNode(detailResponse.data);
       if (runtimeResponse.code === 0) setRuntime(runtimeResponse.data);
       if (snapshotResponse.code === 0) setSnapshot(snapshotResponse.data);
-      if (userResponse.code === 0) setUsers(userResponse.data);
+      if (userResponse.code === 0) setUsers(userResponse.data.items ?? []);
       setDetailOpen(true);
     } catch (error: any) {
       message.error(error?.message || 'Failed to load node detail.');
@@ -192,6 +192,10 @@ const NodesContent: React.FC = () => {
   };
 
   const loadTraffic = async (nodeId: number) => {
+    if (trafficRange[1].diff(trafficRange[0], 'hour', true) > 24) {
+      message.warning('Traffic range cannot exceed 24 hours.');
+      return;
+    }
     setTrafficLoading(true);
     try {
       const response = await getNodeTrafficSeries(nodeId, {
@@ -858,6 +862,7 @@ const NodesContent: React.FC = () => {
                       <InputNumber
                         style={{ width: 120 }}
                         min={1}
+                        max={500}
                         value={eventsLimit}
                         onChange={(value) => setEventsLimit(value ?? 50)}
                       />

@@ -8,6 +8,7 @@
 - `runtime` 详情接口优先读 Redis 热数据；Redis miss 或过期时回退 PostgreSQL 最新摘要。
 - `fresh` 表示最近 runtime 上报是否仍在 `runtime.stale_after` 窗口内，默认配置为 `90s`。
 - `stale_seconds` 表示距最近 runtime 上报的秒数，适合直接用于“已离线 N 秒”提示。
+- 在线用户数和在线 IP 数只统计 `runtime.stale_after` 窗口内的热数据。Agent 停止上报后，旧的 Redis latest runtime 不再计入“当前在线”。
 - `source` 固定为 `redis` 或 `postgres`。`postgres` 表示当前结果来自持久化摘要，通常意味着比热数据更旧。
 - `runtime_reported_at` 是最近一次 runtime 上报时间。
 - `reported_at` 当前实现与 `runtime_reported_at` 一致，可作为通用显示字段；前端优先展示 `runtime_reported_at`。
@@ -47,7 +48,7 @@
 说明：
 
 - 近 24 小时流量来自 PostgreSQL 分钟聚合，稳定可用。
-- 在线数、异常数优先来自 Redis 热数据；若 Redis 不可用，这部分值可能偏低或为 `0`，但不会影响流量统计。
+- 在线数、异常数优先来自 Redis 热数据；在线数只统计 `stale_after` 窗口内数据。若 Redis 不可用，这部分值可能偏低或为 `0`，但不会影响流量统计。
 
 响应示例：
 
@@ -392,7 +393,8 @@
 说明：
 
 - 流量数据来自 PostgreSQL 分钟聚合表，不依赖 Redis 热缓存。
-- 当前实现只落库一个桶粒度，默认是 `1m`。如果前端传入与落库桶大小不一致的 `step`，结果可能为空。
+- 当前实现只落库一个桶粒度，默认是 `1m`。如果前端传入与落库桶大小不一致的 `step`，返回 `400`。
+- 查询时间窗口最大 `24h`。`end_time` 必须晚于 `start_time`。
 - 返回结果不会自动补零。若图表需要连续时间轴，前端应自行补空桶。
 
 响应字段：
@@ -511,7 +513,7 @@
 | --- | --- | --- | --- |
 | `agent_id` | 可选 | 否 | 节点维度下只看某个 Agent。 |
 | `event_type` | 可选 | 可选 | 当前可用值为 `kernel`、`startup`、`tls`。 |
-| `limit` | 可选 | 可选 | 返回条数，默认 `100`。当前无分页。 |
+| `limit` | 可选 | 可选 | 返回条数，默认 `100`，最大 `500`。当前无分页。 |
 
 响应字段：
 

@@ -17,6 +17,7 @@ const AgentFormModal: React.FC<{
     form.setFieldsValue({
       agent_id: current?.agent_id,
       machine_id: current?.machine_id,
+      asset_machine_id: current?.asset_machine_id,
       status: current?.status ?? 'active',
       pull_interval: current?.pull_interval ?? 30,
       report_interval: current?.report_interval ?? 30,
@@ -45,18 +46,32 @@ const AgentFormModal: React.FC<{
         <Form.Item
           name="machine_id"
           label="Machine ID"
-          rules={[{ required: true, message: 'Please input machine ID.' }]}
         >
           <Input />
         </Form.Item>
+        {current ? (
+          <Form.Item
+            name="asset_machine_id"
+            label="Asset Machine ID"
+            tooltip="Optional. Set 0 or a negative value to clear the asset machine binding."
+          >
+            <InputNumber style={{ width: '100%' }} />
+          </Form.Item>
+        ) : null}
         <Form.Item name="status" label="Status" rules={[{ required: true }]}>
-          <Select options={[{ label: 'active', value: 'active' }, { label: 'deleted', value: 'deleted' }]} />
+          <Select
+            options={[
+              { label: 'active', value: 'active' },
+              { label: 'disabled', value: 'disabled' },
+              { label: 'deleted', value: 'deleted' },
+            ]}
+          />
         </Form.Item>
         <Form.Item name="pull_interval" label="Pull Interval">
-          <InputNumber style={{ width: '100%' }} min={1} />
+          <InputNumber style={{ width: '100%' }} min={1} max={3600} />
         </Form.Item>
         <Form.Item name="report_interval" label="Report Interval">
-          <InputNumber style={{ width: '100%' }} min={1} />
+          <InputNumber style={{ width: '100%' }} min={1} max={3600} />
         </Form.Item>
       </Form>
     </Modal>

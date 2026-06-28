@@ -28,7 +28,7 @@ const NodesOverviewContent: React.FC = () => {
       const [overviewResponse, nodesResponse, agentsResponse] = await Promise.all([
         getNodesRuntimeOverview(),
         listNodeSummaries(),
-        listAgents(),
+        listAgents({ page: 1, page_size: 500 }),
       ]);
       if (overviewResponse.code === 0) {
         setOverview(overviewResponse.data);
@@ -37,7 +37,7 @@ const NodesOverviewContent: React.FC = () => {
         setNodes(nodesResponse.data);
       }
       if (agentsResponse.code === 0) {
-        setAgents(agentsResponse.data);
+        setAgents(agentsResponse.data.items ?? []);
       }
     } catch (error: any) {
       message.error(error?.message || 'Failed to load nodes overview.');

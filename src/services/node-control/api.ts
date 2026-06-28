@@ -6,8 +6,10 @@ export async function listRegisteredServices() {
   );
 }
 
-export async function listAgents() {
-  return nodeControlRequest<API.ControlAgent[]>('/v4/nodes/agents');
+export async function listAgents(params?: API.ControlListParams) {
+  return nodeControlRequest<API.ControlPageResult<API.ControlAgent>>('/v4/nodes/agents', {
+    params: params as Record<string, unknown> | undefined,
+  });
 }
 
 export async function getAgentDetail(agentId: string) {
@@ -65,9 +67,12 @@ export async function resetAgentSecret(agentId: string) {
   );
 }
 
-export async function listAgentBindings(agentId: string) {
-  return nodeControlRequest<API.ControlBinding[]>(
+export async function listAgentBindings(agentId: string, params?: API.ControlListParams) {
+  return nodeControlRequest<API.ControlPageResult<API.ControlBinding>>(
     `/v4/nodes/agents/${encodeURIComponent(agentId)}/bindings`,
+    {
+      params: params as Record<string, unknown> | undefined,
+    },
   );
 }
 
@@ -104,8 +109,10 @@ export async function deleteAgentBinding(agentId: string, nodeId: number) {
   );
 }
 
-export async function listNodes() {
-  return nodeControlRequest<API.ControlNode[]>('/v4/nodes');
+export async function listNodes(params?: API.ControlListParams) {
+  return nodeControlRequest<API.ControlPageResult<API.ControlNode>>('/v4/nodes', {
+    params: params as Record<string, unknown> | undefined,
+  });
 }
 
 export async function listNodeSummaries() {
@@ -145,9 +152,12 @@ export async function deleteNode(nodeId: number) {
 }
 
 export async function listNodeUsers(nodeId: number, params?: { page?: number; page_size?: number }) {
-  return nodeControlRequest<API.ControlNodeUser[]>(`/v4/nodes/${nodeId}/users`, {
+  return nodeControlRequest<API.ControlPageResult<API.ControlNodeUser>>(
+    `/v4/nodes/${nodeId}/users`,
+    {
     params,
-  });
+    },
+  );
 }
 
 export async function createNodeUser(nodeId: number, body: API.ControlNodeUserCreateParams) {
