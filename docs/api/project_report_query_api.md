@@ -243,6 +243,7 @@
 - 请求体直接复用当前项目日报查询表单条件，可以不传 `page`、`pageSize`
 - `adStatuses`、`appPlatforms` 仅作为筛选条件使用，不进入后端 `groupBy`。
 - 前端项目报表中 `adStatus`、`appPlatform` 已改为“前端可选展示列”，可在维度区单独勾选显示，但发请求时仍需从 `groupBy` 中过滤掉。
+- 接口若返回伴随字段 `hourly_status`，前端会在项目编码列右侧展示单个 `异常` Tag；悬浮后按位显示具体原因：`1=无小时请求`、`2=无小时用户新增`，`3` 时同时展示两个原因。
 - 前端项目报表中 `trafficCostRatio` 不单独作为指标列展示，接口返回比例小数，合并到 `trafficCost` 列显示为 `流量费用 (流量消耗占比)`。
 - Axios 示例：
 

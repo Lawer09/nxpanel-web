@@ -1,6 +1,6 @@
 import { PageContainer } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { App, DatePicker, Form, Select, Tag } from 'antd';
+import { App, DatePicker, Form, Select, Tag, Tooltip } from 'antd';
 import type { SortOrder } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -195,6 +195,20 @@ const getIsLimitTagMeta = (isLimited: unknown) => {
   return { label: '未知', color: 'default' as const };
 };
 
+const getHourlyStatusMessages = (hourlyStatus: unknown) => {
+  const status = Number(hourlyStatus);
+  if (!Number.isFinite(status) || status <= 0) return [];
+
+  const messages: string[] = [];
+  if ((status & 1) === 1) {
+    messages.push('无小时请求');
+  }
+  if ((status & 2) === 2) {
+    messages.push('无小时用户新增');
+  }
+  return messages;
+};
+
 const adRevenueMetricTooltip = '广告收入（最新广告收入差值）';
 
 const trafficCostMetricTooltip = '流量费用（流量花费占比）';
@@ -206,6 +220,7 @@ const renderProjectCodeWithAdStatus = (
 ) => {
   const codeText = projectCode ? String(projectCode) : '--';
   const isLimitTagMeta = getIsLimitTagMeta(record.isLimited);
+  const hourlyStatusMessages = getHourlyStatusMessages(record.hourly_status);
 
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, maxWidth: '100%' }}>
@@ -226,6 +241,13 @@ const renderProjectCodeWithAdStatus = (
         <Tag color={isLimitTagMeta.color} style={{ marginInlineEnd: 0 }}>
           {isLimitTagMeta.label}
         </Tag>
+      ) : null}
+      {hourlyStatusMessages.length ? (
+        <Tooltip title={hourlyStatusMessages.join('、')}>
+          <Tag color="orange" style={{ marginInlineEnd: 0 }}>
+            异常
+          </Tag>
+        </Tooltip>
       ) : null}
     </span>
   );
