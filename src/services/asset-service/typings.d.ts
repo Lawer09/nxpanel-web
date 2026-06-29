@@ -314,6 +314,29 @@ declare namespace API {
     cached?: boolean;
   }
 
+  interface AssetBatchTaskAckResult {
+    total: number;
+    batch_size: number;
+    batch_count: number;
+    tasks: AssetTaskAck[];
+  }
+
+  interface AssetBatchResultItem {
+    id: number;
+    status: string;
+    error_code?: string;
+    error_message?: string;
+  }
+
+  interface AssetBatchResult {
+    total: number;
+    batch_size: number;
+    batch_count: number;
+    succeeded: number;
+    failed: number;
+    items: AssetBatchResultItem[];
+  }
+
   interface AssetMachineTrustToken {
     machine_id: string;
     asset_machine_id: number;
@@ -471,6 +494,24 @@ declare namespace API {
     metadata?: Record<string, any>;
     tags?: AssetTagItem[];
     spec?: AssetMachineSpec;
+  }
+
+  interface AssetBatchMutationParams {
+    ids: number[];
+    batch_size?: number;
+  }
+
+  interface AssetBatchUpdateTagsParams extends AssetBatchMutationParams {
+    tags?: AssetTagItem[];
+  }
+
+  interface AssetBatchUpdateStatusParams extends AssetBatchMutationParams {
+    status?: string;
+  }
+
+  interface AssetMachineBatchSyncParams {
+    machine_ids: number[];
+    batch_size?: number;
   }
 
   interface AssetMachineRunCommandParams {

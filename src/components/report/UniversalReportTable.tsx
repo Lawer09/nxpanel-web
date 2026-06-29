@@ -1,4 +1,9 @@
-import { DownloadOutlined, FunnelPlotOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { DownloadOutlined, FunnelPlotOutlined, HolderOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { DndContext, DragOverlay, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
+import type { DragEndEvent, DragStartEvent, UniqueIdentifier } from '@dnd-kit/core';
+import { restrictToHorizontalAxis } from '@dnd-kit/modifiers';
+import { SortableContext, arrayMove, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { ProColumns } from '@ant-design/pro-components';
 import { ProTable } from '@ant-design/pro-components';
 import { Button, Card, message, Space, Table, Tag, Tooltip, Typography } from 'antd';
@@ -17,6 +22,9 @@ type ResizeableTitleProps = React.ThHTMLAttributes<HTMLTableCellElement> & {
   width?: number;
   columnKey?: string;
   onColumnResize?: (columnKey: string, width: number) => void;
+  dragId?: UniqueIdentifier;
+  dragDisabled?: boolean;
+  dragLabel?: React.ReactNode;
 };
 
 interface SummaryMetric {
@@ -354,11 +362,36 @@ const ResizeableTitle: React.FC<ResizeableTitleProps> = ({
   width,
   columnKey,
   onColumnResize,
+  dragId,
+  dragDisabled = false,
+  dragLabel,
   children,
   style,
+  onClickCapture,
   ...restProps
 }) => {
   const skipNextClickRef = React.useRef(false);
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: dragId ?? columnKey ?? '',
+    disabled: dragDisabled || !dragId,
+  });
+
+  const dragStyle = dragId
+    ? {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 2 : undefined,
+        opacity: isDragging ? 0.9 : 1,
+      }
+    : undefined;
 
   const handleResizeHandleClick = (event: React.MouseEvent<HTMLSpanElement>) => {
     event.preventDefault();
@@ -366,8 +399,17 @@ const ResizeableTitle: React.FC<ResizeableTitleProps> = ({
   };
 
   const handleHeaderClickCapture = (event: React.MouseEvent<HTMLTableCellElement>) => {
-    if (!skipNextClickRef.current) return;
-    skipNextClickRef.current = false;
+    if (skipNextClickRef.current) {
+      skipNextClickRef.current = false;
+      event.preventDefault();
+      event.stopPropagation();
+      onClickCapture?.(event);
+      return;
+    }
+    onClickCapture?.(event);
+  };
+
+  const handleDragHandleClick = (event: React.MouseEvent<HTMLSpanElement>) => {
     event.preventDefault();
     event.stopPropagation();
   };
@@ -418,14 +460,42 @@ const ResizeableTitle: React.FC<ResizeableTitleProps> = ({
   return (
     <th
       {...restProps}
+      ref={setNodeRef}
       onClickCapture={handleHeaderClickCapture}
       style={{
         ...style,
+        ...dragStyle,
         position: 'relative',
         width,
       }}
     >
-      {children}
+      {dragId && !dragDisabled ? (
+        <span
+          ref={setActivatorNodeRef}
+          {...attributes}
+          {...listeners}
+          aria-label={typeof dragLabel === 'string' ? `拖拽排序列：${dragLabel}` : '拖拽排序列'}
+          onClick={handleDragHandleClick}
+          style={{
+            position: 'absolute',
+            left: 8,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: 16,
+            height: 16,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: isDragging ? 'grabbing' : 'grab',
+            color: 'rgba(0,0,0,0.45)',
+            touchAction: 'none',
+            zIndex: 2,
+          }}
+        >
+          <HolderOutlined />
+        </span>
+      ) : null}
+      <div style={{ paddingInlineStart: dragId && !dragDisabled ? 22 : 0 }}>{children}</div>
       {width && columnKey && onColumnResize ? (
         <span
           onMouseDown={handleMouseDown}
@@ -750,9 +820,17 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   const [reloadToken, setReloadToken] = useState(0);
   const [sorter, setSorter] = useState<ReportSorter | undefined>(undefined);
   const [exporting, setExporting] = useState(false);
+  const [draggingColumnKey, setDraggingColumnKey] = useState<string>();
   const selectedView = useMemo(
     () => savedViews.find((item) => item.id === selectedViewId),
     [savedViews, selectedViewId],
+  );
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 6,
+      },
+    }),
   );
 
   useEffect(() => {
@@ -1069,10 +1147,76 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     () => orderedColumnLayouts.filter((item) => item.show !== false),
     [orderedColumnLayouts],
   );
+  const draggableColumnKeys = useMemo(
+    () => visibleOrderedColumns.map((item) => item.key),
+    [visibleOrderedColumns],
+  );
+  const draggingColumnLabel = useMemo(
+    () => visibleOrderedColumns.find((item) => item.key === draggingColumnKey)?.label,
+    [draggingColumnKey, visibleOrderedColumns],
+  );
 
   const summaryLabelColumnKey = useMemo(() => {
     return visibleOrderedColumns.find((item) => item.kind !== 'metric')?.key;
   }, [visibleOrderedColumns]);
+
+  const handleColumnDragStart = useCallback((event: DragStartEvent) => {
+    setDraggingColumnKey(String(event.active.id));
+  }, []);
+
+  const handleColumnDragCancel = useCallback(() => {
+    setDraggingColumnKey(undefined);
+  }, []);
+
+  const handleColumnDragEnd = useCallback((event: DragEndEvent) => {
+    setDraggingColumnKey(undefined);
+
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeKey = String(active.id);
+    const overKey = String(over.id);
+    if (activeKey === overKey) return;
+
+    const activeColumn = orderedColumnLayouts.find((item) => item.key === activeKey);
+    const overColumn = orderedColumnLayouts.find((item) => item.key === overKey);
+    if (!activeColumn || !overColumn) return;
+
+    const activeFixed = activeColumn.fixed ?? null;
+    const overFixed = overColumn.fixed ?? null;
+    if (activeFixed !== overFixed) return;
+
+    setColumnsStateMap((prev) => {
+      const baseMap = {
+        ...normalizeColumnsStateMap(effectiveColumnsStateMap),
+        ...normalizeColumnsStateMap(prev),
+      };
+      const groupColumns = orderedColumnLayouts.filter((item) => (item.fixed ?? null) === activeFixed);
+      const visibleGroupKeys = groupColumns.filter((item) => item.show !== false).map((item) => item.key);
+      const oldIndex = visibleGroupKeys.indexOf(activeKey);
+      const newIndex = visibleGroupKeys.indexOf(overKey);
+      if (oldIndex < 0 || newIndex < 0) return prev;
+
+      const nextVisibleGroupKeys = arrayMove(visibleGroupKeys, oldIndex, newIndex);
+      let visibleIndex = 0;
+      const nextGroupKeys = groupColumns.map((item) =>
+        item.show === false ? item.key : nextVisibleGroupKeys[visibleIndex++],
+      );
+      const groupKeySet = new Set(groupColumns.map((item) => item.key));
+      let groupCursor = 0;
+      const nextOrderedKeys = orderedColumnLayouts.map((item) =>
+        groupKeySet.has(item.key) ? nextGroupKeys[groupCursor++] : item.key,
+      );
+
+      return nextOrderedKeys.reduce<ColumnStateMap>((acc, key, index) => {
+        acc[key] = {
+          ...(acc[key] ?? {}),
+          order: index,
+        };
+        return acc;
+      }, { ...baseMap });
+    });
+  }, [effectiveColumnsStateMap, orderedColumnLayouts]);
 
   const handleColumnResize = useCallback((columnKey: string, width: number) => {
     setColumnsStateMap((prev) => {
@@ -1116,6 +1260,9 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
             width: columnWidth,
             columnKey: item.key,
             onColumnResize: handleColumnResize,
+            dragId: item.key,
+            dragDisabled: false,
+            dragLabel: item.label,
           }),
         };
       }),
@@ -1470,62 +1617,71 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
       </Card>
 
       <Card>
-        <ProTable<T>
-          rowKey={resolvedRowKey as any}
-          columns={tableColumns}
-          dataSource={data}
-          loading={loading}
-          search={false}
-          components={{
-            header: {
-              cell: ResizeableTitle,
-            },
-          }}
-          toolBarRender={() => []}
-          options={{
-            reload: () => {
-              setAppliedDimensions(dimensions);
-              setReloadToken((value) => value + 1);
-            },
-            density: false,
-            fullScreen: false,
-            setting: { draggable: true },
-          }}
-          columnsState={{
-            value: effectiveColumnsStateMap,
-            onChange: (map) =>
-              setColumnsStateMap((prev) => mergeColumnsStateMap(prev, (map || {}) as ColumnStateMap)),
-          }}
-          pagination={pagination}
-          scroll={{ x: 'max-content' }}
-          onChange={(nextPagination, _filters, nextSorter) => {
-            const nextPageSize = normalizePageSize(nextPagination?.pageSize, defaultPageSize);
-            const pageSizeChanged = nextPageSize !== pageSize;
+        <DndContext
+          sensors={dndSensors}
+          collisionDetection={closestCenter}
+          modifiers={[restrictToHorizontalAxis]}
+          onDragStart={handleColumnDragStart}
+          onDragCancel={handleColumnDragCancel}
+          onDragEnd={handleColumnDragEnd}
+        >
+          <SortableContext items={draggableColumnKeys} strategy={horizontalListSortingStrategy}>
+            <ProTable<T>
+              rowKey={resolvedRowKey as any}
+              columns={tableColumns}
+              dataSource={data}
+              loading={loading}
+              search={false}
+              components={{
+                header: {
+                  cell: ResizeableTitle,
+                },
+              }}
+              toolBarRender={() => []}
+              options={{
+                reload: () => {
+                  setAppliedDimensions(dimensions);
+                  setReloadToken((value) => value + 1);
+                },
+                density: false,
+                fullScreen: false,
+                setting: { draggable: false },
+              }}
+              columnsState={{
+                value: effectiveColumnsStateMap,
+                onChange: (map) =>
+                  setColumnsStateMap((prev) => mergeColumnsStateMap(prev, (map || {}) as ColumnStateMap)),
+              }}
+              pagination={pagination}
+              scroll={{ x: 'max-content' }}
+              onChange={(nextPagination, _filters, nextSorter) => {
+                const nextPageSize = normalizePageSize(nextPagination?.pageSize, defaultPageSize);
+                const pageSizeChanged = nextPageSize !== pageSize;
 
-            if (pageSizeChanged) {
-              setPageSize(nextPageSize);
-              setCurrent(1);
-            }
+                if (pageSizeChanged) {
+                  setPageSize(nextPageSize);
+                  setCurrent(1);
+                }
 
-            if (enableServerSort) {
-              const normalizedSorter = normalizeSorter(nextSorter);
-              if (!isSameSorter(sorter, normalizedSorter)) {
-                setSorter(normalizedSorter);
-                setCurrent(1);
-                return;
-              }
-            }
+                if (enableServerSort) {
+                  const normalizedSorter = normalizeSorter(nextSorter);
+                  if (!isSameSorter(sorter, normalizedSorter)) {
+                    setSorter(normalizedSorter);
+                    setCurrent(1);
+                    return;
+                  }
+                }
 
-            const nextPage = nextPagination?.current ?? 1;
-            if (!pageSizeChanged && nextPage !== current) {
-              setCurrent(nextPage);
-            }
-          }}
-          key={tableStructureKey}
-          summary={hideSummaryRows || (!showCurrentSummary && !showGrandSummary) ? undefined : () => (
-            <Table.Summary>
-              {showCurrentSummary ? (
-                <Table.Summary.Row>
+                const nextPage = nextPagination?.current ?? 1;
+                if (!pageSizeChanged && nextPage !== current) {
+                  setCurrent(nextPage);
+                }
+              }}
+              key={tableStructureKey}
+              summary={hideSummaryRows || (!showCurrentSummary && !showGrandSummary) ? undefined : () => (
+                <Table.Summary>
+                  {showCurrentSummary ? (
+                    <Table.Summary.Row>
                   {visibleOrderedColumns.map((col, idx) => {
                     if (summaryLabelColumnKey && col.key === summaryLabelColumnKey) {
                       return (
@@ -1550,10 +1706,10 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
                       </Table.Summary.Cell>
                     );
                   })}
-                </Table.Summary.Row>
-              ) : null}
-              {showGrandSummary ? (
-                <Table.Summary.Row>
+                    </Table.Summary.Row>
+                  ) : null}
+                  {showGrandSummary ? (
+                    <Table.Summary.Row>
                   {visibleOrderedColumns.map((col, idx) => {
                     if (summaryLabelColumnKey && col.key === summaryLabelColumnKey) {
                       return (
@@ -1578,11 +1734,32 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
                       </Table.Summary.Cell>
                     );
                   })}
-                </Table.Summary.Row>
-              ) : null}
-            </Table.Summary>
-          )}
-        />
+                    </Table.Summary.Row>
+                  ) : null}
+                </Table.Summary>
+              )}
+            />
+          </SortableContext>
+          <DragOverlay>
+            {draggingColumnLabel ? (
+              <div
+                style={{
+                  padding: '6px 10px',
+                  background: '#ffffff',
+                  border: '1px solid #d9d9d9',
+                  borderRadius: 6,
+                  boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
+                  color: 'rgba(0,0,0,0.88)',
+                  fontSize: 14,
+                  lineHeight: '22px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {draggingColumnLabel}
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       </Card>
     </Space>
   );

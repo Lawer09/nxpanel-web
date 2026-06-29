@@ -6,3 +6,4 @@ export { default as LoadingCard } from './LoadingCard';
 export { default as RegionQualityPanel } from './RegionQualityPanel';
 export { default as ErrorTopPanel } from './ErrorTopPanel';
 export { default as NodeQualityTable } from './NodeQualityTable';
+export { default as NodeStatusSummary } from './NodeStatusSummary';

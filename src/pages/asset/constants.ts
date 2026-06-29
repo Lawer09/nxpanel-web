@@ -23,6 +23,7 @@ export const IP_STATUS_OPTIONS = [
 export const SSH_KEY_STATUS_OPTIONS = [
   { label: '启用', value: 'active' },
   { label: '停用', value: 'disabled' },
+  { label: '缺失', value: 'missing' },
   { label: '已删除', value: 'deleted' },
 ];
 

@@ -4,9 +4,9 @@ import {
   App,
   Badge,
   Button,
+  Card,
   Descriptions,
   Dropdown,
-  Modal,
   Popover,
   Space,
   Tag,
@@ -26,6 +26,7 @@ import AidLoginBanRuleModal from './components/AidLoginBanRuleModal';
 import BlockedIpModal from './components/BlockedIpModal';
 import GenerateUserModal from './components/GenerateUserModal';
 import SendMailModal from './components/SendMailModal';
+import UserDetailDrawer from './components/UserDetailDrawer';
 import UserFormModal from './components/UserFormModal';
 
 const { Text } = Typography;
@@ -96,6 +97,7 @@ const UserManagePage: React.FC = () => {
   const { message: messageApi, modal: modalApi } = App.useApp();
   const actionRef = useRef<ActionType | null>(null);
 
+  const [detailOpen, setDetailOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<API.UserItem | undefined>();
   const [generateOpen, setGenerateOpen] = useState(false);
@@ -104,6 +106,32 @@ const UserManagePage: React.FC = () => {
   const [banRuleOpen, setBanRuleOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<API.UserItem[]>([]);
   const [currentFilter, setCurrentFilter] = useState<API.UserFilter[]>([]);
+  const [currentQuery, setCurrentQuery] = useState<API.UserFetchParams>({
+    current: 1,
+    pageSize: 15,
+    sort: [{ id: 'created_at', desc: true }],
+  });
+  const [resultSummary, setResultSummary] = useState<{
+    total: number;
+    banned: boolean;
+    idSearch?: string;
+    emailSearch?: string;
+    metaAppId?: string;
+    metaChannel?: string;
+  }>({ total: 0, banned: false });
+
+  const openUserDetail = (record: API.UserItem) => {
+    setCurrentUser(record);
+    setDetailOpen(true);
+  };
+
+  const openUserEdit = (record?: API.UserItem) => {
+    if (record) {
+      setCurrentUser(record);
+    }
+    setDetailOpen(false);
+    setEditOpen(true);
+  };
 
   const columns: ProColumns<API.UserItem>[] = [
     {
@@ -116,16 +144,24 @@ const UserManagePage: React.FC = () => {
       title: '邮箱',
       dataIndex: 'email',
       width: 220,
+      ellipsis: true,
       render: (_, record) => (
-        <Text
-          style={{ cursor: 'pointer', color: '#1677ff' }}
-          onClick={() => {
-            setCurrentUser(record);
-            setEditOpen(true);
-          }}
-        >
-          {record.email}
-        </Text>
+        <Tooltip title={record.email}>
+          <Text
+            style={{
+              cursor: 'pointer',
+              color: '#1677ff',
+              display: 'inline-block',
+              maxWidth: '100%',
+            }}
+            ellipsis
+            onClick={() => {
+              openUserDetail(record);
+            }}
+          >
+            {record.email}
+          </Text>
+        </Tooltip>
       ),
     },
     {
@@ -282,13 +318,16 @@ const UserManagePage: React.FC = () => {
           : '-',
     },
     {
-      title: '注册包名',
+      title: '注册信息',
       dataIndex: ['register_metadata', 'app_id'],
-      width: 180,
+      width: 240,
       search: false,
       render: (_, record) => {
         const meta = record.register_metadata;
-        if (!meta?.app_id) return '-';
+        const appId = meta?.app_id;
+        const ip = record.ip;
+        const country = meta?.country;
+        if (!appId && !ip && !country) return '-';
         const metaLabelStyle: React.CSSProperties = {
           width: 74,
           minWidth: 74,
@@ -297,48 +336,63 @@ const UserManagePage: React.FC = () => {
         const content = (
           <Descriptions column={2} size="small" bordered style={{ width: 540, maxWidth: '50vw' }}>
             <Descriptions.Item label="应用包名" labelStyle={metaLabelStyle}>
-              {renderMetaValue(meta.app_id, 210)}
+              {renderMetaValue(meta?.app_id, 210)}
             </Descriptions.Item>
             <Descriptions.Item label="应用版本" labelStyle={metaLabelStyle}>
-              {renderMetaValue(meta.app_version)}
+              {renderMetaValue(meta?.app_version)}
             </Descriptions.Item>
             <Descriptions.Item label="来源" labelStyle={metaLabelStyle}>
-              {renderMetaValue(meta.utm_source)}
+              {renderMetaValue(meta?.utm_source)}
             </Descriptions.Item>
             <Descriptions.Item label="媒介" labelStyle={metaLabelStyle}>
-              {renderMetaValue(meta.utm_medium)}
+              {renderMetaValue(meta?.utm_medium)}
             </Descriptions.Item>
             <Descriptions.Item label="渠道" labelStyle={metaLabelStyle}>
-              {renderMetaValue(meta.channel_type)}
+              {renderMetaValue(meta?.channel_type)}
             </Descriptions.Item>
             <Descriptions.Item label="Referrer" span={2} labelStyle={metaLabelStyle}>
-              {renderMetaValue(meta.raw_referrer, 540)}
+              {renderMetaValue(meta?.raw_referrer, 540)}
             </Descriptions.Item>
             <Descriptions.Item label="安装TS" labelStyle={metaLabelStyle}>
-              {renderMetaValue(meta.install_begin_ts)}
+              {renderMetaValue(meta?.install_begin_ts)}
             </Descriptions.Item>
             <Descriptions.Item label="点击TS" labelStyle={metaLabelStyle}>
-              {renderMetaValue(meta.click_ts)}
+              {renderMetaValue(meta?.click_ts)}
             </Descriptions.Item>
             <Descriptions.Item label="品牌" labelStyle={metaLabelStyle}>
-              {renderMetaValue(meta.brand)}
+              {renderMetaValue(meta?.brand)}
             </Descriptions.Item>
             <Descriptions.Item label="平台" labelStyle={metaLabelStyle}>
-              {renderMetaValue(meta.platform)}
+              {renderMetaValue(meta?.platform)}
             </Descriptions.Item>
             <Descriptions.Item label="国家" labelStyle={metaLabelStyle}>
-              {renderMetaValue(meta.country)}
+              {renderMetaValue(meta?.country)}
+            </Descriptions.Item>
+            <Descriptions.Item label="IP" labelStyle={metaLabelStyle}>
+              {renderMetaValue(record.ip)}
             </Descriptions.Item>
             <Descriptions.Item label="城市" labelStyle={metaLabelStyle}>
-              {renderMetaValue(meta.city)}
+              {renderMetaValue(meta?.city)}
             </Descriptions.Item>
           </Descriptions>
         );
         return (
-          <Popover content={content} title="注册设备信息" trigger="click">
-            <Text style={{ cursor: 'pointer', color: '#1677ff', maxWidth: 140 }} ellipsis={{ tooltip: meta.app_id }}>
-              {meta.app_id}
-            </Text>
+          <Popover content={content} title="注册信息" trigger="click">
+            <Space
+              direction="vertical"
+              size={0}
+              style={{ width: '100%', cursor: 'pointer', color: '#1677ff' }}
+            >
+              <Text style={{ maxWidth: 210 }} ellipsis={{ tooltip: appId || '-' }}>
+                包名：{appId || '-'}
+              </Text>
+              <Text style={{ maxWidth: 210 }} ellipsis={{ tooltip: ip || '-' }}>
+                IP：{ip || '-'}
+              </Text>
+              <Text style={{ maxWidth: 210 }} ellipsis={{ tooltip: country || '-' }}>
+                国家：{country || '-'}
+              </Text>
+            </Space>
           </Popover>
         );
       },
@@ -359,11 +413,10 @@ const UserManagePage: React.FC = () => {
         <a
           key="edit"
           onClick={() => {
-            setCurrentUser(record);
-            setEditOpen(true);
+            openUserDetail(record);
           }}
         >
-          编辑
+          查看详情
         </a>,
         <a
           key="resetSecret"
@@ -449,7 +502,10 @@ const UserManagePage: React.FC = () => {
 
   const handleExportCSV = async () => {
     try {
-      const blob = await dumpUserCSV({ filter: currentFilter });
+      const blob = await dumpUserCSV({
+        filter: currentQuery.filter,
+        sort: currentQuery.sort,
+      });
       const url = window.URL.createObjectURL(blob as Blob);
       const a = document.createElement('a');
       a.href = url;
@@ -464,6 +520,20 @@ const UserManagePage: React.FC = () => {
 
   return (
     <PageContainer>
+      <Card
+        size="small"
+        style={{ marginBottom: 16 }}
+        styles={{ body: { paddingBlock: 12 } }}
+      >
+        <Space size={[16, 12]} wrap>
+          <Text>当前结果：{resultSummary.total} 个用户</Text>
+          {resultSummary.banned ? <Tag color="error">仅看封禁用户</Tag> : null}
+          {resultSummary.idSearch ? <Tag>用户 ID：{resultSummary.idSearch}</Tag> : null}
+          {resultSummary.emailSearch ? <Tag>邮箱：{resultSummary.emailSearch}</Tag> : null}
+          {resultSummary.metaAppId ? <Tag>包名：{resultSummary.metaAppId}</Tag> : null}
+          {resultSummary.metaChannel ? <Tag>渠道：{resultSummary.metaChannel}</Tag> : null}
+        </Space>
+      </Card>
       <ProTable<API.UserItem>
         rowKey="id"
         actionRef={actionRef}
@@ -488,7 +558,7 @@ const UserManagePage: React.FC = () => {
                 setSendMailOpen(true);
               }}
             >
-              批量发邮件
+              给选中用户发邮件
             </a>
             <a
               style={{ color: '#ff4d4f' }}
@@ -530,8 +600,7 @@ const UserManagePage: React.FC = () => {
           if (params.meta_channel) {
             meta.channel_type = params.meta_channel;
           }
-          setCurrentFilter(filter);
-          const res = await fetchUsers({
+          const query: API.UserFetchParams = {
             id: params.id_search || undefined,
             current: params.current,
             pageSize: params.pageSize,
@@ -541,15 +610,27 @@ const UserManagePage: React.FC = () => {
             meta: Object.keys(meta).length ? meta : undefined,
             filter: filter.length ? filter : undefined,
             sort: [{ id: 'created_at', desc: true }],
-          });
+          };
+          setCurrentFilter(filter);
+          setCurrentQuery(query);
+          const res = await fetchUsers(query);
           if (res.code !== 0) {
             messageApi.error(res.msg || '列表获取失败');
             return { data: [], success: false, total: 0 };
           }
+          const total = (res.data as any)?.total || 0;
+          setResultSummary({
+            total,
+            banned: !!params.onlyBanned,
+            idSearch: params.id_search,
+            emailSearch: params.email_search,
+            metaAppId: params.meta_app_id,
+            metaChannel: params.meta_channel,
+          });
           return {
             data: (res.data as any)?.data || [],
             success: true,
-            total: (res.data as any)?.total || 0,
+            total,
           };
         }}
         pagination={{ defaultPageSize: 15, showSizeChanger: true }}
@@ -566,11 +647,11 @@ const UserManagePage: React.FC = () => {
           <Button
             key="sendMail"
             onClick={() => {
-              setCurrentFilter([]);
+              setCurrentFilter(currentQuery.filter ?? []);
               setSendMailOpen(true);
             }}
           >
-            批量发邮件
+            给当前筛选结果发邮件
           </Button>,
           <Button key="export" onClick={handleExportCSV}>
             导出 CSV
@@ -582,6 +663,13 @@ const UserManagePage: React.FC = () => {
       />
 
       {/* Edit modal */}
+      <UserDetailDrawer
+        open={detailOpen}
+        user={currentUser}
+        onClose={() => setDetailOpen(false)}
+        onEdit={() => openUserEdit()}
+      />
+
       <UserFormModal
         open={editOpen}
         current={currentUser}

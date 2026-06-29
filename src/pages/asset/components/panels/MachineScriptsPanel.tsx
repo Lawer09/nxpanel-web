@@ -17,6 +17,8 @@ import {
 } from 'antd';
 import React, { useMemo, useRef, useState } from 'react';
 import {
+  batchDeleteAssetMachineScripts,
+  batchUpdateAssetMachineScriptStatus,
   createAssetMachineScript,
   deleteAssetMachineScript,
   getAssetMachineScriptDetail,
@@ -35,6 +37,8 @@ import {
   cleanupObject,
   formatText,
   formatTime,
+  getAssetBatchFailureLines,
+  getAssetBatchResultSummary,
   normalizeDevErrorMessage,
   parseJsonText,
 } from '../../utils';
@@ -69,21 +73,29 @@ const getScriptStatusColor = (status?: string | null) => {
 const MachineScriptsPanel: React.FC<{
   onTaskAck: TaskAckHandler;
 }> = ({ onTaskAck }) => {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const actionRef = useRef<ActionType | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<API.AssetMachineScript | null>(null);
   const [detail, setDetail] = useState<API.AssetMachineScript | null>(null);
   const [runOpen, setRunOpen] = useState(false);
+  const [batchStatusOpen, setBatchStatusOpen] = useState(false);
   const [runningScript, setRunningScript] = useState<API.AssetMachineScript | null>(
     null,
   );
   const [filters, setFilters] = useState<ScriptFilters>({});
   const [filterForm] = Form.useForm<ScriptFilters>();
   const [runForm] = Form.useForm<MachineScriptRunFormValues>();
+  const [batchStatusForm] = Form.useForm<{ status?: string }>();
   const [machineOptions, setMachineOptions] = useState<API.AssetMachine[]>([]);
   const [loadingMachines, setLoadingMachines] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<API.AssetMachineScript[]>([]);
+
+  const selectedIds = useMemo(
+    () => selectedRows.map((item) => item.id),
+    [selectedRows],
+  );
 
   const loadScriptDetail = async (scriptId: number) => {
     const response = await getAssetMachineScriptDetail(scriptId);
@@ -116,6 +128,56 @@ const MachineScriptsPanel: React.FC<{
     } catch (error: any) {
       message.error(normalizeDevErrorMessage(error));
     }
+  };
+
+  const handleBatchMutationResult = (title: string, result: API.AssetBatchResult) => {
+    const summary = getAssetBatchResultSummary(result);
+    if (result.failed > 0) {
+      const failureLines = getAssetBatchFailureLines(result);
+      modal.info({
+        title: `${title}结果`,
+        width: 720,
+        content: (
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <span>{summary}</span>
+            <div>
+              {failureLines.map((line) => (
+                <div key={line}>{line}</div>
+              ))}
+            </div>
+          </Space>
+        ),
+      });
+      message.warning(summary);
+    } else {
+      message.success(summary);
+    }
+    setSelectedRows([]);
+    actionRef.current?.reload();
+  };
+
+  const openBatchDeleteConfirm = () => {
+    if (!selectedIds.length) {
+      message.info('请先选择脚本。');
+      return;
+    }
+    modal.confirm({
+      title: `批量删除 ${selectedIds.length} 个脚本`,
+      okText: '确认删除',
+      okButtonProps: { danger: true, loading: saving },
+      onOk: async () => {
+        try {
+          setSaving(true);
+          const response = await batchDeleteAssetMachineScripts({ ids: selectedIds });
+          handleBatchMutationResult('批量删除脚本', response.data);
+        } catch (error: any) {
+          message.error(normalizeDevErrorMessage(error));
+          throw error;
+        } finally {
+          setSaving(false);
+        }
+      },
+    });
   };
 
   const columns: ProColumns<API.AssetMachineScript>[] = useMemo(
@@ -262,6 +324,28 @@ const MachineScriptsPanel: React.FC<{
         search={false}
         scroll={{ x: 1120 }}
         columns={columns}
+        rowSelection={{
+          selectedRowKeys: selectedIds,
+          onChange: (_, rows) => setSelectedRows(rows),
+        }}
+        tableAlertRender={({ selectedRowKeys }) => `已选择 ${selectedRowKeys.length} 个脚本`}
+        tableAlertOptionRender={() => [
+          <a
+            key="status"
+            onClick={() => {
+              batchStatusForm.resetFields();
+              setBatchStatusOpen(true);
+            }}
+          >
+            批量改状态
+          </a>,
+          <a key="delete" onClick={() => openBatchDeleteConfirm()}>
+            批量删除
+          </a>,
+          <a key="clear" onClick={() => setSelectedRows([])}>
+            清空选择
+          </a>,
+        ]}
         request={async (params) => {
           try {
             const response = await listAssetMachineScripts({
@@ -356,6 +440,49 @@ const MachineScriptsPanel: React.FC<{
           }
         }}
       />
+
+      <Modal
+        title={`批量更新 ${selectedIds.length} 个脚本状态`}
+        open={batchStatusOpen}
+        destroyOnHidden
+        confirmLoading={saving}
+        onCancel={() => {
+          setBatchStatusOpen(false);
+          batchStatusForm.resetFields();
+        }}
+        onOk={async () => {
+          try {
+            const values = await batchStatusForm.validateFields();
+            setSaving(true);
+            const response = await batchUpdateAssetMachineScriptStatus({
+              ids: selectedIds,
+              status: values.status,
+            });
+            setBatchStatusOpen(false);
+            batchStatusForm.resetFields();
+            handleBatchMutationResult('批量更新脚本状态', response.data);
+          } catch (error: any) {
+            message.error(normalizeDevErrorMessage(error));
+          } finally {
+            setSaving(false);
+          }
+        }}
+      >
+        <Form form={batchStatusForm} layout="vertical">
+          <Form.Item
+            name="status"
+            label="状态"
+            rules={[{ required: true, message: '请选择状态。' }]}
+          >
+            <Select
+              options={[
+                { label: '启用', value: 'active' },
+                { label: '停用', value: 'disabled' },
+              ]}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
 
       <Modal
         title={runningScript ? `执行脚本：${runningScript.name}` : '执行机器脚本'}

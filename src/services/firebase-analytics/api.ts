@@ -20,11 +20,21 @@ import type {
   VpnProbeTrendItem,
   ProbeTriggerDistributionItem,
   ProbeTypeDistributionItem,
+  ProbeNodeStatsItem,
   ProbeNodeRankItem,
   ApiErrorSummaryResponse,
   ApiErrorTrendItem,
   HttpStatusDistributionItem,
   ApiRankItem,
+  NodeStatusListParams,
+  NodeStatusListResponse,
+  NodeConnectionSummaryParams,
+  NodeConnectionSummaryResponse,
+  NodeConnectionErrorDistributionItem,
+  NodeConnectionResultParams,
+  NodeConnectionResultsResponse,
+  ProbeResultItem,
+  ProbeResultsResponse,
 } from './types';
 
 export type { FirebaseAnalyticsFilter };
@@ -196,6 +206,103 @@ export async function getProbeTypeDistribution(params: FirebaseAnalyticsFilter) 
 /** 节点测速排行 GET /v3/firebase-analytics/vpn-probe/node-rank */
 export async function getProbeNodeRank(params: FirebaseAnalyticsFilter) {
   return request<{ data: { list: ProbeNodeRankItem[] } }>('/v3/firebase-analytics/vpn-probe/node-rank', {
+    method: 'GET',
+    params,
+  });
+}
+
+/** 节点探测统计 GET /v3/firebase-analytics/vpn-probe/node-stats */
+export async function getVpnProbeNodeStats(
+  params: FirebaseAnalyticsFilter & {
+    page?: number;
+    page_size?: number;
+    sort_by?: string;
+    order?: 'asc' | 'desc';
+  },
+) {
+  return request<{
+    data: {
+      page: number;
+      page_size: number;
+      total: number;
+      items: ProbeNodeStatsItem[];
+    };
+  }>('/v3/firebase-analytics/vpn-probe/node-stats', {
+    method: 'GET',
+    params,
+  });
+}
+
+/** 节点状态列表 GET /v3/firebase-analytics/nodes/status */
+export async function getNodeStatusList(params: NodeStatusListParams) {
+  return request<{ data: NodeStatusListResponse }>('/v3/firebase-analytics/nodes/status', {
+    method: 'GET',
+    params,
+  });
+}
+
+/** 节点连接摘要 GET /v3/firebase-analytics/nodes/connection-summary */
+export async function getNodeConnectionSummary(params: NodeConnectionSummaryParams) {
+  return request<{ data: NodeConnectionSummaryResponse }>(
+    '/v3/firebase-analytics/nodes/connection-summary',
+    {
+      method: 'GET',
+      params,
+    },
+  );
+}
+
+/** 节点连接错误分布 GET /v3/firebase-analytics/nodes/connection-error-distribution */
+export async function getNodeConnectionErrorDistribution(
+  params: NodeConnectionSummaryParams & { limit?: number },
+) {
+  return request<{ data: { items: NodeConnectionErrorDistributionItem[] } }>(
+    '/v3/firebase-analytics/nodes/connection-error-distribution',
+    {
+      method: 'GET',
+      params,
+    },
+  );
+}
+
+/** 节点连接明细 GET /v3/firebase-analytics/nodes/connection-results */
+export async function getNodeConnectionResults(params: NodeConnectionResultParams) {
+  return request<{ data: NodeConnectionResultsResponse }>(
+    '/v3/firebase-analytics/nodes/connection-results',
+    {
+      method: 'GET',
+      params,
+    },
+  );
+}
+
+/** 节点探测明细 GET /v3/firebase-analytics/vpn-probe/results */
+export async function getVpnProbeResults(
+  params: FirebaseAnalyticsFilter & {
+    page?: number;
+    page_size?: number;
+    event_id?: string;
+    probe_id?: string;
+    node_id?: string;
+    node_name?: string;
+    node_country?: string;
+    node_region?: string;
+    protocol?: string;
+    success?: boolean | string | number;
+    error_code?: string;
+    sort_by?:
+      | 'received_at'
+      | 'result_index'
+      | 'latency_ms'
+      | 'tcp_connect_ms'
+      | 'tls_hk_ms'
+      | 'proxy_hk_ms'
+      | 'timeout_ms'
+      | 'id';
+    order?: 'asc' | 'desc';
+  },
+) {
+  return request<{ data: ProbeResultsResponse }>('/v3/firebase-analytics/vpn-probe/results', {
     method: 'GET',
     params,
   });

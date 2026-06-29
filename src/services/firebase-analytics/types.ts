@@ -1,7 +1,9 @@
+import type { Dayjs } from 'dayjs';
+
 export interface FirebaseAnalyticsFilter {
   start_time?: string;
   end_time?: string;
-  time_field?: 'received_at' | 'event_time';
+  time_field?: FirebaseTimeField;
   app_id?: string;
   platform?: string;
   app_version?: string;
@@ -12,6 +14,13 @@ export interface FirebaseAnalyticsFilter {
   asn?: string;
   event_name?: string;
   [key: string]: any;
+}
+
+export type FirebaseTimeField = 'received_at' | 'event_time';
+
+export interface FirebaseAnalyticsFilterFormValues
+  extends Omit<FirebaseAnalyticsFilter, 'start_time' | 'end_time'> {
+  timeRange?: [Dayjs, Dayjs];
 }
 
 export interface KpiItem {
@@ -53,6 +62,9 @@ export interface FilterOptionsResponse {
   isps: FilterOption[];
   asns: FilterOption[];
   event_names: FilterOption[];
+  protocols: FilterOption[];
+  node_countries: FilterOption[];
+  node_regions: FilterOption[];
 }
 
 
@@ -205,6 +217,224 @@ export interface ProbeTriggerDistributionItem {
 export interface ProbeTypeDistributionItem {
   type: string;
   count: number;
+}
+
+export interface ProbeNodeStatsItem {
+  node_id: string;
+  node_name: string;
+  node_country: string;
+  node_region: string;
+  protocol: string;
+  test_count: number;
+  success_count: number;
+  fail_count: number;
+  success_rate: number;
+  avg_latency_ms: number;
+  p95_latency_ms: number;
+  avg_tcp_connect_ms: number;
+  avg_tls_hk_ms: number;
+  avg_proxy_hk_ms: number;
+  top_error_code: string;
+  last_received_at: string;
+}
+
+export type NodeDiagnosisStatus =
+  | 'connect_gap'
+  | 'probe_only'
+  | 'dual_risk'
+  | 'session_risk'
+  | 'probe_risk'
+  | 'session_only'
+  | 'healthy';
+
+export type NodeSampleScope = 'all' | 'probe_only' | 'session_only' | 'dual';
+
+export interface NodeStatusListParams extends FirebaseAnalyticsFilter {
+  node_id?: string;
+  node_name?: string;
+  node_country?: string;
+  node_region?: string;
+  protocol?: string;
+  diagnosis_status?: NodeDiagnosisStatus;
+  sample_scope?: NodeSampleScope;
+  page?: number;
+  page_size?: number;
+  sort_by?:
+    | 'diagnosis_priority'
+    | 'rate_gap'
+    | 'probe_success_rate'
+    | 'session_success_rate'
+    | 'probe_test_count'
+    | 'session_count'
+    | 'p95_latency_ms'
+    | 'p95_connect_ms'
+    | 'last_probe_received_at'
+    | 'last_session_received_at';
+  order?: 'asc' | 'desc';
+}
+
+export interface NodeStatusListItem {
+  node_id: string;
+  node_name: string;
+  node_country?: string;
+  node_region?: string;
+  protocol?: string;
+  diagnosis_status: NodeDiagnosisStatus;
+  diagnosis_priority: number;
+  sample_scope: NodeSampleScope;
+  rate_gap?: number;
+  session_count: number;
+  session_success_count: number;
+  session_fail_count: number;
+  session_success_rate?: number;
+  avg_connect_ms?: number;
+  p95_connect_ms?: number;
+  avg_duration_ms?: number;
+  retry_session_count?: number;
+  total_bytes?: number;
+  session_top_error_code?: string;
+  last_session_received_at?: string;
+  probe_test_count: number;
+  probe_success_count: number;
+  probe_fail_count: number;
+  probe_success_rate?: number;
+  avg_latency_ms?: number;
+  p95_latency_ms?: number;
+  avg_tcp_connect_ms?: number;
+  avg_tls_hk_ms?: number;
+  avg_proxy_hk_ms?: number;
+  probe_top_error_code?: string;
+  last_probe_received_at?: string;
+}
+
+export interface NodeStatusListResponse {
+  page: number;
+  page_size: number;
+  total: number;
+  items: NodeStatusListItem[];
+}
+
+export interface NodeConnectionSummaryParams extends FirebaseAnalyticsFilter {
+  node_id?: string;
+  node_name?: string;
+  node_country?: string;
+  node_region?: string;
+  protocol?: string;
+}
+
+export interface NodeConnectionSummaryResponse {
+  session_count: number;
+  success_count: number;
+  fail_count: number;
+  success_rate?: number;
+  active_devices?: number;
+  avg_connect_ms?: number;
+  p95_connect_ms?: number;
+  avg_duration_ms?: number;
+  retry_session_count?: number;
+  retry_rate?: number;
+  total_upload_bytes?: number;
+  total_download_bytes?: number;
+  total_bytes?: number;
+  top_error_code?: string;
+  last_received_at?: string;
+}
+
+export interface NodeConnectionErrorDistributionItem {
+  error_stage?: string;
+  error_code?: string;
+  count: number;
+  ratio?: number;
+  affected_devices?: number;
+}
+
+export interface NodeConnectionResultParams extends NodeConnectionSummaryParams {
+  success?: boolean | string | number;
+  error_stage?: string;
+  error_code?: string;
+  page?: number;
+  page_size?: number;
+  sort_by?: 'received_at' | 'event_time_ms' | 'connect_ms' | 'duration_ms' | 'retry_count' | 'id';
+  order?: 'asc' | 'desc';
+}
+
+export interface NodeConnectionResultItem {
+  id: number;
+  event_id: string;
+  received_at?: string;
+  event_time_ms?: number;
+  app_id?: string;
+  platform?: string;
+  app_version?: string;
+  device_id?: string;
+  user_id?: string;
+  user_country?: string;
+  user_region?: string;
+  network_type?: string;
+  isp?: string;
+  asn?: string;
+  session_id?: string;
+  node_id?: string;
+  node_name?: string;
+  node_country?: string;
+  node_region?: string;
+  protocol?: string;
+  connect_type?: string;
+  success?: boolean | number;
+  connect_ms?: number;
+  duration_ms?: number;
+  retry_count?: number;
+  error_stage?: string;
+  error_code?: string;
+  error_message?: string;
+}
+
+export interface NodeConnectionResultsResponse {
+  page: number;
+  page_size: number;
+  total: number;
+  items: NodeConnectionResultItem[];
+}
+
+export interface ProbeResultItem {
+  id: number;
+  event_id: string;
+  received_at?: string;
+  event_time_ms?: number;
+  app_id?: string;
+  platform?: string;
+  app_version?: string;
+  device_id?: string;
+  user_id?: string;
+  user_country?: string;
+  user_region?: string;
+  network_type?: string;
+  isp?: string;
+  asn?: string;
+  probe_id?: string;
+  probe_type?: string;
+  probe_trigger?: string;
+  result_index?: number;
+  node_id?: string;
+  node_name?: string;
+  node_country?: string;
+  node_region?: string;
+  protocol?: string;
+  success?: boolean | number;
+  latency_ms?: number;
+  tcp_connect_ms?: number;
+  tls_hk_ms?: number;
+  proxy_hk_ms?: number;
+  error_code?: string;
+  error_message?: string;
+  timeout_ms?: number;
+}
+
+export interface ProbeResultsResponse {
+  page: number;
+  page_size: number;
+  total: number;
+  items: ProbeResultItem[];
 }
 
 export interface ProbeNodeRankItem {

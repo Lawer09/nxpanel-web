@@ -22,6 +22,9 @@ import {
 } from 'antd';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  batchDeleteAssetIps,
+  batchUpdateAssetIpStatus,
+  batchUpdateAssetIpTags,
   deleteAssetIp,
   getAssetIpDetail,
   importAssetIpManual,
@@ -31,11 +34,18 @@ import {
 } from '@/services/asset-service/api';
 import JsonBlock from '../../../dev/components/JsonBlock';
 import { IP_IMPORT_ACTION_KEYS, IP_STATUS_OPTIONS } from '../../constants';
-import type { IpFormValues, SharedFilters, TaskAckHandler } from '../../types';
+import type {
+  AssetTagFormValue,
+  IpFormValues,
+  SharedFilters,
+  TaskAckHandler,
+} from '../../types';
 import {
   cleanupObject,
   formatText,
   formatTime,
+  getAssetBatchFailureLines,
+  getAssetBatchResultSummary,
   getAssetSourceLabel,
   isProviderCapabilitySupported,
   normalizeAssetTags,
@@ -72,16 +82,21 @@ const IpsPanel: React.FC<{
   accounts: API.AssetProviderAccount[];
   onTaskAck: TaskAckHandler;
 }> = ({ filters, providers, accounts, onTaskAck }) => {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const actionRef = useRef<ActionType | undefined>(undefined);
   const [form] = Form.useForm<IpFormValues>();
+  const [batchStatusForm] = Form.useForm<{ status?: string }>();
+  const [batchTagForm] = Form.useForm<{ tags?: AssetTagFormValue[] }>();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<API.AssetIp | null>(null);
   const [saving, setSaving] = useState(false);
   const [detail, setDetail] = useState<API.AssetIp | null>(null);
   const [pullOpen, setPullOpen] = useState(false);
+  const [batchStatusOpen, setBatchStatusOpen] = useState(false);
+  const [batchTagOpen, setBatchTagOpen] = useState(false);
   const [pullRunId, setPullRunId] = useState<number | undefined>();
   const [pullRunOpen, setPullRunOpen] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<API.AssetIp[]>([]);
   const [pullInitialValues, setPullInitialValues] = useState<
     Partial<API.AssetIpPullFromProviderParams>
   >({
@@ -108,7 +123,63 @@ const IpsPanel: React.FC<{
 
   useEffect(() => {
     actionRef.current?.reload();
+    setSelectedRows([]);
   }, [filters]);
+
+  const selectedIds = useMemo(
+    () => selectedRows.map((item) => item.id),
+    [selectedRows],
+  );
+
+  const handleBatchMutationResult = (title: string, result: API.AssetBatchResult) => {
+    const summary = getAssetBatchResultSummary(result);
+    if (result.failed > 0) {
+      const failureLines = getAssetBatchFailureLines(result);
+      modal.info({
+        title: `${title}结果`,
+        width: 720,
+        content: (
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <span>{summary}</span>
+            <div>
+              {failureLines.map((line) => (
+                <div key={line}>{line}</div>
+              ))}
+            </div>
+          </Space>
+        ),
+      });
+      message.warning(summary);
+    } else {
+      message.success(summary);
+    }
+    setSelectedRows([]);
+    actionRef.current?.reload();
+  };
+
+  const openBatchDeleteConfirm = () => {
+    if (!selectedIds.length) {
+      message.info('请先选择 IP。');
+      return;
+    }
+    modal.confirm({
+      title: `批量删除 ${selectedIds.length} 条 IP 记录`,
+      okText: '确认删除',
+      okButtonProps: { danger: true, loading: saving },
+      onOk: async () => {
+        try {
+          setSaving(true);
+          const response = await batchDeleteAssetIps({ ids: selectedIds });
+          handleBatchMutationResult('批量删除 IP', response.data);
+        } catch (error: any) {
+          message.error(normalizeDevErrorMessage(error));
+          throw error;
+        } finally {
+          setSaving(false);
+        }
+      },
+    });
+  };
 
   const buildIpPayload = (values: IpFormValues) =>
     cleanupObject({
@@ -279,6 +350,37 @@ const IpsPanel: React.FC<{
         search={false}
         scroll={{ x: 1400 }}
         columns={columns}
+        rowSelection={{
+          selectedRowKeys: selectedIds,
+          onChange: (_, rows) => setSelectedRows(rows),
+        }}
+        tableAlertRender={({ selectedRowKeys }) => `已选择 ${selectedRowKeys.length} 条 IP`}
+        tableAlertOptionRender={() => [
+          <a
+            key="status"
+            onClick={() => {
+              batchStatusForm.resetFields();
+              setBatchStatusOpen(true);
+            }}
+          >
+            批量改状态
+          </a>,
+          <a
+            key="tags"
+            onClick={() => {
+              batchTagForm.setFieldsValue({ tags: [] });
+              setBatchTagOpen(true);
+            }}
+          >
+            批量改标签
+          </a>,
+          <a key="delete" onClick={() => openBatchDeleteConfirm()}>
+            批量删除
+          </a>,
+          <a key="clear" onClick={() => setSelectedRows([])}>
+            清空选择
+          </a>,
+        ]}
         request={async (params) => {
           try {
             const response = await listAssetIps({
@@ -353,6 +455,77 @@ const IpsPanel: React.FC<{
           </Button>,
         ]}
       />
+
+      <Modal
+        title={`批量更新 ${selectedIds.length} 条 IP 状态`}
+        open={batchStatusOpen}
+        destroyOnHidden
+        confirmLoading={saving}
+        onCancel={() => {
+          setBatchStatusOpen(false);
+          batchStatusForm.resetFields();
+        }}
+        onOk={async () => {
+          try {
+            const values = await batchStatusForm.validateFields();
+            setSaving(true);
+            const response = await batchUpdateAssetIpStatus({
+              ids: selectedIds,
+              status: values.status,
+            });
+            setBatchStatusOpen(false);
+            batchStatusForm.resetFields();
+            handleBatchMutationResult('批量更新 IP 状态', response.data);
+          } catch (error: any) {
+            message.error(normalizeDevErrorMessage(error));
+          } finally {
+            setSaving(false);
+          }
+        }}
+      >
+        <Form form={batchStatusForm} layout="vertical">
+          <Form.Item
+            name="status"
+            label="状态"
+            rules={[{ required: true, message: '请选择状态。' }]}
+          >
+            <Select options={IP_STATUS_OPTIONS} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={`批量替换 ${selectedIds.length} 条 IP 标签`}
+        open={batchTagOpen}
+        destroyOnHidden
+        width={760}
+        confirmLoading={saving}
+        onCancel={() => {
+          setBatchTagOpen(false);
+          batchTagForm.resetFields();
+        }}
+        onOk={async () => {
+          try {
+            const values = await batchTagForm.validateFields();
+            setSaving(true);
+            const response = await batchUpdateAssetIpTags({
+              ids: selectedIds,
+              tags: normalizeAssetTags(values.tags),
+            });
+            setBatchTagOpen(false);
+            batchTagForm.resetFields();
+            handleBatchMutationResult('批量更新 IP 标签', response.data);
+          } catch (error: any) {
+            message.error(normalizeDevErrorMessage(error));
+          } finally {
+            setSaving(false);
+          }
+        }}
+      >
+        <Form form={batchTagForm} layout="vertical">
+          <AssetTagEditor name="tags" label="标签" />
+        </Form>
+      </Modal>
 
       <Modal
         title={editing ? `编辑 IP #${editing.id}` : '手动录入 IP'}

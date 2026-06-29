@@ -209,6 +209,16 @@ export default [
         component: './firebase-analytics/Dashboard',
       },
       {
+        path: '/firebase-analytics/node-status',
+        name: 'node-status',
+        component: './firebase-analytics/NodeStatus',
+      },
+      {
+        path: '/firebase-analytics/node-status/detail',
+        hideInMenu: true,
+        component: './firebase-analytics/NodeStatusDetail',
+      },
+      {
         path: '/firebase-analytics/app-open',
         name: 'app-open',
         component: './firebase-analytics/AppOpenAnalysis',

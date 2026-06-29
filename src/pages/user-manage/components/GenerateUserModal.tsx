@@ -3,14 +3,18 @@ import {
   ProFormDateTimePicker,
   ProFormDependency,
   ProFormDigit,
+  ProFormRadio,
   ProFormSelect,
   ProFormSwitch,
   ProFormText,
 } from '@ant-design/pro-components';
 import { Alert, App, Table, Typography } from 'antd';
 import dayjs from 'dayjs';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useRequest } from '@umijs/max';
 import { generateUser } from '@/services/user/api';
+import { fetchPlans } from '@/services/plan/api';
+import { userMenuOptions } from '../menuOptions';
 
 type GenerateUserModalProps = {
   open: boolean;
@@ -19,8 +23,8 @@ type GenerateUserModalProps = {
 };
 
 const USER_TYPE_OPTIONS = [
-  { label: 'global', value: 'global' },
-  { label: 'define', value: 'define' },
+  { label: '全量菜单', value: 'global' },
+  { label: '自定义菜单', value: 'define' },
 ];
 
 const normalizeStringArray = (value?: unknown): string[] => {
@@ -35,6 +39,15 @@ const GenerateUserModal: React.FC<GenerateUserModalProps> = ({
 }) => {
   const { message: messageApi } = App.useApp();
   const [generatedList, setGeneratedList] = useState<any[]>([]);
+  const { data: plansRes } = useRequest(fetchPlans, { cacheKey: 'plan-list' });
+  const planOptions = useMemo(
+    () =>
+      ((plansRes as any) ?? []).map((p: API.PlanItem) => ({
+        label: p.name,
+        value: p.id,
+      })),
+    [plansRes],
+  );
 
   return (
     <ModalForm
@@ -48,8 +61,9 @@ const GenerateUserModal: React.FC<GenerateUserModalProps> = ({
       submitter={{
         searchConfig: { submitText: '生成' },
       }}
+      initialValues={{ generate_mode: 'single', user_type: 'global' }}
       onFinish={async (values) => {
-        const isBatch = !!values.generate_count;
+        const isBatch = values.generate_mode === 'batch';
         const payload: API.UserGenerateParams = {
           email_suffix: values.email_suffix,
           password: values.password || undefined,
@@ -87,8 +101,16 @@ const GenerateUserModal: React.FC<GenerateUserModalProps> = ({
       <Alert
         type="info"
         showIcon
-        message="填写邮箱前缀为单个生成，填写批量生成数量为批量生成（二选一）"
+        message="先选择生成模式，再填写对应字段。单个创建适合精确录入，批量生成适合一次性造号。"
         style={{ marginBottom: 16 }}
+      />
+      <ProFormRadio.Group
+        name="generate_mode"
+        label="生成模式"
+        options={[
+          { label: '单个创建', value: 'single' },
+          { label: '批量生成', value: 'batch' },
+        ]}
       />
       <ProFormText
         name="email_suffix"
@@ -96,30 +118,39 @@ const GenerateUserModal: React.FC<GenerateUserModalProps> = ({
         placeholder="如 gmail.com"
         rules={[{ required: true, message: '请输入邮箱后缀' }]}
       />
-      <ProFormText
-        name="email_prefix"
-        label="邮箱前缀（单个）"
-        placeholder="如 testuser"
-      />
-      <ProFormDigit
-        name="generate_count"
-        label="批量生成数量"
-        min={1}
-        max={500}
-        fieldProps={{ precision: 0 }}
-        placeholder="最大 500"
-      />
+      <ProFormDependency name={['generate_mode']}>
+        {({ generate_mode }) =>
+          generate_mode === 'batch' ? (
+            <ProFormDigit
+              name="generate_count"
+              label="批量生成数量"
+              min={1}
+              max={500}
+              fieldProps={{ precision: 0 }}
+              placeholder="最大 500"
+              rules={[{ required: true, message: '请输入批量生成数量' }]}
+            />
+          ) : (
+            <ProFormText
+              name="email_prefix"
+              label="邮箱前缀"
+              placeholder="如 testuser"
+              rules={[{ required: true, message: '请输入邮箱前缀' }]}
+            />
+          )
+        }
+      </ProFormDependency>
       <ProFormText.Password
         name="password"
         label="密码"
         placeholder="不填则默认使用邮箱地址"
       />
-      <ProFormDigit
+      <ProFormSelect
         name="plan_id"
-        label="套餐 ID"
-        min={1}
-        fieldProps={{ precision: 0 }}
+        label="套餐"
+        options={planOptions}
         placeholder="可选"
+        allowClear
       />
       <ProFormDateTimePicker
         name="expired_at"
@@ -130,7 +161,6 @@ const GenerateUserModal: React.FC<GenerateUserModalProps> = ({
       <ProFormSelect
         name="user_type"
         label="用户类型"
-        initialValue="global"
         options={USER_TYPE_OPTIONS}
         rules={[{ required: true, message: '请选择用户类型' }]}
       />
@@ -140,15 +170,26 @@ const GenerateUserModal: React.FC<GenerateUserModalProps> = ({
             <ProFormSelect
               name="menus"
               label="菜单"
-              mode="tags"
+              mode="multiple"
               width="xl"
-              fieldProps={{ tokenSeparators: [',', '，'], style: { width: '100%' } }}
-              placeholder="输入菜单 path，支持逗号分隔，例如 /dashboard"
+              options={userMenuOptions}
+              fieldProps={{
+                showSearch: true,
+                optionFilterProp: 'label',
+                style: { width: '100%' },
+              }}
+              placeholder="选择该用户可见的菜单"
             />
           ) : null
         }
       </ProFormDependency>
-      <ProFormSwitch name="download_csv" label="批量生成后下载 CSV" />
+      <ProFormDependency name={['generate_mode']}>
+        {({ generate_mode }) =>
+          generate_mode === 'batch' ? (
+            <ProFormSwitch name="download_csv" label="批量生成后下载 CSV" />
+          ) : null
+        }
+      </ProFormDependency>
 
       {generatedList.length > 0 && (
         <div style={{ marginTop: 16 }}>

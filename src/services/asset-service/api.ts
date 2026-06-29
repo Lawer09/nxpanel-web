@@ -132,6 +132,34 @@ export async function deleteAssetMachine(id: number) {
   });
 }
 
+export async function batchSyncAssetMachines(body: API.AssetMachineBatchSyncParams) {
+  return devAdminRequest<API.AssetBatchTaskAckResult>(`${ASSET_PREFIX}/machines/batch-sync`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function batchDeleteAssetMachines(body: API.AssetBatchMutationParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/machines/batch-delete`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function batchUpdateAssetMachineTags(body: API.AssetBatchUpdateTagsParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/machines/batch-update-tags`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function batchUpdateAssetMachineStatus(body: API.AssetBatchUpdateStatusParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/machines/batch-update-status`, {
+    method: 'POST',
+    body,
+  });
+}
+
 export async function destroyProviderAssetMachine(
   machineId: number,
   body: { confirm_instance_id: string },
@@ -225,6 +253,27 @@ export async function deleteAssetIp(id: number) {
   });
 }
 
+export async function batchDeleteAssetIps(body: API.AssetBatchMutationParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/ips/batch-delete`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function batchUpdateAssetIpTags(body: API.AssetBatchUpdateTagsParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/ips/batch-update-tags`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function batchUpdateAssetIpStatus(body: API.AssetBatchUpdateStatusParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/ips/batch-update-status`, {
+    method: 'POST',
+    body,
+  });
+}
+
 export async function bindAssetMachineIp(machineId: number, body: API.AssetMachineBindIpParams) {
   return devAdminRequest<{ id: number }>(`${ASSET_PREFIX}/machines/${machineId}/ips/bind`, {
     method: 'POST',
@@ -307,6 +356,20 @@ export async function deleteAssetSshKey(id: number) {
   });
 }
 
+export async function batchDeleteAssetSshKeys(body: API.AssetBatchMutationParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/ssh-keys/batch-delete`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function batchUpdateAssetSshKeyStatus(body: API.AssetBatchUpdateStatusParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/ssh-keys/batch-update-status`, {
+    method: 'POST',
+    body,
+  });
+}
+
 export async function listAssetOperations(params?: API.AssetOperationListParams) {
   return devAdminRequest<API.AssetPageResult<API.AssetOperation>>(`${ASSET_PREFIX}/operations`, {
     params: toQueryParams(params),
@@ -357,6 +420,25 @@ export async function deleteAssetMachineScript(id: number) {
     method: 'POST',
     body: { id },
   });
+}
+
+export async function batchDeleteAssetMachineScripts(body: API.AssetBatchMutationParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/machine-scripts/batch-delete`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function batchUpdateAssetMachineScriptStatus(
+  body: API.AssetBatchUpdateStatusParams,
+) {
+  return devAdminRequest<API.AssetBatchResult>(
+    `${ASSET_PREFIX}/machine-scripts/batch-update-status`,
+    {
+      method: 'POST',
+      body,
+    },
+  );
 }
 
 export async function runAssetMachineScript(body: API.AssetMachineScriptRunParams) {

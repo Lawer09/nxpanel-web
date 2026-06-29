@@ -22,6 +22,8 @@ import {
 } from 'antd';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  batchDeleteAssetSshKeys,
+  batchUpdateAssetSshKeyStatus,
   createAssetProviderSshKey,
   createAssetSshKeyCustom,
   deleteAssetSshKey,
@@ -47,6 +49,8 @@ import type {
 import {
   formatText,
   formatTime,
+  getAssetBatchFailureLines,
+  getAssetBatchResultSummary,
   isProviderCapabilitySupported,
   normalizeAssetTags,
   normalizeDevErrorMessage,
@@ -77,19 +81,22 @@ const SshKeysPanel: React.FC<{
   accounts: API.AssetProviderAccount[];
   onTaskAck: TaskAckHandler;
 }> = ({ filters, providers, accounts, onTaskAck }) => {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const actionRef = useRef<ActionType | undefined>(undefined);
   const [customForm] = Form.useForm<SshKeyCustomFormValues>();
   const [providerForm] = Form.useForm<SshKeyProviderFormValues>();
   const [editForm] = Form.useForm<SshKeyEditFormValues>();
+  const [batchStatusForm] = Form.useForm<{ status?: string }>();
   const [customOpen, setCustomOpen] = useState(false);
   const [providerImportOpen, setProviderImportOpen] = useState(false);
   const [providerCreateOpen, setProviderCreateOpen] = useState(false);
   const [providerBatchOpen, setProviderBatchOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [batchStatusOpen, setBatchStatusOpen] = useState(false);
   const [detail, setDetail] = useState<API.AssetSshKey | null>(null);
   const [editing, setEditing] = useState<API.AssetSshKey | null>(null);
   const [saving, setSaving] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<API.AssetSshKey[]>([]);
   const [batchAccountId, setBatchAccountId] = useState<number | undefined>(
     filters.account_id,
   );
@@ -111,7 +118,63 @@ const SshKeysPanel: React.FC<{
 
   useEffect(() => {
     actionRef.current?.reload();
+    setSelectedRows([]);
   }, [filters]);
+
+  const selectedIds = useMemo(
+    () => selectedRows.map((item) => item.id),
+    [selectedRows],
+  );
+
+  const handleBatchMutationResult = (title: string, result: API.AssetBatchResult) => {
+    const summary = getAssetBatchResultSummary(result);
+    if (result.failed > 0) {
+      const failureLines = getAssetBatchFailureLines(result);
+      modal.info({
+        title: `${title}结果`,
+        width: 720,
+        content: (
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <span>{summary}</span>
+            <div>
+              {failureLines.map((line) => (
+                <div key={line}>{line}</div>
+              ))}
+            </div>
+          </Space>
+        ),
+      });
+      message.warning(summary);
+    } else {
+      message.success(summary);
+    }
+    setSelectedRows([]);
+    actionRef.current?.reload();
+  };
+
+  const openBatchDeleteConfirm = () => {
+    if (!selectedIds.length) {
+      message.info('请先选择 SSH 密钥。');
+      return;
+    }
+    modal.confirm({
+      title: `批量删除 ${selectedIds.length} 个 SSH 密钥`,
+      okText: '确认删除',
+      okButtonProps: { danger: true, loading: saving },
+      onOk: async () => {
+        try {
+          setSaving(true);
+          const response = await batchDeleteAssetSshKeys({ ids: selectedIds });
+          handleBatchMutationResult('批量删除 SSH 密钥', response.data);
+        } catch (error: any) {
+          message.error(normalizeDevErrorMessage(error));
+          throw error;
+        } finally {
+          setSaving(false);
+        }
+      },
+    });
+  };
 
   const columns: ProColumns<API.AssetSshKey>[] = [
     {
@@ -265,6 +328,30 @@ const SshKeysPanel: React.FC<{
         search={false}
         scroll={{ x: 1500 }}
         columns={columns}
+        rowSelection={{
+          selectedRowKeys: selectedIds,
+          onChange: (_, rows) => setSelectedRows(rows),
+        }}
+        tableAlertRender={({ selectedRowKeys }) =>
+          `已选择 ${selectedRowKeys.length} 个 SSH 密钥`
+        }
+        tableAlertOptionRender={() => [
+          <a
+            key="status"
+            onClick={() => {
+              batchStatusForm.resetFields();
+              setBatchStatusOpen(true);
+            }}
+          >
+            批量改状态
+          </a>,
+          <a key="delete" onClick={() => openBatchDeleteConfirm()}>
+            批量删除
+          </a>,
+          <a key="clear" onClick={() => setSelectedRows([])}>
+            清空选择
+          </a>,
+        ]}
         request={async (params) => {
           try {
             const response = await listAssetSshKeys({
@@ -369,6 +456,48 @@ const SshKeysPanel: React.FC<{
           </Button>,
         ]}
       />
+
+      <Modal
+        title={`批量更新 ${selectedIds.length} 个 SSH 密钥状态`}
+        open={batchStatusOpen}
+        destroyOnHidden
+        confirmLoading={saving}
+        onCancel={() => {
+          setBatchStatusOpen(false);
+          batchStatusForm.resetFields();
+        }}
+        onOk={async () => {
+          try {
+            const values = await batchStatusForm.validateFields();
+            setSaving(true);
+            const response = await batchUpdateAssetSshKeyStatus({
+              ids: selectedIds,
+              status: values.status,
+            });
+            setBatchStatusOpen(false);
+            batchStatusForm.resetFields();
+            handleBatchMutationResult('批量更新 SSH 密钥状态', response.data);
+          } catch (error: any) {
+            message.error(normalizeDevErrorMessage(error));
+          } finally {
+            setSaving(false);
+          }
+        }}
+      >
+        <Form form={batchStatusForm} layout="vertical">
+          <Form.Item
+            name="status"
+            label="状态"
+            rules={[{ required: true, message: '请选择状态。' }]}
+          >
+            <Select
+              options={SSH_KEY_STATUS_OPTIONS.filter((item) =>
+                ['active', 'disabled', 'missing'].includes(String(item.value)),
+              )}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
 
       <Modal
         title="新建自定义 SSH 密钥"

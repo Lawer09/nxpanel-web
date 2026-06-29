@@ -16,6 +16,7 @@ import {
   Form,
   Input,
   Modal,
+  Select,
   Segmented,
   Space,
   Tag,
@@ -25,6 +26,10 @@ import {
 import type { MenuProps } from 'antd';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  batchDeleteAssetMachines,
+  batchSyncAssetMachines,
+  batchUpdateAssetMachineStatus,
+  batchUpdateAssetMachineTags,
   createAssetMachineManual,
   deleteAssetMachine,
   destroyProviderAssetMachine,
@@ -40,9 +45,11 @@ import {
   MACHINE_CREATE_ACTION_KEYS,
   MACHINE_DESTROY_ACTION_KEYS,
   MACHINE_IMPORT_ACTION_KEYS,
+  MACHINE_STATUS_OPTIONS,
   MACHINE_SYNC_ACTION_KEYS,
 } from '../../constants';
 import type {
+  AssetTagFormValue,
   MachineCommandFormValues,
   MachineCreateFormValues,
   MachineFormValues,
@@ -50,11 +57,14 @@ import type {
   TaskAckHandler,
 } from '../../types';
 import {
+  getAssetBatchFailureLines,
+  getAssetBatchResultSummary,
   formatText,
   formatTime,
   getMachineStatusColor,
   isProviderCapabilitySupported,
   buildAssetTaskDetailPath,
+  normalizeAssetTags,
   normalizeDevErrorMessage,
   renderActionButton,
   stringifyJson,
@@ -67,6 +77,7 @@ import MachineImportModal from '../machines/MachineImportModal';
 import MachineManualModal from '../machines/MachineManualModal';
 import { buildMachinePayload } from '../machines/machinePayload';
 import { history } from '@umijs/max';
+import AssetTagEditor from '../AssetTagEditor';
 
 const { Text, Paragraph } = Typography;
 
@@ -151,6 +162,8 @@ const MachinesPanel: React.FC<{
   const [manualForm] = Form.useForm<MachineFormValues>();
   const [commandForm] = Form.useForm<MachineCommandFormValues>();
   const [bindForm] = Form.useForm<API.AssetMachineBindIpParams>();
+  const [batchStatusForm] = Form.useForm<{ status?: string }>();
+  const [batchTagForm] = Form.useForm<{ tags?: AssetTagFormValue[] }>();
   const [manualOpen, setManualOpen] = useState(false);
   const [providerWizardOpen, setProviderWizardOpen] = useState(false);
   const [retryWizardOpen, setRetryWizardOpen] = useState(false);
@@ -158,6 +171,8 @@ const MachinesPanel: React.FC<{
     useState<Partial<MachineCreateFormValues>>();
   const [importOpen, setImportOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
+  const [batchStatusOpen, setBatchStatusOpen] = useState(false);
+  const [batchTagOpen, setBatchTagOpen] = useState(false);
   const [editing, setEditing] = useState<API.AssetMachine | null>(null);
   const [retrying, setRetrying] = useState<API.AssetMachine | null>(null);
   const [saving, setSaving] = useState(false);
@@ -272,6 +287,11 @@ const MachinesPanel: React.FC<{
 
     return { failed, creating, active };
   }, [currentPageRows]);
+
+  const selectedIds = useMemo(
+    () => selectedRows.map((item) => item.id),
+    [selectedRows],
+  );
 
   const handleQuickStatusChange = (value: string | number) => {
     onApplyFilters({
@@ -455,6 +475,106 @@ const MachinesPanel: React.FC<{
       confirmed: false,
     });
     setCommandOpen(true);
+  };
+
+  const handleBatchMutationResult = (title: string, result: API.AssetBatchResult) => {
+    const summary = getAssetBatchResultSummary(result);
+    if (result.failed > 0) {
+      const failureLines = getAssetBatchFailureLines(result);
+      modal.info({
+        title: `${title}结果`,
+        width: 720,
+        content: (
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <Text>{summary}</Text>
+            {failureLines.length ? (
+              <div>
+                {failureLines.map((line) => (
+                  <div key={line}>{line}</div>
+                ))}
+                {result.failed > failureLines.length ? (
+                  <Text type="secondary">
+                    {`还有 ${result.failed - failureLines.length} 项失败未展开。`}
+                  </Text>
+                ) : null}
+              </div>
+            ) : null}
+          </Space>
+        ),
+      });
+      message.warning(summary);
+    } else {
+      message.success(summary);
+    }
+    setSelectedRows([]);
+    actionRef.current?.reload();
+  };
+
+  const handleBatchSync = async () => {
+    if (!selectedIds.length) {
+      message.info('请先选择机器。');
+      return;
+    }
+    try {
+      setSaving(true);
+      const response = await batchSyncAssetMachines({
+        machine_ids: selectedIds,
+      });
+      const result = response.data;
+      setSelectedRows([]);
+      actionRef.current?.reload();
+      if (result.tasks.length === 1) {
+        onTaskAck(result.tasks[0], `机器批量同步任务已提交，共 ${result.total} 台机器。`);
+        return;
+      }
+      modal.info({
+        title: '机器批量同步任务已提交',
+        content: (
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <Text>{`共 ${result.total} 台机器，拆分为 ${result.batch_count} 批任务。`}</Text>
+            <div>
+              {result.tasks.slice(0, 10).map((task) => (
+                <div key={task.task_id}>{`Task #${task.task_id} (${task.status || 'pending'})`}</div>
+              ))}
+            </div>
+            {result.tasks.length > 10 ? (
+              <Text type="secondary">{`还有 ${result.tasks.length - 10} 个任务未展开。`}</Text>
+            ) : null}
+          </Space>
+        ),
+      });
+      message.success(`已提交 ${result.tasks.length} 个同步任务。`);
+    } catch (error: any) {
+      message.error(normalizeDevErrorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openBatchDeleteConfirm = () => {
+    if (!selectedIds.length) {
+      message.info('请先选择机器。');
+      return;
+    }
+    modal.confirm({
+      title: `批量删除 ${selectedIds.length} 台机器记录`,
+      content:
+        '该操作只会删除本地资产记录，不会销毁云平台实例。创建中的机器会逐项返回失败。',
+      okText: '确认删除',
+      okButtonProps: { danger: true, loading: saving },
+      onOk: async () => {
+        try {
+          setSaving(true);
+          const response = await batchDeleteAssetMachines({ ids: selectedIds });
+          handleBatchMutationResult('批量删除机器', response.data);
+        } catch (error: any) {
+          message.error(normalizeDevErrorMessage(error));
+          throw error;
+        } finally {
+          setSaving(false);
+        }
+      },
+    });
   };
 
   const buildActionLabel = (
@@ -892,6 +1012,30 @@ const MachinesPanel: React.FC<{
           <a key="command" onClick={() => openCommandModal()}>
             执行命令
           </a>,
+          <a key="sync" onClick={() => void handleBatchSync()}>
+            批量同步
+          </a>,
+          <a
+            key="status"
+            onClick={() => {
+              batchStatusForm.resetFields();
+              setBatchStatusOpen(true);
+            }}
+          >
+            批量改状态
+          </a>,
+          <a
+            key="tags"
+            onClick={() => {
+              batchTagForm.setFieldsValue({ tags: [] });
+              setBatchTagOpen(true);
+            }}
+          >
+            批量改标签
+          </a>,
+          <a key="delete" onClick={() => openBatchDeleteConfirm()}>
+            批量删除
+          </a>,
           <a key="clear" onClick={() => setSelectedRows([])}>
             清空选择
           </a>,
@@ -1161,6 +1305,77 @@ const MachinesPanel: React.FC<{
         onSuccess={message.success}
         onError={message.error}
       />
+
+      <Modal
+        title={`批量更新 ${selectedIds.length} 台机器状态`}
+        open={batchStatusOpen}
+        destroyOnHidden
+        confirmLoading={saving}
+        onCancel={() => {
+          setBatchStatusOpen(false);
+          batchStatusForm.resetFields();
+        }}
+        onOk={async () => {
+          try {
+            const values = await batchStatusForm.validateFields();
+            setSaving(true);
+            const response = await batchUpdateAssetMachineStatus({
+              ids: selectedIds,
+              status: values.status,
+            });
+            setBatchStatusOpen(false);
+            batchStatusForm.resetFields();
+            handleBatchMutationResult('批量更新机器状态', response.data);
+          } catch (error: any) {
+            message.error(normalizeDevErrorMessage(error));
+          } finally {
+            setSaving(false);
+          }
+        }}
+      >
+        <Form form={batchStatusForm} layout="vertical">
+          <Form.Item
+            name="status"
+            label="状态"
+            rules={[{ required: true, message: '请选择状态。' }]}
+          >
+            <Select options={MACHINE_STATUS_OPTIONS} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={`批量替换 ${selectedIds.length} 台机器标签`}
+        open={batchTagOpen}
+        destroyOnHidden
+        width={760}
+        confirmLoading={saving}
+        onCancel={() => {
+          setBatchTagOpen(false);
+          batchTagForm.resetFields();
+        }}
+        onOk={async () => {
+          try {
+            const values = await batchTagForm.validateFields();
+            setSaving(true);
+            const response = await batchUpdateAssetMachineTags({
+              ids: selectedIds,
+              tags: normalizeAssetTags(values.tags),
+            });
+            setBatchTagOpen(false);
+            batchTagForm.resetFields();
+            handleBatchMutationResult('批量更新机器标签', response.data);
+          } catch (error: any) {
+            message.error(normalizeDevErrorMessage(error));
+          } finally {
+            setSaving(false);
+          }
+        }}
+      >
+        <Form form={batchTagForm} layout="vertical">
+          <AssetTagEditor name="tags" label="标签" />
+        </Form>
+      </Modal>
 
       <Modal
         title={

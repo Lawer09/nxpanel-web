@@ -15,6 +15,7 @@ import React, { useMemo } from 'react';
 import { useRequest } from '@umijs/max';
 import { updateUser } from '@/services/user/api';
 import { fetchPlans } from '@/services/plan/api';
+import { userMenuOptions } from '../menuOptions';
 
 type UserFormModalProps = {
   open: boolean;
@@ -37,8 +38,8 @@ const META_FIELDS: { name: keyof API.RegisterMetadata; label: string }[] = [
 ];
 
 const USER_TYPE_OPTIONS = [
-  { label: 'global', value: 'global' },
-  { label: 'define', value: 'define' },
+  { label: '全量菜单', value: 'global' },
+  { label: '自定义菜单', value: 'define' },
 ];
 
 const normalizeStringArray = (value?: unknown): string[] => {
@@ -294,10 +295,16 @@ const UserFormModal: React.FC<UserFormModalProps> = ({
             <ProFormSelect
               name="menus"
               label="菜单"
-              mode="tags"
+              mode="multiple"
               width="xl"
-              fieldProps={{ tokenSeparators: [',', '，'], style: { width: '100%' } }}
-              placeholder="输入菜单 path，支持逗号分隔，例如 /dashboard"
+              options={userMenuOptions}
+              fieldProps={{
+                showSearch: true,
+                optionFilterProp: 'label',
+                style: { width: '100%' },
+              }}
+              placeholder="选择该用户可见的菜单"
+              extra="仅对“自定义菜单”用户生效，保存后将按所选 path 限制左侧菜单可见范围。"
             />
           ) : null
         }

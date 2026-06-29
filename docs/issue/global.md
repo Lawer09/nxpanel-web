@@ -24,6 +24,30 @@ Invalid prop `autoFocus` supplied to `React.Fragment`.
 </ModalForm>
 ```
 
+## ProLayout 菜单路由名与国际化 key 不一致
+
+### 出现场景
+
+Ant Design Pro 的左侧菜单使用中文 `route.name`，但 `src/locales/*/menu.ts` 里只维护了英文风格的 key，例如只定义了 `menu.asset.*`，未定义 `menu.资源资产.*`。
+
+### 问题原因
+
+ProLayout 会基于实际路由名拼接菜单国际化 key。若路由配置中的 `name` 是 `资源资产 / SSH 密钥 / 脚本 / 操作记录` 这类中文值，运行时会去查找 `menu.资源资产.SSH 密钥` 等 key；若 locale 文件只保留另一套命名，就会在控制台持续报 `[React Intl] Missing message`。
+
+### 解决方式
+
+保证 `config/routes.ts` 中实际使用的 `name` 与 `src/locales/*/menu.ts` 中的 key 一一对应；若历史上已存在 `menu.asset.*` 这类别名，可同时保留两套 key 兼容旧代码与现有路由。
+
+### 影响范围
+
+所有依赖 ProLayout 自动菜单国际化的路由配置，尤其是使用中文 `name` 的菜单分组和子页面。
+
+### 相关文件
+
+- `config/routes.ts`
+- `src/locales/zh-CN/menu.ts`
+- `src/locales/en-US/menu.ts`
+
 ## Dashboard 分页结构误告警
 
 ### 出现场景

@@ -45,6 +45,7 @@ declare namespace API {
   interface UserItem {
     id: number;
     email: string;
+    ip?: string | null;
     token?: string;
     uuid?: string;
     invite_user_id?: number | null;

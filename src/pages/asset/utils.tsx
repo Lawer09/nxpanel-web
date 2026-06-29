@@ -170,6 +170,21 @@ export const normalizeAssetTags = (values?: AssetTagFormValue[]) =>
     )
     .filter((item) => item.key && item.value) as API.AssetTagItem[];
 
+export const getAssetBatchResultSummary = (result: API.AssetBatchResult) =>
+  `总计 ${result.total} 项，成功 ${result.succeeded} 项，失败 ${result.failed} 项。`;
+
+export const getAssetBatchFailureLines = (
+  result: API.AssetBatchResult,
+  limit: number = 10,
+) =>
+  result.items
+    .filter((item) => item.status === 'failed')
+    .slice(0, limit)
+    .map(
+      (item) =>
+        `#${item.id}: ${item.error_message || item.error_code || 'Unknown error'}`,
+    );
+
 export const getStatusOptions = (tab: AssetResourceKey) => {
   if (tab === 'accounts') {
     return ACCOUNT_STATUS_OPTIONS;
