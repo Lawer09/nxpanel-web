@@ -1,8 +1,8 @@
 import { PageContainer } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { App, Button, DatePicker, Form, Select } from 'antd';
+import { App, Button, DatePicker, Form, Modal, Select } from 'antd';
 import type { SortOrder } from 'antd/es/table/interface';
-import dayjs from 'dayjs';
+import dayjs, { type Dayjs } from 'dayjs';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   type DateRangePreset,
@@ -28,6 +28,7 @@ import {
 } from '@/pages/report/project/reportShared';
 import { buildProjectTrendSearch, PROJECT_TREND_DASHBOARD_PATH } from '@/pages/report/project-trend/utils';
 import { aggregateHourly, getProjects } from '@/services/project/api';
+import type { ProjectItem } from '@/services/project/types';
 import { queryProjectHourlyReport } from '@/services/report/api';
 
 const { RangePicker } = DatePicker;
@@ -62,7 +63,19 @@ type AppliedReportState = {
   sorter?: ReportSorterState;
 };
 
+type SyncHourlyFormValues = {
+  dateRange: [Dayjs, Dayjs];
+  hour: number;
+  projectId?: number;
+};
+
 const REAL_PROJECT_HOURLY_DIMENSIONS: API.ProjectHourlyReportDimension[] = ['reportDate', 'hour', 'projectCode', 'country'];
+
+const createDefaultSyncFormValues = (): SyncHourlyFormValues => ({
+  dateRange: [dayjs(), dayjs()],
+  hour: DEFAULT_HOURLY_REPORT_HOUR,
+  projectId: undefined,
+});
 
 const buildProjectHourlyReportQuery = (
   query: QueryState,
@@ -95,9 +108,11 @@ const buildProjectHourlyReportQuery = (
 const ProjectHourlyReportPage: React.FC = () => {
   const { message: messageApi } = App.useApp();
   const today = dayjs().format('YYYY-MM-DD');
-  const [projectOptions, setProjectOptions] = useState<string[]>([]);
+  const [syncForm] = Form.useForm<SyncHourlyFormValues>();
+  const [projectItems, setProjectItems] = useState<ProjectItem[]>([]);
   const [appliedState, setAppliedState] = useState<AppliedReportState | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [syncModalOpen, setSyncModalOpen] = useState(false);
 
   const handleJumpToDashboard = useCallback(
     (projectCode: string, record: API.ProjectReportItem) => {
@@ -133,10 +148,10 @@ const ProjectHourlyReportPage: React.FC = () => {
         messageApi.error(res.msg || '获取项目编码失败');
         return;
       }
-      const options = (res.data?.data ?? [])
-        .map((item) => item.projectCode)
-        .filter((item): item is string => Boolean(item));
-      setProjectOptions(Array.from(new Set(options)));
+      const nextItems = (res.data?.data ?? []).filter(
+        (item): item is ProjectItem => Boolean(item?.id) && Boolean(item?.projectCode),
+      );
+      setProjectItems(nextItems);
     },
     [messageApi],
   );
@@ -145,21 +160,28 @@ const ProjectHourlyReportPage: React.FC = () => {
     refreshProjectCodes();
   }, [refreshProjectCodes]);
 
-  const handleSyncHourly = useCallback(async () => {
-    const query = appliedState?.query;
-    const resolvedDateRange =
-      resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query?.dateRangePreset) ||
-      query?.dateRange ||
-      [today, today];
-    const targetHour = query?.hour ?? DEFAULT_HOURLY_REPORT_HOUR;
+  const openSyncModal = useCallback(() => {
+    syncForm.setFieldsValue(createDefaultSyncFormValues());
+    setSyncModalOpen(true);
+  }, [syncForm]);
 
-    setSyncing(true);
+  const closeSyncModal = useCallback(() => {
+    setSyncModalOpen(false);
+    syncForm.resetFields();
+  }, [syncForm]);
+
+  const handleSyncHourly = useCallback(async () => {
     try {
+      const values = await syncForm.validateFields();
+      const [startDate, endDate] = values.dateRange;
+
+      setSyncing(true);
       const res = await aggregateHourly({
-        startDate: resolvedDateRange[0],
-        endDate: resolvedDateRange[1],
-        hourFrom: targetHour,
-        hourTo: targetHour,
+        startDate: startDate.format('YYYY-MM-DD'),
+        endDate: endDate.format('YYYY-MM-DD'),
+        hourFrom: values.hour,
+        hourTo: values.hour,
+        projectId: values.projectId,
       });
 
       if (res.code !== 0 || !res.data?.success) {
@@ -172,21 +194,59 @@ const ProjectHourlyReportPage: React.FC = () => {
           ? `同步已触发：${res.data.output}`
           : `同步已触发：${res.data.startDate} ${fmtReportHour(res.data.hourFrom)} - ${res.data.endDate} ${fmtReportHour(res.data.hourTo)}`,
       );
-    } catch {
+      closeSyncModal();
+    } catch (error) {
+      if ((error as { errorFields?: unknown[] } | undefined)?.errorFields) {
+        return;
+      }
       messageApi.error('同步项目小时数据失败');
     } finally {
       setSyncing(false);
     }
-  }, [appliedState, messageApi, today]);
+  }, [closeSyncModal, messageApi, syncForm]);
 
   return (
     <PageContainer
       extra={[
-        <Button key="sync-hourly" loading={syncing} onClick={handleSyncHourly}>
+        <Button key="sync-hourly" loading={syncing} onClick={openSyncModal}>
           同步小时数据
         </Button>,
       ]}
     >
+      <Modal
+        destroyOnClose
+        title="同步小时数据"
+        open={syncModalOpen}
+        confirmLoading={syncing}
+        onCancel={closeSyncModal}
+        onOk={handleSyncHourly}
+      >
+        <Form form={syncForm} layout="vertical" initialValues={createDefaultSyncFormValues()}>
+          <Form.Item
+            name="dateRange"
+            label="日期范围"
+            rules={[{ required: true, message: '请选择日期范围' }]}
+          >
+            <RangePicker presets={DATE_PRESETS} allowClear={false} />
+          </Form.Item>
+          <Form.Item name="hour" label="小时" rules={[{ required: true, message: '请选择小时' }]}>
+            <Select options={HOUR_OPTIONS} placeholder="请选择小时" />
+          </Form.Item>
+          <Form.Item name="projectId" label="项目编号">
+            <Select
+              allowClear
+              showSearch
+              filterOption={false}
+              placeholder="默认全部项目"
+              options={projectItems.map((item) => ({
+                label: item.projectCode,
+                value: item.id,
+              }))}
+              onSearch={(value) => refreshProjectCodes(value)}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
       <UniversalReportTable<API.ProjectReportItem, QueryState>
         storageKey="report.projectHourlyReport"
         title="项目小时汇总"
@@ -256,7 +316,7 @@ const ProjectHourlyReportPage: React.FC = () => {
                   mode="multiple"
                   value={query.projectCodes}
                   onChange={(value) => setQuery((prev) => ({ ...prev, projectCodes: value?.length ? value : undefined }))}
-                  options={projectOptions.map((item) => ({ label: item, value: item }))}
+                  options={projectItems.map((item) => ({ label: item.projectCode, value: item.projectCode }))}
                   showSearch
                   allowClear
                   placeholder="请选择项目编码"
