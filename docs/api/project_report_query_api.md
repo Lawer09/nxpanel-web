@@ -97,6 +97,13 @@
         "dauUsers": 560,
         "fbDauUsers": 510,
         "adRevenue": "320.500000",
+        "topRevenueCountries": [
+          {
+            "country": "US",
+            "adRevenue": "123.456000",
+            "ratio": "0.650000"
+          }
+        ],
         "adRequests": 100000,
         "adMatchedRequests": 91000,
         "adImpressions": 86000,
@@ -164,6 +171,7 @@
 - `summary` 为当前筛选条件下的整体汇总，不受分页影响
 - `summary` 与 `data`、`total`、`page`、`pageSize` 同级，位于 `data` 对象内部
 - Dashboard 广告收入卡片会优先读取 `summary.adRevenueNow`、`summary.adRevenueDiff`；若后端未返回，前端会回退到当前趋势数据的全量求和结果
+- 若返回行带有 `topRevenueCountries`，前端会在项目报表和项目小时汇总的“广告收入”列中补充展示最高收益国家；悬浮后展示完整国家收益列表，格式为 `国家 / 收益 / 占比`
 - `totalCost = adSpendCost + trafficCost`
 - `trafficCostRatio = trafficCost / totalCost`，前端展示为百分比时乘以 100
 - `impressionsPerUser = adImpressions / dauUsers`

@@ -1,5 +1,5 @@
 import type { SortOrder } from 'antd/es/table/interface';
-import { Tag, Tooltip } from 'antd';
+import { Space, Tag, Tooltip } from 'antd';
 import React from 'react';
 
 export const COMMON_COUNTRY_OPTIONS = [
@@ -170,6 +170,125 @@ const fmtRevenueWithDiff = (adRevenue: unknown, record?: Record<string, unknown>
   return `${revenueText} (${diffText})`;
 };
 
+type TopRevenueCountryItem = {
+  country: string;
+  adRevenue: unknown;
+  ratio: unknown;
+};
+
+const parseTopRevenueCountries = (value: unknown): TopRevenueCountryItem[] => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const record = item as Record<string, unknown>;
+      const country = typeof record.country === 'string' ? record.country.trim().toUpperCase() : '';
+      if (!country) return null;
+      return {
+        country,
+        adRevenue: record.adRevenue,
+        ratio: record.ratio,
+      };
+    })
+    .filter((item): item is TopRevenueCountryItem => Boolean(item));
+};
+
+const fmtRatioDecimalPercent = (value: unknown) => {
+  const next = toSafeNumber(value);
+  if (next === null) return '--';
+  return `${(next * 100).toFixed(2)}%`;
+};
+
+const renderTopRevenueCountries = (record?: Record<string, unknown>) => {
+  const countries = parseTopRevenueCountries(record?.topRevenueCountries);
+  if (!countries.length) return null;
+
+  const topCountries = countries.slice(0, 3);
+  const topRatioTotal = topCountries.reduce((sum, item) => sum + (toSafeNumber(item.ratio) ?? 0), 0);
+  const remainingRatio = Math.max(0, 1 - topRatioTotal);
+  const nonUsSegmentColors = ['#14b8a6', '#f59e0b', '#8b5cf6'];
+
+  return (
+    <Tooltip
+      title={
+        <Space direction="vertical" size={4}>
+          {countries.map((item) => (
+            <div
+              key={`${item.country}-${String(item.adRevenue)}-${String(item.ratio)}`}
+              style={{ display: 'flex', justifyContent: 'space-between', gap: 12, minWidth: 180 }}
+            >
+              <span>{item.country}</span>
+              <span>{fmtRatioDecimalPercent(item.ratio)}</span>
+            </div>
+          ))}
+          {remainingRatio > 0 ? (
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, minWidth: 180 }}>
+              <span>其他</span>
+              <span>{fmtRatioDecimalPercent(remainingRatio)}</span>
+            </div>
+          ) : null}
+        </Space>
+      }
+    >
+      <div style={{ width: '100%', minWidth: 120 }}>
+        <div
+          style={{
+            width: '100%',
+            height: 8,
+            borderRadius: 999,
+            background: '#e5e7eb',
+            overflow: 'hidden',
+            display: 'flex',
+          }}
+        >
+          {topCountries.map((item, index) => {
+            const ratio = Math.max(0, Math.min(100, (toSafeNumber(item.ratio) ?? 0) * 100));
+            if (ratio <= 0) return null;
+            const nonUsIndex = topCountries.slice(0, index).filter((countryItem) => countryItem.country !== 'US').length;
+            const color =
+              item.country === 'US' ? '#2563eb' : nonUsSegmentColors[nonUsIndex % nonUsSegmentColors.length];
+            return (
+              <div
+                key={`${item.country}-${String(item.ratio)}`}
+                style={{
+                  width: `${ratio}%`,
+                  height: '100%',
+                  background: color,
+                }}
+              />
+            );
+          })}
+          {remainingRatio > 0 ? (
+            <div
+              style={{
+                width: `${Math.max(0, Math.min(100, remainingRatio * 100))}%`,
+                height: '100%',
+                background: '#d1d5db',
+              }}
+            />
+          ) : null}
+        </div>
+      </div>
+    </Tooltip>
+  );
+};
+
+const renderRevenueWithMeta = (adRevenue: unknown, record?: Record<string, unknown>) => {
+  const revenueText = fmtRevenueWithDiff(adRevenue, record);
+  const topRevenueCountries = renderTopRevenueCountries(record);
+
+  if (!topRevenueCountries) {
+    return revenueText;
+  }
+
+  return (
+    <Space direction="vertical" size={2}>
+      <span>{revenueText}</span>
+      {topRevenueCountries}
+    </Space>
+  );
+};
+
 export const PROJECT_REPORT_METRIC_OPTIONS = [
   {
     label: '新增用户',
@@ -197,8 +316,8 @@ export const PROJECT_REPORT_METRIC_OPTIONS = [
       title: '广告收入',
       tooltip: '广告收入（最新广告收入差值）',
       dataIndex: 'adRevenue',
-      width: 150,
-      render: (value: unknown, record: API.ProjectReportItem) => fmtRevenueWithDiff(value, record),
+      width: 190,
+      render: (value: unknown, record: API.ProjectReportItem) => renderRevenueWithMeta(value, record),
     },
     formatter: (value: number, record?: Record<string, unknown>) => fmtRevenueWithDiff(value, record),
   },
@@ -335,6 +454,28 @@ export const PROJECT_REPORT_METRIC_OPTIONS = [
     formatter: (value: number) => String(value),
   },
 ];
+
+const adRevenueMetricOption = PROJECT_REPORT_METRIC_OPTIONS.find(
+  (item) => item.value === 'adRevenue',
+) as
+  | {
+      tooltip?: React.ReactNode;
+      column?: Record<string, unknown>;
+    }
+  | undefined;
+const adRevenueTooltipContent = (
+  <div>
+    <div>广告收入（最新广告收入差值）</div>
+    <div>占比条为国家收益占比，US默认蓝色展示</div>
+  </div>
+);
+
+if (adRevenueMetricOption) {
+  adRevenueMetricOption.tooltip = adRevenueTooltipContent;
+  if (adRevenueMetricOption.column && typeof adRevenueMetricOption.column === 'object') {
+    adRevenueMetricOption.column.tooltip = adRevenueTooltipContent;
+  }
+}
 
 export const renderProjectCodeWithMeta = (
   projectCode: unknown,

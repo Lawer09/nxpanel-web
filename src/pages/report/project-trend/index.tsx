@@ -519,28 +519,30 @@ const ProjectTrendDashboardPage: React.FC = () => {
                 ) : null}
               </TrendChartCard>
 
-              <TrendChartCard
-                title="广告收益对比趋势"
-                hasData={adRevenueComparisonTrendData.length > 0}
-                emptyText="暂无广告收益对比数据"
-              >
-                {adRevenueComparisonTrendData.length ? (
-                  <Area
-                    data={adRevenueComparisonTrendData}
-                    xField="date"
-                    yField="value"
-                    seriesField="series"
-                    colorField="series"
-                    scale={{ color: { range: AD_REVENUE_COMPARE_COLOR_RANGE } }}
-                    stack
-                    height={300}
-                    theme={DASHBOARD_THEME}
-                    legend={{ position: 'top-right' }}
-                    axis={{ y: { labelFormatter: (value: number) => formatCurrency(value) } }}
-                    tooltip={{ items: [{ field: 'value', valueFormatter: (value: number) => formatCurrency(value) }] }}
-                  />
-                ) : null}
-              </TrendChartCard>
+              {appliedQuery.granularity === 'day' ? (
+                <TrendChartCard
+                  title="广告收益对比趋势"
+                  hasData={adRevenueComparisonTrendData.length > 0}
+                  emptyText="暂无广告收益对比数据"
+                >
+                  {adRevenueComparisonTrendData.length ? (
+                    <Area
+                      data={adRevenueComparisonTrendData}
+                      xField="date"
+                      yField="value"
+                      seriesField="series"
+                      colorField="series"
+                      scale={{ color: { range: AD_REVENUE_COMPARE_COLOR_RANGE } }}
+                      stack
+                      height={300}
+                      theme={DASHBOARD_THEME}
+                      legend={{ position: 'top-right' }}
+                      axis={{ y: { labelFormatter: (value: number) => formatCurrency(value) } }}
+                      tooltip={{ items: [{ field: 'value', valueFormatter: (value: number) => formatCurrency(value) }] }}
+                    />
+                  ) : null}
+                </TrendChartCard>
+              ) : null}
 
               <Row gutter={[16, 16]}>
                 <Col xs={24} xl={12}>
