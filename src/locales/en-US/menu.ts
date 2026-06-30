@@ -52,6 +52,7 @@ export default {
   'menu.report.node-summary-report': 'Node Summary',
   'menu.report.user-summary-report': 'User Summary',
   'menu.report.project': 'Project Summary',
+  'menu.report.project-hourly': 'Project Hourly Summary',
   'menu.ad-spend': 'Ad Spend',
   'menu.business.invite-gift-card': 'Invite Gift Cards',
   'menu.business.invite-gift-card-logs': 'Issue Logs',

@@ -179,3 +179,10 @@ export async function aggregateAsync(data: Types.AggregateRequest) {
     data,
   });
 }
+
+export async function aggregateHourly(data: Types.AggregateHourlyRequest) {
+  return request<API.ApiResponse<Types.AggregateHourlyResult>>('/v3/projects/aggregate-hourly', {
+    method: 'POST',
+    data,
+  });
+}

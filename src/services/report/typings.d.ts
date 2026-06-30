@@ -300,11 +300,30 @@ declare namespace API {
   }
 
   type ProjectReportDimension = 'reportDate' | 'projectCode' | 'country';
+  type ProjectHourlyReportDimension = 'reportDate' | 'hour' | 'projectCode' | 'country';
 
   interface ProjectReportQuery {
     dateFrom?: string;
     dateTo?: string;
     groupBy?: ProjectReportDimension[];
+    filters?: {
+      projectCodes?: string[];
+      countries?: string[];
+      adStatuses?: string[];
+      appPlatforms?: string[];
+    };
+    page?: number;
+    pageSize?: number;
+    orderBy?: string;
+    orderDirection?: 'asc' | 'desc';
+  }
+
+  interface ProjectHourlyReportQuery {
+    dateFrom?: string;
+    dateTo?: string;
+    hourFrom?: number;
+    hourTo?: number;
+    groupBy?: ProjectHourlyReportDimension[];
     filters?: {
       projectCodes?: string[];
       countries?: string[];

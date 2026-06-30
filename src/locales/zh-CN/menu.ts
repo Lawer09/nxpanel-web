@@ -102,6 +102,7 @@ export default {
   'menu.report.node-summary-report': '节点汇总',
   'menu.report.user-summary-report': '用户汇总',
   'menu.report.project': '项目汇总',
+  'menu.report.project-hourly': '项目小时汇总',
   'menu.ad-spend': '投放消耗',
   'menu.business.invite-gift-card': '邀请礼品卡',
   'menu.business.invite-gift-card-logs': '发放日志',

@@ -319,3 +319,22 @@ export interface AggregateRequest {
   startDate: string;
   endDate: string;
 }
+
+export interface AggregateHourlyRequest {
+  startDate: string;
+  endDate: string;
+  hourFrom?: number;
+  hourTo?: number;
+  projectId?: number;
+}
+
+export interface AggregateHourlyResult {
+  success: boolean;
+  startDate: string;
+  endDate: string;
+  hourFrom?: number;
+  hourTo?: number;
+  projectId?: number;
+  exitCode?: number;
+  output?: string;
+}

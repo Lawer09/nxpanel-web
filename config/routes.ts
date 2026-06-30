@@ -54,6 +54,11 @@ export default [
         component: './report/project',
       },
       {
+        path: '/report/project-hourly',
+        name: 'project-hourly',
+        component: './report/project-hourly',
+      },
+      {
         path: '/report/project-trend',
         hideInMenu: true,
         component: './report/project-trend',

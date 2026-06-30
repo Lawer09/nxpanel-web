@@ -1,6 +1,6 @@
 import { PageContainer } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { App, DatePicker, Form, Select } from 'antd';
+import { App, Button, DatePicker, Form, Select } from 'antd';
 import type { SortOrder } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -19,6 +19,7 @@ import {
   COMMON_COUNTRY_OPTIONS,
   PROJECT_REPORT_METRIC_OPTIONS,
   createProjectDimensionOptions,
+  fmtReportHour,
   normalizeAdStatuses,
   normalizeAppPlatforms,
   normalizeCountries,
@@ -26,16 +27,22 @@ import {
   toOrderDirection,
 } from '@/pages/report/project/reportShared';
 import { buildProjectTrendSearch, PROJECT_TREND_DASHBOARD_PATH } from '@/pages/report/project-trend/utils';
-import { getProjects } from '@/services/project/api';
-import { exportProjectReport, queryProjectReport } from '@/services/report/api';
+import { aggregateHourly, getProjects } from '@/services/project/api';
+import { queryProjectHourlyReport } from '@/services/report/api';
 
 const { RangePicker } = DatePicker;
 
 const DATE_PRESETS = toRangePickerPresets(STANDARD_DATE_PRESET_ITEMS);
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) => ({
+  label: fmtReportHour(hour),
+  value: hour,
+}));
+const DEFAULT_HOURLY_REPORT_HOUR = (dayjs().hour() + 23) % 24;
 
 type QueryState = {
   dateRange: [string, string];
   dateRangePreset?: DateRangePreset;
+  hour?: number;
   projectCodes?: string[];
   countries?: string[];
   adStatuses?: string[];
@@ -55,22 +62,24 @@ type AppliedReportState = {
   sorter?: ReportSorterState;
 };
 
-const REAL_PROJECT_REPORT_DIMENSIONS: API.ProjectReportDimension[] = ['reportDate', 'projectCode', 'country'];
+const REAL_PROJECT_HOURLY_DIMENSIONS: API.ProjectHourlyReportDimension[] = ['reportDate', 'hour', 'projectCode', 'country'];
 
-const buildProjectReportQuery = (
+const buildProjectHourlyReportQuery = (
   query: QueryState,
   dimensions: string[],
   sorter?: ReportSorterState,
-): API.ProjectReportQuery => {
+): API.ProjectHourlyReportQuery => {
   const backendDimensions = dimensions.filter(
-    (dimension): dimension is API.ProjectReportDimension =>
-      REAL_PROJECT_REPORT_DIMENSIONS.includes(dimension as API.ProjectReportDimension),
+    (dimension): dimension is API.ProjectHourlyReportDimension =>
+      REAL_PROJECT_HOURLY_DIMENSIONS.includes(dimension as API.ProjectHourlyReportDimension),
   );
   const resolvedDateRange =
     resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query.dateRangePreset) || query.dateRange;
   return {
     dateFrom: resolvedDateRange[0],
     dateTo: resolvedDateRange[1],
+    hourFrom: query.hour,
+    hourTo: query.hour,
     groupBy: backendDimensions.length ? backendDimensions : undefined,
     filters: {
       projectCodes: normalizeProjectCodes(query.projectCodes),
@@ -83,18 +92,19 @@ const buildProjectReportQuery = (
   };
 };
 
-const ProjectAggregatesPage: React.FC = () => {
+const ProjectHourlyReportPage: React.FC = () => {
   const { message: messageApi } = App.useApp();
   const today = dayjs().format('YYYY-MM-DD');
   const [projectOptions, setProjectOptions] = useState<string[]>([]);
   const [appliedState, setAppliedState] = useState<AppliedReportState | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const handleJumpToDashboard = useCallback(
     (projectCode: string, record: API.ProjectReportItem) => {
       const dateRange =
         resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, appliedState?.query.dateRangePreset) ||
         appliedState?.query.dateRange ||
-        [dayjs().subtract(1, 'day').format('YYYY-MM-DD'), today];
+        [today, today];
       const adStatus =
         appliedState?.query.adStatuses?.[0] ||
         (typeof record.adStatus === 'string' ? record.adStatus : undefined);
@@ -110,7 +120,7 @@ const ProjectAggregatesPage: React.FC = () => {
     [appliedState, today],
   );
 
-  const dimensionOptions = createProjectDimensionOptions({ onJump: handleJumpToDashboard });
+  const dimensionOptions = createProjectDimensionOptions({ onJump: handleJumpToDashboard, includeHour: true });
 
   const refreshProjectCodes = useCallback(
     async (keyword?: string) => {
@@ -135,41 +145,72 @@ const ProjectAggregatesPage: React.FC = () => {
     refreshProjectCodes();
   }, [refreshProjectCodes]);
 
+  const handleSyncHourly = useCallback(async () => {
+    const query = appliedState?.query;
+    const resolvedDateRange =
+      resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query?.dateRangePreset) ||
+      query?.dateRange ||
+      [today, today];
+    const targetHour = query?.hour ?? DEFAULT_HOURLY_REPORT_HOUR;
+
+    setSyncing(true);
+    try {
+      const res = await aggregateHourly({
+        startDate: resolvedDateRange[0],
+        endDate: resolvedDateRange[1],
+        hourFrom: targetHour,
+        hourTo: targetHour,
+      });
+
+      if (res.code !== 0 || !res.data?.success) {
+        messageApi.error(res.msg || res.data?.output || '同步项目小时数据失败');
+        return;
+      }
+
+      messageApi.success(
+        res.data.output
+          ? `同步已触发：${res.data.output}`
+          : `同步已触发：${res.data.startDate} ${fmtReportHour(res.data.hourFrom)} - ${res.data.endDate} ${fmtReportHour(res.data.hourTo)}`,
+      );
+    } catch {
+      messageApi.error('同步项目小时数据失败');
+    } finally {
+      setSyncing(false);
+    }
+  }, [appliedState, messageApi, today]);
+
   return (
-    <PageContainer>
+    <PageContainer
+      extra={[
+        <Button key="sync-hourly" loading={syncing} onClick={handleSyncHourly}>
+          同步小时数据
+        </Button>,
+      ]}
+    >
       <UniversalReportTable<API.ProjectReportItem, QueryState>
-        storageKey="report.projectReport"
-        title="项目报表"
+        storageKey="report.projectHourlyReport"
+        title="项目小时汇总"
         rowKey={(record) => {
           if (record.id !== undefined && record.id !== null) {
             return String(record.id);
           }
-          return [record.reportDate, record.projectCode, record.country, record.updatedAt]
+          return [record.reportDate, record.hour, record.projectCode, record.country, record.updatedAt]
             .filter((item) => Boolean(item))
             .join('|');
         }}
         defaultQuery={{
-          dateRange: [dayjs().subtract(1, 'day').format('YYYY-MM-DD'), today],
-          dateRangePreset: 'yesterdayToToday',
+          dateRange: [today, today],
+          dateRangePreset: 'today',
+          hour: DEFAULT_HOURLY_REPORT_HOUR,
           projectCodes: undefined,
           countries: undefined,
           adStatuses: undefined,
           appPlatforms: undefined,
         }}
-        defaultDimensions={['projectCode']}
+        defaultDimensions={['reportDate', 'hour', 'projectCode']}
         defaultMetrics={['newUsers', 'reportNewUsers', 'dauUsers', 'adRevenue', 'adSpendCost', 'trafficCost', 'profit', 'roi']}
         showGrandSummary
         enableServerSort
-        exportAction={{
-          label: '导出 CSV',
-          run: async ({ query, dimensions, sorter }) => {
-            const result = await exportProjectReport(buildProjectReportQuery(query, dimensions, sorter));
-            return {
-              blob: result.blob,
-              filename: result.filename || 'project_report_daily.csv',
-            };
-          },
-        }}
         transformViewQuery={(query) => {
           const resolved = resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query.dateRangePreset);
           if (!resolved) return query;
@@ -199,6 +240,14 @@ const ProjectAggregatesPage: React.FC = () => {
                     dateRangePreset: getPresetByDateRange(STANDARD_DATE_PRESET_ITEMS, nextDateRange),
                   }));
                 }}
+              />
+            </Form.Item>
+            <Form.Item label="小时">
+              <Select
+                value={query.hour}
+                style={{ width: 110 }}
+                options={HOUR_OPTIONS}
+                onChange={(value) => setQuery((prev) => ({ ...prev, hour: value }))}
               />
             </Form.Item>
             {visibleFilterDimensions.includes('projectCode') ? (
@@ -280,14 +329,14 @@ const ProjectAggregatesPage: React.FC = () => {
           </Form>
         )}
         fetchData={async ({ query, page, pageSize, dimensions, sorter }) => {
-          const res = await queryProjectReport({
-            ...buildProjectReportQuery(query, dimensions, sorter),
+          const res = await queryProjectHourlyReport({
+            ...buildProjectHourlyReportQuery(query, dimensions, sorter),
             page,
             pageSize,
           });
 
           if (res.code !== 0) {
-            messageApi.error(res.msg || '获取项目报表失败');
+            messageApi.error(res.msg || '获取项目小时汇总失败');
             return { list: [], total: 0 };
           }
 
@@ -305,4 +354,4 @@ const ProjectAggregatesPage: React.FC = () => {
   );
 };
 
-export default ProjectAggregatesPage;
+export default ProjectHourlyReportPage;

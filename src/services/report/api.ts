@@ -136,6 +136,16 @@ export async function queryProjectReport(data: API.ProjectReportQuery) {
   );
 }
 
+export async function queryProjectHourlyReport(data: API.ProjectHourlyReportQuery) {
+  return request<API.ApiResponse<API.ReportPageResult<API.ProjectReportItem>>>(
+    '/v3/report/project/hourly/query',
+    {
+      method: 'POST',
+      data,
+    },
+  );
+}
+
 export async function exportProjectReport(data: API.ProjectReportQuery) {
   const result = await request<Blob>('/v3/report/project/export', {
     method: 'POST',
