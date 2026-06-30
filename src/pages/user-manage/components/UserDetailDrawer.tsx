@@ -56,10 +56,14 @@ const renderRoles = (user?: API.UserItem) => {
   return <Space size={[4, 4]} wrap>{tags}</Space>;
 };
 
+const getUserRegisterIp = (user?: API.UserItem) =>
+  user?.ip || user?.register_metadata?.ip || null;
+
 const UserDetailDrawer: React.FC<UserDetailDrawerProps> = ({ open, user, onClose, onEdit }) => {
   const used = (user?.u ?? 0) + (user?.d ?? 0);
   const menus = (user?.menus ?? []).filter(Boolean);
   const meta = user?.register_metadata;
+  const registerIp = getUserRegisterIp(user);
 
   return (
     <Drawer
@@ -168,7 +172,7 @@ const UserDetailDrawer: React.FC<UserDetailDrawerProps> = ({ open, user, onClose
             column={2}
             items={[
               { key: 'email', label: '邮箱', children: user.email },
-              { key: 'ip', label: '注册 IP', children: user.ip || '-' },
+              { key: 'ip', label: '注册 IP', children: registerIp || '-' },
               { key: 'createdAt', label: '注册时间', children: formatDateTime(user.created_at) },
               { key: 'lastLoginAt', label: '最近登录', children: formatDateTime(user.last_login_at) },
               { key: 'inviteUser', label: '邀请人', children: user.invite_user?.email || '-' },

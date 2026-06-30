@@ -325,7 +325,7 @@ const UserManagePage: React.FC = () => {
       render: (_, record) => {
         const meta = record.register_metadata;
         const appId = meta?.app_id;
-        const ip = record.ip;
+        const ip = meta?.ip;
         const country = meta?.country;
         if (!appId && !ip && !country) return '-';
         const metaLabelStyle: React.CSSProperties = {
@@ -369,7 +369,7 @@ const UserManagePage: React.FC = () => {
               {renderMetaValue(meta?.country)}
             </Descriptions.Item>
             <Descriptions.Item label="IP" labelStyle={metaLabelStyle}>
-              {renderMetaValue(record.ip)}
+              {renderMetaValue(ip)}
             </Descriptions.Item>
             <Descriptions.Item label="城市" labelStyle={metaLabelStyle}>
               {renderMetaValue(meta?.city)}

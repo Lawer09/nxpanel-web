@@ -27,6 +27,7 @@ declare namespace API {
   }
 
   interface RegisterMetadata {
+    ip?: string;
     app_id?: string;
     app_version?: string;
     brand?: string;
@@ -36,6 +37,7 @@ declare namespace API {
     country?: string;
     install_begin_ts?: number;
     platform?: string;
+    package_name?: string;
     raw_referrer?: string;
     timestamp?: string;
     utm_medium?: string;

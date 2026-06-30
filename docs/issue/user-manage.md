@@ -38,3 +38,34 @@
 - `src/pages/user-manage/components/UserFormModal.tsx`
 - `src/pages/user-manage/components/GenerateUserModal.tsx`
 - `src/pages/user-manage/menuOptions.ts`
+
+## 用户管理列表的注册 IP 只读顶层字段导致显示为空
+
+### 出现场景
+
+用户管理列表与详情页需要展示注册 IP，但部分接口返回把 IP 放在 `register_metadata.ip` 中，顶层 `ip` 字段为 `null`。这时页面会显示成空值，即使注册元数据里已经带了真实 IP。
+
+### 问题原因
+
+前端原先只读取 `record.ip`，没有兼容 `register_metadata.ip` 这一返回形态。
+
+### 解决方式
+
+统一增加注册 IP 的兜底读取逻辑：
+
+- 优先使用顶层 `ip`
+- 顶层为空时回退读取 `register_metadata.ip`
+- 用户管理主表新增独立的“注册 IP”列
+- 注册信息摘要与详情抽屉复用同一套取值逻辑，避免不同区域显示不一致
+
+### 影响范围
+
+- 用户管理主表的注册 IP 展示
+- 用户详情抽屉中的注册信息展示
+- 用户接口类型定义中的注册元数据字段声明
+
+### 相关文件
+
+- `src/pages/user-manage/index.tsx`
+- `src/pages/user-manage/components/UserDetailDrawer.tsx`
+- `src/services/user/typings.d.ts`
