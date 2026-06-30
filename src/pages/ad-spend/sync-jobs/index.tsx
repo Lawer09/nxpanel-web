@@ -1,13 +1,14 @@
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
 import { App, Button, DatePicker, Descriptions, Drawer, Form, Modal, Select, Tag } from 'antd';
-import dayjs from 'dayjs';
+import type { Dayjs } from 'dayjs';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  getAdSpendSyncJobs,
-  getAdSpendSyncJobDetail,
-  triggerAdSpendSync,
   getAdSpendAccounts,
+  getAdSpendSyncJobDetail,
+  getAdSpendSyncJobs,
+  triggerAdSpendHourlySync,
+  triggerAdSpendSync,
 } from '@/services/ad-spend-platform/api';
 
 const { RangePicker } = DatePicker;
@@ -16,6 +17,19 @@ const STATUS_MAP: Record<string, { color: string; text: string }> = {
   running: { color: 'processing', text: '运行中' },
   success: { color: 'success', text: '成功' },
   failed: { color: 'error', text: '失败' },
+};
+
+const SYNC_TYPE_OPTIONS: Array<{ label: string; value: 'daily' | 'hourly' }> = [
+  { label: '日报同步', value: 'daily' },
+  { label: '小时同步', value: 'hourly' },
+] ;
+
+type SyncType = 'daily' | 'hourly';
+
+type SyncFormValues = {
+  syncType: SyncType;
+  accountId: number;
+  dateRange: [Dayjs, Dayjs];
 };
 
 interface SyncJobsPageProps {
@@ -28,7 +42,7 @@ export const SyncJobsPage: React.FC<SyncJobsPageProps> = ({ embedded = false }) 
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailRow, setDetailRow] = useState<API.AdSpendSyncJobDetail | undefined>();
   const [syncOpen, setSyncOpen] = useState(false);
-  const [syncForm] = Form.useForm();
+  const [syncForm] = Form.useForm<SyncFormValues>();
   const [syncLoading, setSyncLoading] = useState(false);
   const [accountOptions, setAccountOptions] = useState<{ label: string; value: number }[]>([]);
 
@@ -36,7 +50,10 @@ export const SyncJobsPage: React.FC<SyncJobsPageProps> = ({ embedded = false }) 
     getAdSpendAccounts({ enabled: 1, page: 1, pageSize: 200 }).then((res) => {
       if (res.code === 0 && res.data?.data) {
         setAccountOptions(
-          res.data.data.map((a) => ({ label: `${a.accountName} (${a.platformCode})`, value: a.id })),
+          res.data.data.map((account) => ({
+            label: `${account.accountName} (${account.platformCode})`,
+            value: account.id,
+          })),
         );
       }
     });
@@ -56,21 +73,32 @@ export const SyncJobsPage: React.FC<SyncJobsPageProps> = ({ embedded = false }) 
     try {
       const values = await syncForm.validateFields();
       setSyncLoading(true);
-      const res = await triggerAdSpendSync({
+      const payload = {
         accountId: values.accountId,
         startDate: values.dateRange[0].format('YYYY-MM-DD'),
         endDate: values.dateRange[1].format('YYYY-MM-DD'),
-      });
-      setSyncLoading(false);
+      };
+      const res =
+        values.syncType === 'hourly'
+          ? await triggerAdSpendHourlySync(payload)
+          : await triggerAdSpendSync(payload);
+
       if (res.code !== 0) {
         messageApi.error(res.msg || '提交失败');
         return;
       }
-      messageApi.success(`同步任务已提交，Job ID: ${res.data?.jobId}`);
+
+      messageApi.success(
+        `${values.syncType === 'hourly' ? '小时' : '日报'}同步任务已提交，Job ID: ${res.data?.jobId}`,
+      );
       setSyncOpen(false);
       syncForm.resetFields();
       actionRef.current?.reload();
-    } catch {
+    } catch (error) {
+      if ((error as { errorFields?: unknown[] } | undefined)?.errorFields) {
+        return;
+      }
+    } finally {
       setSyncLoading(false);
     }
   };
@@ -91,9 +119,9 @@ export const SyncJobsPage: React.FC<SyncJobsPageProps> = ({ embedded = false }) 
         success: { text: '成功', status: 'Success' },
         failed: { text: '失败', status: 'Error' },
       },
-      render: (_, r) => {
-        const s = STATUS_MAP[r.status] || { color: 'default', text: r.status };
-        return <Tag color={s.color}>{s.text}</Tag>;
+      render: (_, record) => {
+        const status = STATUS_MAP[record.status] || { color: 'default', text: record.status };
+        return <Tag color={status.color}>{status.text}</Tag>;
       },
     },
     { title: '总记录', dataIndex: 'totalRecords', width: 90, search: false },
@@ -104,7 +132,7 @@ export const SyncJobsPage: React.FC<SyncJobsPageProps> = ({ embedded = false }) 
       width: 200,
       search: false,
       ellipsis: true,
-      render: (_, r) => r.errorMessage || '-',
+      render: (_, record) => record.errorMessage || '-',
     },
     { title: '创建时间', dataIndex: 'createdAt', width: 170, search: false },
     {
@@ -168,22 +196,37 @@ export const SyncJobsPage: React.FC<SyncJobsPageProps> = ({ embedded = false }) 
         confirmLoading={syncLoading}
         destroyOnHidden
       >
-        <Form form={syncForm} layout="vertical" preserve={false}>
-          <Form.Item name="accountId" label="账号" rules={[{ required: true, message: '请选择账号' }]}>
-            <Select options={accountOptions} placeholder="选择账号" showSearch optionFilterProp="label" />
+        <Form form={syncForm} layout="vertical" preserve={false} initialValues={{ syncType: 'daily' }}>
+          <Form.Item
+            name="syncType"
+            label="同步类型"
+            rules={[{ required: true, message: '请选择同步类型' }]}
+          >
+            <Select options={SYNC_TYPE_OPTIONS} />
           </Form.Item>
-          <Form.Item name="dateRange" label="日期范围" rules={[{ required: true, message: '请选择日期范围' }]}>
+          <Form.Item
+            name="accountId"
+            label="账号"
+            rules={[{ required: true, message: '请选择账号' }]}
+          >
+            <Select
+              options={accountOptions}
+              placeholder="选择账号"
+              showSearch
+              optionFilterProp="label"
+            />
+          </Form.Item>
+          <Form.Item
+            name="dateRange"
+            label="日期范围"
+            rules={[{ required: true, message: '请选择日期范围' }]}
+          >
             <RangePicker style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>
 
-      <Drawer
-        title="同步任务详情"
-        open={detailOpen}
-        onClose={() => setDetailOpen(false)}
-        width={560}
-      >
+      <Drawer title="同步任务详情" open={detailOpen} onClose={() => setDetailOpen(false)} width={560}>
         {detailRow && (
           <Descriptions column={1} bordered size="small">
             <Descriptions.Item label="ID">{detailRow.id}</Descriptions.Item>

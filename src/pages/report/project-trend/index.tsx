@@ -1,214 +1,77 @@
-import { ArrowLeftOutlined, BarChartOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined } from '@ant-design/icons';
 import { Area, Column, Line } from '@ant-design/charts';
 import { PageContainer } from '@ant-design/pro-components';
-import {
-  App,
-  Button,
-  Card,
-  Col,
-  DatePicker,
-  Empty,
-  Row,
-  Segmented,
-  Select,
-  Space,
-  Spin,
-  Statistic,
-  Tag,
-  Tooltip,
-  Typography,
-} from 'antd';
-import { history, useSearchParams } from '@umijs/max';
+import { App, Button, Card, Col, Empty, Row, Segmented, Space, Spin, Tooltip, Typography } from 'antd';
 import dayjs from 'dayjs';
+import { history, useSearchParams } from '@umijs/max';
 import React, { useEffect, useMemo, useState } from 'react';
-import { STANDARD_DATE_PRESET_ITEMS, toRangePickerPresets } from '@/components/report/reportDatePreset';
 import { getProjects } from '@/services/project/api';
 import type { ProjectItem } from '@/services/project/types';
-import { queryProjectReport } from '@/services/report/api';
+import { queryProjectHourlyReport, queryProjectReport } from '@/services/report/api';
+import TrendChartCard from './components/TrendChartCard';
+import TrendDashboardHeader from './components/TrendDashboardHeader';
+import TrendKpiGrid from './components/TrendKpiGrid';
+import {
+  AD_REVENUE_COMPARE_COLOR_RANGE,
+  CARD_STYLE,
+  COST_SERIES_COLOR_RANGE,
+  COUNTRY_METRIC_OPTIONS,
+  DASHBOARD_THEME,
+  LINE_SERIES_COLORS,
+} from './constants';
+import {
+  buildProjectDailyTrendQuery,
+  buildProjectHourlyTrendQuery,
+  buildTrendSeries,
+  parseProjectRow,
+} from './data';
+import type { CountryMetric, CountryRankingItem, KpiItem, ParsedProjectRow, TrendGranularity, TrendQueryState } from './types';
 import {
   buildProjectTrendSearch,
   formatCurrency,
   formatInteger,
   formatTrafficCostWithRatio,
   formatRoiPercent,
-  normalizeCountry,
+  getDefaultProjectTrendHourlyDateTimeRange,
+  parseProjectTrendHourDateTimeRange,
+  normalizeHourRangeValue,
+  normalizeProjectTrendGranularity,
   resolveProjectTrendDateRange,
   toSafeNumber,
 } from './utils';
 
-const { RangePicker } = DatePicker;
-const { Text, Title } = Typography;
-const DATE_PRESETS = toRangePickerPresets(STANDARD_DATE_PRESET_ITEMS);
+const { Text } = Typography;
 
-type TrendQueryState = {
-  projectCode: string;
-  dateRange: [string, string];
-  country?: string;
+const getAdStatusColor = (adStatus?: string | null) => {
+  if (adStatus === '在投') return 'green';
+  if (adStatus === '暂停') return 'orange';
+  if (adStatus === '未上线') return 'default';
+  return 'blue';
 };
 
-type CountryMetric = 'adRevenue' | 'profit' | 'newUsers';
+const buildInitialTrendQuery = (searchParams: URLSearchParams): TrendQueryState => {
+  const projectCode = searchParams.get('projectCode')?.trim() || '';
+  const [dateFrom, dateTo] = resolveProjectTrendDateRange(searchParams.get('dateFrom'), searchParams.get('dateTo'));
+  const granularity = normalizeProjectTrendGranularity(searchParams.get('granularity'));
 
-type KpiItem = {
-  key: string;
-  title: string;
-  value: React.ReactNode;
-  customValue?: React.ReactNode;
-  extra?: React.ReactNode;
-};
-
-type ParsedProjectRow = {
-  reportDate: string;
-  country: string;
-  adRevenue: number;
-  adRevenueNow: number;
-  adRevenueDiff: number;
-  totalCost: number;
-  profit: number;
-  newUsers: number;
-  reportNewUsers: number;
-  dauUsers: number;
-  adRequests: number;
-  adMatchedRequests: number;
-  adImpressions: number;
-  adClicks: number;
-  adMatchRate: number;
-  adShowRate: number;
-  adCtr: number;
-  adSpendCost: number;
-  trafficCost: number;
-  adEcpm: number;
-  arpu: number;
-};
-
-type TrendPoint = {
-  date: string;
-  value: number;
-  series: string;
-};
-
-type CountryRankingItem = {
-  country: string;
-  value: number;
-  isMerged?: boolean;
-};
-
-const COUNTRY_METRIC_OPTIONS: Array<{ label: string; value: CountryMetric }> = [
-  { label: '广告收入', value: 'adRevenue' },
-  { label: '利润', value: 'profit' },
-  { label: '新增用户', value: 'newUsers' },
-];
-
-const DASHBOARD_THEME = {
-  colors10: ['#0f766e', '#ea580c', '#2563eb', '#7c3aed', '#dc2626', '#16a34a', '#0891b2', '#b45309'],
-};
-
-const LINE_SERIES_COLORS: Record<string, string> = {
-  广告收入: '#0f766e',
-  最新广告收益: '#7c3aed',
-  广告收益差值: '#dc2626',
-  总成本: '#ea580c',
-  利润: '#2563eb',
-  新增用户: '#2563eb',
-  上报新增用户: '#7c3aed',
-  DAU: '#16a34a',
-  广告请求数: '#2563eb',
-  广告匹配请求数: '#0f766e',
-  广告展示数: '#ea580c',
-  广告点击数: '#dc2626',
-  广告匹配率: '#0f766e',
-  广告展示率: '#2563eb',
-  '广告 CTR': '#dc2626',
-  '广告 eCPM': '#2563eb',
-  ARPU: '#ea580c',
-};
-
-const COST_SERIES_COLORS: Record<string, string> = {
-  投放成本: '#2563eb',
-  流量花费: '#ea580c',
-};
-
-const COST_SERIES_COLOR_RANGE = [COST_SERIES_COLORS.投放成本, COST_SERIES_COLORS.流量花费];
-const AD_REVENUE_COMPARE_COLOR_RANGE = [
-  LINE_SERIES_COLORS.最新广告收益,
-  LINE_SERIES_COLORS.广告收益差值,
-];
-
-const getIsLimitedTagMeta = (isLimited: unknown) => {
-  if (isLimited === true || isLimited === 'true' || isLimited === 1 || isLimited === '1') {
-    return { label: '限流', color: 'red' as const };
-  }
-  if (isLimited === false || isLimited === 'false' || isLimited === 0 || isLimited === '0') {
-    return { label: '正常', color: 'green' as const };
-  }
-  return { label: '未知', color: 'default' as const };
-};
-
-const CARD_STYLE: React.CSSProperties = {
-  borderRadius: 16,
-  border: '1px solid #e5e7eb',
-  boxShadow: '0 10px 30px rgba(15, 23, 42, 0.05)',
-};
-
-const parseProjectRow = (record: API.ProjectReportItem): ParsedProjectRow => ({
-  reportDate: typeof record.reportDate === 'string' ? record.reportDate : '',
-  country: typeof record.country === 'string' ? record.country.toUpperCase() : '--',
-  adRevenue: toSafeNumber(record.adRevenue) ?? 0,
-  adRevenueNow: toSafeNumber(record.adRevenueNow) ?? 0,
-  adRevenueDiff: toSafeNumber(record.adRevenueDiff) ?? 0,
-  totalCost: toSafeNumber(record.totalCost) ?? 0,
-  profit: toSafeNumber(record.profit) ?? 0,
-  newUsers: toSafeNumber(record.newUsers) ?? 0,
-  reportNewUsers: toSafeNumber(record.reportNewUsers) ?? 0,
-  dauUsers: toSafeNumber(record.dauUsers) ?? 0,
-  adRequests: toSafeNumber(record.adRequests) ?? 0,
-  adMatchedRequests: toSafeNumber(record.adMatchedRequests) ?? 0,
-  adImpressions: toSafeNumber(record.adImpressions) ?? 0,
-  adClicks: toSafeNumber(record.adClicks) ?? 0,
-  adMatchRate: toSafeNumber(record.adMatchRate) ?? 0,
-  adShowRate: toSafeNumber(record.adShowRate) ?? 0,
-  adCtr: toSafeNumber(record.adCtr) ?? 0,
-  adSpendCost: toSafeNumber(record.adSpendCost) ?? 0,
-  trafficCost: toSafeNumber(record.trafficCost) ?? 0,
-  adEcpm: toSafeNumber(record.adEcpm) ?? 0,
-  arpu: toSafeNumber(record.arpu) ?? 0,
-});
-
-const buildTrendSeries = (
-  rows: ParsedProjectRow[],
-  fields: Array<{ key: keyof ParsedProjectRow; label: string }>,
-): TrendPoint[] =>
-  rows.flatMap((item) =>
-    fields.map((field) => ({
-      date: item.reportDate,
-      value: Number(item[field.key] ?? 0),
-      series: field.label,
-    })),
-  );
-
-const buildProjectTrendQuery = (
-  query: TrendQueryState,
-  groupBy: API.ProjectReportDimension[],
-  extra?: { country?: string; orderBy?: string; orderDirection?: 'asc' | 'desc' },
-): API.ProjectReportQuery => {
-  const normalizedGroupBy = Array.from(new Set<API.ProjectReportDimension>(['projectCode', ...groupBy]));
-  const filters: API.ProjectReportQuery['filters'] = {
-    projectCodes: [query.projectCode],
-  };
-
-  const targetCountry = extra?.country || query.country;
-  if (targetCountry) {
-    filters.countries = [targetCountry];
+  if (granularity === 'hour') {
+    const hourFrom = normalizeHourRangeValue(searchParams.get('hourFrom'));
+    const hourTo = normalizeHourRangeValue(searchParams.get('hourTo'));
+    return {
+      projectCode,
+      dateRange: [dateFrom, dateTo],
+      granularity,
+      hourFrom,
+      hourTo,
+    };
   }
 
   return {
-    dateFrom: query.dateRange[0],
-    dateTo: query.dateRange[1],
-    groupBy: normalizedGroupBy,
-    filters,
-    page: 1,
-    pageSize: 400,
-    orderBy: extra?.orderBy,
-    orderDirection: extra?.orderDirection,
+    projectCode,
+    dateRange: [dateFrom, dateTo],
+    granularity,
+    hourFrom: undefined,
+    hourTo: undefined,
   };
 };
 
@@ -216,27 +79,28 @@ const ProjectTrendDashboardPage: React.FC = () => {
   const { message } = App.useApp();
   const [searchParams, setSearchParams] = useSearchParams();
   const sourceFrom = searchParams.get('from');
-  const initialProjectCode = searchParams.get('projectCode')?.trim() || '';
-  const [initialDateFrom, initialDateTo] = resolveProjectTrendDateRange(
-    searchParams.get('dateFrom'),
-    searchParams.get('dateTo'),
-  );
-  const initialCountry = normalizeCountry(searchParams.get('country'));
+  const initialQuery = useMemo(() => buildInitialTrendQuery(searchParams), [searchParams]);
 
-  const [query, setQuery] = useState<TrendQueryState>({
-    projectCode: initialProjectCode,
-    dateRange: [initialDateFrom, initialDateTo],
-    country: initialCountry,
-  });
+  const [draftQuery, setDraftQuery] = useState<TrendQueryState>(initialQuery);
+  const [appliedQuery, setAppliedQuery] = useState<TrendQueryState>(initialQuery);
+  const [lastDailyDateRange, setLastDailyDateRange] = useState<[string, string]>(
+    initialQuery.granularity === 'day' ? initialQuery.dateRange : resolveProjectTrendDateRange(null, null),
+  );
   const [projectOptions, setProjectOptions] = useState<Array<{ label: string; value: string }>>([]);
   const [projectMeta, setProjectMeta] = useState<ProjectItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [trendRows, setTrendRows] = useState<ParsedProjectRow[]>([]);
   const [summary, setSummary] = useState<Record<string, unknown>>({});
   const [countryRows, setCountryRows] = useState<Array<Record<string, unknown>>>([]);
-  const [countryTrendRows, setCountryTrendRows] = useState<ParsedProjectRow[]>([]);
   const [countryMetric, setCountryMetric] = useState<CountryMetric>('adRevenue');
-  const isLimitedTagMeta = getIsLimitedTagMeta(projectMeta?.isLimited);
+
+  useEffect(() => {
+    setDraftQuery(initialQuery);
+    setAppliedQuery(initialQuery);
+    if (initialQuery.granularity === 'day') {
+      setLastDailyDateRange(initialQuery.dateRange);
+    }
+  }, [initialQuery]);
 
   useEffect(() => {
     const run = async () => {
@@ -256,44 +120,60 @@ const ProjectTrendDashboardPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!query.projectCode) return;
+    if (!appliedQuery.projectCode) {
+      setProjectMeta(null);
+      return;
+    }
+
     const run = async () => {
-      const res = await getProjects({ keyword: query.projectCode, page: 1, pageSize: 20 });
+      const res = await getProjects({ keyword: appliedQuery.projectCode, page: 1, pageSize: 20 });
       if (res.code !== 0) return;
-      const matched = (res.data?.data ?? []).find((item) => item.projectCode === query.projectCode) ?? null;
+      const matched = (res.data?.data ?? []).find((item) => item.projectCode === appliedQuery.projectCode) ?? null;
       setProjectMeta(matched);
     };
+
     void run();
-  }, [query.projectCode]);
+  }, [appliedQuery.projectCode]);
 
   useEffect(() => {
-    if (!query.projectCode) return;
+    if (!appliedQuery.projectCode) return;
     setSearchParams(
       buildProjectTrendSearch({
-        projectCode: query.projectCode,
-        dateFrom: query.dateRange[0],
-        dateTo: query.dateRange[1],
-        country: query.country,
+        projectCode: appliedQuery.projectCode,
+        dateFrom: appliedQuery.dateRange[0],
+        dateTo: appliedQuery.dateRange[1],
+        granularity: appliedQuery.granularity,
+        hourFrom: appliedQuery.granularity === 'hour' ? appliedQuery.hourFrom : undefined,
+        hourTo: appliedQuery.granularity === 'hour' ? appliedQuery.hourTo : undefined,
         from:
           sourceFrom === 'project-table' || sourceFrom === 'report-project'
             ? (sourceFrom as 'project-table' | 'report-project')
             : undefined,
       }),
     );
-  }, [query, setSearchParams, sourceFrom]);
+  }, [appliedQuery, setSearchParams, sourceFrom]);
 
   useEffect(() => {
-    if (!query.projectCode) return;
+    if (!appliedQuery.projectCode) return;
     let alive = true;
+
     const run = async () => {
       setLoading(true);
       try {
-        const trendRes = await queryProjectReport(
-          buildProjectTrendQuery(query, ['reportDate'], {
-            orderBy: 'reportDate',
-            orderDirection: 'asc',
-          }),
-        );
+        const trendRes =
+          appliedQuery.granularity === 'hour'
+            ? await queryProjectHourlyReport(
+                buildProjectHourlyTrendQuery(appliedQuery, ['reportDate', 'hour'], {
+                  orderBy: 'reportDate',
+                  orderDirection: 'asc',
+                }),
+              )
+            : await queryProjectReport(
+                buildProjectDailyTrendQuery(appliedQuery, ['reportDate'], {
+                  orderBy: 'reportDate',
+                  orderDirection: 'asc',
+                }),
+              );
 
         if (!alive) return;
 
@@ -302,29 +182,47 @@ const ProjectTrendDashboardPage: React.FC = () => {
           setTrendRows([]);
           setSummary({});
         } else {
-          setTrendRows((trendRes.data?.data ?? []).map(parseProjectRow));
+          const parsedRows = (trendRes.data?.data ?? [])
+            .map((item) => parseProjectRow(item as API.ProjectReportItem, appliedQuery.granularity))
+            .sort((a, b) => {
+              if (a.reportDate !== b.reportDate) {
+                return a.reportDate.localeCompare(b.reportDate);
+              }
+              return (a.hour ?? 0) - (b.hour ?? 0);
+            });
+          setTrendRows(parsedRows);
           setSummary((trendRes.data?.summary as Record<string, unknown>) ?? {});
         }
       } finally {
         if (alive) setLoading(false);
       }
     };
+
     void run();
     return () => {
       alive = false;
     };
-  }, [query.projectCode, query.dateRange, message]);
+  }, [appliedQuery, message]);
 
   useEffect(() => {
-    if (!query.projectCode) return;
+    if (!appliedQuery.projectCode) return;
     let alive = true;
+
     const run = async () => {
-      const countryRes = await queryProjectReport(
-        buildProjectTrendQuery(query, ['country'], {
-          orderBy: 'adRevenue',
-          orderDirection: 'desc',
-        }),
-      );
+      const countryRes =
+        appliedQuery.granularity === 'hour'
+          ? await queryProjectHourlyReport(
+              buildProjectHourlyTrendQuery(appliedQuery, ['country'], {
+                orderBy: 'adRevenue',
+                orderDirection: 'desc',
+              }),
+            )
+          : await queryProjectReport(
+              buildProjectDailyTrendQuery(appliedQuery, ['country'], {
+                orderBy: 'adRevenue',
+                orderDirection: 'desc',
+              }),
+            );
 
       if (!alive) return;
 
@@ -335,42 +233,57 @@ const ProjectTrendDashboardPage: React.FC = () => {
         setCountryRows((countryRes.data?.data ?? []) as Array<Record<string, unknown>>);
       }
     };
+
     void run();
     return () => {
       alive = false;
     };
-  }, [query.projectCode, query.dateRange, message]);
+  }, [appliedQuery, message]);
 
-  useEffect(() => {
-    if (!query.projectCode || !query.country || query.country === '其他') {
-      setCountryTrendRows([]);
+  const handleSearch = () => {
+    if (!draftQuery.projectCode) {
+      message.warning('请先选择项目代号');
       return;
     }
-    let alive = true;
-    const run = async () => {
-      const countryTrendRes = await queryProjectReport(
-        buildProjectTrendQuery(query, ['reportDate', 'country'], {
-          country: query.country,
-          orderBy: 'reportDate',
-          orderDirection: 'asc',
-        }),
-      );
 
-      if (!alive) return;
+    if (draftQuery.granularity === 'hour') {
+      const start = dayjs(draftQuery.dateRange[0]).hour(draftQuery.hourFrom ?? 0).minute(0).second(0);
+      const end = dayjs(draftQuery.dateRange[1]).hour(draftQuery.hourTo ?? 23).minute(0).second(0);
 
-      if (countryTrendRes.code !== 0) {
-        message.error(countryTrendRes.msg || '获取国家趋势失败');
-        setCountryTrendRows([]);
-      } else {
-        const rows = (countryTrendRes.data?.data ?? []) as API.ProjectReportItem[];
-        setCountryTrendRows(rows.map(parseProjectRow).filter((item) => item.country === query.country));
+      if (start.isAfter(end)) {
+        message.warning('小时范围不能晚于结束时间');
+        return;
       }
-    };
-    void run();
-    return () => {
-      alive = false;
-    };
-  }, [query.projectCode, query.dateRange, query.country, message]);
+    }
+
+    setAppliedQuery(draftQuery);
+  };
+
+  const handleGranularityChange = (value: TrendGranularity) => {
+    if (value === draftQuery.granularity) return;
+
+    if (value === 'hour') {
+      if (draftQuery.granularity === 'day') {
+        setLastDailyDateRange(draftQuery.dateRange);
+      }
+      const hourlyRange = parseProjectTrendHourDateTimeRange(getDefaultProjectTrendHourlyDateTimeRange());
+      if (!hourlyRange) return;
+      setDraftQuery((prev) => ({
+        ...prev,
+        granularity: 'hour',
+        ...hourlyRange,
+      }));
+      return;
+    }
+
+    setDraftQuery((prev) => ({
+      ...prev,
+      granularity: 'day',
+      dateRange: lastDailyDateRange,
+      hourFrom: undefined,
+      hourTo: undefined,
+    }));
+  };
 
   const kpiItems = useMemo<KpiItem[]>(() => {
     const latestRow = trendRows[trendRows.length - 1];
@@ -421,12 +334,7 @@ const ProjectTrendDashboardPage: React.FC = () => {
       { key: 'dauUsers', title: '最新 / 平均 DAU', value: `${formatInteger(latestDau)} / ${formatInteger(avgDau)}` },
     ];
   }, [summary, trendRows]);
-  const getAdStatusColor = (adStatus?: string | null) => {
-    if (adStatus === '在投') return 'green';
-    if (adStatus === '暂停') return 'orange';
-    if (adStatus === '未上线') return 'default';
-    return 'blue';
-  };
+
   const revenueTrendData = useMemo(
     () =>
       buildTrendSeries(trendRows, [
@@ -441,12 +349,12 @@ const ProjectTrendDashboardPage: React.FC = () => {
     () =>
       trendRows.flatMap((item) => [
         {
-          date: item.reportDate,
+          date: item.timeLabel,
           value: item.adRevenueNow,
           series: '最新广告收益',
         },
         {
-          date: item.reportDate,
+          date: item.timeLabel,
           value: Math.abs(item.adRevenueDiff),
           series: '广告收益差值',
         },
@@ -529,21 +437,6 @@ const ProjectTrendDashboardPage: React.FC = () => {
     return mergedRows.sort((a, b) => b.value - a.value);
   }, [countryRows, countryMetric]);
 
-  const countrySelectOptions = useMemo(
-    () => countryRankingData.filter((item) => !item.isMerged).map((item) => ({ label: item.country, value: item.country })),
-    [countryRankingData],
-  );
-
-  const countryRevenueTrendData = useMemo(
-    () =>
-      buildTrendSeries(countryTrendRows, [
-        { key: 'adRevenue', label: '广告收入' },
-        { key: 'totalCost', label: '总成本' },
-        { key: 'profit', label: '利润' },
-      ]),
-    [countryTrendRows],
-  );
-
   const lineConfigBase = {
     xField: 'date',
     yField: 'value',
@@ -577,100 +470,45 @@ const ProjectTrendDashboardPage: React.FC = () => {
       ]}
     >
       <Space direction="vertical" size={20} style={{ width: '100%' }}>
-        <Card style={CARD_STYLE} styles={{ body: { padding: 20 } }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              gap: 16,
-              flexWrap: 'wrap',
-            }}
-          >
-            <div>
-              <Space align="center" wrap size={8}>
-                <Title level={4} style={{ margin: 0 }}>
-                  {query.projectCode || '未选择项目'}
-                </Title>
-                {projectMeta?.adStatus ? <Tag color={getAdStatusColor(projectMeta.adStatus)}>投放-{projectMeta.adStatus}</Tag> : null}
-                {/* {projectMeta ? <Tag color={isLimitedTagMeta.color}>{isLimitedTagMeta.label}</Tag> : null} */}
-                {projectMeta?.status ? <Tag>{projectMeta.status}</Tag> : null}
-              </Space>
-              <div style={{ marginTop: 8 }}>
-                <Text type="secondary">
-                  {projectMeta?.projectName || '项目趋势分析'} {projectMeta?.packageName ? `| ${projectMeta.packageName}` : ''}
-                </Text>
-              </div>
-            </div>
+        <TrendDashboardHeader
+          query={draftQuery}
+          projectName={projectMeta?.projectName}
+          packageName={projectMeta?.packageName}
+          projectStatus={projectMeta?.status}
+          adStatus={projectMeta?.adStatus}
+          adStatusColor={getAdStatusColor(projectMeta?.adStatus)}
+          projectOptions={projectOptions}
+          onProjectCodeChange={(value) => setDraftQuery((prev) => ({ ...prev, projectCode: value }))}
+          onDateRangeChange={(nextDateRange) => {
+            setLastDailyDateRange(nextDateRange);
+            setDraftQuery((prev) => ({
+              ...prev,
+              dateRange: nextDateRange,
+            }));
+          }}
+          onGranularityChange={handleGranularityChange}
+          onHourDateTimeRangeChange={({ dateRange, hourFrom, hourTo }) =>
+            setDraftQuery((prev) => ({
+              ...prev,
+              dateRange,
+              hourFrom,
+              hourTo,
+            }))
+          }
+          onSearch={handleSearch}
+          searchLoading={loading}
+        />
 
-            <Space wrap>
-              <Select
-                showSearch
-                placeholder="选择项目代号"
-                style={{ width: 260 }}
-                value={query.projectCode || undefined}
-                options={projectOptions}
-                optionFilterProp="label"
-                onChange={(value) => setQuery((prev) => ({ ...prev, projectCode: value }))}
-              />
-              <RangePicker
-                value={[dayjs(query.dateRange[0]), dayjs(query.dateRange[1])]}
-                presets={DATE_PRESETS}
-                onChange={(dates) => {
-                  const [start, end] = dates ?? [];
-                  if (!start || !end) return;
-                  setQuery((prev) => ({
-                    ...prev,
-                    dateRange: [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')],
-                  }));
-                }}
-              />
-              <Select
-                allowClear
-                showSearch
-                placeholder="国家下钻"
-                style={{ width: 140 }}
-                value={query.country}
-                options={countrySelectOptions}
-                onChange={(value) => setQuery((prev) => ({ ...prev, country: normalizeCountry(value) }))}
-              />
-            </Space>
-          </div>
-        </Card>
-
-        {!query.projectCode ? (
+        {!appliedQuery.projectCode ? (
           <Card style={CARD_STYLE}>
             <Empty description="请选择项目代号后查看趋势分析" />
           </Card>
         ) : (
           <Spin spinning={loading}>
             <Space direction="vertical" size={20} style={{ width: '100%' }}>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                  gap: 16,
-                }}
-              >
-                {kpiItems.map((item) => (
-                  <Card key={item.key} style={CARD_STYLE} styles={{ body: { padding: 18 } }}>
-                    {item.customValue ? (
-                      <div>
-                        <div style={{ marginBottom: 8, color: 'rgba(0, 0, 0, 0.45)', fontSize: 14 }}>{item.title}</div>
-                        <div style={{ fontSize: 30, fontWeight: 600, lineHeight: 1.2, color: 'rgba(0, 0, 0, 0.88)' }}>
-                          {item.customValue}
-                        </div>
-                      </div>
-                    ) : (
-                      <Statistic title={item.title} value={item.value as any} />
-                    )}
-                    {item.extra ? <div>{item.extra}</div> : null}
-                  </Card>
-                ))}
-              </div>
+              <TrendKpiGrid items={kpiItems} />
 
-              <Card style={CARD_STYLE} styles={{ body: { padding: 20 } }}>
-                <Title level={5} style={{ marginTop: 0 }}>收益趋势</Title>
+              <TrendChartCard title="收益趋势" hasData={revenueTrendData.length > 0} emptyText="暂无收益趋势数据">
                 {revenueTrendData.length ? (
                   <Line
                     {...lineConfigBase}
@@ -678,13 +516,14 @@ const ProjectTrendDashboardPage: React.FC = () => {
                     axis={{ y: { labelFormatter: (value: number) => formatCurrency(value) } }}
                     tooltip={{ items: [{ field: 'value', valueFormatter: (value: number) => formatCurrency(value) }] }}
                   />
-                ) : (
-                  <Empty description="暂无收益趋势数据" />
-                )}
-              </Card>
+                ) : null}
+              </TrendChartCard>
 
-              <Card style={CARD_STYLE} styles={{ body: { padding: 20 } }}>
-                <Title level={5} style={{ marginTop: 0 }}>广告收益对比趋势</Title>
+              <TrendChartCard
+                title="广告收益对比趋势"
+                hasData={adRevenueComparisonTrendData.length > 0}
+                emptyText="暂无广告收益对比数据"
+              >
                 {adRevenueComparisonTrendData.length ? (
                   <Area
                     data={adRevenueComparisonTrendData}
@@ -700,15 +539,12 @@ const ProjectTrendDashboardPage: React.FC = () => {
                     axis={{ y: { labelFormatter: (value: number) => formatCurrency(value) } }}
                     tooltip={{ items: [{ field: 'value', valueFormatter: (value: number) => formatCurrency(value) }] }}
                   />
-                ) : (
-                  <Empty description="暂无广告收益对比数据" />
-                )}
-              </Card>
+                ) : null}
+              </TrendChartCard>
 
               <Row gutter={[16, 16]}>
                 <Col xs={24} xl={12}>
-                  <Card style={CARD_STYLE} styles={{ body: { padding: 20 } }}>
-                    <Title level={5} style={{ marginTop: 0 }}>用户趋势</Title>
+                  <TrendChartCard title="用户趋势" hasData={userTrendData.length > 0} emptyText="暂无用户趋势数据">
                     {userTrendData.length ? (
                       <Line
                         {...lineConfigBase}
@@ -723,14 +559,11 @@ const ProjectTrendDashboardPage: React.FC = () => {
                           ],
                         }}
                       />
-                    ) : (
-                      <Empty description="暂无用户趋势数据" />
-                    )}
-                  </Card>
+                    ) : null}
+                  </TrendChartCard>
                 </Col>
                 <Col xs={24} xl={12}>
-                  <Card style={CARD_STYLE} styles={{ body: { padding: 20 } }}>
-                    <Title level={5} style={{ marginTop: 0 }}>广告漏斗量级趋势</Title>
+                  <TrendChartCard title="广告漏斗量级趋势" hasData={funnelTrendData.length > 0} emptyText="暂无广告漏斗数据">
                     {funnelTrendData.length ? (
                       <Line
                         {...lineConfigBase}
@@ -745,14 +578,11 @@ const ProjectTrendDashboardPage: React.FC = () => {
                           ],
                         }}
                       />
-                    ) : (
-                      <Empty description="暂无广告漏斗数据" />
-                    )}
-                  </Card>
+                    ) : null}
+                  </TrendChartCard>
                 </Col>
                 <Col xs={24} xl={12}>
-                  <Card style={CARD_STYLE} styles={{ body: { padding: 20 } }}>
-                    <Title level={5} style={{ marginTop: 0 }}>广告效率趋势</Title>
+                  <TrendChartCard title="广告效率趋势" hasData={efficiencyTrendData.length > 0} emptyText="暂无广告效率数据">
                     {efficiencyTrendData.length ? (
                       <Line
                         {...lineConfigBase}
@@ -762,26 +592,16 @@ const ProjectTrendDashboardPage: React.FC = () => {
                           items: [{ field: 'value', valueFormatter: (value: number) => `${Number(value).toFixed(2)}%` }],
                         }}
                       />
-                    ) : (
-                      <Empty description="暂无广告效率数据" />
-                    )}
-                  </Card>
+                    ) : null}
+                  </TrendChartCard>
                 </Col>
                 <Col xs={24} xl={12}>
-                  <Card style={CARD_STYLE} styles={{ body: { padding: 20 } }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: 12,
-                        marginBottom: 8,
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      <Title level={5} style={{ margin: 0 }}>成本结构趋势</Title>
-                      <Text type="secondary">当前流量花费: {formatTrafficCostWithRatio(summary.trafficCost, summary)}</Text>
-                    </div>
+                  <TrendChartCard
+                    title="成本结构趋势"
+                    hasData={costStructureData.length > 0}
+                    emptyText="暂无成本结构数据"
+                    extra={<Text type="secondary">当前流量花费: {formatTrafficCostWithRatio(summary.trafficCost, summary)}</Text>}
+                  >
                     {costStructureData.length ? (
                       <Area
                         data={costStructureData}
@@ -797,17 +617,14 @@ const ProjectTrendDashboardPage: React.FC = () => {
                         axis={{ y: { labelFormatter: (value: number) => formatCurrency(value) } }}
                         tooltip={{ items: [{ field: 'value', valueFormatter: (value: number) => formatCurrency(value) }] }}
                       />
-                    ) : (
-                      <Empty description="暂无成本结构数据" />
-                    )}
-                  </Card>
+                    ) : null}
+                  </TrendChartCard>
                 </Col>
               </Row>
 
               <Row gutter={[16, 16]}>
                 <Col xs={24} xl={12}>
-                  <Card style={CARD_STYLE} styles={{ body: { padding: 20 } }}>
-                    <Title level={5} style={{ marginTop: 0 }}>变现质量趋势</Title>
+                  <TrendChartCard title="变现质量趋势" hasData={monetizationTrendData.length > 0} emptyText="暂无变现质量数据">
                     {monetizationTrendData.length ? (
                       <Line
                         {...lineConfigBase}
@@ -815,30 +632,22 @@ const ProjectTrendDashboardPage: React.FC = () => {
                         axis={{ y: { labelFormatter: (value: number) => formatCurrency(value) } }}
                         tooltip={{ items: [{ field: 'value', valueFormatter: (value: number) => formatCurrency(value) }] }}
                       />
-                    ) : (
-                      <Empty description="暂无变现质量数据" />
-                    )}
-                  </Card>
+                    ) : null}
+                  </TrendChartCard>
                 </Col>
                 <Col xs={24} xl={12}>
-                  <Card style={CARD_STYLE} styles={{ body: { padding: 20 } }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: 12,
-                        marginBottom: 8,
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      <Title level={5} style={{ margin: 0 }}>国家贡献排行</Title>
+                  <TrendChartCard
+                    title="国家贡献排行"
+                    hasData={countryRankingData.length > 0}
+                    emptyText="暂无国家排行数据"
+                    extra={
                       <Segmented
                         value={countryMetric}
                         options={COUNTRY_METRIC_OPTIONS}
                         onChange={(value) => setCountryMetric(value as CountryMetric)}
                       />
-                    </div>
+                    }
+                  >
                     {countryRankingData.length ? (
                       <Column
                         data={countryRankingData}
@@ -861,58 +670,11 @@ const ProjectTrendDashboardPage: React.FC = () => {
                             },
                           ],
                         }}
-                        onReady={(plot: any) => {
-                          plot.on('element:click', (event: any) => {
-                            const target = event?.data?.data as CountryRankingItem | undefined;
-                            const country = target?.country;
-                            if (!country || target?.isMerged) return;
-                            if (!country) return;
-                            setQuery((prev) => ({ ...prev, country }));
-                          });
-                        }}
                       />
-                    ) : (
-                      <Empty description="暂无国家排行数据" />
-                    )}
-                  </Card>
+                    ) : null}
+                  </TrendChartCard>
                 </Col>
               </Row>
-
-              {query.country ? (
-                <Card style={CARD_STYLE} styles={{ body: { padding: 20 } }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: 12,
-                      marginBottom: 8,
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <Title level={5} style={{ margin: 0 }}>
-                      {query.country} 国家收益趋势
-                    </Title>
-                    <Button
-                      type="link"
-                      icon={<BarChartOutlined />}
-                      onClick={() => setQuery((prev) => ({ ...prev, country: undefined }))}
-                    >
-                      清除国家下钻
-                    </Button>
-                  </div>
-                  {countryRevenueTrendData.length ? (
-                    <Line
-                      {...lineConfigBase}
-                      data={countryRevenueTrendData}
-                      axis={{ y: { labelFormatter: (value: number) => formatCurrency(value) } }}
-                      tooltip={{ items: [{ field: 'value', valueFormatter: (value: number) => formatCurrency(value) }] }}
-                    />
-                  ) : (
-                    <Empty description="当前国家暂无趋势数据" />
-                  )}
-                </Card>
-              ) : null}
             </Space>
           </Spin>
         )}

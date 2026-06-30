@@ -57,6 +57,14 @@ export async function triggerAdSpendSync(data: API.AdSpendSyncParams) {
   });
 }
 
+export async function triggerAdSpendHourlySync(data: API.AdSpendSyncParams) {
+  return request<API.ApiResponse<{ jobId: number }>>('/v3/ad-spend-platform/sync-hourly', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data,
+  });
+}
+
 export async function getAdSpendSyncJobs(params?: API.AdSpendSyncJobQuery) {
   return request<API.ApiResponse<API.PageResult<API.AdSpendSyncJobItem>>>(
     '/v3/ad-spend-platform/sync-jobs',

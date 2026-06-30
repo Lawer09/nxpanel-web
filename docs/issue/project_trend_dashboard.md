@@ -1,43 +1,55 @@
-# 项目趋势 Dashboard 筛选与展示收敛说明
+# 项目趋势 Dashboard 问题记录
 
-## 出现场景
+## Dashboard 查询口径与展示收敛
 
-项目趋势 Dashboard 已经能够从项目报表和项目管理跳转进入，但页面中仍保留了投放状态输入框，且多序列折线图有时会全部显示为同一颜色，影响数据口径理解和图表可读性。
+### 出现场景
 
-## 问题原因
+项目趋势 Dashboard 从项目报表和项目管理跳转进入后，顶部筛选、趋势图颜色和国家排行交互持续扩展，容易出现筛选口径不透明、图表区分度不稳定和不必要的重复请求。
 
-- `adStatus` 已经在跳转链路中透传，继续在 Dashboard 顶部展示输入框会让页面存在重复筛选入口
-- 如果 Dashboard 继续隐式按 `adStatus` 过滤，而页面上又没有明确说明，会造成数据口径不透明
-- 折线图仅依赖默认主题色推断时，在部分配置组合下不能稳定区分不同 `series`
-- Dashboard 日期范围如果不复用报表快捷项，会和项目报表筛选体验割裂
-- 跳转参数只带单边日期时，沿用残缺日期会让趋势口径不可预期
-- 跳转参数即使带了完整日期，但若起止是同一天，也不适合趋势分析场景
+### 问题原因
 
-## 解决方式
+- `adStatus` 一度在 URL 中透传，又继续参与 Dashboard 隐式过滤，导致页面口径不透明。
+- 多序列折线图依赖默认主题推断颜色，在部分配置组合下会退化成相同颜色。
+- 国家排行指标切换原本与整页请求链路耦合，导致切一次指标就刷新整个 Dashboard。
 
-- Dashboard 顶部移除 `adStatus` 输入框
-- Dashboard 查询彻底不再使用 `adStatus` 过滤，即使 URL 中仍兼容保留该参数
-- 页面头部保留项目当前投放状态标签，仅做只读展示
-- 页面头部同步展示项目当前限流状态标签，复用项目报表的 `isLimited` 映射口径
-- 所有多序列折线图改为显式 `series -> color` 映射
-- 顶部日期范围改为复用项目报表同一套快捷日期预设
-- 跳转进入若只携带单边日期参数，或起止是同一天，统一回退到最近 7 天
-- 成本结构趋势图额外显式指定面积图系列颜色，避免两层堆叠颜色难区分
-- 多序列折线图统一略微加粗线条，提升趋势对比可读性
-- 国家贡献排行仅保留贡献值大于 `0` 的国家，避免 `0` 值国家挤占排行空间
-- 主图区块统一改名为“收益趋势”，国家下钻同步改为“国家收益趋势”
-- 当项目报表新增 `adRevenueNow` 与 `adRevenueDiff` 后，单看列表不利于理解其时间变化，需要在 Dashboard 增加独立对比趋势图，同时在报表指标选择处补字段释义，避免口径歧义
-- 国家贡献排行切换指标时，不应重新请求整页数据；国家维度聚合结果已经足够支持前端本地切换、排序和小占比国家合并
-- 广告收益对比趋势改为堆叠柱状图，更贴近 `adRevenueNow <= adRevenue` 且 `adRevenueDiff = adRevenueNow - adRevenue` 的对比关系
+### 解决方式
 
-## 影响范围
+- Dashboard 彻底移除 `adStatus` 查询过滤，仅保留页头只读展示。
+- 折线图和成本结构图都改为显式颜色映射。
+- 国家排行改为本地重算，且 `< 0.1%` 的国家合并到 `其他`。
+
+### 影响范围
 
 - `src/pages/report/project-trend/index.tsx`
 - `docs/components/project_trend_dashboard.md`
-- `docs/version/v1.4.2`
 
-## 相关文件
+## 小时模式筛选不应自动查询
+
+### 出现场景
+
+项目趋势 Dashboard 增加小时粒度后，如果仍沿用“筛选一变就自动查询”，用户在调整时间范围时会频繁触发请求，尤其不适合跨天小时范围的分析场景。
+
+### 问题原因
+
+- 小时分析通常需要精确选择起止时间，例如“昨日 08:00 到今日 06:00”。
+- 原先拆分为“日期范围 + 小时下拉”的交互不直观，而且任一控件变化都会立即打断当前图表阅读。
+
+### 解决方式
+
+- 小时模式改为单个带小时的时间范围选择器，统一表达开始时间和结束时间。
+- 页面内部将查询状态拆分为：
+  - `draftQuery`：绑定筛选草稿
+  - `appliedQuery`：控制真实请求和 URL
+- 用户只有点击 `查询` 按钮后，才会真正刷新 Dashboard 数据。
+
+### 影响范围
 
 - `src/pages/report/project-trend/index.tsx`
+- `src/pages/report/project-trend/components/TrendDashboardHeader.tsx`
+- `src/pages/report/project-trend/utils.ts`
+
+### 相关文件
+
+- `src/pages/report/project-trend/index.tsx`
+- `src/pages/report/project-trend/components/TrendDashboardHeader.tsx`
 - `docs/components/project_trend_dashboard.md`
-- `docs/version/v1.4.2`
