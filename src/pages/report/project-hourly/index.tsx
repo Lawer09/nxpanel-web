@@ -1,9 +1,9 @@
 import { PageContainer } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { App, Button, DatePicker, Form, Modal, Select } from 'antd';
+import { App, Button, DatePicker, Form, Modal, Select, Space } from 'antd';
 import type { SortOrder } from 'antd/es/table/interface';
 import dayjs, { type Dayjs } from 'dayjs';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   type DateRangePreset,
   getPresetByDateRange,
@@ -65,7 +65,8 @@ type AppliedReportState = {
 
 type SyncHourlyFormValues = {
   dateRange: [Dayjs, Dayjs];
-  hour: number;
+  hourFrom?: number;
+  hourTo?: number;
   projectId?: number;
 };
 
@@ -73,7 +74,8 @@ const REAL_PROJECT_HOURLY_DIMENSIONS: API.ProjectHourlyReportDimension[] = ['rep
 
 const createDefaultSyncFormValues = (): SyncHourlyFormValues => ({
   dateRange: [dayjs(), dayjs()],
-  hour: DEFAULT_HOURLY_REPORT_HOUR,
+  hourFrom: DEFAULT_HOURLY_REPORT_HOUR,
+  hourTo: DEFAULT_HOURLY_REPORT_HOUR,
   projectId: undefined,
 });
 
@@ -113,6 +115,18 @@ const ProjectHourlyReportPage: React.FC = () => {
   const [appliedState, setAppliedState] = useState<AppliedReportState | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncModalOpen, setSyncModalOpen] = useState(false);
+  const projectCodeOptions = useMemo(
+    () => projectItems.map((item) => ({ label: item.projectCode, value: item.projectCode })),
+    [projectItems],
+  );
+  const syncProjectOptions = useMemo(
+    () =>
+      projectItems.map((item) => ({
+        label: item.projectCode,
+        value: item.id,
+      })),
+    [projectItems],
+  );
 
   const handleJumpToDashboard = useCallback(
     (projectCode: string, record: API.ProjectReportItem) => {
@@ -160,27 +174,43 @@ const ProjectHourlyReportPage: React.FC = () => {
     refreshProjectCodes();
   }, [refreshProjectCodes]);
 
-  const openSyncModal = useCallback(() => {
+  useEffect(() => {
+    if (!syncModalOpen) {
+      return;
+    }
     syncForm.setFieldsValue(createDefaultSyncFormValues());
+  }, [syncForm, syncModalOpen]);
+
+  const openSyncModal = useCallback(() => {
     setSyncModalOpen(true);
-  }, [syncForm]);
+  }, []);
 
   const closeSyncModal = useCallback(() => {
     setSyncModalOpen(false);
-    syncForm.resetFields();
-  }, [syncForm]);
+  }, []);
 
   const handleSyncHourly = useCallback(async () => {
     try {
       const values = await syncForm.validateFields();
       const [startDate, endDate] = values.dateRange;
+      const resolvedHourFrom = values.hourFrom ?? values.hourTo;
+      const resolvedHourTo = values.hourTo ?? values.hourFrom;
+
+      if (
+        resolvedHourFrom !== undefined &&
+        resolvedHourTo !== undefined &&
+        resolvedHourFrom > resolvedHourTo
+      ) {
+        messageApi.error('开始小时不能大于结束小时');
+        return;
+      }
 
       setSyncing(true);
       const res = await aggregateHourly({
         startDate: startDate.format('YYYY-MM-DD'),
         endDate: endDate.format('YYYY-MM-DD'),
-        hourFrom: values.hour,
-        hourTo: values.hour,
+        hourFrom: resolvedHourFrom,
+        hourTo: resolvedHourTo,
         projectId: values.projectId,
       });
 
@@ -192,7 +222,11 @@ const ProjectHourlyReportPage: React.FC = () => {
       messageApi.success(
         res.data.output
           ? `同步已触发：${res.data.output}`
-          : `同步已触发：${res.data.startDate} ${fmtReportHour(res.data.hourFrom)} - ${res.data.endDate} ${fmtReportHour(res.data.hourTo)}`,
+          : `同步已触发：${res.data.startDate}${
+              res.data.hourFrom !== undefined ? ` ${fmtReportHour(res.data.hourFrom)}` : ''
+            } - ${res.data.endDate}${
+              res.data.hourTo !== undefined ? ` ${fmtReportHour(res.data.hourTo)}` : ''
+            }`,
       );
       closeSyncModal();
     } catch (error) {
@@ -205,6 +239,37 @@ const ProjectHourlyReportPage: React.FC = () => {
     }
   }, [closeSyncModal, messageApi, syncForm]);
 
+  const fetchHourlyReportData = useCallback(
+    async ({ query, page, pageSize, dimensions, sorter }: {
+      query: QueryState;
+      page: number;
+      pageSize: number;
+      dimensions: string[];
+      sorter?: ReportSorterState;
+    }) => {
+      const res = await queryProjectHourlyReport({
+        ...buildProjectHourlyReportQuery(query, dimensions, sorter),
+        page,
+        pageSize,
+      });
+
+      if (res.code !== 0) {
+        messageApi.error(res.msg || '获取项目小时汇总失败');
+        return { list: [], total: 0 };
+      }
+
+      const payload = res.data;
+      const list = Array.isArray(payload?.data) ? payload.data : [];
+      const summary =
+        payload?.summary && typeof payload.summary === 'object'
+          ? (payload.summary as Record<string, unknown>)
+          : undefined;
+      const total = Number(payload?.total ?? list.length);
+      return { list, total, summary };
+    },
+    [messageApi],
+  );
+
   return (
     <PageContainer
       extra={[
@@ -214,7 +279,7 @@ const ProjectHourlyReportPage: React.FC = () => {
       ]}
     >
       <Modal
-        destroyOnClose
+        destroyOnHidden
         title="同步小时数据"
         open={syncModalOpen}
         confirmLoading={syncing}
@@ -229,8 +294,25 @@ const ProjectHourlyReportPage: React.FC = () => {
           >
             <RangePicker presets={DATE_PRESETS} allowClear={false} />
           </Form.Item>
-          <Form.Item name="hour" label="小时" rules={[{ required: true, message: '请选择小时' }]}>
-            <Select options={HOUR_OPTIONS} placeholder="请选择小时" />
+          <Form.Item label="小时">
+            <Space.Compact style={{ width: '100%' }}>
+              <Form.Item name="hourFrom" noStyle>
+                <Select
+                  allowClear
+                  style={{ width: '50%' }}
+                  options={HOUR_OPTIONS}
+                  placeholder="开始小时"
+                />
+              </Form.Item>
+              <Form.Item name="hourTo" noStyle>
+                <Select
+                  allowClear
+                  style={{ width: '50%' }}
+                  options={HOUR_OPTIONS}
+                  placeholder="结束小时"
+                />
+              </Form.Item>
+            </Space.Compact>
           </Form.Item>
           <Form.Item name="projectId" label="项目编号">
             <Select
@@ -238,10 +320,7 @@ const ProjectHourlyReportPage: React.FC = () => {
               showSearch
               filterOption={false}
               placeholder="默认全部项目"
-              options={projectItems.map((item) => ({
-                label: item.projectCode,
-                value: item.id,
-              }))}
+              options={syncProjectOptions}
               onSearch={(value) => refreshProjectCodes(value)}
             />
           </Form.Item>
@@ -305,8 +384,10 @@ const ProjectHourlyReportPage: React.FC = () => {
             <Form.Item label="小时">
               <Select
                 value={query.hour}
+                allowClear
                 style={{ width: 110 }}
                 options={HOUR_OPTIONS}
+                placeholder="全部小时"
                 onChange={(value) => setQuery((prev) => ({ ...prev, hour: value }))}
               />
             </Form.Item>
@@ -316,7 +397,7 @@ const ProjectHourlyReportPage: React.FC = () => {
                   mode="multiple"
                   value={query.projectCodes}
                   onChange={(value) => setQuery((prev) => ({ ...prev, projectCodes: value?.length ? value : undefined }))}
-                  options={projectItems.map((item) => ({ label: item.projectCode, value: item.projectCode }))}
+                  options={projectCodeOptions}
                   showSearch
                   allowClear
                   placeholder="请选择项目编码"
@@ -388,27 +469,7 @@ const ProjectHourlyReportPage: React.FC = () => {
             ) : null}
           </Form>
         )}
-        fetchData={async ({ query, page, pageSize, dimensions, sorter }) => {
-          const res = await queryProjectHourlyReport({
-            ...buildProjectHourlyReportQuery(query, dimensions, sorter),
-            page,
-            pageSize,
-          });
-
-          if (res.code !== 0) {
-            messageApi.error(res.msg || '获取项目小时汇总失败');
-            return { list: [], total: 0 };
-          }
-
-          const payload = res.data;
-          const list = Array.isArray(payload?.data) ? payload.data : [];
-          const summary =
-            payload?.summary && typeof payload.summary === 'object'
-              ? (payload.summary as Record<string, unknown>)
-              : undefined;
-          const total = Number(payload?.total ?? list.length);
-          return { list, total, summary };
-        }}
+        fetchData={fetchHourlyReportData}
       />
     </PageContainer>
   );
