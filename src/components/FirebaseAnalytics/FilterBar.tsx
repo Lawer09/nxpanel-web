@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Card, Col, Row, Segmented, Space } from 'antd';
+import { AutoComplete, Button, Card, Col, Row, Segmented, Space } from 'antd';
 import {
   ProForm,
   ProFormDateRangePicker,
-  ProFormSelect,
   ProFormText,
 } from '@ant-design/pro-components';
 import dayjs from 'dayjs';
@@ -58,6 +57,24 @@ const FilterBar: React.FC<FilterBarProps> = ({
   const [options, setOptions] = useState<Partial<FilterOptionsResponse>>({});
   const [form] = ProForm.useForm<FirebaseAnalyticsFilterFormValues>();
 
+  const renderEditableSelect = (
+    name: keyof FirebaseAnalyticsFilterFormValues,
+    label: string,
+    optionList: FilterOptionsResponse[keyof FilterOptionsResponse] | undefined,
+    placeholder: string,
+  ) => (
+    <ProForm.Item name={name} label={label} style={{ marginBottom: 0 }}>
+      <AutoComplete
+        allowClear
+        options={optionList || []}
+        placeholder={placeholder}
+        filterOption={(inputValue, option) =>
+          `${option?.label ?? option?.value ?? ''}`.toLowerCase().includes(inputValue.toLowerCase())
+        }
+      />
+    </ProForm.Item>
+  );
+
   useEffect(() => {
     getFilterOptions().then((res) => {
       if (res.data) {
@@ -67,9 +84,13 @@ const FilterBar: React.FC<FilterBarProps> = ({
     });
   }, [onOptionsLoaded]);
 
-  const handleValuesChange = (_changedValues: any, allValues: FirebaseAnalyticsFilterFormValues) => {
-    onFilterChange(allValues);
-  };
+  useEffect(() => {
+    form.setFieldsValue({
+      timeRange: getDefaultFirebaseTimeRange(),
+      time_field: 'received_at',
+      ...initialValues,
+    });
+  }, [form, initialValues]);
 
   const setQuickTime = (type: string) => {
     let range: [dayjs.Dayjs, dayjs.Dayjs] = getDefaultFirebaseTimeRange();
@@ -99,7 +120,6 @@ const FilterBar: React.FC<FilterBarProps> = ({
     }
 
     form.setFieldValue('timeRange', range);
-    onFilterChange(form.getFieldsValue());
   };
 
   const hasField = (field: FirebaseFilterField) => fields.includes(field);
@@ -124,7 +144,9 @@ const FilterBar: React.FC<FilterBarProps> = ({
           time_field: 'received_at',
           ...initialValues,
         }}
-        onValuesChange={handleValuesChange}
+        onFinish={async (values) => {
+          onFilterChange(values);
+        }}
       >
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
           {hasField('timeRange') || hasField('time_field') ? (
@@ -183,37 +205,22 @@ const FilterBar: React.FC<FilterBarProps> = ({
           <Row gutter={[16, 16]}>
             {hasField('app_id') ? (
               <Col xl={4} md={8} span={24}>
-                <ProFormSelect name="app_id" label="App" options={options.apps} placeholder="全部 App" />
+                {renderEditableSelect('app_id', 'App', options.apps, '全部 App')}
               </Col>
             ) : null}
             {hasField('platform') ? (
               <Col xl={4} md={8} span={24}>
-                <ProFormSelect
-                  name="platform"
-                  label="平台"
-                  options={options.platforms}
-                  placeholder="全部平台"
-                />
+                {renderEditableSelect('platform', '平台', options.platforms, '全部平台')}
               </Col>
             ) : null}
             {hasField('app_version') ? (
               <Col xl={4} md={8} span={24}>
-                <ProFormSelect
-                  name="app_version"
-                  label="版本"
-                  options={options.versions}
-                  placeholder="全部版本"
-                />
+                {renderEditableSelect('app_version', '版本', options.versions, '全部版本')}
               </Col>
             ) : null}
             {hasField('user_country') ? (
               <Col xl={4} md={8} span={24}>
-                <ProFormSelect
-                  name="user_country"
-                  label="用户国家"
-                  options={options.countries}
-                  placeholder="全部国家"
-                />
+                {renderEditableSelect('user_country', '用户国家', options.countries, '全部国家')}
               </Col>
             ) : null}
             {hasField('user_region') ? (
@@ -223,22 +230,17 @@ const FilterBar: React.FC<FilterBarProps> = ({
             ) : null}
             {hasField('network_type') ? (
               <Col xl={4} md={8} span={24}>
-                <ProFormSelect
-                  name="network_type"
-                  label="网络类型"
-                  options={options.network_types}
-                  placeholder="全部网络"
-                />
+                {renderEditableSelect('network_type', '网络类型', options.network_types, '全部网络')}
               </Col>
             ) : null}
             {hasField('isp') ? (
               <Col xl={4} md={8} span={24}>
-                <ProFormSelect name="isp" label="ISP" options={options.isps} placeholder="全部 ISP" />
+                {renderEditableSelect('isp', 'ISP', options.isps, '全部 ISP')}
               </Col>
             ) : null}
             {hasField('asn') ? (
               <Col xl={4} md={8} span={24}>
-                <ProFormSelect name="asn" label="ASN" options={options.asns} placeholder="全部 ASN" />
+                {renderEditableSelect('asn', 'ASN', options.asns, '全部 ASN')}
               </Col>
             ) : null}
             {hasField('node_id') ? (
@@ -253,34 +255,27 @@ const FilterBar: React.FC<FilterBarProps> = ({
             ) : null}
             {hasField('node_country') ? (
               <Col xl={4} md={8} span={24}>
-                <ProFormSelect
-                  name="node_country"
-                  label="节点国家"
-                  options={options.node_countries}
-                  placeholder="全部节点国家"
-                />
+                {renderEditableSelect('node_country', '节点国家', options.node_countries, '全部节点国家')}
               </Col>
             ) : null}
             {hasField('node_region') ? (
               <Col xl={4} md={8} span={24}>
-                <ProFormSelect
-                  name="node_region"
-                  label="节点区域"
-                  options={options.node_regions}
-                  placeholder="全部节点区域"
-                />
+                {renderEditableSelect('node_region', '节点区域', options.node_regions, '全部节点区域')}
               </Col>
             ) : null}
             {hasField('protocol') ? (
               <Col xl={4} md={8} span={24}>
-                <ProFormSelect
-                  name="protocol"
-                  label="协议"
-                  options={options.protocols}
-                  placeholder="全部协议"
-                />
+                {renderEditableSelect('protocol', '协议', options.protocols, '全部协议')}
               </Col>
             ) : null}
+          </Row>
+
+          <Row justify="end">
+            <Col>
+              <Button type="primary" htmlType="submit">
+                查询
+              </Button>
+            </Col>
           </Row>
         </Space>
       </ProForm>

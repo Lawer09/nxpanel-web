@@ -3,7 +3,8 @@ import type { Settings as LayoutSettings } from '@ant-design/pro-components';
 import { SettingDrawer } from '@ant-design/pro-components';
 import type { RequestConfig, RunTimeLayoutConfig } from '@umijs/max';
 import { history, Link } from '@umijs/max';
-import React from 'react';
+import { Space, Typography } from 'antd';
+import React, { useEffect, useState } from 'react';
 import {
   AutomationRulesEntry,
   AvatarDropdown,
@@ -82,6 +83,51 @@ const filterDefinedMenu = (menuData: any[], allowedPaths: Set<string>): any[] =>
 
 let lastCheckTime = 0;
 let checking = false;
+
+const HeaderVersionTitle: React.FC = () => {
+  const [latestVersion, setLatestVersion] = useState<string>();
+
+  useEffect(() => {
+    let canceled = false;
+
+    const loadLatestVersion = async () => {
+      try {
+        const res = await getLatestVersion();
+        const payload = (res as any)?.data ?? res;
+        const version = payload?.version;
+        if ((res as any)?.code !== 0 || !version || canceled) return;
+        setLatestVersion(version);
+      } catch {
+        // ignore network errors
+      }
+    };
+
+    void loadLatestVersion();
+
+    return () => {
+      canceled = true;
+    };
+  }, []);
+
+  return (
+    <Space size={8} align="center">
+      <Typography.Text
+        strong
+        style={{ margin: 0, fontSize: 18, color: 'inherit' }}
+      >
+        {defaultSettings.title ?? 'Pupu Panel'}
+      </Typography.Text>
+      {latestVersion ? (
+        <Typography.Text
+          type="secondary"
+          style={{ fontSize: 12, lineHeight: 1, whiteSpace: 'nowrap' }}
+        >
+          v{latestVersion}
+        </Typography.Text>
+      ) : null}
+    </Space>
+  );
+};
 
 const checkRuntimeVersionAndReload = async () => {
   const now = Date.now();
@@ -317,6 +363,22 @@ export const layout: RunTimeLayoutConfig = ({
           </Link>,
         ]
       : [],
+    headerTitleRender: (logo) => (
+      <div
+        onClick={() => {
+          history.push(isManagementMode ? devHomePath : '/');
+        }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          cursor: 'pointer',
+        }}
+      >
+        {logo}
+        <HeaderVersionTitle />
+      </div>
+    ),
     menuHeaderRender: undefined,
     // 自定义 403 页面
     // unAccessible: <div>unAccessible</div>,
