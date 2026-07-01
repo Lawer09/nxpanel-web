@@ -36,7 +36,7 @@ type CsvRow = Record<string, string>;
 type ParsedCsvTable = { headers: string[]; rows: string[][] };
 type ImportSourceMode = 'csv' | 'paste';
 type ImportStep = 'source' | 'mapping' | 'preview' | 'result';
-type PreviewStatusType = 'valid' | 'skip' | 'error';
+type PreviewStatusType = 'valid' | 'warning' | 'skip' | 'error';
 
 type ImportFieldOption = {
   label: string;
@@ -51,6 +51,7 @@ type PreviewRow = {
   skipReason?: string;
   statusText: string;
   issueMessages?: string[];
+  warningMessages?: string[];
 } & Partial<Record<ImportTargetField, string | null>>;
 
 const PREVIEW_LIMIT = 20;
@@ -70,7 +71,6 @@ const IMPORT_FIELD_ALIASES: Partial<Record<ImportTargetField, string[]>> = {
   projectName: ['项目', '项目名称', 'project_name'],
   ownerName: ['负责人', 'owner_name'],
   department: ['部门'],
-  status: ['项目状态'],
   adStatus: ['投放状态', '广告状态'],
   appPlatform: ['应用平台', '平台'],
   adspowerEnv: ['adspower环境'],
@@ -318,6 +318,7 @@ const ProjectBatchImportModal: React.FC<ProjectBatchImportModalProps> = ({ open,
       const hasProjectCode = !!record.projectCode?.trim();
       const hasConflict = record.errors.some((item) => item.type === 'conflict');
       const hasError = record.errors.length > 0;
+      const hasWarning = record.warnings.length > 0;
 
       let statusType: PreviewStatusType = 'valid';
       let statusText = '有效';
@@ -330,15 +331,19 @@ const ProjectBatchImportModal: React.FC<ProjectBatchImportModalProps> = ({ open,
       } else if (hasError) {
         statusType = 'error';
         statusText = hasConflict ? '异常：字段冲突' : '异常：存在未识别内容';
+      } else if (hasWarning) {
+        statusType = 'warning';
+        statusText = '警告';
       }
 
       return {
         key: `${index}`,
-        valid: statusType === 'valid',
+        valid: statusType !== 'skip' && statusType !== 'error',
         statusType,
         skipReason,
         statusText,
         issueMessages: record.errors.map(formatPasteIssueMessage),
+        warningMessages: record.warnings,
         ...record.fields,
         projectCode: record.projectCode || record.fields.projectCode || null,
       };
@@ -362,6 +367,17 @@ const ProjectBatchImportModal: React.FC<ProjectBatchImportModalProps> = ({ open,
   const availableHeaderOptions = useMemo(
     () => headers.map((header) => ({ label: header, value: header })),
     [headers],
+  );
+
+  const headerUsageCounts = useMemo(
+    () =>
+      selectedFields.reduce<Record<string, number>>((counts, field) => {
+        const header = fieldMapping[field];
+        if (!header) return counts;
+        counts[header] = (counts[header] || 0) + 1;
+        return counts;
+      }, {}),
+    [fieldMapping, selectedFields],
   );
 
   const csvMappedRows = useMemo<PreviewRow[]>(() => {
@@ -398,7 +414,7 @@ const ProjectBatchImportModal: React.FC<ProjectBatchImportModalProps> = ({ open,
   const previewRows = useMemo(() => activeMappedRows.slice(0, PREVIEW_LIMIT), [activeMappedRows]);
 
   const validRowCount = useMemo(
-    () => activeMappedRows.filter((row) => row.statusType === 'valid').length,
+    () => activeMappedRows.filter((row) => row.valid).length,
     [activeMappedRows],
   );
   const skippedRowCount = useMemo(
@@ -444,6 +460,33 @@ const ProjectBatchImportModal: React.FC<ProjectBatchImportModalProps> = ({ open,
           width: 84,
           fixed: 'left',
           render: (_, record) => {
+            if (record.statusType === 'warning') {
+              return (
+                <Tooltip
+                  title={
+                    record.warningMessages?.length ? (
+                      <Space direction="vertical" size={2}>
+                        {record.warningMessages.map((message) => (
+                          <span key={message}>{message}</span>
+                        ))}
+                      </Space>
+                    ) : undefined
+                  }
+                >
+                  <Tag
+                    color="warning"
+                    style={{
+                      maxWidth: 72,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {record.statusText}
+                  </Tag>
+                </Tooltip>
+              );
+            }
             if (record.statusType === 'valid') {
               return (
                 <Tooltip title="有效">
@@ -501,18 +544,22 @@ const ProjectBatchImportModal: React.FC<ProjectBatchImportModalProps> = ({ open,
 
       if (sourceMode === 'paste') {
         columns.push({
-          title: '异常说明',
+          title: '提示说明',
           dataIndex: 'issueMessages',
           width: 220,
           fixed: 'left',
           render: (_, record) => {
-            if (record.statusType === 'valid') {
+            if (record.statusType === 'valid' && !record.warningMessages?.length) {
               return '-';
             }
 
             const messages =
               record.statusType === 'skip'
                 ? [record.skipReason || '缺少项目代号']
+                : record.statusType === 'warning'
+                  ? record.warningMessages?.length
+                    ? record.warningMessages
+                    : ['存在需要注意的缺失字段']
                 : record.issueMessages?.length
                   ? record.issueMessages
                   : ['存在未识别内容'];
@@ -552,7 +599,7 @@ const ProjectBatchImportModal: React.FC<ProjectBatchImportModalProps> = ({ open,
   const buildPayload = () => {
     return activeMappedRows.reduce<ProjectBatchSaveItem[]>((acc, row) => {
       const projectCode = row.projectCode;
-      if (row.statusType !== 'valid' || !projectCode) {
+      if (!row.valid || !projectCode) {
         return acc;
       }
 
@@ -786,10 +833,6 @@ const ProjectBatchImportModal: React.FC<ProjectBatchImportModalProps> = ({ open,
                 title: 'CSV 对应列',
                 dataIndex: 'value',
                 render: (field: ImportTargetField) => {
-                  const usedHeaders = Object.entries(fieldMapping)
-                    .filter(([mappedField, header]) => mappedField !== field && selectedFields.includes(mappedField as ImportTargetField) && !!header)
-                    .map(([, header]) => header as string);
-
                   return (
                     <Select
                       allowClear={field !== 'projectCode'}
@@ -797,10 +840,13 @@ const ProjectBatchImportModal: React.FC<ProjectBatchImportModalProps> = ({ open,
                       optionFilterProp="label"
                       style={{ width: '100%' }}
                       placeholder="请选择 CSV 表头"
-                      options={availableHeaderOptions.map((option) => ({
-                        ...option,
-                        disabled: usedHeaders.includes(option.value),
-                      }))}
+                      options={availableHeaderOptions.map((option) => {
+                        const count = headerUsageCounts[option.value] || 0;
+                        return {
+                          ...option,
+                          label: count > 0 ? `${option.label}（已选 ${count}）` : option.label,
+                        };
+                      })}
                       value={fieldMapping[field]}
                       onChange={(value) =>
                         setFieldMapping((prev) => ({
@@ -850,7 +896,7 @@ const ProjectBatchImportModal: React.FC<ProjectBatchImportModalProps> = ({ open,
             <Typography.Text type="secondary" style={{ display: 'block', marginTop: 4 }}>
               {sourceMode === 'csv'
                 ? '跳过规则：当前仅对缺少项目代号的行做前端跳过，不会阻塞其它有效行提交。'
-                : '粘贴模式仅提交自动识别为“有效”的记录；缺少项目代号、字段冲突或存在未识别内容的记录会保留在预览中但不会入库。'}
+                : '粘贴模式会提交“有效 / 警告”记录；缺少项目代号、字段冲突或存在未识别内容的记录会保留在预览中但不会入库。'}
             </Typography.Text>
           </div>
 

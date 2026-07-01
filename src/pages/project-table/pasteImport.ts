@@ -35,6 +35,7 @@ const FB_APP_ID_REGEX = /^\d{8,}$/;
 const ADS_TXT_REGEX = /pub-\d+,\s*DIRECT/i;
 const JSON_START_REGEX = /^\s*\{/;
 const PROJECT_STAGE_REGEX = /(在线|开发中|UI完毕|下架)/;
+const MULTI_SPACE_SPLIT_REGEX = /\s{2,}/;
 
 const toPlainText = (value: string) =>
   value
@@ -54,6 +55,14 @@ const appendLine = (target: string | null | undefined, value: string) => {
   if (!target) return value;
   return target.split('\n').includes(value) ? target : `${target}\n${value}`;
 };
+
+const splitByMultiSpace = (value: string) =>
+  value
+    .split(MULTI_SPACE_SPLIT_REGEX)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const appendCellText = (target: string, value: string) => (target ? `${target}\n${value}` : value);
 
 const isStorePageUrl = (url: string) => url.toLowerCase().includes('play.google.com/store/apps/details');
 
@@ -202,6 +211,145 @@ const chooseUrl = (line: string, matcher?: string | ((url: string) => boolean)) 
   return urls.find((url) => matcher(url)) ?? null;
 };
 
+const isLikelyFacebookClassName = (plain: string) =>
+  /^[A-Za-z_][A-Za-z0-9_.]+$/.test(plain) && plain.includes('.') && /[A-Z]/.test(plain);
+
+const setFieldFromCell = (
+  fields: Partial<ProjectBatchSaveItem>,
+  errors: PasteParseIssue[],
+  field: keyof ProjectBatchSaveItem,
+  value?: string | null,
+  transform?: (cell: string) => string | null,
+) => {
+  const plain = typeof value === 'string' ? value.trim() : '';
+  if (!plain) return;
+  const nextValue = transform ? transform(plain) : toPlainText(plain);
+  if (!nextValue) return;
+  setFieldValue(fields, errors, field, nextValue);
+};
+
+const parseProjectTsvRows = (input: string): string[][] => {
+  const lines = input.split(/\r?\n/).map((line) => line.replace(/\r/g, ''));
+  const rows: string[][] = [];
+  let currentRow: string[] | null = null;
+
+  lines.forEach((line) => {
+    if (!line.trim()) return;
+    const cells = line.split('\t');
+    const firstCell = toPlainText(cells[0] ?? '');
+    const isRowStart = cells.length > 1 && PROJECT_CODE_REGEX.test(firstCell);
+
+    if (isRowStart) {
+      currentRow = [...cells];
+      rows.push(currentRow);
+      return;
+    }
+
+    if (!currentRow) {
+      return;
+    }
+
+    currentRow[currentRow.length - 1] = appendCellText(currentRow[currentRow.length - 1] ?? '', cells[0] ?? '');
+    cells.slice(1).forEach((cell) => {
+      currentRow?.push(cell);
+    });
+  });
+
+  return rows.filter((row) => row.some((cell) => cell.trim() !== ''));
+};
+
+const parseProjectTsvRow = (cells: string[]): ParsedProjectBlock => {
+  const normalizedCells = cells.map((cell) => cell.trim());
+  const projectCode = toPlainText(normalizedCells[0] ?? '');
+  const fields: Partial<ProjectBatchSaveItem> = { projectCode };
+  const warnings: string[] = [];
+  const errors: PasteParseIssue[] = [];
+  const remarkLines: string[] = [];
+  const facebookExtras: string[] = [];
+
+  setFieldFromCell(fields, errors, 'ownerName', normalizedCells[2], (value) => value.replace(/^@+/, '').trim() || null);
+  setFieldFromCell(fields, errors, 'adspowerEnv', normalizedCells[3]);
+  setFieldFromCell(fields, errors, 'developerGmail', normalizedCells[4], (value) => extractEmail(value) ?? toPlainText(value));
+  setFieldFromCell(fields, errors, 'projectName', normalizedCells[5]);
+  setFieldFromCell(fields, errors, 'packageName', normalizedCells[6]);
+  setFieldFromCell(fields, errors, 'domainInfoStatus', normalizedCells[7]);
+  setFieldFromCell(fields, errors, 'domainUrl', normalizedCells[8], (value) => chooseUrl(value) ?? toPlainText(value));
+  setFieldFromCell(fields, errors, 'privacyPolicyUrl', normalizedCells[9], (value) => chooseUrl(value) ?? toPlainText(value));
+  setFieldFromCell(fields, errors, 'termsUrl', normalizedCells[10], (value) => chooseUrl(value) ?? toPlainText(value));
+  setFieldFromCell(fields, errors, 'facebookInfoStatus', normalizedCells[11]);
+  setFieldFromCell(fields, errors, 'facebookAppId', normalizedCells[12]);
+
+  const stage = toPlainText(normalizedCells[1] ?? '');
+  if (stage) {
+    remarkLines.push(stage);
+    warnings.push(`阶段信息：${stage}`);
+  }
+
+  let cursor = 13;
+  while (cursor < normalizedCells.length) {
+    const plain = toPlainText(normalizedCells[cursor] ?? '');
+    if (!plain) {
+      cursor += 1;
+      break;
+    }
+    if (isAdmobStatusLine(plain)) {
+      break;
+    }
+    if (isLikelyFacebookClassName(plain)) {
+      setFieldValue(fields, errors, 'facebookClassName', plain);
+    } else {
+      facebookExtras.push(plain);
+    }
+    cursor += 1;
+  }
+
+  finalizeFacebookFields(fields, facebookExtras, errors);
+
+  setFieldFromCell(fields, errors, 'admobAccountStatus', normalizedCells[cursor]);
+  setFieldFromCell(fields, errors, 'admobAppId', normalizedCells[cursor + 1]);
+  setFieldFromCell(fields, errors, 'admobAdIds', normalizedCells[cursor + 2], (value) => value.trim() || null);
+  setFieldFromCell(fields, errors, 'admobAppAdsTxt', normalizedCells[cursor + 3], (value) => value.trim() || null);
+  setFieldFromCell(fields, errors, 'firebaseConfigNote', normalizedCells[cursor + 4], (value) => value.trim() || null);
+  setFieldFromCell(fields, errors, 'yandexAccount', normalizedCells[cursor + 5]);
+  setFieldFromCell(fields, errors, 'yandexAdIds', normalizedCells[cursor + 6], (value) => value.trim() || null);
+  setFieldFromCell(fields, errors, 'storePageUrl', normalizedCells[cursor + 7], (value) => chooseUrl(value) ?? toPlainText(value));
+
+  const extraCells = normalizedCells.slice(cursor + 8).map((item) => toPlainText(item)).filter(Boolean);
+  if (extraCells.length > 0) {
+    remarkLines.push(...extraCells);
+    warnings.push(`存在 ${extraCells.length} 个未映射列，已并入备注`);
+  }
+
+  if (remarkLines.length > 0) {
+    setFieldValue(fields, errors, 'remark', remarkLines.join('\n'));
+  }
+
+  if (!fields.projectName && projectCode) {
+    fields.projectName = projectCode;
+    warnings.push('缺少项目名称，已默认使用项目代号');
+  }
+
+  if (!projectCode) {
+    errors.push({ type: 'unknown', message: '缺少项目代号' });
+  }
+
+  if (!fields.ownerName) {
+    warnings.push('缺少负责人');
+  }
+
+  if (!fields.packageName) {
+    warnings.push('缺少包名');
+  }
+
+  return {
+    rawLines: cells,
+    projectCode,
+    fields,
+    warnings,
+    errors,
+  };
+};
+
 const finalizeFacebookFields = (
   fields: Partial<ProjectBatchSaveItem>,
   extras: string[],
@@ -240,6 +388,13 @@ const parseProjectBlock = (rawLines: string[]): ParsedProjectBlock => {
     const rawLine = normalizedLines[index];
     const plainLine = toPlainText(rawLine);
     if (!plainLine) continue;
+
+    const segments = splitByMultiSpace(rawLine);
+    if (segments.length > 1 && !extractUrls(rawLine).length && !JSON_START_REGEX.test(rawLine)) {
+      normalizedLines.splice(index, 1, ...segments);
+      index -= 1;
+      continue;
+    }
 
     if (index === 1 && isStageLine(plainLine)) {
       remarkLines.push(plainLine);
@@ -387,8 +542,21 @@ const parseProjectBlock = (rawLines: string[]): ParsedProjectBlock => {
     setFieldValue(fields, errors, 'remark', remarkLines.join('\n'));
   }
 
+  if (!fields.projectName && projectCode) {
+    fields.projectName = projectCode;
+    warnings.push('缺少项目名称，已默认使用项目代号');
+  }
+
   if (!projectCode) {
     errors.push({ type: 'unknown', message: '缺少项目代号' });
+  }
+
+  if (!fields.ownerName) {
+    warnings.push('缺少负责人');
+  }
+
+  if (!fields.packageName) {
+    warnings.push('缺少包名');
   }
 
   return {
@@ -401,6 +569,15 @@ const parseProjectBlock = (rawLines: string[]): ParsedProjectBlock => {
 };
 
 export const parseProjectPasteText = (input: string): PasteParseResult => {
+  if (input.includes('\t')) {
+    const tsvRows = parseProjectTsvRows(input);
+    if (tsvRows.length > 0) {
+      return {
+        records: tsvRows.map((row) => parseProjectTsvRow(row)),
+      };
+    }
+  }
+
   const lines = input
     .split(/\r?\n/)
     .map((line) => line.trim())
