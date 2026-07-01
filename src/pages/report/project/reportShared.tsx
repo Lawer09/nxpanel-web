@@ -289,6 +289,82 @@ const renderRevenueWithMeta = (adRevenue: unknown, record?: Record<string, unkno
   );
 };
 
+const renderTotalCostBreakdown = (record?: Record<string, unknown>) => {
+  const adSpendCost = Math.max(0, toSafeNumber(record?.adSpendCost) ?? 0);
+  const trafficCost = Math.max(0, toSafeNumber(record?.trafficCost) ?? 0);
+  const totalCost = Math.max(0, toSafeNumber(record?.totalCost) ?? adSpendCost + trafficCost);
+
+  if (totalCost <= 0) return null;
+
+  const adSpendPercent = (adSpendCost / totalCost) * 100;
+  const trafficPercent = (trafficCost / totalCost) * 100;
+
+  return (
+    <Tooltip
+      title={
+        <Space direction="vertical" size={4}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, minWidth: 180 }}>
+            <span>投放支出</span>
+            <span>{fmtPercent(adSpendPercent)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, minWidth: 180 }}>
+            <span>流量支出</span>
+            <span>{fmtPercent(trafficPercent)}</span>
+          </div>
+        </Space>
+      }
+    >
+      <div style={{ width: '100%', minWidth: 120 }}>
+        <div
+          style={{
+            width: '100%',
+            height: 8,
+            borderRadius: 999,
+            background: '#e5e7eb',
+            overflow: 'hidden',
+            display: 'flex',
+          }}
+        >
+          {adSpendPercent > 0 ? (
+            <div
+              style={{
+                width: `${Math.max(0, Math.min(100, adSpendPercent))}%`,
+                height: '100%',
+                background: '#f97316',
+              }}
+            />
+          ) : null}
+          {trafficPercent > 0 ? (
+            <div
+              style={{
+                width: `${Math.max(0, Math.min(100, trafficPercent))}%`,
+                height: '100%',
+                background: '#14b8a6',
+              }}
+            />
+          ) : null}
+        </div>
+      </div>
+    </Tooltip>
+  );
+};
+
+const renderTotalCostWithMeta = (totalCost: unknown, record?: Record<string, unknown>) => {
+  const totalCostText = fmtCurrency(totalCost);
+  const breakdown = renderTotalCostBreakdown(record);
+
+  if (!breakdown) {
+    return totalCostText;
+  }
+
+  return (
+    <Space direction="vertical" size={2}>
+      <span>{totalCostText}</span>
+      {breakdown}
+    </Space>
+  );
+};
+
 export const PROJECT_REPORT_METRIC_OPTIONS = [
   {
     label: '新增用户',
@@ -408,7 +484,14 @@ export const PROJECT_REPORT_METRIC_OPTIONS = [
   {
     label: '总支出',
     value: 'totalCost',
-    column: { title: '总支出', dataIndex: 'totalCost', width: 110, render: fmtCurrency },
+    tooltip: '总支出（投放支出 / 流量支出）',
+    column: {
+      title: '总支出',
+      tooltip: '总支出（投放支出 / 流量支出）',
+      dataIndex: 'totalCost',
+      width: 160,
+      render: (value: unknown, record: API.ProjectReportItem) => renderTotalCostWithMeta(value, record),
+    },
     formatter: (value: unknown) => fmtCurrency(value),
   },
   {
