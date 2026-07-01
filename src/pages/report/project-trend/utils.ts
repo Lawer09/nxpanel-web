@@ -2,9 +2,8 @@ import dayjs, { type Dayjs } from 'dayjs';
 
 export const PROJECT_TREND_DASHBOARD_PATH = '/report/project-trend';
 
-export const DEFAULT_PROJECT_TREND_RANGE_DAYS = 30;
-export const DEFAULT_PROJECT_TREND_FALLBACK_DAYS = 7;
-export const DEFAULT_PROJECT_TREND_HOURLY_RANGE_DAYS = 2;
+export const DEFAULT_PROJECT_TREND_RANGE_DAYS = 7;
+export const DEFAULT_PROJECT_TREND_HOURLY_RANGE_DAYS = 1;
 
 export const toSafeNumber = (value: unknown): number | null => {
   if (value === null || value === undefined || value === '') return null;
@@ -96,18 +95,19 @@ export const resolveProjectTrendDateRange = (dateFrom?: string | null, dateTo?: 
   if (hasDateFrom && hasDateTo) {
     const normalizedDateFrom = dayjs(dateFrom);
     const normalizedDateTo = dayjs(dateTo);
-    if (normalizedDateFrom.isSame(normalizedDateTo, 'day')) {
-      const end = dayjs();
-      const start = end.subtract(DEFAULT_PROJECT_TREND_FALLBACK_DAYS - 1, 'day');
-      return [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')];
-    }
     return [normalizedDateFrom.format('YYYY-MM-DD'), normalizedDateTo.format('YYYY-MM-DD')];
   }
 
-  if (hasDateFrom !== hasDateTo) {
-    const end = dayjs();
-    const start = end.subtract(DEFAULT_PROJECT_TREND_FALLBACK_DAYS - 1, 'day');
-    return [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')];
+  if (hasDateFrom) {
+    const normalizedDate = dayjs(dateFrom);
+    const formattedDate = normalizedDate.format('YYYY-MM-DD');
+    return [formattedDate, formattedDate];
+  }
+
+  if (hasDateTo) {
+    const normalizedDate = dayjs(dateTo);
+    const formattedDate = normalizedDate.format('YYYY-MM-DD');
+    return [formattedDate, formattedDate];
   }
 
   const end = dayjs();
@@ -129,15 +129,13 @@ export const normalizeProjectTrendGranularity = (value?: string | null): 'day' |
   value === 'hour' ? 'hour' : 'day';
 
 export const getDefaultProjectTrendHourlyDateRange = (): [string, string] => {
-  const end = dayjs();
-  const start = end.subtract(DEFAULT_PROJECT_TREND_HOURLY_RANGE_DAYS - 1, 'day');
-  return [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')];
+  const today = dayjs().format('YYYY-MM-DD');
+  return [today, today];
 };
 
 export const getDefaultProjectTrendHourlyDateTimeRange = (): [Dayjs, Dayjs] => {
-  const end = dayjs().endOf('day');
-  const start = end.subtract(DEFAULT_PROJECT_TREND_HOURLY_RANGE_DAYS - 1, 'day').startOf('day');
-  return [start, end];
+  const today = dayjs();
+  return [today.startOf('day'), today.endOf('day')];
 };
 
 export const formatProjectTrendHourLabel = (reportDate?: string, hour?: number | null) => {

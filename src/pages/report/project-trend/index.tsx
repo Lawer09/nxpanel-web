@@ -30,12 +30,13 @@ import {
   buildProjectTrendSearch,
   formatCurrency,
   formatInteger,
+  getDefaultProjectTrendHourlyDateRange,
   formatTrafficCostWithRatio,
   formatRoiPercent,
   getDefaultProjectTrendHourlyDateTimeRange,
-  parseProjectTrendHourDateTimeRange,
   normalizeHourRangeValue,
   normalizeProjectTrendGranularity,
+  parseProjectTrendHourDateTimeRange,
   resolveProjectTrendDateRange,
   toSafeNumber,
 } from './utils';
@@ -51,8 +52,14 @@ const getAdStatusColor = (adStatus?: string | null) => {
 
 const buildInitialTrendQuery = (searchParams: URLSearchParams): TrendQueryState => {
   const projectCode = searchParams.get('projectCode')?.trim() || '';
-  const [dateFrom, dateTo] = resolveProjectTrendDateRange(searchParams.get('dateFrom'), searchParams.get('dateTo'));
   const granularity = normalizeProjectTrendGranularity(searchParams.get('granularity'));
+  const hasInitialDate =
+    Boolean(searchParams.get('dateFrom') && dayjs(searchParams.get('dateFrom')).isValid()) ||
+    Boolean(searchParams.get('dateTo') && dayjs(searchParams.get('dateTo')).isValid());
+  const [dateFrom, dateTo] =
+    granularity === 'hour' && !hasInitialDate
+      ? getDefaultProjectTrendHourlyDateRange()
+      : resolveProjectTrendDateRange(searchParams.get('dateFrom'), searchParams.get('dateTo'));
 
   if (granularity === 'hour') {
     const hourFrom = normalizeHourRangeValue(searchParams.get('hourFrom'));
@@ -83,9 +90,6 @@ const ProjectTrendDashboardPage: React.FC = () => {
 
   const [draftQuery, setDraftQuery] = useState<TrendQueryState>(initialQuery);
   const [appliedQuery, setAppliedQuery] = useState<TrendQueryState>(initialQuery);
-  const [lastDailyDateRange, setLastDailyDateRange] = useState<[string, string]>(
-    initialQuery.granularity === 'day' ? initialQuery.dateRange : resolveProjectTrendDateRange(null, null),
-  );
   const [projectOptions, setProjectOptions] = useState<Array<{ label: string; value: string }>>([]);
   const [projectMeta, setProjectMeta] = useState<ProjectItem | null>(null);
   const [loading, setLoading] = useState(false);
@@ -97,9 +101,6 @@ const ProjectTrendDashboardPage: React.FC = () => {
   useEffect(() => {
     setDraftQuery(initialQuery);
     setAppliedQuery(initialQuery);
-    if (initialQuery.granularity === 'day') {
-      setLastDailyDateRange(initialQuery.dateRange);
-    }
   }, [initialQuery]);
 
   useEffect(() => {
@@ -263,25 +264,46 @@ const ProjectTrendDashboardPage: React.FC = () => {
     if (value === draftQuery.granularity) return;
 
     if (value === 'hour') {
-      if (draftQuery.granularity === 'day') {
-        setLastDailyDateRange(draftQuery.dateRange);
-      }
       const hourlyRange = parseProjectTrendHourDateTimeRange(getDefaultProjectTrendHourlyDateTimeRange());
       if (!hourlyRange) return;
-      setDraftQuery((prev) => ({
-        ...prev,
+      const nextQuery: TrendQueryState = {
+        ...draftQuery,
         granularity: 'hour',
         ...hourlyRange,
-      }));
+      };
+      setDraftQuery(nextQuery);
+      setAppliedQuery(nextQuery);
       return;
     }
 
-    setDraftQuery((prev) => ({
-      ...prev,
+    const nextQuery: TrendQueryState = {
+      ...draftQuery,
       granularity: 'day',
-      dateRange: lastDailyDateRange,
+      dateRange: resolveProjectTrendDateRange(null, null),
       hourFrom: undefined,
       hourTo: undefined,
+    };
+    setDraftQuery(nextQuery);
+    setAppliedQuery(nextQuery);
+  };
+
+  const handleDailyDateRangeChange = (nextDateRange: [string, string]) => {
+    setDraftQuery((prev) => ({
+      ...prev,
+      dateRange: nextDateRange,
+    }));
+  };
+
+  const handleHourlyDateTimeRangeChange = (value: {
+    dateRange: [string, string];
+    hourFrom?: number;
+    hourTo?: number;
+  }) => {
+    setDraftQuery((prev) => ({
+      ...prev,
+      dateRange: value.dateRange,
+      hourFrom: value.hourFrom,
+      hourTo: value.hourTo,
     }));
   };
 
@@ -479,22 +501,9 @@ const ProjectTrendDashboardPage: React.FC = () => {
           adStatusColor={getAdStatusColor(projectMeta?.adStatus)}
           projectOptions={projectOptions}
           onProjectCodeChange={(value) => setDraftQuery((prev) => ({ ...prev, projectCode: value }))}
-          onDateRangeChange={(nextDateRange) => {
-            setLastDailyDateRange(nextDateRange);
-            setDraftQuery((prev) => ({
-              ...prev,
-              dateRange: nextDateRange,
-            }));
-          }}
+          onDateRangeChange={handleDailyDateRangeChange}
           onGranularityChange={handleGranularityChange}
-          onHourDateTimeRangeChange={({ dateRange, hourFrom, hourTo }) =>
-            setDraftQuery((prev) => ({
-              ...prev,
-              dateRange,
-              hourFrom,
-              hourTo,
-            }))
-          }
+          onHourDateTimeRangeChange={handleHourlyDateTimeRangeChange}
           onSearch={handleSearch}
           searchLoading={loading}
         />
