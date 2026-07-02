@@ -1,4 +1,7 @@
 import dayjs from 'dayjs';
+import isoWeek from 'dayjs/plugin/isoWeek';
+
+dayjs.extend(isoWeek);
 
 /**
  * 日期快捷预设 key 类型。
@@ -8,6 +11,8 @@ import dayjs from 'dayjs';
 export type DateRangePreset =
   | 'today'
   | 'yesterday'
+  | 'previousWeek'
+  | 'previousMonth'
   | 'last3Days'
   | 'last7Days'
   | 'last30Days'
@@ -26,6 +31,22 @@ export type DatePresetItem = {
 export const STANDARD_DATE_PRESET_ITEMS: DatePresetItem[] = [
   { key: 'today', label: '今日', getValue: () => [dayjs(), dayjs()] },
   { key: 'yesterday', label: '昨日', getValue: () => [dayjs().subtract(1, 'day'), dayjs().subtract(1, 'day')] },
+  {
+    key: 'previousWeek',
+    label: '上一周',
+    getValue: () => {
+      const previousWeek = dayjs().subtract(1, 'week');
+      return [previousWeek.startOf('isoWeek'), previousWeek.endOf('isoWeek')];
+    },
+  },
+  {
+    key: 'previousMonth',
+    label: '上一月',
+    getValue: () => {
+      const previousMonth = dayjs().subtract(1, 'month');
+      return [previousMonth.startOf('month'), previousMonth.endOf('month')];
+    },
+  },
   { key: 'last3Days', label: '近三天', getValue: () => [dayjs().subtract(2, 'day'), dayjs()] },
   { key: 'last7Days', label: '近一周', getValue: () => [dayjs().subtract(6, 'day'), dayjs()] },
   { key: 'last30Days', label: '近一月', getValue: () => [dayjs().subtract(1, 'month'), dayjs()] },
