@@ -31,7 +31,7 @@ import {
 } from '@/pages/report/project/reportShared';
 import { applyIncludeExcludeField, toIncludeExcludeValue, type ProjectExcludeFilters } from '@/pages/report/project/includeExclude';
 import { buildProjectTrendSearch, PROJECT_TREND_DASHBOARD_PATH } from '@/pages/report/project-trend/utils';
-import { aggregateHourly, getProjectDepartments, getProjects } from '@/services/project/api';
+import { aggregateHourly, getProjectCodes, getProjectDepartments, getProjects } from '@/services/project/api';
 import type { ProjectItem } from '@/services/project/types';
 import { queryProjectHourlyReport } from '@/services/report/api';
 
@@ -175,16 +175,13 @@ const ProjectHourlyReportPage: React.FC = () => {
   const today = dayjs().format('YYYY-MM-DD');
   const [syncForm] = Form.useForm<SyncHourlyFormValues>();
   const [projectItems, setProjectItems] = useState<ProjectItem[]>([]);
+  const [projectCodeOptions, setProjectCodeOptions] = useState<Array<{ label: string; value: string }>>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
   const [appliedState, setAppliedState] = useState<AppliedReportState | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncModalOpen, setSyncModalOpen] = useState(false);
   const projectOptionsLoadedRef = useRef(false);
 
-  const projectCodeOptions = useMemo(
-    () => projectItems.map((item) => ({ label: item.projectCode, value: item.projectCode })),
-    [projectItems],
-  );
   const syncProjectOptions = useMemo(
     () =>
       projectItems.map((item) => ({
@@ -219,12 +216,28 @@ const ProjectHourlyReportPage: React.FC = () => {
 
   const refreshProjectCodes = useCallback(
     async () => {
+      const res = await getProjectCodes();
+      if (res.code !== 0) {
+        messageApi.error(res.msg || '获取项目代号失败');
+        return;
+      }
+
+      const options = (Array.isArray(res.data?.data) ? res.data.data : [])
+        .map((item) => (typeof item === 'string' ? item : item?.projectCode))
+        .filter((item): item is string => Boolean(item));
+      setProjectCodeOptions(Array.from(new Set(options)).map((item) => ({ label: item, value: item })));
+    },
+    [messageApi],
+  );
+
+  const refreshSyncProjects = useCallback(
+    async () => {
       const res = await getProjects({
         page: 1,
         pageSize: 200,
       });
       if (res.code !== 0) {
-        messageApi.error(res.msg || '获取项目代号失败');
+        messageApi.error(res.msg || '获取项目列表失败');
         return;
       }
 
@@ -243,7 +256,7 @@ const ProjectHourlyReportPage: React.FC = () => {
       return;
     }
 
-    const options = (Array.isArray(res.data) ? res.data : [])
+    const options = (Array.isArray(res.data?.data) ? res.data.data : [])
       .map((item) => `${item}`.trim())
       .filter(Boolean);
     setDepartmentOptions(Array.from(new Set(options)));
@@ -255,8 +268,9 @@ const ProjectHourlyReportPage: React.FC = () => {
     }
     projectOptionsLoadedRef.current = true;
     refreshProjectCodes();
+    refreshSyncProjects();
     refreshDepartments();
-  }, [refreshDepartments, refreshProjectCodes]);
+  }, [refreshDepartments, refreshProjectCodes, refreshSyncProjects]);
 
   useEffect(() => {
     if (!syncModalOpen) {

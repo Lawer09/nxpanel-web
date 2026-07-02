@@ -680,12 +680,12 @@ export const createProjectDimensionOptions = ({
       },
     },
     {
-      label: '閮ㄩ棬',
+      label: '部门',
       value: DEPARTMENT_DISPLAY_DIMENSION,
-      disabledTooltip: '闇€鍏堥€夋嫨椤圭洰缂栫爜',
+      disabledTooltip: '需先选择项目编码',
       isDisabled: (dimensions: string[]) => !dimensions.includes('projectCode'),
       column: {
-        title: '閮ㄩ棬',
+        title: '部门',
         key: DEPARTMENT_DISPLAY_DIMENSION,
         width: 140,
         render: (_: unknown, record: API.ProjectReportItem) => {

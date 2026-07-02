@@ -15,6 +15,7 @@
 | POST | `/projects/update-status` | 更新项目状态 | `ProjectController::updateStatus` |
 | POST | `/projects/batch-save` | 按项目代号批量新增或更新项目 | `ProjectController::batchSave` |
 | POST | `/projects/batch-update-department` | 批量更新项目部门 | `ProjectController::batchUpdateDepartment` |
+| GET | `/projects/project-codes` | 项目代号列表 | `ProjectController::projectCodes` |
 | GET | `/projects/departments` | 部门列表 | `ProjectController::departments` |
 | POST | `/projects/aggregate` | 手动聚合（同步） | `ProjectController::aggregate` |
 | POST | `/projects/aggregate-async` | 手动聚合（异步） | `ProjectController::aggregateAsync` |

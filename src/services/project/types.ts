@@ -204,7 +204,20 @@ export interface ProjectBatchUpdateDepartmentResult {
   missingIds: number[];
 }
 
-export type ProjectDepartmentListResult = string[];
+export type ProjectCodeListItem =
+  | string
+  | {
+      projectCode?: string | null;
+      projectName?: string | null;
+    };
+
+export type ProjectCodeListResult = {
+  data: ProjectCodeListItem[];
+};
+
+export type ProjectDepartmentListResult = {
+  data: string[];
+};
 
 export interface ProjectBatchSaveItem {
   projectCode: string;

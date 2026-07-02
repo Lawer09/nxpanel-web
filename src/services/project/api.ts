@@ -58,6 +58,12 @@ export async function batchUpdateProjectDepartment(data: Types.ProjectBatchUpdat
   });
 }
 
+export async function getProjectCodes() {
+  return request<API.ApiResponse<Types.ProjectCodeListResult>>('/v3/projects/project-codes', {
+    method: 'GET',
+  });
+}
+
 export async function getProjectDepartments() {
   return request<API.ApiResponse<Types.ProjectDepartmentListResult>>('/v3/projects/departments', {
     method: 'GET',

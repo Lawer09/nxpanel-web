@@ -34,7 +34,7 @@ import {
   type ProjectExcludeFilters,
 } from '@/pages/report/project/includeExclude';
 import { buildProjectTrendSearch, PROJECT_TREND_DASHBOARD_PATH } from '@/pages/report/project-trend/utils';
-import { getProjectDepartments, getProjects } from '@/services/project/api';
+import { getProjectCodes, getProjectDepartments } from '@/services/project/api';
 import { exportProjectReport, queryProjectReport } from '@/services/report/api';
 
 const { RangePicker } = DatePicker;
@@ -185,17 +185,14 @@ const ProjectAggregatesPage: React.FC = () => {
   const dimensionOptions = createProjectDimensionOptions({ onJump: handleJumpToDashboard });
 
   const refreshProjectCodes = useCallback(async () => {
-    const res = await getProjects({
-      page: 1,
-      pageSize: 200,
-    });
+    const res = await getProjectCodes();
     if (res.code !== 0) {
       messageApi.error(res.msg || '获取项目代号失败');
       return;
     }
 
-    const options = (res.data?.data ?? [])
-      .map((item) => item.projectCode)
+    const options = (Array.isArray(res.data?.data) ? res.data.data : [])
+      .map((item) => (typeof item === 'string' ? item : item?.projectCode))
       .filter((item): item is string => Boolean(item));
     setProjectOptions(Array.from(new Set(options)));
   }, [messageApi]);
@@ -207,7 +204,7 @@ const ProjectAggregatesPage: React.FC = () => {
       return;
     }
 
-    const options = (Array.isArray(res.data) ? res.data : [])
+    const options = (Array.isArray(res.data?.data) ? res.data.data : [])
       .map((item) => `${item}`.trim())
       .filter(Boolean);
     setDepartmentOptions(Array.from(new Set(options)));

@@ -5,7 +5,7 @@ import { App, Button, Card, Col, Empty, Row, Segmented, Space, Spin, Tooltip, Ty
 import dayjs from 'dayjs';
 import { history, useSearchParams } from '@umijs/max';
 import React, { useEffect, useMemo, useState } from 'react';
-import { getProjects } from '@/services/project/api';
+import { getProjectCodes, getProjects } from '@/services/project/api';
 import type { ProjectItem } from '@/services/project/types';
 import { queryProjectHourlyReport, queryProjectReport } from '@/services/report/api';
 import TrendChartCard from './components/TrendChartCard';
@@ -105,17 +105,21 @@ const ProjectTrendDashboardPage: React.FC = () => {
 
   useEffect(() => {
     const run = async () => {
-      const res = await getProjects({ page: 1, pageSize: 200 });
+      const res = await getProjectCodes();
       if (res.code !== 0) return;
-      const rows = res.data?.data ?? [];
-      setProjectOptions(
-        rows
-          .filter((item) => item.projectCode)
-          .map((item) => ({
-            label: `${item.projectName || item.projectCode} (${item.projectCode})`,
-            value: item.projectCode,
-          })),
+      const rows = Array.isArray(res.data?.data) ? res.data.data : [];
+      const normalizedRows: Array<{ projectCode?: string | null; projectName?: string | null }> = rows.map((item) =>
+        typeof item === 'string'
+          ? { projectCode: item, projectName: undefined }
+          : { projectCode: item?.projectCode, projectName: item?.projectName },
       );
+      const nextOptions = normalizedRows
+        .filter((item): item is { projectCode: string; projectName?: string | null } => Boolean(item.projectCode))
+        .map((item) => ({
+          label: `${item.projectName || item.projectCode} (${item.projectCode})`,
+          value: item.projectCode,
+        }));
+      setProjectOptions(nextOptions);
     };
     void run();
   }, []);
