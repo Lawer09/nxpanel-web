@@ -262,3 +262,27 @@ axios.post(url, payload, { responseType: 'blob' })
 - 前端应优先从响应头 `Content-Disposition` 解析文件名
 - 如果文件名解析失败，可回退为 `project_report_daily.csv`
 - 该接口返回的是 CSV 文件流，前端不要按 `code`、`msg`、`data` 结构解析
+
+## 2026-07-02 补充
+
+- `filters` 现已支持排除结构：
+
+```json
+{
+  "filters": {
+    "projectCodes": ["A001"],
+    "countries": ["US"],
+    "exclude": {
+      "projectCodes": ["A002", "A003"],
+      "countries": ["BR", "IN"]
+    }
+  }
+}
+```
+
+- `filters.exclude.projectCodes`：项目代号排除筛选
+- `filters.exclude.countries`：国家排除筛选，前端仍按大写口径归一化
+- 项目日报页前端已使用单个多选控件同时维护包含和排除：
+  - 新选择的值默认进入包含
+  - 已选 tag 可在包含/排除之间切换
+  - 同一个值不会同时存在于包含和排除中

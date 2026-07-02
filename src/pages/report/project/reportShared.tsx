@@ -330,7 +330,7 @@ const renderTotalCostBreakdown = (record?: Record<string, unknown>) => {
               style={{
                 width: `${Math.max(0, Math.min(100, adSpendPercent))}%`,
                 height: '100%',
-                background: '#f97316',
+                background: '#c08497',
               }}
             />
           ) : null}
@@ -339,7 +339,7 @@ const renderTotalCostBreakdown = (record?: Record<string, unknown>) => {
               style={{
                 width: `${Math.max(0, Math.min(100, trafficPercent))}%`,
                 height: '100%',
-                background: '#14b8a6',
+                background: '#7dd3c7',
               }}
             />
           ) : null}

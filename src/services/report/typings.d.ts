@@ -309,6 +309,10 @@ declare namespace API {
     filters?: {
       projectCodes?: string[];
       countries?: string[];
+      exclude?: {
+        projectCodes?: string[];
+        countries?: string[];
+      };
       adStatuses?: string[];
       appPlatforms?: string[];
     };
@@ -327,6 +331,10 @@ declare namespace API {
     filters?: {
       projectCodes?: string[];
       countries?: string[];
+      exclude?: {
+        projectCodes?: string[];
+        countries?: string[];
+      };
       adStatuses?: string[];
       appPlatforms?: string[];
     };

@@ -138,6 +138,7 @@ interface UniversalReportTableProps<T extends AnyRecord, Q extends AnyRecord> {
    * 返回变换后的 query，不传则直接使用原始 query。
    */
   transformViewQuery?: (query: Q) => Q;
+  clearQueryWhenFilterHidden?: (query: Q, dimension: string) => Q;
   renderFilters: (args: {
     query: Q;
     setQuery: React.Dispatch<React.SetStateAction<Q>>;
@@ -713,6 +714,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     fetchData,
     fetchGrandTotals,
     transformViewQuery,
+    clearQueryWhenFilterHidden,
     exportAction,
     onAppliedStateChange,
   } = props;
@@ -788,8 +790,34 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     ? normalizeMetrics(persisted.metrics)
     : normalizeMetrics(defaultMetrics);
 
-  const [query, setQuery] = useState<Q>(persisted.query);
-  const [appliedQuery, setAppliedQuery] = useState<Q>(persisted.query);
+  const clearQueryByVisibleFilters = useCallback(
+    (sourceQuery: Q, nextVisibleFilterDimensions: string[]) => {
+      if (!clearQueryWhenFilterHidden) {
+        return sourceQuery;
+      }
+
+      return allDimensionValues.reduce((nextQuery, dimension) => {
+        if (nextVisibleFilterDimensions.includes(dimension)) {
+          return nextQuery;
+        }
+        return clearQueryWhenFilterHidden(nextQuery, dimension);
+      }, sourceQuery);
+    },
+    [allDimensionValues, clearQueryWhenFilterHidden],
+  );
+
+  const [query, setQuery] = useState<Q>(() =>
+    clearQueryByVisibleFilters(
+      persisted.query,
+      initialVisibleFilterDimensions.length ? initialVisibleFilterDimensions : fallbackVisibleFilterDimensions,
+    ),
+  );
+  const [appliedQuery, setAppliedQuery] = useState<Q>(() =>
+    clearQueryByVisibleFilters(
+      persisted.query,
+      initialVisibleFilterDimensions.length ? initialVisibleFilterDimensions : fallbackVisibleFilterDimensions,
+    ),
+  );
   const [dimensions, setDimensions] = useState<string[]>(initialDimensions.length ? initialDimensions : defaultDimensions);
   const [appliedDimensions, setAppliedDimensions] = useState<string[]>(
     initialDimensions.length ? initialDimensions : defaultDimensions,
@@ -1362,8 +1390,9 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
   };
 
   const handleReset = () => {
-    setQuery(defaultQuery);
-    setAppliedQuery(defaultQuery);
+    const nextDefaultQuery = clearQueryByVisibleFilters(defaultQuery, fallbackVisibleFilterDimensions);
+    setQuery(nextDefaultQuery);
+    setAppliedQuery(nextDefaultQuery);
     const nextDefaultDimensions = sanitizeDimensions(defaultDimensions, defaultDimensions);
     setDimensions(nextDefaultDimensions.length ? nextDefaultDimensions : defaultDimensions);
     setAppliedDimensions(nextDefaultDimensions.length ? nextDefaultDimensions : defaultDimensions);
@@ -1413,13 +1442,17 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
     const target = savedViews.find((item) => item.id === id);
     if (!target) return;
     setSelectedViewId(id);
-    const resolvedQuery = transformViewQuery ? transformViewQuery(target.query) : target.query;
-    setQuery(resolvedQuery);
-    setAppliedQuery(resolvedQuery);
-    const nextDimensions = sanitizeDimensions(target.dimensions, defaultDimensions);
     const nextVisibleFilterDimensions = target.visibleFilterDimensions?.length
       ? normalizeDimensions(target.visibleFilterDimensions)
       : fallbackVisibleFilterDimensions;
+    const resolvedQuery = transformViewQuery ? transformViewQuery(target.query) : target.query;
+    const cleanedQuery = clearQueryByVisibleFilters(
+      resolvedQuery,
+      nextVisibleFilterDimensions.length ? nextVisibleFilterDimensions : fallbackVisibleFilterDimensions,
+    );
+    setQuery(cleanedQuery);
+    setAppliedQuery(cleanedQuery);
+    const nextDimensions = sanitizeDimensions(target.dimensions, defaultDimensions);
     const nextMetrics = normalizeMetrics(target.metrics);
     setDimensions(nextDimensions.length ? nextDimensions : defaultDimensions);
     setAppliedDimensions(nextDimensions.length ? nextDimensions : defaultDimensions);
@@ -1520,7 +1553,9 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
                       setVisibleFilterDimensions((prev) => Array.from(new Set([...prev, item.value])));
                       return;
                     }
-                    setVisibleFilterDimensions((prev) => prev.filter((value) => value !== item.value));
+                    const nextVisibleFilterDimensions = visibleFilterDimensions.filter((value) => value !== item.value);
+                    setVisibleFilterDimensions(nextVisibleFilterDimensions);
+                    setQuery((prev) => clearQueryByVisibleFilters(prev, nextVisibleFilterDimensions));
                   }}
                 >
                   <Tooltip title="筛选">

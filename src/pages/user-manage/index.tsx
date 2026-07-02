@@ -8,13 +8,16 @@ import {
   Descriptions,
   Dropdown,
   Popover,
+  Select,
   Space,
   Tag,
   Tooltip,
   Typography,
 } from 'antd';
 import dayjs from 'dayjs';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { getUserAppMappings } from '@/services/project/api';
+import type { ProjectUserAppMapping } from '@/services/project/types';
 import {
   banUsers,
   destroyUser,
@@ -30,6 +33,11 @@ import UserDetailDrawer from './components/UserDetailDrawer';
 import UserFormModal from './components/UserFormModal';
 
 const { Text } = Typography;
+
+type AppIdOption = {
+  label: string;
+  value: string;
+};
 
 const formatBytes = (bytes?: number | null): string => {
   if (bytes == null) return '-';
@@ -93,6 +101,30 @@ const renderMetaValue = (
   );
 };
 
+const buildAppIdOptions = (mappings: ProjectUserAppMapping[]): AppIdOption[] => {
+  const seen = new Set<string>();
+
+  return mappings.reduce<AppIdOption[]>((options, item) => {
+    const appId = item.packageNames?.[0];
+    if (!appId || seen.has(appId)) return options;
+
+    seen.add(appId);
+    options.push({
+      value: appId,
+      label: item.projectCode ? `${appId}（${item.projectCode}）` : appId,
+    });
+    return options;
+  }, []);
+};
+
+const getMappingList = (
+  data: ProjectUserAppMapping[] | { data?: ProjectUserAppMapping[] } | undefined,
+) => {
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.data)) return data.data;
+  return [];
+};
+
 const UserManagePage: React.FC = () => {
   const { message: messageApi, modal: modalApi } = App.useApp();
   const actionRef = useRef<ActionType | null>(null);
@@ -111,6 +143,8 @@ const UserManagePage: React.FC = () => {
     pageSize: 15,
     sort: [{ id: 'created_at', desc: true }],
   });
+  const [appIdOptions, setAppIdOptions] = useState<AppIdOption[]>([]);
+  const [appIdOptionsLoading, setAppIdOptionsLoading] = useState(false);
   const [resultSummary, setResultSummary] = useState<{
     total: number;
     banned: boolean;
@@ -119,6 +153,50 @@ const UserManagePage: React.FC = () => {
     metaAppId?: string;
     metaChannel?: string;
   }>({ total: 0, banned: false });
+
+  useEffect(() => {
+    let ignore = false;
+
+    const fetchAppIdOptions = async () => {
+      setAppIdOptionsLoading(true);
+      try {
+        const res = await getUserAppMappings();
+        if (ignore) return;
+
+        if (res.code !== 0) {
+          messageApi.error(res.msg || '获取应用 ID 列表失败');
+          setAppIdOptions([]);
+          return;
+        }
+
+        setAppIdOptions(
+          buildAppIdOptions(
+            getMappingList(
+              res.data as
+                | ProjectUserAppMapping[]
+                | { data?: ProjectUserAppMapping[] }
+                | undefined,
+            ),
+          ),
+        );
+      } catch {
+        if (!ignore) {
+          messageApi.error('获取应用 ID 列表失败');
+          setAppIdOptions([]);
+        }
+      } finally {
+        if (!ignore) {
+          setAppIdOptionsLoading(false);
+        }
+      }
+    };
+
+    fetchAppIdOptions();
+
+    return () => {
+      ignore = true;
+    };
+  }, [messageApi]);
 
   const openUserDetail = (record: API.UserItem) => {
     setCurrentUser(record);
@@ -145,6 +223,7 @@ const UserManagePage: React.FC = () => {
       dataIndex: 'email',
       width: 220,
       ellipsis: true,
+      search: false,
       render: (_, record) => (
         <Tooltip title={record.email}>
           <Text
@@ -165,16 +244,47 @@ const UserManagePage: React.FC = () => {
       ),
     },
     {
-      title: '当前套餐',
+      title: '套餐',
       dataIndex: ['plan', 'name'],
-      width: 130,
+      width: 240,
       search: false,
-      render: (_, record) =>
-        record.plan ? (
-          <Tag color="blue">{record.plan.name}</Tag>
-        ) : (
-          <Tag color="default">无套餐</Tag>
-        ),
+      render: (_, record) => {
+        const used = (record.u ?? 0) + (record.d ?? 0);
+        const total = record.transfer_enable;
+        const usageText =
+          total != null
+            ? `已用 ${formatBytes(used)} / 总量 ${formatBytes(total)}`
+            : `已用 ${formatBytes(used)}`;
+        const expired = record.expired_at ? dayjs.unix(record.expired_at) : null;
+        const isExpired = expired ? expired.isBefore(dayjs()) : false;
+        const expireText = expired ? `到期 ${expired.format('YYYY-MM-DD HH:mm')}` : '长期有效';
+
+        return (
+          <Space direction="vertical" size={2}>
+            {record.plan ? (
+              <Tag color="blue" style={{ width: 'fit-content', marginInlineEnd: 0 }}>
+                {record.plan.name}
+              </Tag>
+            ) : (
+              <Tag color="default" style={{ width: 'fit-content', marginInlineEnd: 0 }}>
+                无套餐
+              </Tag>
+            )}
+            <Text type="secondary" style={{ fontSize: 12, lineHeight: 1.4 }}>
+              {usageText}
+            </Text>
+            <Text
+              style={{
+                fontSize: 12,
+                lineHeight: 1.4,
+                color: isExpired ? '#ff4d4f' : 'rgba(0, 0, 0, 0.45)',
+              }}
+            >
+              {expireText}
+            </Text>
+          </Space>
+        );
+      },
     },
     {
       title: '搜索邮箱',
@@ -190,6 +300,16 @@ const UserManagePage: React.FC = () => {
       title: '注册包名',
       dataIndex: 'meta_app_id',
       hideInTable: true,
+      renderFormItem: () => (
+        <Select
+          allowClear
+          showSearch
+          loading={appIdOptionsLoading}
+          options={appIdOptions}
+          optionFilterProp="label"
+          placeholder="请选择或搜索应用 ID"
+        />
+      ),
     },
     {
       title: '注册渠道',
@@ -220,14 +340,34 @@ const UserManagePage: React.FC = () => {
     {
       title: '状态',
       dataIndex: 'banned',
-      width: 80,
+      width: 130,
       search: false,
-      render: (_, record) =>
-        record.banned ? (
-          <Badge status="error" text="封禁" />
-        ) : (
-          <Badge status="success" text="正常" />
-        ),
+      render: (_, record) => (
+        <Space direction="vertical" size={2}>
+          {record.banned ? (
+            <Badge status="error" text="封禁" />
+          ) : (
+            <Badge status="success" text="正常" />
+          )}
+          <Space size={4} wrap>
+            {record.is_admin ? (
+              <Tag color="gold" style={{ marginInlineEnd: 0 }}>
+                管理员
+              </Tag>
+            ) : null}
+            {record.is_staff ? (
+              <Tag color="cyan" style={{ marginInlineEnd: 0 }}>
+                员工
+              </Tag>
+            ) : null}
+            {!record.is_admin && !record.is_staff ? (
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                -
+              </Text>
+            ) : null}
+          </Space>
+        </Space>
+      ),
     },
     {
       title: '余额',
@@ -247,38 +387,6 @@ const UserManagePage: React.FC = () => {
     //       ? `¥${Number(record.commission_balance).toFixed(2)}`
     //       : '-',
     // },
-    {
-      title: '流量使用',
-      key: 'traffic',
-      width: 160,
-      search: false,
-      render: (_, record) => {
-        const used = (record.u ?? 0) + (record.d ?? 0);
-        const total = record.transfer_enable;
-        return (
-          <Space direction="vertical" size={0} style={{ fontSize: 12 }}>
-            <span>已用：{formatBytes(used)}</span>
-            <span>总量：{formatBytes(total)}</span>
-          </Space>
-        );
-      },
-    },
-    {
-      title: '到期时间',
-      dataIndex: 'expired_at',
-      width: 150,
-      search: false,
-      render: (_, record) => {
-        if (!record.expired_at) return <Tag color="green">长期有效</Tag>;
-        const expired = dayjs.unix(record.expired_at);
-        const isExpired = expired.isBefore(dayjs());
-        return (
-          <Tag color={isExpired ? 'red' : 'default'}>
-            {expired.format('YYYY-MM-DD HH:mm')}
-          </Tag>
-        );
-      },
-    },
     // {
     //   title: '邀请人',
     //   dataIndex: 'invite_user',
@@ -295,18 +403,6 @@ const UserManagePage: React.FC = () => {
     //       '-'
     //     ),
     // },
-    {
-      title: '角色',
-      key: 'roles',
-      width: 110,
-      search: false,
-      render: (_, record) => (
-        <Space size={2} wrap>
-          {record.is_admin ? <Tag color="gold">管理员</Tag> : null}
-          {record.is_staff ? <Tag color="cyan">员工</Tag> : null}
-        </Space>
-      ),
-    },
     {
       title: '注册时间',
       dataIndex: 'created_at',

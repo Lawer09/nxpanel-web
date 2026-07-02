@@ -48,3 +48,27 @@
   - 默认小时为当前时间的上一个小时
 - “同步小时数据”使用独立弹窗，不直接复用筛选栏条件
 - `adStatuses`、`appPlatforms` 仅作为筛选条件使用，不进入后端 `groupBy`
+
+## 2026-07-02 补充
+
+- `filters` 现已支持排除结构：
+
+```json
+{
+  "filters": {
+    "projectCodes": ["A001"],
+    "countries": ["US"],
+    "exclude": {
+      "projectCodes": ["A002", "A003"],
+      "countries": ["BR", "IN"]
+    }
+  }
+}
+```
+
+- `filters.exclude.projectCodes`：项目代号排除筛选
+- `filters.exclude.countries`：国家排除筛选，前端仍按大写口径归一化
+- 项目小时汇总页前端已使用单个多选控件同时维护包含和排除：
+  - 新选择的值默认进入包含
+  - 已选 tag 可在包含/排除之间切换
+  - 同一个值不会同时存在于包含和排除中

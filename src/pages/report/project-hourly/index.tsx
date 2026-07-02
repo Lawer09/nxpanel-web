@@ -3,7 +3,8 @@ import { history } from '@umijs/max';
 import { App, Button, DatePicker, Form, Modal, Select, Space } from 'antd';
 import type { SortOrder } from 'antd/es/table/interface';
 import dayjs, { type Dayjs } from 'dayjs';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import IncludeExcludeSelect from '@/components/report/IncludeExcludeSelect';
 import {
   type DateRangePreset,
   getPresetByDateRange,
@@ -26,6 +27,7 @@ import {
   normalizeProjectCodes,
   toOrderDirection,
 } from '@/pages/report/project/reportShared';
+import { applyIncludeExcludeField, toIncludeExcludeValue, type ProjectExcludeFilters } from '@/pages/report/project/includeExclude';
 import { buildProjectTrendSearch, PROJECT_TREND_DASHBOARD_PATH } from '@/pages/report/project-trend/utils';
 import { aggregateHourly, getProjects } from '@/services/project/api';
 import type { ProjectItem } from '@/services/project/types';
@@ -46,6 +48,7 @@ type QueryState = {
   hour?: number;
   projectCodes?: string[];
   countries?: string[];
+  exclude?: ProjectExcludeFilters;
   adStatuses?: string[];
   appPlatforms?: string[];
 };
@@ -72,6 +75,50 @@ type SyncHourlyFormValues = {
 
 const REAL_PROJECT_HOURLY_DIMENSIONS: API.ProjectHourlyReportDimension[] = ['reportDate', 'hour', 'projectCode', 'country'];
 
+const clearProjectHourlyQueryWhenFilterHidden = (query: QueryState, dimension: string): QueryState => {
+  if (dimension === 'projectCode') {
+    return {
+      ...query,
+      projectCodes: undefined,
+      exclude: query.exclude
+        ? {
+            ...query.exclude,
+            projectCodes: undefined,
+          }
+        : undefined,
+    };
+  }
+
+  if (dimension === 'country') {
+    return {
+      ...query,
+      countries: undefined,
+      exclude: query.exclude
+        ? {
+            ...query.exclude,
+            countries: undefined,
+          }
+        : undefined,
+    };
+  }
+
+  if (dimension === AD_STATUS_DISPLAY_DIMENSION) {
+    return {
+      ...query,
+      adStatuses: undefined,
+    };
+  }
+
+  if (dimension === APP_PLATFORM_DISPLAY_DIMENSION) {
+    return {
+      ...query,
+      appPlatforms: undefined,
+    };
+  }
+
+  return query;
+};
+
 const createDefaultSyncFormValues = (): SyncHourlyFormValues => ({
   dateRange: [dayjs(), dayjs()],
   hourFrom: DEFAULT_HOURLY_REPORT_HOUR,
@@ -90,6 +137,7 @@ const buildProjectHourlyReportQuery = (
   );
   const resolvedDateRange =
     resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, query.dateRangePreset) || query.dateRange;
+
   return {
     dateFrom: resolvedDateRange[0],
     dateTo: resolvedDateRange[1],
@@ -99,6 +147,10 @@ const buildProjectHourlyReportQuery = (
     filters: {
       projectCodes: normalizeProjectCodes(query.projectCodes),
       countries: normalizeCountries(query.countries),
+      exclude: {
+        projectCodes: normalizeProjectCodes(query.exclude?.projectCodes),
+        countries: normalizeCountries(query.exclude?.countries),
+      },
       adStatuses: normalizeAdStatuses(query.adStatuses),
       appPlatforms: normalizeAppPlatforms(query.appPlatforms),
     },
@@ -115,6 +167,8 @@ const ProjectHourlyReportPage: React.FC = () => {
   const [appliedState, setAppliedState] = useState<AppliedReportState | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncModalOpen, setSyncModalOpen] = useState(false);
+  const projectOptionsLoadedRef = useRef(false);
+
   const projectCodeOptions = useMemo(
     () => projectItems.map((item) => ({ label: item.projectCode, value: item.projectCode })),
     [projectItems],
@@ -152,16 +206,16 @@ const ProjectHourlyReportPage: React.FC = () => {
   const dimensionOptions = createProjectDimensionOptions({ onJump: handleJumpToDashboard, includeHour: true });
 
   const refreshProjectCodes = useCallback(
-    async (keyword?: string) => {
+    async () => {
       const res = await getProjects({
-        keyword,
         page: 1,
         pageSize: 200,
       });
       if (res.code !== 0) {
-        messageApi.error(res.msg || '获取项目编码失败');
+        messageApi.error(res.msg || '获取项目代号失败');
         return;
       }
+
       const nextItems = (res.data?.data ?? []).filter(
         (item): item is ProjectItem => Boolean(item?.id) && Boolean(item?.projectCode),
       );
@@ -171,6 +225,10 @@ const ProjectHourlyReportPage: React.FC = () => {
   );
 
   useEffect(() => {
+    if (projectOptionsLoadedRef.current) {
+      return;
+    }
+    projectOptionsLoadedRef.current = true;
     refreshProjectCodes();
   }, [refreshProjectCodes]);
 
@@ -240,7 +298,13 @@ const ProjectHourlyReportPage: React.FC = () => {
   }, [closeSyncModal, messageApi, syncForm]);
 
   const fetchHourlyReportData = useCallback(
-    async ({ query, page, pageSize, dimensions, sorter }: {
+    async ({
+      query,
+      page,
+      pageSize,
+      dimensions,
+      sorter,
+    }: {
       query: QueryState;
       page: number;
       pageSize: number;
@@ -318,10 +382,9 @@ const ProjectHourlyReportPage: React.FC = () => {
             <Select
               allowClear
               showSearch
-              filterOption={false}
+              filterOption
               placeholder="默认全部项目"
               options={syncProjectOptions}
-              onSearch={(value) => refreshProjectCodes(value)}
             />
           </Form.Item>
         </Form>
@@ -343,6 +406,7 @@ const ProjectHourlyReportPage: React.FC = () => {
           hour: DEFAULT_HOURLY_REPORT_HOUR,
           projectCodes: undefined,
           countries: undefined,
+          exclude: undefined,
           adStatuses: undefined,
           appPlatforms: undefined,
         }}
@@ -358,6 +422,7 @@ const ProjectHourlyReportPage: React.FC = () => {
         dimensionOptions={dimensionOptions}
         defaultVisibleFilterDimensions={['projectCode', 'country']}
         metricOptions={PROJECT_REPORT_METRIC_OPTIONS}
+        clearQueryWhenFilterHidden={clearProjectHourlyQueryWhenFilterHidden}
         onAppliedStateChange={setAppliedState}
         renderFilters={({ query, setQuery, visibleFilterDimensions }) => (
           <Form layout="inline" style={{ rowGap: 4 }}>
@@ -392,17 +457,16 @@ const ProjectHourlyReportPage: React.FC = () => {
               />
             </Form.Item>
             {visibleFilterDimensions.includes('projectCode') ? (
-              <Form.Item label="项目编码">
-                <Select
+              <Form.Item label="项目代号">
+                <IncludeExcludeSelect
                   mode="multiple"
-                  value={query.projectCodes}
-                  onChange={(value) => setQuery((prev) => ({ ...prev, projectCodes: value?.length ? value : undefined }))}
+                  value={toIncludeExcludeValue(query.projectCodes, query.exclude?.projectCodes)}
+                  onChange={(value) => setQuery((prev) => applyIncludeExcludeField(prev, 'projectCodes', value))}
                   options={projectCodeOptions}
                   showSearch
                   allowClear
-                  placeholder="请选择项目编码"
-                  onSearch={(value) => refreshProjectCodes(value)}
-                  filterOption={false}
+                  placeholder="请选择项目代号"
+                  filterOption
                   style={{ width: 260 }}
                   maxTagCount="responsive"
                 />
@@ -410,22 +474,17 @@ const ProjectHourlyReportPage: React.FC = () => {
             ) : null}
             {visibleFilterDimensions.includes('country') ? (
               <Form.Item label="国家">
-                <Select
+                <IncludeExcludeSelect
                   mode="tags"
                   allowClear
                   maxTagCount="responsive"
                   style={{ width: 220 }}
                   placeholder="请选择国家，支持输入"
                   tokenSeparators={[',', '，', ' ']}
-                  value={query.countries}
+                  value={toIncludeExcludeValue(query.countries, query.exclude?.countries)}
                   options={COMMON_COUNTRY_OPTIONS.map((code) => ({ label: code, value: code }))}
-                  onChange={(value) => {
-                    const normalized = (value || [])
-                      .map((item) => `${item}`.trim().toUpperCase())
-                      .filter(Boolean);
-                    const deduped = Array.from(new Set(normalized));
-                    setQuery((prev) => ({ ...prev, countries: deduped.length ? deduped : undefined }));
-                  }}
+                  normalizeValue={(item) => `${item}`.trim().toUpperCase()}
+                  onChange={(value) => setQuery((prev) => applyIncludeExcludeField(prev, 'countries', value))}
                 />
               </Form.Item>
             ) : null}

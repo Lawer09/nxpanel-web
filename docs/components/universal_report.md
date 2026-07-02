@@ -100,7 +100,9 @@ fetchData={async ({ query, page, pageSize, dimensions, sorter }) => {
 - 维度 Tag：控制“分组维度”
 - 漏斗 Tag：控制“该维度对应筛选项是否显示”
 - 两者互不强制绑定
+- 若页面传入 `clearQueryWhenFilterHidden`，当某个漏斗筛选被关闭时，组件会同步清空该筛选对应的 query 值，避免隐藏筛选后残留旧条件继续生效
 - 页面可以注入“仅前端展示”的伪维度列，用于控制额外列展示；这类维度若不属于后端真实 `groupBy`，页面在发请求前必须自行过滤
+- 报表页若需要在同一个筛选控件中同时维护“包含 + 排除”，建议复用 `src/components/report/IncludeExcludeSelect.tsx`；下拉列表中同一个选项只展示一行，点击整行默认加入包含，右侧通过 `Switch` 在“包含 / 排除”之间切换；筛选栏里的已选项使用无边框 tag，其中包含为灰色、排除为红色，页面查询状态中保留 `xxx` 作为包含值，额外使用 `filters.exclude.xxx` 承载排除值
 - `UniversalReportTable` 支持通过 `defaultVisibleFilterDimensions` 指定默认显示哪些筛选项；未传时仍回退为全部维度都显示漏斗
 - 单个 `dimensionOptions` 可通过 `disabled` / `isDisabled(dimensions)` 控制禁用态，并用 `disabledTooltip` 说明依赖条件；当依赖失效时，组件会自动把该维度从当前已选维度中清理掉，避免残留无效状态进入视图或查询链路
 
