@@ -1,11 +1,21 @@
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { ProTable } from '@ant-design/pro-components';
-import { App, Button, Modal, Space, Tag, Tooltip, Typography } from 'antd';
+import { App, Button, Modal, Select, Space, Tag, Tooltip, Typography } from 'antd';
 import dayjs from 'dayjs';
 import React, { useRef, useState } from 'react';
-import { batchDeleteBlockedIps, deleteBlockedIp, fetchBlockedIps } from '@/services/user/api';
+import {
+  batchDeleteBlockedIps,
+  deleteBlockedIp,
+  fetchBlockedIps,
+  updateBlockedIpType,
+} from '@/services/user/api';
 
 const { Text } = Typography;
+
+const BLOCKED_IP_TYPE_OPTIONS = [
+  { label: 'dangerous', value: 'dangerous' },
+  { label: 'normal', value: 'normal' },
+];
 
 type BlockedIpModalProps = {
   open: boolean;
@@ -14,6 +24,12 @@ type BlockedIpModalProps = {
 
 const formatTimestamp = (value?: number | null) =>
   value ? dayjs.unix(value).format('YYYY-MM-DD HH:mm:ss') : '-';
+
+const renderBlockedIpType = (value?: string | null) => {
+  if (!value) return '-';
+  const color = value === 'dangerous' ? 'red' : value === 'normal' ? 'green' : 'blue';
+  return <Tag color={color}>{value}</Tag>;
+};
 
 const renderUser = (user?: API.BlockedIpUserLite | null, userId?: number | null) => {
   if (!user && !userId) return '-';
@@ -31,6 +47,48 @@ const BlockedIpModal: React.FC<BlockedIpModalProps> = ({ open, onOpenChange }) =
   const { message: messageApi, modal: modalApi } = App.useApp();
   const actionRef = useRef<ActionType | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [editingRecord, setEditingRecord] = useState<API.UserBlockedIpItem | null>(null);
+  const [editingType, setEditingType] = useState('');
+  const [typeSubmitting, setTypeSubmitting] = useState(false);
+
+  const openTypeEditor = (record: API.UserBlockedIpItem) => {
+    setEditingRecord(record);
+    setEditingType(record.type || '');
+  };
+
+  const closeTypeEditor = () => {
+    if (typeSubmitting) return;
+    setEditingRecord(null);
+    setEditingType('');
+  };
+
+  const handleUpdateType = async () => {
+    if (!editingRecord) return;
+
+    const nextType = editingType.trim();
+    if (!nextType) {
+      messageApi.warning('请输入 type');
+      return;
+    }
+
+    setTypeSubmitting(true);
+    try {
+      const res = await updateBlockedIpType({
+        id: editingRecord.id,
+        type: nextType,
+      });
+      if (res.code !== 0) {
+        messageApi.error(res.msg || '更新 type 失败');
+        return;
+      }
+      messageApi.success('type 已更新');
+      setEditingRecord(null);
+      setEditingType('');
+      actionRef.current?.reload();
+    } finally {
+      setTypeSubmitting(false);
+    }
+  };
 
   const handleBatchDelete = () => {
     const ids = selectedRowKeys.map((id) => Number(id)).filter((id) => Number.isFinite(id));
@@ -65,6 +123,13 @@ const BlockedIpModal: React.FC<BlockedIpModalProps> = ({ open, onOpenChange }) =
   const columns: ProColumns<API.UserBlockedIpItem>[] = [
     { title: 'ID', dataIndex: 'id', width: 80, search: false },
     { title: '封禁 IP', dataIndex: 'ip', width: 150 },
+    {
+      title: 'Type',
+      dataIndex: 'type',
+      width: 140,
+      search: false,
+      render: (_, record) => renderBlockedIpType(record.type),
+    },
     {
       title: '被封禁用户 ID',
       dataIndex: 'bannedUserId',
@@ -127,8 +192,16 @@ const BlockedIpModal: React.FC<BlockedIpModalProps> = ({ open, onOpenChange }) =
     {
       title: '操作',
       valueType: 'option',
-      width: 90,
+      width: 150,
       render: (_, record) => [
+        <a
+          key="updateType"
+          onClick={() => {
+            openTypeEditor(record);
+          }}
+        >
+          更新类型
+        </a>,
         <a
           key="delete"
           style={{ color: '#ff4d4f' }}
@@ -206,10 +279,31 @@ const BlockedIpModal: React.FC<BlockedIpModalProps> = ({ open, onOpenChange }) =
         }}
         pagination={{ defaultPageSize: 10, showSizeChanger: true }}
         search={{ labelWidth: 110 }}
-        scroll={{ x: 1260 }}
+        scroll={{ x: 1380 }}
         size="small"
         bordered
       />
+      <Modal
+        title={editingRecord ? `更新封禁 IP 类型：${editingRecord.ip}` : '更新封禁 IP 类型'}
+        open={!!editingRecord}
+        onOk={handleUpdateType}
+        confirmLoading={typeSubmitting}
+        onCancel={closeTypeEditor}
+        destroyOnHidden
+      >
+        <Space direction="vertical" size={8} style={{ width: '100%' }}>
+          <Text type="secondary">
+            当前类型：{editingRecord ? renderBlockedIpType(editingRecord.type) : '-'}
+          </Text>
+          <Select
+            value={editingType}
+            options={BLOCKED_IP_TYPE_OPTIONS}
+            placeholder="请选择 type"
+            style={{ width: '100%' }}
+            onChange={(value) => setEditingType(value)}
+          />
+        </Space>
+      </Modal>
     </Modal>
   );
 };

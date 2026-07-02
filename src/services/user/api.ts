@@ -143,6 +143,18 @@ export async function batchDeleteBlockedIps(
   );
 }
 
+export async function updateBlockedIpType(
+  body: API.UserBlockedIpUpdateTypeParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.UserBlockedIpItem>>('/v3/user/blockedIp/updateType', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}
+
 export async function fetchAidLoginBanRules(
   params: API.AidLoginBanRuleFetchParams,
   options?: { [key: string]: any },

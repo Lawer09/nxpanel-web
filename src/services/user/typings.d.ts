@@ -148,6 +148,7 @@ declare namespace API {
   interface UserBlockedIpItem {
     id: number;
     ip: string;
+    type?: string | null;
     reason?: string | null;
     metadata?: Record<string, any> | null;
     banned_user_id?: number | null;
@@ -170,6 +171,11 @@ declare namespace API {
     deletedCount: number;
     requestedCount: number;
     missingIds?: number[];
+  }
+
+  interface UserBlockedIpUpdateTypeParams {
+    id: number;
+    type: string;
   }
 
   interface AidLoginBanRuleWeeklyWindow {

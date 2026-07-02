@@ -100,3 +100,34 @@
 - `src/pages/user-manage/index.tsx`
 - `src/pages/report/node-summary-report/index.tsx`
 - `src/services/project/api.ts`
+
+## 封禁 IP 列表缺少 type 展示与更新入口
+
+### 出现场景
+
+封禁 IP 列表接口新增了 `type` 字段，且后台支持通过 `updateType` 单独修改类型；但前端列表仍然只展示 IP、原因、操作者等信息，没有展示当前 type，也没有提供更新入口。
+
+### 问题原因
+
+- `UserBlockedIpItem` 类型定义未补充 `type` 字段。
+- 用户服务层未封装 `/v3/user/blockedIp/updateType` 接口。
+- 列表缺少针对已知类型的统一展示与更新交互，导致人工维护成本高。
+
+### 解决方式
+
+- 在封禁 IP 列表中新增 `Type` 列，直接展示后端返回的当前类型。
+- 新增 `updateBlockedIpType` 服务封装，操作列补充“更新类型”入口。
+- 更新类型弹窗改为固定下拉，先内置 `dangerous` 和 `normal` 两个选项，并通过标签颜色区分展示。
+
+### 影响范围
+
+- 用户管理页中的封禁 IP 列表展示
+- 封禁 IP 类型的人工维护操作
+- 用户服务层 blocked IP 相关类型定义与接口封装
+
+### 相关文件
+
+- `src/pages/user-manage/components/BlockedIpModal.tsx`
+- `src/services/user/api.ts`
+- `src/services/user/typings.d.ts`
+- `docs/api/user_api.md`

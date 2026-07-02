@@ -124,6 +124,7 @@ POST /api/v3/admin/user/blockedIp/fetch
             {
                 "id": 1,
                 "ip": "203.0.113.30",
+                "type": "dangerous",
                 "reason": "fraud batch",
                 "metadata": {
                     "source": "admin_batch_ban",
@@ -146,6 +147,41 @@ POST /api/v3/admin/user/blockedIp/fetch
         "total": 1,
         "page": 1,
         "pageSize": 20
+    }
+}
+```
+
+## 更新封禁用户 IP 类型
+
+`POST /v3/user/blockedIp/updateType`
+
+### 请求参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `id` | `int` | 是 | 封禁 IP 记录 ID |
+| `type` | `string` | 是 | 封禁 IP 类型，例如 `dangerous` |
+
+### 请求示例
+
+```json
+POST /api/v3/admin/user/blockedIp/updateType
+{
+    "id": 1,
+    "type": "dangerous"
+}
+```
+
+### 返回示例
+
+```json
+{
+    "code": 0,
+    "msg": "操作成功",
+    "data": {
+        "id": 1,
+        "ip": "203.0.113.30",
+        "type": "dangerous"
     }
 }
 ```
