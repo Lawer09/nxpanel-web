@@ -27,21 +27,42 @@ const formatTimestamp = (value?: number | null) =>
 
 const renderBlockedIpType = (value?: string | null) => {
   if (!value) return '-';
-  const color = value === 'dangerous' ? 'red' : value === 'normal' ? 'green' : 'blue';
-  return <Tag color={color}>{value}</Tag>;
-};
-
-const renderUser = (user?: API.BlockedIpUserLite | null, userId?: number | null) => {
-  if (!user && !userId) return '-';
+  const meta =
+    value === 'dangerous'
+      ? { color: 'red', label: '高风险' }
+      : value === 'normal'
+        ? { color: 'green', label: '普通' }
+        : { color: 'blue', label: value };
   return (
-    <Space direction="vertical" size={0}>
-      <Text>{user?.email || '-'}</Text>
-      <Text type="secondary" style={{ fontSize: 12 }}>
-        ID: {user?.id ?? userId}
-      </Text>
-    </Space>
+    <Tooltip title={value}>
+      <Tag color={meta.color} style={{ marginInlineEnd: 0 }}>
+        {meta.label}
+      </Tag>
+    </Tooltip>
   );
 };
+
+const renderCompactUser = (
+  label: string,
+  user?: API.BlockedIpUserLite | null,
+) => (
+  <Space size={6} align="start">
+    <Text type="secondary" style={{ width: 42, fontSize: 12, lineHeight: '22px' }}>
+      {label}
+    </Text>
+    <div style={{ minWidth: 0 }}>
+      {user?.email ? (
+        <Tooltip title={user.email}>
+          <Text ellipsis style={{ maxWidth: 180 }}>
+            {user.email}
+          </Text>
+        </Tooltip>
+      ) : (
+        <Text type="secondary">-</Text>
+      )}
+    </div>
+  </Space>
+);
 
 const BlockedIpModal: React.FC<BlockedIpModalProps> = ({ open, onOpenChange }) => {
   const { message: messageApi, modal: modalApi } = App.useApp();
@@ -121,14 +142,43 @@ const BlockedIpModal: React.FC<BlockedIpModalProps> = ({ open, onOpenChange }) =
   };
 
   const columns: ProColumns<API.UserBlockedIpItem>[] = [
-    { title: 'ID', dataIndex: 'id', width: 80, search: false },
-    { title: '封禁 IP', dataIndex: 'ip', width: 150 },
     {
-      title: 'Type',
+      title: '封禁 IP',
+      dataIndex: 'ip',
+      width: 210,
+      render: (_, record) => (
+        <Space direction="vertical" size={2} style={{ maxWidth: 190 }}>
+          <Text strong copyable ellipsis>
+            {record.ip}
+          </Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            记录 ID：{record.id}
+          </Text>
+        </Space>
+      ),
+    },
+    {
+      title: '状态',
       dataIndex: 'type',
-      width: 140,
+      width: 150,
       search: false,
-      render: (_, record) => renderBlockedIpType(record.type),
+      render: (_, record) => {
+        const source = record.metadata?.source;
+        return (
+          <Space direction="vertical" size={6}>
+            {renderBlockedIpType(record.type)}
+            {source ? (
+              <Tooltip title={`来源：${source}`}>
+                <Tag style={{ marginInlineEnd: 0 }}>{source}</Tag>
+              </Tooltip>
+            ) : (
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                无来源
+              </Text>
+            )}
+          </Space>
+        );
+      },
     },
     {
       title: '被封禁用户 ID',
@@ -143,56 +193,41 @@ const BlockedIpModal: React.FC<BlockedIpModalProps> = ({ open, onOpenChange }) =
       hideInTable: true,
     },
     {
-      title: '被封禁用户',
+      title: '关联用户',
       dataIndex: 'banned_user',
-      width: 220,
+      width: 270,
       search: false,
-      render: (_, record) => renderUser(record.banned_user, record.banned_user_id),
+      render: (_, record) => (
+        <Space direction="vertical" size={6} style={{ width: '100%' }}>
+          {renderCompactUser('用户', record.banned_user)}
+          {renderCompactUser('管理员', record.operator_user)}
+        </Space>
+      ),
     },
     {
-      title: '操作管理员',
-      dataIndex: 'operator_user',
-      width: 220,
-      search: false,
-      render: (_, record) => renderUser(record.operator_user, record.operator_user_id),
-    },
-    {
-      title: '原因',
+      title: '封禁信息',
       dataIndex: 'reason',
-      width: 180,
+      width: 280,
       search: false,
-      render: (_, record) =>
-        record.reason ? (
-          <Tooltip title={record.reason}>
-            <Text ellipsis style={{ maxWidth: 160 }}>
-              {record.reason}
-            </Text>
-          </Tooltip>
-        ) : (
-          '-'
-        ),
-    },
-    {
-      title: '来源',
-      dataIndex: ['metadata', 'source'],
-      width: 150,
-      search: false,
-      render: (_, record) => {
-        const source = record.metadata?.source;
-        return source ? <Tag>{source}</Tag> : '-';
-      },
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'created_at',
-      width: 170,
-      search: false,
-      render: (_, record) => formatTimestamp(record.created_at),
+      render: (_, record) => (
+        <Space direction="vertical" size={4} style={{ maxWidth: 260 }}>
+          {record.reason ? (
+            <Tooltip title={record.reason}>
+              <Text ellipsis>{record.reason}</Text>
+            </Tooltip>
+          ) : (
+            <Text type="secondary">无原因</Text>
+          )}
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            创建：{formatTimestamp(record.created_at)}
+          </Text>
+        </Space>
+      ),
     },
     {
       title: '操作',
       valueType: 'option',
-      width: 150,
+      width: 130,
       render: (_, record) => [
         <a
           key="updateType"
@@ -279,7 +314,7 @@ const BlockedIpModal: React.FC<BlockedIpModalProps> = ({ open, onOpenChange }) =
         }}
         pagination={{ defaultPageSize: 10, showSizeChanger: true }}
         search={{ labelWidth: 110 }}
-        scroll={{ x: 1380 }}
+        scroll={{ x: 1040 }}
         size="small"
         bordered
       />
