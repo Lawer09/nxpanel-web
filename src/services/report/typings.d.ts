@@ -315,6 +315,7 @@ declare namespace API {
       };
       adStatuses?: string[];
       appPlatforms?: string[];
+      departments?: string[];
     };
     page?: number;
     pageSize?: number;
@@ -337,6 +338,7 @@ declare namespace API {
       };
       adStatuses?: string[];
       appPlatforms?: string[];
+      departments?: string[];
     };
     page?: number;
     pageSize?: number;

@@ -36,6 +36,7 @@ export const COMMON_COUNTRY_OPTIONS = [
 
 export const APP_PLATFORM_DISPLAY_DIMENSION = 'appPlatformDisplay';
 export const AD_STATUS_DISPLAY_DIMENSION = 'adStatusDisplay';
+export const DEPARTMENT_DISPLAY_DIMENSION = 'departmentDisplay';
 
 const toSafeNumber = (value: unknown) => {
   if (value === null || value === undefined || value === '') return null;
@@ -678,6 +679,21 @@ export const createProjectDimensionOptions = ({
         },
       },
     },
+    {
+      label: '閮ㄩ棬',
+      value: DEPARTMENT_DISPLAY_DIMENSION,
+      disabledTooltip: '闇€鍏堥€夋嫨椤圭洰缂栫爜',
+      isDisabled: (dimensions: string[]) => !dimensions.includes('projectCode'),
+      column: {
+        title: '閮ㄩ棬',
+        key: DEPARTMENT_DISPLAY_DIMENSION,
+        width: 140,
+        render: (_: unknown, record: API.ProjectReportItem) => {
+          const department = typeof record.department === 'string' ? record.department.trim() : '';
+          return department || '--';
+        },
+      },
+    },
   ];
 
   return baseDimensions;
@@ -710,5 +726,11 @@ export const normalizeAdStatuses = (adStatuses?: string[]) => {
 export const normalizeAppPlatforms = (appPlatforms?: string[]) => {
   if (!Array.isArray(appPlatforms) || !appPlatforms.length) return undefined;
   const normalized = appPlatforms.map((item) => `${item}`.trim().toUpperCase()).filter(Boolean);
+  return normalized.length ? Array.from(new Set(normalized)) : undefined;
+};
+
+export const normalizeDepartments = (departments?: string[]) => {
+  if (!Array.isArray(departments) || !departments.length) return undefined;
+  const normalized = departments.map((item) => `${item}`.trim()).filter(Boolean);
   return normalized.length ? Array.from(new Set(normalized)) : undefined;
 };

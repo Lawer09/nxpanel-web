@@ -16,6 +16,7 @@ import UniversalReportTable from '@/components/report/UniversalReportTable';
 import { PROJECT_AD_STATUS_OPTIONS, PROJECT_APP_PLATFORM_OPTIONS } from '@/pages/project/constants';
 import {
   AD_STATUS_DISPLAY_DIMENSION,
+  DEPARTMENT_DISPLAY_DIMENSION,
   APP_PLATFORM_DISPLAY_DIMENSION,
   COMMON_COUNTRY_OPTIONS,
   PROJECT_REPORT_METRIC_OPTIONS,
@@ -23,6 +24,7 @@ import {
   normalizeAdStatuses,
   normalizeAppPlatforms,
   normalizeCountries,
+  normalizeDepartments,
   normalizeProjectCodes,
   toOrderDirection,
 } from '@/pages/report/project/reportShared';
@@ -32,7 +34,7 @@ import {
   type ProjectExcludeFilters,
 } from '@/pages/report/project/includeExclude';
 import { buildProjectTrendSearch, PROJECT_TREND_DASHBOARD_PATH } from '@/pages/report/project-trend/utils';
-import { getProjects } from '@/services/project/api';
+import { getProjectDepartments, getProjects } from '@/services/project/api';
 import { exportProjectReport, queryProjectReport } from '@/services/report/api';
 
 const { RangePicker } = DatePicker;
@@ -47,6 +49,7 @@ type QueryState = {
   exclude?: ProjectExcludeFilters;
   adStatuses?: string[];
   appPlatforms?: string[];
+  departments?: string[];
 };
 
 type ReportSorterState = {
@@ -62,11 +65,7 @@ type AppliedReportState = {
   sorter?: ReportSorterState;
 };
 
-const REAL_PROJECT_REPORT_DIMENSIONS: API.ProjectReportDimension[] = [
-  'reportDate',
-  'projectCode',
-  'country',
-];
+const REAL_PROJECT_REPORT_DIMENSIONS: API.ProjectReportDimension[] = ['reportDate', 'projectCode', 'country'];
 
 const clearProjectReportQueryWhenFilterHidden = (
   query: QueryState,
@@ -112,6 +111,13 @@ const clearProjectReportQueryWhenFilterHidden = (
     };
   }
 
+  if (dimension === DEPARTMENT_DISPLAY_DIMENSION) {
+    return {
+      ...query,
+      departments: undefined,
+    };
+  }
+
   return query;
 };
 
@@ -140,6 +146,7 @@ const buildProjectReportQuery = (
       },
       adStatuses: normalizeAdStatuses(query.adStatuses),
       appPlatforms: normalizeAppPlatforms(query.appPlatforms),
+      departments: normalizeDepartments(query.departments),
     },
     orderBy: sorter?.field || sorter?.columnKey,
     orderDirection: toOrderDirection(sorter?.order),
@@ -150,6 +157,7 @@ const ProjectAggregatesPage: React.FC = () => {
   const { message: messageApi } = App.useApp();
   const today = dayjs().format('YYYY-MM-DD');
   const [projectOptions, setProjectOptions] = useState<string[]>([]);
+  const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
   const [appliedState, setAppliedState] = useState<AppliedReportState | null>(null);
   const projectOptionsLoadedRef = useRef(false);
 
@@ -192,13 +200,27 @@ const ProjectAggregatesPage: React.FC = () => {
     setProjectOptions(Array.from(new Set(options)));
   }, [messageApi]);
 
+  const refreshDepartments = useCallback(async () => {
+    const res = await getProjectDepartments();
+    if (res.code !== 0) {
+      messageApi.error(res.msg || '获取部门列表失败');
+      return;
+    }
+
+    const options = (Array.isArray(res.data) ? res.data : [])
+      .map((item) => `${item}`.trim())
+      .filter(Boolean);
+    setDepartmentOptions(Array.from(new Set(options)));
+  }, [messageApi]);
+
   useEffect(() => {
     if (projectOptionsLoadedRef.current) {
       return;
     }
     projectOptionsLoadedRef.current = true;
     refreshProjectCodes();
-  }, [refreshProjectCodes]);
+    refreshDepartments();
+  }, [refreshDepartments, refreshProjectCodes]);
 
   const fetchProjectReportData = useCallback(
     async ({
@@ -258,6 +280,7 @@ const ProjectAggregatesPage: React.FC = () => {
           exclude: undefined,
           adStatuses: undefined,
           appPlatforms: undefined,
+          departments: undefined,
         }}
         defaultDimensions={['projectCode']}
         defaultMetrics={[
@@ -399,6 +422,30 @@ const ProjectAggregatesPage: React.FC = () => {
                     setQuery((prev) => ({
                       ...prev,
                       appPlatforms: deduped.length ? deduped : undefined,
+                    }));
+                  }}
+                />
+              </Form.Item>
+            ) : null}
+            {visibleFilterDimensions.includes(DEPARTMENT_DISPLAY_DIMENSION) ? (
+              <Form.Item label="部门">
+                <Select
+                  mode="tags"
+                  allowClear
+                  maxTagCount="responsive"
+                  style={{ width: 240 }}
+                  placeholder="请选择部门，支持输入"
+                  tokenSeparators={[',', '，', ' ']}
+                  value={query.departments}
+                  options={departmentOptions.map((item) => ({ label: item, value: item }))}
+                  onChange={(value) => {
+                    const normalized = (value || [])
+                      .map((item) => `${item}`.trim())
+                      .filter(Boolean);
+                    const deduped = Array.from(new Set(normalized));
+                    setQuery((prev) => ({
+                      ...prev,
+                      departments: deduped.length ? deduped : undefined,
                     }));
                   }}
                 />

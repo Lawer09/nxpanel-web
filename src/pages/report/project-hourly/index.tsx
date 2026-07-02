@@ -16,6 +16,7 @@ import UniversalReportTable from '@/components/report/UniversalReportTable';
 import { PROJECT_AD_STATUS_OPTIONS, PROJECT_APP_PLATFORM_OPTIONS } from '@/pages/project/constants';
 import {
   AD_STATUS_DISPLAY_DIMENSION,
+  DEPARTMENT_DISPLAY_DIMENSION,
   APP_PLATFORM_DISPLAY_DIMENSION,
   COMMON_COUNTRY_OPTIONS,
   PROJECT_REPORT_METRIC_OPTIONS,
@@ -24,12 +25,13 @@ import {
   normalizeAdStatuses,
   normalizeAppPlatforms,
   normalizeCountries,
+  normalizeDepartments,
   normalizeProjectCodes,
   toOrderDirection,
 } from '@/pages/report/project/reportShared';
 import { applyIncludeExcludeField, toIncludeExcludeValue, type ProjectExcludeFilters } from '@/pages/report/project/includeExclude';
 import { buildProjectTrendSearch, PROJECT_TREND_DASHBOARD_PATH } from '@/pages/report/project-trend/utils';
-import { aggregateHourly, getProjects } from '@/services/project/api';
+import { aggregateHourly, getProjectDepartments, getProjects } from '@/services/project/api';
 import type { ProjectItem } from '@/services/project/types';
 import { queryProjectHourlyReport } from '@/services/report/api';
 
@@ -51,6 +53,7 @@ type QueryState = {
   exclude?: ProjectExcludeFilters;
   adStatuses?: string[];
   appPlatforms?: string[];
+  departments?: string[];
 };
 
 type ReportSorterState = {
@@ -116,6 +119,13 @@ const clearProjectHourlyQueryWhenFilterHidden = (query: QueryState, dimension: s
     };
   }
 
+  if (dimension === DEPARTMENT_DISPLAY_DIMENSION) {
+    return {
+      ...query,
+      departments: undefined,
+    };
+  }
+
   return query;
 };
 
@@ -153,6 +163,7 @@ const buildProjectHourlyReportQuery = (
       },
       adStatuses: normalizeAdStatuses(query.adStatuses),
       appPlatforms: normalizeAppPlatforms(query.appPlatforms),
+      departments: normalizeDepartments(query.departments),
     },
     orderBy: sorter?.field || sorter?.columnKey,
     orderDirection: toOrderDirection(sorter?.order),
@@ -164,6 +175,7 @@ const ProjectHourlyReportPage: React.FC = () => {
   const today = dayjs().format('YYYY-MM-DD');
   const [syncForm] = Form.useForm<SyncHourlyFormValues>();
   const [projectItems, setProjectItems] = useState<ProjectItem[]>([]);
+  const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
   const [appliedState, setAppliedState] = useState<AppliedReportState | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncModalOpen, setSyncModalOpen] = useState(false);
@@ -224,13 +236,27 @@ const ProjectHourlyReportPage: React.FC = () => {
     [messageApi],
   );
 
+  const refreshDepartments = useCallback(async () => {
+    const res = await getProjectDepartments();
+    if (res.code !== 0) {
+      messageApi.error(res.msg || '获取部门列表失败');
+      return;
+    }
+
+    const options = (Array.isArray(res.data) ? res.data : [])
+      .map((item) => `${item}`.trim())
+      .filter(Boolean);
+    setDepartmentOptions(Array.from(new Set(options)));
+  }, [messageApi]);
+
   useEffect(() => {
     if (projectOptionsLoadedRef.current) {
       return;
     }
     projectOptionsLoadedRef.current = true;
     refreshProjectCodes();
-  }, [refreshProjectCodes]);
+    refreshDepartments();
+  }, [refreshDepartments, refreshProjectCodes]);
 
   useEffect(() => {
     if (!syncModalOpen) {
@@ -409,6 +435,7 @@ const ProjectHourlyReportPage: React.FC = () => {
           exclude: undefined,
           adStatuses: undefined,
           appPlatforms: undefined,
+          departments: undefined,
         }}
         defaultDimensions={['reportDate', 'hour', 'projectCode']}
         defaultMetrics={['newUsers', 'reportNewUsers', 'dauUsers', 'adRevenue', 'adSpendCost', 'trafficCost', 'profit', 'roi']}
@@ -522,6 +549,28 @@ const ProjectHourlyReportPage: React.FC = () => {
                     const normalized = (value || []).map((item) => `${item}`.trim().toUpperCase()).filter(Boolean);
                     const deduped = Array.from(new Set(normalized));
                     setQuery((prev) => ({ ...prev, appPlatforms: deduped.length ? deduped : undefined }));
+                  }}
+                />
+              </Form.Item>
+            ) : null}
+            {visibleFilterDimensions.includes(DEPARTMENT_DISPLAY_DIMENSION) ? (
+              <Form.Item label="部门">
+                <Select
+                  mode="tags"
+                  allowClear
+                  maxTagCount="responsive"
+                  style={{ width: 240 }}
+                  placeholder="请选择部门，支持输入"
+                  tokenSeparators={[',', '，', ' ']}
+                  value={query.departments}
+                  options={departmentOptions.map((item) => ({ label: item, value: item }))}
+                  onChange={(value) => {
+                    const normalized = (value || []).map((item) => `${item}`.trim()).filter(Boolean);
+                    const deduped = Array.from(new Set(normalized));
+                    setQuery((prev) => ({
+                      ...prev,
+                      departments: deduped.length ? deduped : undefined,
+                    }));
                   }}
                 />
               </Form.Item>

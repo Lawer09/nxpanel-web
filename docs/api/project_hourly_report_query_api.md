@@ -21,6 +21,7 @@
 | filters.countries | string[] | 否 | 国家筛选，服务端统一转大写 |
 | filters.adStatuses | string[] | 否 | 投放状态筛选，仅过滤不返回 |
 | filters.appPlatforms | string[] | 否 | 应用平台筛选，仅过滤不返回 |
+| filters.departments | string[] | 否 | 部门筛选，仅过滤不返回 |
 | page | int | 否 | 默认 `1` |
 | pageSize | int | 否 | 默认 `50`，最大 `400` |
 | orderBy | string | 否 | 支持维度字段和日报同款指标字段 |
@@ -47,7 +48,7 @@
   - 支持选择单个小时，也支持清空后查询全天小时
   - 默认小时为当前时间的上一个小时
 - “同步小时数据”使用独立弹窗，不直接复用筛选栏条件
-- `adStatuses`、`appPlatforms` 仅作为筛选条件使用，不进入后端 `groupBy`
+- `adStatuses`、`appPlatforms`、`departments` 仅作为筛选条件使用，不进入后端 `groupBy`
 
 ## 2026-07-02 补充
 
