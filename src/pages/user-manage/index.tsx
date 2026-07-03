@@ -125,6 +125,11 @@ const getMappingList = (
   return [];
 };
 
+const getSingleSelectValue = (value: unknown) => {
+  if (Array.isArray(value)) return value[0];
+  return value;
+};
+
 const UserManagePage: React.FC = () => {
   const { message: messageApi, modal: modalApi } = App.useApp();
   const actionRef = useRef<ActionType | null>(null);
@@ -151,6 +156,8 @@ const UserManagePage: React.FC = () => {
     idSearch?: string;
     emailSearch?: string;
     metaAppId?: string;
+    metaCountry?: string;
+    metaIp?: string;
     metaChannel?: string;
   }>({ total: 0, banned: false });
 
@@ -308,6 +315,38 @@ const UserManagePage: React.FC = () => {
           options={appIdOptions}
           optionFilterProp="label"
           placeholder="请选择或搜索应用 ID"
+        />
+      ),
+    },
+    {
+      title: '国家',
+      dataIndex: 'meta_country',
+      hideInTable: true,
+      renderFormItem: () => (
+        <Select
+          allowClear
+          showSearch
+          mode="tags"
+          maxCount={1}
+          options={[]}
+          placeholder="请输入或选择国家"
+          open={false}
+        />
+      ),
+    },
+    {
+      title: 'IP',
+      dataIndex: 'meta_ip',
+      hideInTable: true,
+      renderFormItem: () => (
+        <Select
+          allowClear
+          showSearch
+          mode="tags"
+          maxCount={1}
+          options={[]}
+          placeholder="请输入或选择 IP"
+          open={false}
         />
       ),
     },
@@ -627,6 +666,8 @@ const UserManagePage: React.FC = () => {
           {resultSummary.idSearch ? <Tag>用户 ID：{resultSummary.idSearch}</Tag> : null}
           {resultSummary.emailSearch ? <Tag>邮箱：{resultSummary.emailSearch}</Tag> : null}
           {resultSummary.metaAppId ? <Tag>包名：{resultSummary.metaAppId}</Tag> : null}
+          {resultSummary.metaCountry ? <Tag>国家：{resultSummary.metaCountry}</Tag> : null}
+          {resultSummary.metaIp ? <Tag>IP：{resultSummary.metaIp}</Tag> : null}
           {resultSummary.metaChannel ? <Tag>渠道：{resultSummary.metaChannel}</Tag> : null}
         </Space>
       </Card>
@@ -689,9 +730,17 @@ const UserManagePage: React.FC = () => {
           if (params.email_search) {
             filter.push({ id: 'email', value: `like:${params.email_search}` });
           }
+          const metaCountry = getSingleSelectValue(params.meta_country);
+          const metaIp = getSingleSelectValue(params.meta_ip);
           const meta: Record<string, string | number> = {};
           if (params.meta_app_id) {
             meta.app_id = params.meta_app_id;
+          }
+          if (metaCountry) {
+            meta.country = String(metaCountry);
+          }
+          if (metaIp) {
+            meta.ip = String(metaIp);
           }
           if (params.meta_channel) {
             meta.channel_type = params.meta_channel;
@@ -721,6 +770,8 @@ const UserManagePage: React.FC = () => {
             idSearch: params.id_search,
             emailSearch: params.email_search,
             metaAppId: params.meta_app_id,
+            metaCountry: metaCountry ? String(metaCountry) : undefined,
+            metaIp: metaIp ? String(metaIp) : undefined,
             metaChannel: params.meta_channel,
           });
           return {

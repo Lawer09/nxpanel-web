@@ -131,3 +131,31 @@
 - `src/services/user/api.ts`
 - `src/services/user/typings.d.ts`
 - `docs/api/user_api.md`
+
+## 用户管理新增国家与 IP 注册筛选
+
+### 出现场景
+
+用户管理页需要按注册国家和注册 IP 快速定位用户，但当前筛选栏只有注册包名、注册渠道等注册元数据筛选项，排查特定地域或特定来源 IP 的用户时需要人工翻列表。
+
+### 问题原因
+
+- 用户查询接口支持通过 `meta` 对 `register_metadata` 字段过滤，但前端未暴露 `country`、`ip` 两个常用键。
+- 当前没有独立的国家或 IP 候选接口，不适合凭空构造固定枚举。
+
+### 解决方式
+
+- 在用户管理筛选栏新增“国家”和“IP”两个筛选项。
+- 两者沿用注册包名所在的注册元数据过滤逻辑，最终分别映射到 `meta.country` 和 `meta.ip`。
+- 交互采用可输入的单值下拉，既保持筛选栏样式一致，也允许直接输入精确值。
+
+### 影响范围
+
+- 用户管理页筛选栏
+- 用户查询请求中的 `register_metadata` 过滤参数
+- 当前筛选结果摘要标签展示
+
+### 相关文件
+
+- `src/pages/user-manage/index.tsx`
+- `docs/api/user_api.md`
