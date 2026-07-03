@@ -18,6 +18,8 @@ const SyncServersModal: React.FC<SyncServersModalProps> = ({ open, onClose }) =>
   const [data, setData] = useState<API.SyncServer[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const [formOpen, setFormOpen] = useState(false);
   const [currentRecord, setCurrentRecord] = useState<API.SyncServer | undefined>();
@@ -50,7 +52,7 @@ const SyncServersModal: React.FC<SyncServersModalProps> = ({ open, onClose }) =>
   const fetchSyncServers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getSyncServers();
+      const res = await getSyncServers({ page, pageSize });
       if (res.code === 0 && res.data) {
         setData(res.data.data ?? []);
         setTotal(res.data.total ?? 0);
@@ -60,7 +62,7 @@ const SyncServersModal: React.FC<SyncServersModalProps> = ({ open, onClose }) =>
     } finally {
       setLoading(false);
     }
-  }, [messageApi]);
+  }, [page, pageSize, messageApi]);
 
   useEffect(() => {
     if (open) fetchSyncServers();
@@ -166,9 +168,14 @@ const SyncServersModal: React.FC<SyncServersModalProps> = ({ open, onClose }) =>
         size="small"
         scroll={{ x: 900 }}
         pagination={{
+          current: page,
+          pageSize,
           total,
-          defaultPageSize: 20,
           showSizeChanger: true,
+          onChange: (nextPage, nextPageSize) => {
+            setPage(nextPage);
+            setPageSize(nextPageSize);
+          },
           showTotal: (count) => `共 ${count} 条`,
         }}
       />
@@ -178,6 +185,7 @@ const SyncServersModal: React.FC<SyncServersModalProps> = ({ open, onClose }) =>
         onOpenChange={setFormOpen}
         onSuccess={() => {
           setFormOpen(false);
+          setPage(1);
           fetchSyncServers();
         }}
       />

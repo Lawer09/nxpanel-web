@@ -104,6 +104,11 @@ declare namespace API {
     tags?: string[];
   }
 
+  interface SyncServerQuery {
+    page?: number;
+    pageSize?: number;
+  }
+
   interface TestSyncResult {
     url: string;
     httpStatus: number;

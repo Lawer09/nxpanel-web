@@ -84,9 +84,10 @@ export async function toggleProjectMappingStatus(id: number, status: string) {
 
 // ── 同步服务器 ────────────────────────────────────────────────────────────────
 
-export async function getSyncServers() {
+export async function getSyncServers(params?: API.SyncServerQuery) {
   return request<API.ApiResponse<API.PageResult<API.SyncServer>>>('/v3/sync-servers', {
     method: 'GET',
+    params,
   });
 }
 
