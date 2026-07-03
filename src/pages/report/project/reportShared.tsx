@@ -160,6 +160,130 @@ const getHourlyStatusMessages = (hourlyStatus: unknown) => {
   return messages;
 };
 
+type RecentHourlyAdMatchRateItem = {
+  reportDate: string;
+  hour: number;
+  hourStart?: string;
+  adRequests: number | null;
+  adMatchedRequests: number | null;
+  adMatchRate: number;
+};
+
+const parseRecentHourlyAdMatchRates = (value: unknown): RecentHourlyAdMatchRateItem[] => {
+  if (!Array.isArray(value)) return [];
+
+  const normalized: Array<RecentHourlyAdMatchRateItem | null> = value.map((item) => {
+    if (!item || typeof item !== 'object') return null;
+    const record = item as Record<string, unknown>;
+    const reportDate = typeof record.reportDate === 'string' ? record.reportDate.trim() : '';
+    const hour = toSafeNumber(record.hour);
+    const adMatchRate = toSafeNumber(record.adMatchRate);
+    if (!reportDate || hour === null || adMatchRate === null) return null;
+
+    return {
+      reportDate,
+      hour: Math.max(0, Math.min(23, Math.floor(hour))),
+      hourStart: typeof record.hourStart === 'string' ? record.hourStart.trim() : undefined,
+      adRequests: toSafeNumber(record.adRequests),
+      adMatchedRequests: toSafeNumber(record.adMatchedRequests),
+      adMatchRate,
+    };
+  });
+
+  return normalized
+    .filter((item): item is RecentHourlyAdMatchRateItem => item !== null)
+    .sort((a, b) => {
+      const aKey = `${a.reportDate} ${String(a.hour).padStart(2, '0')}`;
+      const bKey = `${b.reportDate} ${String(b.hour).padStart(2, '0')}`;
+      return aKey.localeCompare(bKey);
+    });
+};
+
+const getRecentHourlyAdMatchRateLabel = (item: RecentHourlyAdMatchRateItem) => {
+  return `${item.reportDate.slice(5)} ${String(item.hour).padStart(2, '0')}:00`;
+};
+
+const renderRecentHourlyAdMatchRateChart = (record?: Record<string, unknown>) => {
+  const rows = parseRecentHourlyAdMatchRates(record?.recentHourlyAdMatchRates);
+  if (!rows.length) return null;
+
+  const width = 176;
+  const height = 72;
+  const paddingTop = 8;
+  const paddingRight = 8;
+  const paddingBottom = 14;
+  const paddingLeft = 28;
+  const chartWidth = width - paddingLeft - paddingRight;
+  const chartHeight = height - paddingTop - paddingBottom;
+  const referenceValue = 70;
+  const values = rows.map((item) => item.adMatchRate);
+  const minValue = Math.max(0, Math.min(referenceValue, ...values) - 5);
+  const maxValue = Math.min(100, Math.max(referenceValue, ...values) + 5);
+  const valueRange = Math.max(1, maxValue - minValue);
+  const getX = (index: number) =>
+    rows.length === 1 ? paddingLeft + chartWidth / 2 : paddingLeft + (chartWidth * index) / (rows.length - 1);
+  const getY = (value: number) => paddingTop + ((maxValue - value) / valueRange) * chartHeight;
+  const linePath = rows
+    .map((item, index) => `${index === 0 ? 'M' : 'L'} ${getX(index).toFixed(2)} ${getY(item.adMatchRate).toFixed(2)}`)
+    .join(' ');
+  const areaPath = `${linePath} L ${getX(rows.length - 1).toFixed(2)} ${(paddingTop + chartHeight).toFixed(
+    2,
+  )} L ${getX(0).toFixed(2)} ${(paddingTop + chartHeight).toFixed(2)} Z`;
+  const referenceY = getY(referenceValue);
+  const latest = rows[rows.length - 1];
+
+  return (
+    <Space direction="vertical" size={6} style={{ width: '100%' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+        <span>最近12小时广告匹配率</span>
+        <span>{fmtPercent(latest.adMatchRate)}</span>
+      </div>
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="最近12小时广告匹配率趋势图">
+        <line
+          x1={paddingLeft}
+          y1={referenceY}
+          x2={paddingLeft + chartWidth}
+          y2={referenceY}
+          stroke="#f97316"
+          strokeWidth="1"
+          strokeDasharray="3 3"
+        />
+        <text x={2} y={referenceY + 4} fontSize="10" fill="#6b7280">
+          70%
+        </text>
+        <path d={areaPath} fill="rgba(37, 99, 235, 0.12)" />
+        <path d={linePath} fill="none" stroke="#2563eb" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        {rows.map((item, index) => {
+          const x = getX(index);
+          const y = getY(item.adMatchRate);
+          return (
+            <g key={`${item.reportDate}-${item.hour}`}>
+              <circle cx={x} cy={y} r={2} fill="#2563eb" />
+              {index === 0 || index === rows.length - 1 ? (
+                <text
+                  x={x}
+                  y={height - 2}
+                  textAnchor={index === 0 ? 'start' : 'end'}
+                  fontSize="10"
+                  fill="#6b7280"
+                >
+                  {String(item.hour).padStart(2, '0')}
+                </text>
+              ) : null}
+            </g>
+          );
+        })}
+      </svg>
+      <div style={{ color: '#6b7280', fontSize: 12 }}>
+        最新：{getRecentHourlyAdMatchRateLabel(latest)}
+        {latest.adRequests !== null && latest.adMatchedRequests !== null
+          ? `，请求 ${fmtInt(latest.adRequests)} / 匹配 ${fmtInt(latest.adMatchedRequests)}`
+          : ''}
+      </div>
+    </Space>
+  );
+};
+
 const fmtRevenueWithDiff = (adRevenue: unknown, record?: Record<string, unknown>) => {
   const revenueText = fmtCurrency(adRevenue);
   if (revenueText === '--') return revenueText;
@@ -569,6 +693,14 @@ export const renderProjectCodeWithMeta = (
   const codeText = projectCode ? String(projectCode) : '--';
   const isLimitTagMeta = getIsLimitTagMeta(record.isLimited);
   const hourlyStatusMessages = getHourlyStatusMessages(record.hourly_status);
+  const recentHourlyAdMatchRateChart = renderRecentHourlyAdMatchRateChart(record);
+  const limitTooltipContent =
+    isLimitTagMeta && (recentHourlyAdMatchRateChart || hourlyStatusMessages.length) ? (
+      <Space direction="vertical" size={6}>
+        {recentHourlyAdMatchRateChart}
+        {hourlyStatusMessages.length ? <div>异常原因：{hourlyStatusMessages.join('、')}</div> : null}
+      </Space>
+    ) : null;
 
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, maxWidth: '100%' }}>
@@ -586,9 +718,17 @@ export const renderProjectCodeWithMeta = (
         <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{codeText}</span>
       )}
       {isLimitTagMeta ? (
-        <Tag color={isLimitTagMeta.color} style={{ marginInlineEnd: 0 }}>
-          {isLimitTagMeta.label}
-        </Tag>
+        limitTooltipContent ? (
+          <Tooltip title={limitTooltipContent}>
+            <Tag color={isLimitTagMeta.color} style={{ marginInlineEnd: 0 }}>
+              {isLimitTagMeta.label}
+            </Tag>
+          </Tooltip>
+        ) : (
+          <Tag color={isLimitTagMeta.color} style={{ marginInlineEnd: 0 }}>
+            {isLimitTagMeta.label}
+          </Tag>
+        )
       ) : null}
       {hourlyStatusMessages.length ? (
         <Tooltip title={hourlyStatusMessages.join('、')}>
