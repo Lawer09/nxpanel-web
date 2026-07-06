@@ -4,6 +4,14 @@ declare namespace API {
   interface TicketUser {
     id: number;
     email: string;
+    register_metadata?: {
+      app_id?: string;
+      [key: string]: any;
+    };
+    register_matedata?: {
+      app_id?: string;
+      [key: string]: any;
+    };
     [key: string]: any;
   }
 
@@ -22,6 +30,7 @@ declare namespace API {
     id: number;
     user_id: number;
     subject: string;
+    latest_message?: string | TicketMessage | null;
     level: string; // '0'=低, '1'=中, '2'=高
     status: number; // 0=开启, 1=关闭
     reply_status: number | null; // 0=已回复, 1=待回复

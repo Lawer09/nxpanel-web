@@ -51,7 +51,7 @@ const COMMISSION_STATUS_MAP: Record<number, string> = {
 };
 
 const fmt = (v?: number | null) =>
-  v != null ? `¥${(v / 100).toFixed(2)}` : '-';
+  v != null ? `$ ${(v / 100).toFixed(2)}` : '-';
 
 const OrderPage: React.FC = () => {
   const { message: messageApi, modal: modalApi } = App.useApp();

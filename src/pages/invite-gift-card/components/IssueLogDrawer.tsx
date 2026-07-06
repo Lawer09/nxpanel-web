@@ -76,7 +76,7 @@ const IssueLogDrawer: React.FC<IssueLogDrawerProps> = ({ open, ruleId, ruleName,
         return (
           <Space direction="vertical" size={0}>
             <Text copyable={{ text: record.order.trade_no }} style={{ fontSize: 12 }}>{record.order.trade_no}</Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>¥{(record.order.total_amount / 100).toFixed(2)}</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>$ {(record.order.total_amount / 100).toFixed(2)}</Text>
           </Space>
         );
       },

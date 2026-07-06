@@ -490,3 +490,32 @@ CSS Modules 中顶层 `:global` 会生成真正的全局样式，不会自动带
 ### 相关文件
 
 - `src/pages/project/components/ProjectDetail.tsx`
+
+## guest/version/latest 刷新首屏重复请求
+
+### 出现场景
+
+浏览器刷新页面时，`/api/v3/guest/version/latest` 在短时间内连续发起多次请求，网络面板可见首屏出现 3 次拉取。
+
+### 问题原因
+
+首屏存在三处独立的版本查询逻辑：
+- `HeaderVersionTitle` 挂载后拉取最新版本号
+- `VersionNoticeModal` 挂载后拉取版本详情
+- `layout.onPageChange` 首次进页时执行运行时版本检查
+
+这三处都直接调用 `getLatestVersion`，原公共 service 层没有做进行中请求合并或短时缓存，因此同一次刷新会打出多条相同 GET 请求。
+
+### 解决方式
+
+在 `src/services/version/api.ts` 中为 `getLatestVersion` 增加“进行中请求共享 + 3 秒短缓存”。这样可以在不改动现有页面调用点的前提下，将同时消费最新版本的多处初始化请求收敛为单次实际网络调用。
+
+### 影响范围
+
+全局页顶版本号展示、版本发布弹窗以及页面切换时的运行时版本检查链路。
+
+### 相关文件
+
+- `src/services/version/api.ts`
+- `src/app.tsx`
+- `src/components/VersionNoticeModal/index.tsx`

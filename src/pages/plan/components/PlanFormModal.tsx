@@ -197,7 +197,7 @@ const PlanFormModal: React.FC<PlanFormModalProps> = ({
               precision={2}
               style={{ width: '100%' }}
               placeholder="留空不售卖"
-              prefix="¥"
+              prefix="$ "
             />
           </Form.Item>
         ))}

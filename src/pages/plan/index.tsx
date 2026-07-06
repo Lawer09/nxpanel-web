@@ -240,7 +240,7 @@ const PlanPage: React.FC = () => {
                 <Space wrap size={4}>
                   {entries.map((e) => (
                     <Tag key={e!.label} style={{ fontSize: 11 }}>
-                      {e!.label} ¥{e!.val}
+                      {e!.label} $ {e!.val}
                     </Tag>
                   ))}
                 </Space>

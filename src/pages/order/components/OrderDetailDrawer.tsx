@@ -45,7 +45,7 @@ interface OrderDetailDrawerProps {
 }
 
 const fmt = (v?: number | null) =>
-  v != null ? `¥${(v / 100).toFixed(2)}` : '-';
+  v != null ? `$ ${(v / 100).toFixed(2)}` : '-';
 
 const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
   open,
@@ -135,7 +135,7 @@ const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
                 </Descriptions.Item>
                 <Descriptions.Item label="余额">
                   {detail.user.balance != null
-                    ? `¥${Number(detail.user.balance).toFixed(2)}`
+                    ? `$ ${Number(detail.user.balance).toFixed(2)}`
                     : '-'}
                 </Descriptions.Item>
               </Descriptions>

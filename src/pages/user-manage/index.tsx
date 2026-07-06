@@ -415,7 +415,7 @@ const UserManagePage: React.FC = () => {
       width: 100,
       search: false,
       render: (_, record) =>
-        record.balance != null ? `¥${Number(record.balance).toFixed(2)}` : '-',
+        record.balance != null ? `$ ${Number(record.balance).toFixed(2)}` : '-',
     },
     // {
     //   title: '佣金余额',
@@ -424,7 +424,7 @@ const UserManagePage: React.FC = () => {
     //   search: false,
     //   render: (_, record) =>
     //     record.commission_balance != null
-    //       ? `¥${Number(record.commission_balance).toFixed(2)}`
+    //       ? `$ ${Number(record.commission_balance).toFixed(2)}`
     //       : '-',
     // },
     // {

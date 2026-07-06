@@ -84,7 +84,7 @@ const AssignOrderModal: React.FC<AssignOrderModalProps> = ({
         name="total_amount_yuan"
         label="支付金额 (元)"
         rules={[{ required: true, message: '请输入支付金额' }]}
-        fieldProps={{ min: 0, precision: 2, addonBefore: '¥' }}
+        fieldProps={{ min: 0, precision: 2, addonBefore: '$ ' }}
         tooltip="管理员手动定价，不受套餐价格限制"
       />
     </ModalForm>

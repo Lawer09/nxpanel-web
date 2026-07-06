@@ -136,14 +136,14 @@ const UserDetailDrawer: React.FC<UserDetailDrawerProps> = ({ open, user, onClose
               {
                 key: 'balance',
                 label: '余额',
-                children: user.balance != null ? `¥${Number(user.balance).toFixed(2)}` : '-',
+                children: user.balance != null ? `$ ${Number(user.balance).toFixed(2)}` : '-',
               },
               {
                 key: 'commissionBalance',
                 label: '佣金余额',
                 children:
                   user.commission_balance != null
-                    ? `¥${Number(user.commission_balance).toFixed(2)}`
+                    ? `$ ${Number(user.commission_balance).toFixed(2)}`
                     : '-',
               },
               {

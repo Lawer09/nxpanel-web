@@ -1,9 +1,11 @@
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
-import { App, Button, Tag, Space, Modal } from 'antd';
+import { App, Button, Modal, Tag, Tooltip, Typography } from 'antd';
 import React, { useRef, useState } from 'react';
-import { fetchTickets, closeTicket } from '@/services/ticket/api';
+import { closeTicket, fetchTickets } from '@/services/ticket/api';
 import TicketDetailModal from './components/TicketDetailModal';
+
+const { Text } = Typography;
 
 const LEVEL_MAP: Record<string, { text: string; color: string }> = {
   '0': { text: '低', color: 'default' },
@@ -26,6 +28,69 @@ const formatTimestamp = (timestamp?: number) => {
   return new Date(timestamp * 1000).toLocaleString('zh-CN');
 };
 
+const getLatestMessageText = (
+  latestMessage?: API.TicketItem['latest_message'],
+) => {
+  if (typeof latestMessage === 'string') {
+    const trimmedMessage = latestMessage.trim();
+    return trimmedMessage || '-';
+  }
+
+  if (
+    latestMessage &&
+    typeof latestMessage === 'object' &&
+    'message' in latestMessage &&
+    typeof latestMessage.message === 'string'
+  ) {
+    const trimmedMessage = latestMessage.message.trim();
+    return trimmedMessage || '-';
+  }
+
+  return '-';
+};
+
+const getTicketUserAppId = (user?: API.TicketItem['user']) => {
+  if (!user) return undefined;
+
+  const registerMetadata = user.register_metadata ?? user.register_matedata;
+  const appId = registerMetadata?.app_id;
+
+  return typeof appId === 'string' ? appId : undefined;
+};
+
+const renderEllipsisText = (
+  value?: string,
+  clickable = false,
+  onClick?: () => void,
+  clickableHint?: string,
+) => {
+  const text = value?.trim() || '-';
+  const tooltip =
+    text === '-' ? false : clickable && clickableHint ? `${text}（${clickableHint}）` : text;
+
+  const content = (
+    <Text
+      ellipsis={{ tooltip }}
+      style={{
+        display: 'inline-block',
+        maxWidth: '100%',
+        verticalAlign: 'bottom',
+        cursor: clickable ? 'pointer' : 'default',
+        color: clickable && text !== '-' ? '#1677ff' : undefined,
+      }}
+      onClick={clickable && text !== '-' ? onClick : undefined}
+    >
+      {text}
+    </Text>
+  );
+
+  if (!clickable || text === '-' || !clickableHint) {
+    return content;
+  }
+
+  return <Tooltip title={clickableHint}>{content}</Tooltip>;
+};
+
 const TicketManage: React.FC = () => {
   const { message, modal } = App.useApp();
   const actionRef = useRef<ActionType>(null);
@@ -33,13 +98,19 @@ const TicketManage: React.FC = () => {
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [currentTicket, setCurrentTicket] = useState<API.TicketItem | undefined>();
 
-  // 监听从详情对话框切换工单的事件
+  const openTicketDetail = (record: API.TicketItem) => {
+    setCurrentTicket(record);
+    setDetailModalOpen(true);
+  };
+
   React.useEffect(() => {
     const handleOpenTicket = (e: CustomEvent<API.TicketItem>) => {
       setCurrentTicket(e.detail);
       setDetailModalOpen(true);
     };
+
     window.addEventListener('openTicket', handleOpenTicket as EventListener);
+
     return () => {
       window.removeEventListener('openTicket', handleOpenTicket as EventListener);
     };
@@ -56,18 +127,16 @@ const TicketManage: React.FC = () => {
       content: `确定要关闭选中的 ${selectedRowKeys.length} 个工单吗？`,
       onOk: async () => {
         try {
-          const promises = selectedRowKeys.map((id) =>
-            closeTicket({ id: Number(id) }),
-          );
+          const promises = selectedRowKeys.map((id) => closeTicket({ id: Number(id) }));
           const results = await Promise.all(promises);
           const successCount = results.filter((res) => res.code === 0).length;
-          
+
           if (successCount === selectedRowKeys.length) {
             message.success('批量关闭成功');
           } else {
             message.warning(`成功关闭 ${successCount}/${selectedRowKeys.length} 个工单`);
           }
-          
+
           setSelectedRowKeys([]);
           actionRef.current?.reload();
         } catch (error) {
@@ -80,7 +149,7 @@ const TicketManage: React.FC = () => {
   const handleClose = async (record: API.TicketItem) => {
     modal.confirm({
       title: '确认关闭',
-      content: `确定要关闭工单"${record.subject}"吗？`,
+      content: `确定要关闭工单“${record.subject}”吗？`,
       onOk: async () => {
         const res = await closeTicket({ id: record.id });
         if (res.code === 0) {
@@ -103,15 +172,36 @@ const TicketManage: React.FC = () => {
     {
       title: '主题',
       dataIndex: 'subject',
+      minWidth: 250,
       ellipsis: true,
       search: false,
+    },
+    {
+      title: '最新记录',
+      dataIndex: 'latest_message',
+      width: 260,
+      search: false,
+      render: (_, record) =>
+        renderEllipsisText(
+          getLatestMessageText(record.latest_message),
+          true,
+          () => openTicketDetail(record),
+          '点击查看详情',
+        ),
     },
     {
       title: '用户邮箱',
       dataIndex: ['user', 'email'],
       width: 200,
       search: false,
-      render: (_, record) => record.user?.email || '-',
+      render: (_, record) => renderEllipsisText(record.user?.email),
+    },
+    {
+      title: '应用ID',
+      dataIndex: ['user', 'register_metadata', 'app_id'],
+      width: 220,
+      search: false,
+      render: (_, record) => renderEllipsisText(getTicketUserAppId(record.user)),
     },
     {
       title: '优先级',
@@ -175,10 +265,7 @@ const TicketManage: React.FC = () => {
       render: (_, record) => [
         <a
           key="view"
-          onClick={() => {
-            setCurrentTicket(record);
-            setDetailModalOpen(true);
-          }}
+          onClick={() => openTicketDetail(record)}
         >
           查看
         </a>,
@@ -221,7 +308,7 @@ const TicketManage: React.FC = () => {
             status: params.status !== undefined ? Number(params.status) : undefined,
             email: params.email,
           });
-          
+
           if (res.code !== 0) {
             message.error(res.msg || '获取工单列表失败');
             return {
@@ -243,7 +330,7 @@ const TicketManage: React.FC = () => {
           onChange: (keys) => setSelectedRowKeys(keys),
           preserveSelectedRowKeys: true,
         }}
-        scroll={{ x: 1200 }}
+        scroll={{ x: 1700 }}
       />
 
       <TicketDetailModal

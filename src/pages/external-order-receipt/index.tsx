@@ -45,7 +45,7 @@ const formatTime = (value?: number | null) =>
   value ? dayjs.unix(value).format('YYYY-MM-DD HH:mm:ss') : '-';
 
 const formatAmount = (value?: number | null) =>
-  value != null ? `¥${(Number(value) / 100).toFixed(2)}` : '-';
+  value != null ? `$ ${(Number(value) / 100).toFixed(2)}` : '-';
 
 const formatJson = (value?: Record<string, any> | null) => {
   if (!value) return '-';

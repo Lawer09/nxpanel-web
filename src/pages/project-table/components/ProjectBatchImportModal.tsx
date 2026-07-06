@@ -114,12 +114,27 @@ const normalizeImportValue = (value?: string) => {
 const getImportFieldLabel = (field: string) =>
   IMPORT_FIELD_OPTIONS.find((item) => item.value === field)?.label || field;
 
-const renderEllipsisText = (value: string, width: number, type?: 'secondary') => (
-  <Tooltip title={value}>
+const buildTooltipTitle = (value: string) => (
+  <div
+    style={{
+      maxWidth: 520,
+      whiteSpace: 'pre-wrap',
+      wordBreak: 'break-all',
+    }}
+  >
+    {value}
+  </div>
+);
+
+const renderEllipsisText = (value: string, width: number, type?: 'secondary') => {
+  const singleLineValue = value.replace(/\s+/g, ' ').trim();
+
+  return (
+    <Tooltip title={buildTooltipTitle(value)}>
     <Typography.Text
       type={type}
       style={{
-        display: 'inline-block',
+        display: 'block',
         maxWidth: width,
         overflow: 'hidden',
         textOverflow: 'ellipsis',
@@ -127,10 +142,11 @@ const renderEllipsisText = (value: string, width: number, type?: 'secondary') =>
         verticalAlign: 'bottom',
       }}
     >
-      {value}
+      {singleLineValue}
     </Typography.Text>
-  </Tooltip>
-);
+    </Tooltip>
+  );
+};
 
 const formatPasteIssueMessage = (issue: PasteParseIssue) => {
   if (issue.type === 'conflict') {
@@ -577,7 +593,10 @@ const ProjectBatchImportModal: React.FC<ProjectBatchImportModalProps> = ({ open,
             title: meta?.label || field,
             dataIndex: field,
             width: 180,
-            render: (value: unknown) => (value === null || value === undefined || value === '' ? '-' : String(value)),
+            render: (value: unknown) =>
+              value === null || value === undefined || value === ''
+                ? '-'
+                : renderEllipsisText(String(value), 160),
           };
         }),
       );

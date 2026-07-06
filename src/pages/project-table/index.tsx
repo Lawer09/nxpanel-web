@@ -204,7 +204,7 @@ const ProjectTablePage: React.FC = () => {
       dataIndex: 'keyword',
       hideInTable: true,
       fieldProps: {
-        placeholder: '项目代号 / 项目名称',
+        placeholder: '项目代号 / 项目名称 / 包名 ',
       },
     },
     {

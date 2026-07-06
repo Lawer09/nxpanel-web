@@ -133,7 +133,7 @@ const InviteGiftCardLogPage: React.FC = () => {
               {record.order.trade_no}
             </Text>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              ¥{(record.order.total_amount / 100).toFixed(2)}
+              $ {(record.order.total_amount / 100).toFixed(2)}
             </Text>
           </Space>
         );
