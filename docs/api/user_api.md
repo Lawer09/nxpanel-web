@@ -441,6 +441,11 @@ POST /api/v3/admin/user/update
 
 `POST /v3/user/update`
 
+说明：
+
+- 用户手动解封应调用 `POST /api/v3/{secure_path}/user/update`，将 `banned` 改为 `false` 或 `0`。
+- `POST /api/v3/{secure_path}/user/blockedIp/delete` 和 `POST /api/v3/{secure_path}/user/blockedIp/batchDelete` 仅删除 IP 封禁记录，不会自动把已有用户的 `banned` 改回未封禁。
+
 ### 请求参数
 
 | 参数 | 类型 | 必填 | 说明 |
@@ -484,6 +489,26 @@ POST /v3/user/update
         "app_id": "com.example.app",
         "channel": "telegram"
     }
+}
+```
+
+手动解封示例：
+
+```json
+POST /api/v3/admin/user/update
+{
+    "id": 123,
+    "banned": false
+}
+```
+
+或：
+
+```json
+POST /api/v3/admin/user/update
+{
+    "id": 123,
+    "banned": 0
 }
 ```
 

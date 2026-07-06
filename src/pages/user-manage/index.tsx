@@ -24,6 +24,7 @@ import {
   dumpUserCSV,
   fetchUsers,
   resetUserSecret,
+  updateUser,
 } from '@/services/user/api';
 import AidLoginBanRuleModal from './components/AidLoginBanRuleModal';
 import BlockedIpModal from './components/BlockedIpModal';
@@ -581,9 +582,14 @@ const UserManagePage: React.FC = () => {
                 key: 'ban',
                 label: record.banned ? '解封' : '封禁',
                 onClick: async () => {
-                  const res = await banUsers({
-                    filter: [{ id: 'id', value: String(record.id) }],
-                  });
+                  const res = record.banned
+                    ? await updateUser({
+                        id: record.id,
+                        banned: false,
+                      })
+                    : await banUsers({
+                        filter: [{ id: 'id', value: String(record.id) }],
+                      });
                   if (res.code !== 0) {
                     messageApi.error(res.msg || '操作失败');
                     return;

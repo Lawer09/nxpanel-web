@@ -159,3 +159,32 @@
 
 - `src/pages/user-manage/index.tsx`
 - `docs/api/user_api.md`
+
+## 用户管理手动解封误复用封禁接口
+
+### 出现场景
+
+用户管理页单条记录的“解封”操作原先复用了封禁接口，但后端当前约定中，用户手动解封必须走用户更新接口，把 `banned` 改回 `false` 或 `0`；删除封禁 IP 记录也不会自动解除用户封禁。
+
+### 问题原因
+
+- 前端把“封禁”和“解封”都收口到了 `banUsers`。
+- 页面交互层没有区分“解除用户封禁”和“删除 IP 封禁记录”这两类后端语义不同的操作。
+
+### 解决方式
+
+- 保持“封禁”仍调用 `banUsers`。
+- 将单条“解封”改为调用 `updateUser({ id, banned: false })`。
+- 在接口文档中补充说明：`blockedIp/delete`、`blockedIp/batchDelete` 不会自动把用户的 `banned` 改回未封禁。
+
+### 影响范围
+
+- 用户管理页单条记录的“解封”操作
+- 用户更新接口的 `banned` 字段使用约束
+- 封禁 IP 删除与用户解封的操作认知边界
+
+### 相关文件
+
+- `src/pages/user-manage/index.tsx`
+- `src/services/user/api.ts`
+- `docs/api/user_api.md`
