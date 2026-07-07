@@ -155,6 +155,18 @@ export async function updateBlockedIpType(
   });
 }
 
+export async function batchBlockBlockedIps(
+  body: API.UserBlockedIpBatchBlockParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.UserBlockedIpBatchBlockResult>>('/v3/user/blockedIp/batchBlock', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}
+
 export async function fetchAidLoginBanRules(
   params: API.AidLoginBanRuleFetchParams,
   options?: { [key: string]: any },

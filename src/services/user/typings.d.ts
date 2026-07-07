@@ -178,6 +178,21 @@ declare namespace API {
     type: string;
   }
 
+  interface UserBlockedIpBatchBlockParams {
+    ips: string[];
+    type?: 'normal' | 'dangerous' | string;
+    banUsers?: boolean;
+    reason?: string;
+  }
+
+  interface UserBlockedIpBatchBlockResult {
+    requestedCount: number;
+    blockedIpCount: number;
+    blockedIps: string[];
+    bannedUserCount: number;
+    bannedUserIds: number[];
+  }
+
   interface AidLoginBanRuleWeeklyWindow {
     weekday: number;
     start: string;

@@ -248,6 +248,43 @@ POST /api/v3/admin/user/blockedIp/batchDelete
 }
 ```
 
+## 批量新增封禁用户 IP
+
+`POST /v3/user/blockedIp/batchBlock`
+
+### 请求参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `ips` | `string[]` | 是 | IP 数组，最多 `500` 个，服务端去重 |
+| `type` | `string` | 否 | 封禁 IP 类型，支持 `normal` / `dangerous`，默认 `normal` |
+| `banUsers` | `bool` | 否 | 是否同时封禁 `register_metadata.ip` 命中的用户，默认 `false` |
+| `reason` | `string` | 否 | 封禁原因 |
+
+### 请求示例
+
+```json
+POST /api/v3/admin/user/blockedIp/batchBlock
+{
+    "ips": ["203.0.113.10", "203.0.113.11"],
+    "type": "dangerous",
+    "banUsers": true,
+    "reason": "manual risk ip batch"
+}
+```
+
+### 返回示例
+
+```json
+{
+    "requestedCount": 2,
+    "blockedIpCount": 2,
+    "blockedIps": ["203.0.113.10", "203.0.113.11"],
+    "bannedUserCount": 1,
+    "bannedUserIds": [10001]
+}
+```
+
 ## AID 登录封禁规则列表查询
 
 `POST /v3/user/aidLoginBanRule/fetch`

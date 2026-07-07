@@ -1,9 +1,10 @@
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { ProTable } from '@ant-design/pro-components';
-import { App, Button, Modal, Select, Space, Tag, Tooltip, Typography } from 'antd';
+import { App, Button, Input, Modal, Select, Space, Switch, Tag, Tooltip, Typography } from 'antd';
 import dayjs from 'dayjs';
 import React, { useRef, useState } from 'react';
 import {
+  batchBlockBlockedIps,
   batchDeleteBlockedIps,
   deleteBlockedIp,
   fetchBlockedIps,
@@ -16,6 +17,19 @@ const BLOCKED_IP_TYPE_OPTIONS = [
   { label: 'dangerous', value: 'dangerous' },
   { label: 'normal', value: 'normal' },
 ];
+
+const parseBatchIps = (value: string) => {
+  const seen = new Set<string>();
+  return value
+    .split(/[\s,]+/)
+    .map((item) => item.trim())
+    .filter((item) => item)
+    .filter((item) => {
+      if (seen.has(item)) return false;
+      seen.add(item);
+      return true;
+    });
+};
 
 type BlockedIpModalProps = {
   open: boolean;
@@ -71,6 +85,12 @@ const BlockedIpModal: React.FC<BlockedIpModalProps> = ({ open, onOpenChange }) =
   const [editingRecord, setEditingRecord] = useState<API.UserBlockedIpItem | null>(null);
   const [editingType, setEditingType] = useState('');
   const [typeSubmitting, setTypeSubmitting] = useState(false);
+  const [batchBlockOpen, setBatchBlockOpen] = useState(false);
+  const [batchBlockSubmitting, setBatchBlockSubmitting] = useState(false);
+  const [batchBlockIps, setBatchBlockIps] = useState('');
+  const [batchBlockType, setBatchBlockType] = useState<'dangerous' | 'normal'>('dangerous');
+  const [batchBlockBanUsers, setBatchBlockBanUsers] = useState(true);
+  const [batchBlockReason, setBatchBlockReason] = useState('');
 
   const openTypeEditor = (record: API.UserBlockedIpItem) => {
     setEditingRecord(record);
@@ -141,6 +161,56 @@ const BlockedIpModal: React.FC<BlockedIpModalProps> = ({ open, onOpenChange }) =
     });
   };
 
+  const resetBatchBlockForm = () => {
+    if (batchBlockSubmitting) return;
+    setBatchBlockOpen(false);
+    setBatchBlockIps('');
+    setBatchBlockType('dangerous');
+    setBatchBlockBanUsers(true);
+    setBatchBlockReason('');
+  };
+
+  const handleBatchBlock = async () => {
+    const ips = parseBatchIps(batchBlockIps);
+    if (!ips.length) {
+      messageApi.warning('请输入至少一个 IP');
+      return;
+    }
+    if (ips.length > 500) {
+      messageApi.warning('IP 数量不能超过 500 个');
+      return;
+    }
+
+    setBatchBlockSubmitting(true);
+    try {
+      const res = await batchBlockBlockedIps({
+        ips,
+        type: batchBlockType,
+        banUsers: batchBlockBanUsers,
+        reason: batchBlockReason.trim() || undefined,
+      });
+      if (res.code !== 0) {
+        messageApi.error(res.msg || '批量封禁 IP 失败');
+        return;
+      }
+
+      const result = res.data;
+      const blockedIpsText = result?.blockedIps?.length
+        ? `，生效 IP ${result.blockedIps.length} 个`
+        : '';
+      const bannedUsersText = result?.bannedUserCount
+        ? `，同步封禁用户 ${result.bannedUserCount} 个`
+        : '';
+      messageApi.success(
+        `批量封禁完成：提交 ${result?.requestedCount ?? ips.length} 个${blockedIpsText}${bannedUsersText}`,
+      );
+      resetBatchBlockForm();
+      actionRef.current?.reload();
+    } finally {
+      setBatchBlockSubmitting(false);
+    }
+  };
+
   const columns: ProColumns<API.UserBlockedIpItem>[] = [
     {
       title: '封禁 IP',
@@ -200,7 +270,7 @@ const BlockedIpModal: React.FC<BlockedIpModalProps> = ({ open, onOpenChange }) =
       render: (_, record) => (
         <Space direction="vertical" size={6} style={{ width: '100%' }}>
           {renderCompactUser('用户', record.banned_user)}
-          {renderCompactUser('管理员', record.operator_user)}
+          {renderCompactUser('操作人', record.operator_user)}
         </Space>
       ),
     },
@@ -285,6 +355,9 @@ const BlockedIpModal: React.FC<BlockedIpModalProps> = ({ open, onOpenChange }) =
         )}
         tableAlertOptionRender={false}
         toolBarRender={() => [
+          <Button key="batchBlock" type="primary" onClick={() => setBatchBlockOpen(true)}>
+            批量封禁 IP
+          </Button>,
           <Button
             key="batchDelete"
             danger
@@ -337,6 +410,51 @@ const BlockedIpModal: React.FC<BlockedIpModalProps> = ({ open, onOpenChange }) =
             style={{ width: '100%' }}
             onChange={(value) => setEditingType(value)}
           />
+        </Space>
+      </Modal>
+      <Modal
+        title="批量封禁 IP"
+        open={batchBlockOpen}
+        onOk={handleBatchBlock}
+        confirmLoading={batchBlockSubmitting}
+        onCancel={resetBatchBlockForm}
+        destroyOnHidden
+      >
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <div>
+            <Text strong>IP 列表</Text>
+            <Input.TextArea
+              value={batchBlockIps}
+              rows={6}
+              placeholder="请输入多个 IP，支持空白字符或逗号分隔"
+              onChange={(event) => setBatchBlockIps(event.target.value)}
+            />
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              已解析 {parseBatchIps(batchBlockIps).length} 个唯一 IP，最多 500 个
+            </Text>
+          </div>
+          <div>
+            <Text strong>类型</Text>
+            <Select
+              value={batchBlockType}
+              options={BLOCKED_IP_TYPE_OPTIONS}
+              style={{ width: '100%', marginTop: 4 }}
+              onChange={(value) => setBatchBlockType(value as 'dangerous' | 'normal')}
+            />
+          </div>
+          <div>
+            <Text strong>封禁原因</Text>
+            <Input
+              value={batchBlockReason}
+              placeholder="可选，例如 manual risk ip batch"
+              style={{ marginTop: 4 }}
+              onChange={(event) => setBatchBlockReason(event.target.value)}
+            />
+          </div>
+          <Space>
+            <Switch checked={batchBlockBanUsers} onChange={setBatchBlockBanUsers} />
+            <Text>同时封禁 register_metadata.ip 命中的用户</Text>
+          </Space>
         </Space>
       </Modal>
     </Modal>

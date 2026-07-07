@@ -132,6 +132,31 @@
 - `src/services/user/typings.d.ts`
 - `docs/api/user_api.md`
 
+## 封禁 IP 列表中的操作者文案错误
+
+### 出现场景
+
+封禁 IP 列表“关联用户”列会同时展示命中用户和执行操作的后台账号，但第二行文案写成了“管理员”，和后端返回字段 `operator_user` 的语义不一致。
+
+### 问题原因
+
+- 前端在压缩展示布局时，直接把 `operator_user` 的说明文案写成了固定“管理员”。
+- 页面文案没有准确对齐接口字段里的“操作人/操作者”含义。
+
+### 解决方式
+
+- 保持展示字段不变，仍然读取 `operator_user`。
+- 将列表中的标签文案从“管理员”改为“操作人”，避免误导用户理解该字段含义。
+
+### 影响范围
+
+- 用户管理页中的封禁 IP 列表
+- 封禁记录操作者信息的认知准确性
+
+### 相关文件
+
+- `src/pages/user-manage/components/BlockedIpModal.tsx`
+
 ## 用户管理新增国家与 IP 注册筛选
 
 ### 出现场景
@@ -187,4 +212,35 @@
 
 - `src/pages/user-manage/index.tsx`
 - `src/services/user/api.ts`
+- `docs/api/user_api.md`
+
+## 封禁 IP 缺少批量新增入口
+
+### 出现场景
+
+风控或人工排查时，需要一次性录入多条风险 IP，并可选择同步封禁这些 IP 命中的已注册用户。当前封禁 IP 列表只支持查看、更新类型和删除记录，无法直接在页面中批量新增。
+
+### 问题原因
+
+- 用户服务层未封装 `/v3/user/blockedIp/batchBlock`。
+- 封禁 IP 弹窗缺少适合批量录入多 IP 的表单入口。
+- 多 IP 输入需要兼容复制粘贴场景，单个输入框或逐条新增交互成本过高。
+
+### 解决方式
+
+- 新增 `batchBlockBlockedIps` 服务封装和对应返回类型。
+- 在封禁 IP 列表工具栏新增“批量封禁 IP”入口。
+- 弹窗支持输入多个 IP，前端按空白字符或逗号拆分、去重，并支持设置 `type`、`banUsers`、`reason`。
+
+### 影响范围
+
+- 用户管理页中的封禁 IP 维护操作
+- 风控场景下的批量封禁录入效率
+- blocked IP 相关接口文档与前端类型定义
+
+### 相关文件
+
+- `src/pages/user-manage/components/BlockedIpModal.tsx`
+- `src/services/user/api.ts`
+- `src/services/user/typings.d.ts`
 - `docs/api/user_api.md`
