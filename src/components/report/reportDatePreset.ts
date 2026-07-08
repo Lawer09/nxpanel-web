@@ -56,10 +56,17 @@ export const STANDARD_DATE_PRESET_ITEMS: DatePresetItem[] = [
 
 /**
  * 把 preset item 列表转为 antd RangePicker 的 presets prop 格式。
- * 每次调用时 getValue() 都会以当前时间重算，确保动态性。
+ * 这里不能在模块初始化时把 value 直接算死，否则页面长时间停留后，
+ * “今日 / 昨日 / 近一周”等相对日期会仍然指向首次加载时的日期。
+ * 通过 getter 让 antd 在读取 value 时再动态重算当前值。
  */
 export const toRangePickerPresets = (items: DatePresetItem[]) =>
-  items.map((item) => ({ label: item.label, value: item.getValue() }));
+  items.map((item) => ({
+    label: item.label,
+    get value() {
+      return item.getValue();
+    },
+  }));
 
 /**
  * 根据选中的日期范围反查匹配的 preset key。
