@@ -431,6 +431,41 @@ export default [
         component: './asset/ProviderAccounts',
       },
       {
+        path: '/asset/regions',
+        name: '区域',
+        component: './asset/Regions',
+      },
+      {
+        path: '/asset/zones',
+        name: '可用区',
+        component: './asset/Zones',
+      },
+      {
+        path: '/asset/instance-types',
+        name: '实例规格',
+        component: './asset/InstanceTypes',
+      },
+      {
+        path: '/asset/images',
+        name: '镜像',
+        component: './asset/Images',
+      },
+      {
+        path: '/asset/security-groups',
+        name: '安全组',
+        component: './asset/SecurityGroups',
+      },
+      {
+        path: '/asset/subnets',
+        name: '子网',
+        component: './asset/Subnets',
+      },
+      {
+        path: '/asset/tags',
+        name: '标签',
+        component: './asset/Tags',
+      },
+      {
         path: '/asset/machines',
         name: '机器',
         component: './asset/Machines',

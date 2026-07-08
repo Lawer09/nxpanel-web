@@ -9,6 +9,19 @@ export async function listAssetProviders(params?: { page?: number; page_size?: n
   });
 }
 
+export async function listAssetProviderMachines(
+  providerType: string,
+  accountId: number,
+  params?: API.AssetProviderMachineListParams,
+) {
+  return devAdminRequest<API.AssetPageResult<API.AssetProviderMachine>>(
+    `${ASSET_PREFIX}/provider/${providerType}/${accountId}/machines`,
+    {
+      params: toQueryParams(params),
+    },
+  );
+}
+
 export async function listAssetProviderAccounts(params?: API.AssetListParams) {
   return devAdminRequest<API.AssetPageResult<API.AssetProviderAccount>>(
     `${ASSET_PREFIX}/provider-accounts`,
@@ -16,6 +29,68 @@ export async function listAssetProviderAccounts(params?: API.AssetListParams) {
       params: toQueryParams(params),
     },
   );
+}
+
+export async function listAssetRegions(
+  params?: API.AssetListParams & { region_id?: string },
+) {
+  return devAdminRequest<API.AssetPageResult<API.AssetRegion>>(`${ASSET_PREFIX}/regions`, {
+    params: toQueryParams(params),
+  });
+}
+
+export async function listAssetZones(
+  params?: API.AssetListParams & { zone_id?: string; region_id?: string },
+) {
+  return devAdminRequest<API.AssetPageResult<API.AssetZone>>(`${ASSET_PREFIX}/zones`, {
+    params: toQueryParams(params),
+  });
+}
+
+export async function listAssetInstanceTypes(
+  params?: API.AssetListParams & { zone_id?: string; resource_id?: string },
+) {
+  return devAdminRequest<API.AssetPageResult<API.AssetInstanceType>>(
+    `${ASSET_PREFIX}/instance-types`,
+    {
+      params: toQueryParams(params),
+    },
+  );
+}
+
+export async function listAssetImages(
+  params?: API.AssetListParams & { zone_id?: string; resource_id?: string },
+) {
+  return devAdminRequest<API.AssetPageResult<API.AssetImage>>(`${ASSET_PREFIX}/images`, {
+    params: toQueryParams(params),
+  });
+}
+
+export async function listAssetSecurityGroups(
+  params?: API.AssetListParams & { resource_id?: string },
+) {
+  return devAdminRequest<API.AssetPageResult<API.AssetSecurityGroup>>(
+    `${ASSET_PREFIX}/security-groups`,
+    {
+      params: toQueryParams(params),
+    },
+  );
+}
+
+export async function listAssetSubnets(
+  params?: API.AssetListParams & { region_id?: string; vpc_id?: string; resource_id?: string },
+) {
+  return devAdminRequest<API.AssetPageResult<API.AssetSubnet>>(`${ASSET_PREFIX}/subnets`, {
+    params: toQueryParams(params),
+  });
+}
+
+export async function listAssetTags(
+  params?: API.AssetListParams & { resource_id?: string; key?: string; value?: string },
+) {
+  return devAdminRequest<API.AssetPageResult<API.AssetProviderTag>>(`${ASSET_PREFIX}/tags`, {
+    params: toQueryParams(params),
+  });
 }
 
 export async function createAssetProviderAccount(body: API.AssetProviderAccountCreateParams) {
@@ -98,6 +173,13 @@ export async function createAssetMachineFromProvider(body: API.AssetMachineCreat
   });
 }
 
+export async function createAssetMachine(body: API.AssetMachineProviderCreateParams) {
+  return devAdminRequest<API.AssetTaskAck>(`${ASSET_PREFIX}/machines/create`, {
+    method: 'POST',
+    body,
+  });
+}
+
 export async function retryAssetMachineProviderCreate(
   machineId: number,
   body: API.AssetMachineRetryProviderCreateParams,
@@ -111,8 +193,30 @@ export async function retryAssetMachineProviderCreate(
   );
 }
 
+export async function retryAssetMachineProviderCreateV2(
+  machineId: number,
+  body: API.AssetMachineRetryProviderCreateV2Params,
+) {
+  return devAdminRequest<API.AssetTaskAck>(
+    `${ASSET_PREFIX}/machines/${machineId}/retry-provider-create`,
+    {
+      method: 'POST',
+      body,
+    },
+  );
+}
+
 export async function importAssetMachinesFromProvider(body: { account_id: number; region?: string }) {
   return devAdminRequest<API.AssetTaskAck>(`${ASSET_PREFIX}/machines/import-from-provider`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function importAssetMachineFromProvider(
+  body: API.AssetMachineImportFromProviderParams,
+) {
+  return devAdminRequest<API.AssetMachine>(`${ASSET_PREFIX}/machines/import-from-provider`, {
     method: 'POST',
     body,
   });

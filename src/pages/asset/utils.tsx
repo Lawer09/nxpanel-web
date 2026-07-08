@@ -189,6 +189,27 @@ export const getStatusOptions = (tab: AssetResourceKey) => {
   if (tab === 'accounts') {
     return ACCOUNT_STATUS_OPTIONS;
   }
+  if (tab === 'regions') {
+    return [];
+  }
+  if (tab === 'zones') {
+    return [];
+  }
+  if (tab === 'instance-types') {
+    return [];
+  }
+  if (tab === 'images') {
+    return [];
+  }
+  if (tab === 'security-groups') {
+    return [];
+  }
+  if (tab === 'subnets') {
+    return [];
+  }
+  if (tab === 'tags') {
+    return [];
+  }
   if (tab === 'machines') {
     return MACHINE_STATUS_OPTIONS;
   }

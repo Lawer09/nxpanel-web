@@ -2,19 +2,17 @@ import {
   CloudDownloadOutlined,
   CloudUploadOutlined,
   MoreOutlined,
-  PlusOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { ProTable } from '@ant-design/pro-components';
+import { history } from '@umijs/max';
 import {
   Alert,
   App,
   Button,
-  Descriptions,
   Dropdown,
   Form,
-  Input,
   Modal,
   Select,
   Segmented,
@@ -30,16 +28,14 @@ import {
   batchSyncAssetMachines,
   batchUpdateAssetMachineStatus,
   batchUpdateAssetMachineTags,
-  createAssetMachineManual,
   deleteAssetMachine,
   destroyProviderAssetMachine,
   getAssetMachineDetail,
-  importAssetMachinesFromProvider,
+  importAssetMachineFromProvider,
   listAssetIps,
   listAssetMachines,
   runAssetMachineCommand,
   syncAssetMachine,
-  updateAssetMachine,
 } from '@/services/asset-service/api';
 import {
   MACHINE_CREATE_ACTION_KEYS,
@@ -51,35 +47,50 @@ import {
 import type {
   AssetTagFormValue,
   MachineCommandFormValues,
-  MachineCreateFormValues,
-  MachineFormValues,
   SharedFilters,
   TaskAckHandler,
 } from '../../types';
 import {
-  getAssetBatchFailureLines,
-  getAssetBatchResultSummary,
+  buildAssetTaskDetailPath,
   formatText,
   formatTime,
+  getAssetBatchFailureLines,
+  getAssetBatchResultSummary,
   getMachineStatusColor,
   isProviderCapabilitySupported,
-  buildAssetTaskDetailPath,
   normalizeAssetTags,
   normalizeDevErrorMessage,
   renderActionButton,
-  stringifyJson,
 } from '../../utils';
-import JsonBlock from '../../../dev/components/JsonBlock';
-import MachineCommandModal from '../machines/MachineCommandModal';
-import MachineCreateWizardModal from '../machines/MachineCreateWizardModal';
-import MachineDetailDrawer from '../machines/MachineDetailDrawer';
-import MachineImportModal from '../machines/MachineImportModal';
-import MachineManualModal from '../machines/MachineManualModal';
-import { buildMachinePayload } from '../machines/machinePayload';
-import { history } from '@umijs/max';
 import AssetTagEditor from '../AssetTagEditor';
+import MachineCommandModal from '../machines/MachineCommandModal';
+import MachineDetailDrawer from '../machines/MachineDetailDrawer';
+import MachineProviderCreateModal from '../machines/MachineProviderCreateModal';
+import MachineProviderImportModal from '../machines/MachineProviderImportModal';
 
-const { Text, Paragraph } = Typography;
+const { Text } = Typography;
+
+const QUICK_STATUS_OPTIONS = [
+  { label: 'All Status', value: '__all' },
+  { label: 'Failed', value: 'create_failed' },
+  { label: 'Creating', value: 'creating' },
+  { label: 'Active', value: 'active' },
+  { label: 'Stopped', value: 'stopped' },
+  { label: 'Missing', value: 'missing' },
+];
+
+const QUICK_SOURCE_OPTIONS = [
+  { label: 'All Source', value: '__all' },
+  { label: 'Provider Create', value: 'provider' },
+  { label: 'Provider Import', value: 'import' },
+  { label: 'Manual', value: 'manual' },
+];
+
+const SOURCE_LABEL_MAP: Record<string, string> = {
+  provider: 'Provider Create',
+  import: 'Provider Import',
+  manual: 'Manual',
+};
 
 const compactCellStyle: React.CSSProperties = {
   minWidth: 0,
@@ -118,29 +129,7 @@ const controlPanelRowStyle: React.CSSProperties = {
   flexWrap: 'wrap',
 };
 
-const QUICK_STATUS_OPTIONS = [
-  { label: '全部状态', value: '__all' },
-  { label: '创建失败', value: 'create_failed' },
-  { label: '创建中', value: 'creating' },
-  { label: '活跃', value: 'active' },
-  { label: '已停止', value: 'stopped' },
-  { label: '缺失', value: 'missing' },
-];
-
-const QUICK_SOURCE_OPTIONS = [
-  { label: '全部来源', value: '__all' },
-  { label: '供应商创建', value: 'provider' },
-  { label: '供应商导入', value: 'import' },
-  { label: '手动录入', value: 'manual' },
-];
-
-const SOURCE_LABEL_MAP: Record<string, string> = {
-  provider: '供应商创建',
-  import: '供应商导入',
-  manual: '手动录入',
-};
-
-const MachinesPanel: React.FC<{
+type Props = {
   filters: SharedFilters;
   providers: API.AssetProvider[];
   accounts: API.AssetProviderAccount[];
@@ -148,7 +137,9 @@ const MachinesPanel: React.FC<{
   onTaskAck: TaskAckHandler;
   onResetFilters: () => void;
   onApplyFilters: (filters: SharedFilters) => void;
-}> = ({
+};
+
+const MachinesPanel: React.FC<Props> = ({
   filters,
   providers,
   accounts,
@@ -159,21 +150,18 @@ const MachinesPanel: React.FC<{
 }) => {
   const { message, modal } = App.useApp();
   const actionRef = useRef<ActionType | undefined>(undefined);
-  const [manualForm] = Form.useForm<MachineFormValues>();
   const [commandForm] = Form.useForm<MachineCommandFormValues>();
   const [bindForm] = Form.useForm<API.AssetMachineBindIpParams>();
   const [batchStatusForm] = Form.useForm<{ status?: string }>();
   const [batchTagForm] = Form.useForm<{ tags?: AssetTagFormValue[] }>();
-  const [manualOpen, setManualOpen] = useState(false);
-  const [providerWizardOpen, setProviderWizardOpen] = useState(false);
-  const [retryWizardOpen, setRetryWizardOpen] = useState(false);
-  const [providerWizardInitialValues, setProviderWizardInitialValues] =
-    useState<Partial<MachineCreateFormValues>>();
+  const [providerCreateOpen, setProviderCreateOpen] = useState(false);
+  const [retryCreateOpen, setRetryCreateOpen] = useState(false);
+  const [providerCreateInitialValues, setProviderCreateInitialValues] =
+    useState<Partial<API.AssetMachineProviderCreateParams>>();
   const [importOpen, setImportOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [batchStatusOpen, setBatchStatusOpen] = useState(false);
   const [batchTagOpen, setBatchTagOpen] = useState(false);
-  const [editing, setEditing] = useState<API.AssetMachine | null>(null);
   const [retrying, setRetrying] = useState<API.AssetMachine | null>(null);
   const [saving, setSaving] = useState(false);
   const [selectedRows, setSelectedRows] = useState<API.AssetMachine[]>([]);
@@ -181,13 +169,11 @@ const MachinesPanel: React.FC<{
   const [detailTab, setDetailTab] = useState('basic');
   const [bindOptions, setBindOptions] = useState<API.AssetIp[]>([]);
   const [bindLoading, setBindLoading] = useState(false);
-  const [manualCreateResult, setManualCreateResult] =
-    useState<API.AssetMachineCreateManualResult | null>(null);
   const [currentPageRows, setCurrentPageRows] = useState<API.AssetMachine[]>([]);
   const [importAccountId, setImportAccountId] = useState<number | undefined>(
     filters.account_id,
   );
-  const [importRegion, setImportRegion] = useState<string | undefined>(
+  const [importProviderRegionId, setImportProviderRegionId] = useState<string | undefined>(
     filters.region,
   );
 
@@ -195,83 +181,64 @@ const MachinesPanel: React.FC<{
     () => new Map(providers.map((item) => [item.code, item])),
     [providers],
   );
-
   const accountMap = useMemo(
     () => new Map(accounts.map((item) => [item.id, item])),
     [accounts],
   );
-
   const filteredAccounts = useMemo(
     () =>
       accounts.filter(
-        (item) =>
-          !filters.provider_code ||
-          item.provider_code === filters.provider_code,
+        (item) => !filters.provider_code || item.provider_code === filters.provider_code,
       ),
     [accounts, filters.provider_code],
   );
-
   const availableSshKeys = useMemo(
     () => sshKeys.filter((item) => item.has_private_key),
     [sshKeys],
   );
+  const selectedIds = useMemo(() => selectedRows.map((item) => item.id), [selectedRows]);
 
   const activeFilterItems = useMemo(() => {
     const items: Array<{ key: string; label: string; value: string }> = [];
-
     if (filters.name) {
-      items.push({ key: 'name', label: '机器', value: filters.name });
+      items.push({ key: 'name', label: 'Machine', value: filters.name });
     }
     if (filters.provider_code) {
-      const provider = providerMap.get(filters.provider_code);
       items.push({
         key: 'provider',
-        label: '供应商',
-        value: provider?.name || filters.provider_code,
+        label: 'Provider',
+        value: providerMap.get(filters.provider_code)?.name || filters.provider_code,
       });
     }
     if (filters.account_id) {
-      const account = accountMap.get(filters.account_id);
       items.push({
         key: 'account',
-        label: '账号',
-        value: account?.name || String(filters.account_id),
+        label: 'Account',
+        value: accountMap.get(filters.account_id)?.name || String(filters.account_id),
       });
     }
     if (filters.region) {
-      items.push({ key: 'region', label: '区域', value: filters.region });
+      items.push({ key: 'region', label: 'Region', value: filters.region });
     }
     if (filters.status) {
-      items.push({ key: 'status', label: '状态', value: filters.status });
+      items.push({ key: 'status', label: 'Status', value: filters.status });
     }
     if (filters.source) {
       items.push({
         key: 'source',
-        label: '来源',
+        label: 'Source',
         value: SOURCE_LABEL_MAP[filters.source] || filters.source,
       });
     }
     if (filters.tag_key || filters.tag_value) {
       items.push({
         key: 'tag',
-        label: '标签',
+        label: 'Tag',
         value: [filters.tag_key, filters.tag_value].filter(Boolean).join(' = '),
       });
     }
-
     return items;
-  }, [
-    accountMap,
-    filters.account_id,
-    filters.name,
-    filters.provider_code,
-    filters.region,
-    filters.source,
-    filters.status,
-    filters.tag_key,
-    filters.tag_value,
-    providerMap,
-  ]);
+  }, [accountMap, filters, providerMap]);
 
   const pageInsights = useMemo(() => {
     const failed = currentPageRows.filter(
@@ -281,31 +248,11 @@ const MachinesPanel: React.FC<{
         item.status === 'missing',
     ).length;
     const creating = currentPageRows.filter(
-      (item) => item.status === 'creating',
+      (item) => item.status === 'creating' || item.status === 'preparing',
     ).length;
     const active = currentPageRows.filter((item) => item.status === 'active').length;
-
     return { failed, creating, active };
   }, [currentPageRows]);
-
-  const selectedIds = useMemo(
-    () => selectedRows.map((item) => item.id),
-    [selectedRows],
-  );
-
-  const handleQuickStatusChange = (value: string | number) => {
-    onApplyFilters({
-      ...filters,
-      status: value === '__all' ? undefined : String(value),
-    });
-  };
-
-  const handleQuickSourceChange = (value: string | number) => {
-    onApplyFilters({
-      ...filters,
-      source: value === '__all' ? undefined : String(value),
-    });
-  };
 
   useEffect(() => {
     actionRef.current?.reload();
@@ -315,10 +262,7 @@ const MachinesPanel: React.FC<{
   const getPrimaryIp = (record: API.AssetMachine) =>
     record.ips?.find((item) => item.is_primary) || record.ips?.[0];
 
-  const loadMachineDetail = async (
-    machineId: number,
-    nextTab: string = 'basic',
-  ) => {
+  const loadMachineDetail = async (machineId: number, nextTab: string = 'basic') => {
     try {
       const response = await getAssetMachineDetail(machineId);
       setDetail(response.data);
@@ -339,7 +283,6 @@ const MachinesPanel: React.FC<{
         page_size: 200,
         account_id: machine.account_id || undefined,
         provider_code: machine.provider_code || undefined,
-        region: machine.region || undefined,
       });
       setBindOptions(response.data?.items || []);
     } catch (error: any) {
@@ -352,89 +295,61 @@ const MachinesPanel: React.FC<{
 
   const canRetryProviderCreate = (record: API.AssetMachine) =>
     record.source === 'provider' &&
-    !record.external_instance_id &&
-    ['creating', 'create_failed'].includes(record.status || '');
+    !record.provider_machine_id &&
+    ['preparing', 'creating', 'create_failed'].includes(record.status || '');
 
   const openRetryCreate = async (record: API.AssetMachine) => {
     try {
       const response = await getAssetMachineDetail(record.id);
       setRetrying(response.data);
-      setRetryWizardOpen(true);
+      setRetryCreateOpen(true);
     } catch (error: any) {
       message.error(normalizeDevErrorMessage(error));
     }
   };
 
-  const handleProviderWizardSuccess = (ack: API.AssetTaskAck, title: string) => {
-    setProviderWizardOpen(false);
-    setRetryWizardOpen(false);
+  const handleCreateSuccess = (ack: API.AssetTaskAck, title: string) => {
+    setProviderCreateOpen(false);
+    setRetryCreateOpen(false);
     setRetrying(null);
-    setProviderWizardInitialValues(undefined);
+    setProviderCreateInitialValues(undefined);
     actionRef.current?.reload();
     onTaskAck(ack, title);
-  };
-
-  const openManualEditor = async (record: API.AssetMachine) => {
-    try {
-      const response = await getAssetMachineDetail(record.id);
-      setEditing(response.data);
-      manualForm.setFieldsValue({
-        machine_id: response.data.machine_id,
-        name: response.data.name || '',
-        region: response.data.region || undefined,
-        zone: response.data.zone || undefined,
-        instance_type: response.data.instance_type || undefined,
-        image_id: response.data.image_id || undefined,
-        billing_type: response.data.billing_type || undefined,
-        status: response.data.status || undefined,
-        external_instance_id: response.data.external_instance_id || undefined,
-        metadata_text: stringifyJson(response.data.metadata),
-        cpu_cores: response.data.spec?.cpu_cores,
-        memory_mb: response.data.spec?.memory_mb,
-        disk_gb: response.data.spec?.disk_gb,
-        bandwidth_mbps: response.data.spec?.bandwidth_mbps,
-        spec_text: stringifyJson(response.data.spec?.spec),
-        tags: response.data.tags || [],
-      });
-      setManualOpen(true);
-    } catch (error: any) {
-      message.error(normalizeDevErrorMessage(error));
-    }
   };
 
   const openDestroyConfirm = (record: API.AssetMachine) => {
     let confirmValue = '';
     modal.confirm({
-      title: `Destroy provider instance for machine ${record.name || record.machine_id || record.id}`,
+      title: `Destroy provider instance for machine ${record.name || record.provider_machine_id || record.id}`,
       content: (
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Text type="secondary">
-            输入外部实例 ID 以确认这个不可逆操作。
+            Enter the provider machine ID to confirm this destructive action.
           </Text>
-          <Paragraph copyable>{record.external_instance_id}</Paragraph>
-          <Input
-            placeholder="外部实例 ID"
+          <Typography.Paragraph copyable>
+            {record.provider_machine_id || '-'}
+          </Typography.Paragraph>
+          <input
+            style={{ width: '100%', padding: 8, border: '1px solid #d9d9d9', borderRadius: 6 }}
+            placeholder="Provider machine ID"
             onChange={(event) => {
               confirmValue = event.target.value;
             }}
           />
         </Space>
       ),
-      okText: '确认销毁',
+      okText: 'Confirm destroy',
       okButtonProps: { danger: true },
       onOk: async () => {
-        if (confirmValue !== record.external_instance_id) {
-          message.error('外部实例 ID 不匹配。');
+        if (confirmValue !== record.provider_machine_id) {
+          message.error('Provider machine ID does not match.');
           throw new Error('Confirmation mismatch');
         }
         try {
           const response = await destroyProviderAssetMachine(record.id, {
             confirm_instance_id: confirmValue,
           });
-          onTaskAck(
-            response.data,
-            `机器 #${record.id} 的销毁任务已提交。`,
-          );
+          onTaskAck(response.data, `Machine #${record.id} destroy submitted`);
         } catch (error: any) {
           message.error(normalizeDevErrorMessage(error));
           throw error;
@@ -445,15 +360,15 @@ const MachinesPanel: React.FC<{
 
   const openDeleteConfirm = (record: API.AssetMachine) => {
     modal.confirm({
-      title: '删除本地机器记录？',
+      title: 'Delete local machine record',
       content:
-        '这只会删除本地资产记录，不会销毁云平台上的实例。',
-      okText: '确认删除',
+        'This only deletes the local asset record and does not destroy the cloud provider instance.',
+      okText: 'Confirm delete',
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
           await deleteAssetMachine(record.id);
-          message.success('机器记录已删除。');
+          message.success('Machine record deleted.');
           actionRef.current?.reload();
         } catch (error: any) {
           message.error(normalizeDevErrorMessage(error));
@@ -465,13 +380,14 @@ const MachinesPanel: React.FC<{
 
   const openCommandModal = () => {
     if (!selectedRows.length) {
-      message.info('请先勾选机器。');
+      message.info('Select machines first.');
       return;
     }
     commandForm.resetFields();
     commandForm.setFieldsValue({
       port: 22,
       timeout_seconds: 60,
+      username: 'root',
       confirmed: false,
     });
     setCommandOpen(true);
@@ -479,26 +395,18 @@ const MachinesPanel: React.FC<{
 
   const handleBatchMutationResult = (title: string, result: API.AssetBatchResult) => {
     const summary = getAssetBatchResultSummary(result);
-    if (result.failed > 0) {
-      const failureLines = getAssetBatchFailureLines(result);
-      modal.info({
-        title: `${title}结果`,
-        width: 720,
+    const failureLines = getAssetBatchFailureLines(result);
+    if (failureLines.length) {
+      modal.warning({
+        title,
         content: (
           <Space direction="vertical" size={12} style={{ width: '100%' }}>
             <Text>{summary}</Text>
-            {failureLines.length ? (
-              <div>
-                {failureLines.map((line) => (
-                  <div key={line}>{line}</div>
-                ))}
-                {result.failed > failureLines.length ? (
-                  <Text type="secondary">
-                    {`还有 ${result.failed - failureLines.length} 项失败未展开。`}
-                  </Text>
-                ) : null}
-              </div>
-            ) : null}
+            {failureLines.map((line) => (
+              <Text key={line} type="danger">
+                {line}
+              </Text>
+            ))}
           </Space>
         ),
       });
@@ -512,7 +420,7 @@ const MachinesPanel: React.FC<{
 
   const handleBatchSync = async () => {
     if (!selectedIds.length) {
-      message.info('请先选择机器。');
+      message.info('Select machines first.');
       return;
     }
     try {
@@ -524,26 +432,22 @@ const MachinesPanel: React.FC<{
       setSelectedRows([]);
       actionRef.current?.reload();
       if (result.tasks.length === 1) {
-        onTaskAck(result.tasks[0], `机器批量同步任务已提交，共 ${result.total} 台机器。`);
+        onTaskAck(result.tasks[0], `Batch sync submitted for ${result.total} machine(s)`);
         return;
       }
       modal.info({
-        title: '机器批量同步任务已提交',
+        title: 'Batch sync tasks submitted',
         content: (
           <Space direction="vertical" size={12} style={{ width: '100%' }}>
-            <Text>{`共 ${result.total} 台机器，拆分为 ${result.batch_count} 批任务。`}</Text>
+            <Text>{`${result.total} machine(s), split into ${result.batch_count} task batch(es).`}</Text>
             <div>
               {result.tasks.slice(0, 10).map((task) => (
                 <div key={task.task_id}>{`Task #${task.task_id} (${task.status || 'pending'})`}</div>
               ))}
             </div>
-            {result.tasks.length > 10 ? (
-              <Text type="secondary">{`还有 ${result.tasks.length - 10} 个任务未展开。`}</Text>
-            ) : null}
           </Space>
         ),
       });
-      message.success(`已提交 ${result.tasks.length} 个同步任务。`);
     } catch (error: any) {
       message.error(normalizeDevErrorMessage(error));
     } finally {
@@ -553,20 +457,20 @@ const MachinesPanel: React.FC<{
 
   const openBatchDeleteConfirm = () => {
     if (!selectedIds.length) {
-      message.info('请先选择机器。');
+      message.info('Select machines first.');
       return;
     }
     modal.confirm({
-      title: `批量删除 ${selectedIds.length} 台机器记录`,
+      title: `Delete ${selectedIds.length} local machine record(s)`,
       content:
-        '该操作只会删除本地资产记录，不会销毁云平台实例。创建中的机器会逐项返回失败。',
-      okText: '确认删除',
+        'This only deletes local asset records and does not destroy cloud provider instances.',
+      okText: 'Confirm delete',
       okButtonProps: { danger: true, loading: saving },
       onOk: async () => {
         try {
           setSaving(true);
           const response = await batchDeleteAssetMachines({ ids: selectedIds });
-          handleBatchMutationResult('批量删除机器', response.data);
+          handleBatchMutationResult('Batch delete machines', response.data);
         } catch (error: any) {
           message.error(normalizeDevErrorMessage(error));
           throw error;
@@ -577,11 +481,7 @@ const MachinesPanel: React.FC<{
     });
   };
 
-  const buildActionLabel = (
-    label: string,
-    disabledReason?: string,
-    danger?: boolean,
-  ) =>
+  const buildActionLabel = (label: string, disabledReason?: string, danger?: boolean) =>
     disabledReason ? (
       <Tooltip title={disabledReason}>
         <span
@@ -604,22 +504,17 @@ const MachinesPanel: React.FC<{
       provider,
       MACHINE_DESTROY_ACTION_KEYS,
     );
-    const syncSupported = isProviderCapabilitySupported(
-      provider,
-      MACHINE_SYNC_ACTION_KEYS,
-    );
-    const destroyDisabledReason = !record.external_instance_id
-      ? 'This machine does not have an external instance id.'
+    const syncSupported = isProviderCapabilitySupported(provider, MACHINE_SYNC_ACTION_KEYS);
+    const destroyDisabledReason = !record.provider_machine_id
+      ? 'This machine does not have a provider machine ID.'
       : destroySupported === false
         ? 'Current provider capability does not support destroy instance.'
         : undefined;
     const syncDisabledReason =
-      syncSupported === false
-        ? 'Current provider capability does not support sync.'
-        : undefined;
+      syncSupported === false ? 'Current provider capability does not support sync.' : undefined;
     const retryDisabledReason = canRetryProviderCreate(record)
       ? undefined
-      : 'Only provider machines without external instance id and in creating/create_failed status can be retried.';
+      : 'Only provider machines without provider machine ID and in preparing/creating/create_failed status can be retried.';
 
     const runMenuAction = (handler: () => void, disabledReason?: string) => {
       if (disabledReason) {
@@ -634,23 +529,21 @@ const MachinesPanel: React.FC<{
         ? [
             {
               key: 'view-task',
-              label: '查看创建任务',
+              label: 'View Create Task',
               onClick: () =>
-                history.push(
-                  buildAssetTaskDetailPath(record.create_task_id || ''),
-                ),
+                history.push(buildAssetTaskDetailPath(record.create_task_id || '')),
             },
           ]
         : []),
       {
         key: 'sync',
-        label: buildActionLabel('同步', syncDisabledReason),
+        label: buildActionLabel('Sync', syncDisabledReason),
         onClick: () =>
           runMenuAction(() => {
             void (async () => {
               try {
                 const response = await syncAssetMachine(record.id);
-                onTaskAck(response.data, `机器 #${record.id} 的同步任务已提交。`);
+                onTaskAck(response.data, `Machine #${record.id} sync submitted`);
               } catch (error: any) {
                 message.error(normalizeDevErrorMessage(error));
               }
@@ -659,12 +552,12 @@ const MachinesPanel: React.FC<{
       },
       {
         key: 'retry',
-        label: buildActionLabel('重试创建', retryDisabledReason),
+        label: buildActionLabel('Retry Create', retryDisabledReason),
         onClick: () => runMenuAction(() => void openRetryCreate(record), retryDisabledReason),
       },
       {
         key: 'bind',
-        label: '绑定 IP',
+        label: 'Bind IP',
         onClick: () => void loadMachineDetail(record.id, 'ip-bindings'),
       },
       {
@@ -673,17 +566,13 @@ const MachinesPanel: React.FC<{
       {
         key: 'destroy',
         danger: true,
-        label: buildActionLabel(
-          '销毁云实例',
-          destroyDisabledReason,
-          true,
-        ),
+        label: buildActionLabel('Destroy Provider Instance', destroyDisabledReason, true),
         onClick: () => runMenuAction(() => openDestroyConfirm(record), destroyDisabledReason),
       },
       {
         key: 'delete',
         danger: true,
-        label: '删除本地记录',
+        label: 'Delete Local Record',
         onClick: () => openDeleteConfirm(record),
       },
     ];
@@ -691,9 +580,9 @@ const MachinesPanel: React.FC<{
 
   const columns: ProColumns<API.AssetMachine>[] = [
     {
-      title: '机器',
+      title: 'Machine',
       key: 'machine',
-      width: 260,
+      width: 280,
       render: (_, record) => (
         <div style={compactCellStackStyle}>
           <div
@@ -707,10 +596,10 @@ const MachinesPanel: React.FC<{
           >
             <Text
               strong
-              ellipsis={{ tooltip: record.name || record.machine_id || `#${record.id}` }}
+              ellipsis={{ tooltip: record.name || record.provider_machine_id || `#${record.id}` }}
               style={{ minWidth: 0 }}
             >
-              {record.name || record.machine_id || `#${record.id}`}
+              {record.name || record.provider_machine_id || `#${record.id}`}
             </Text>
             {record.source ? (
               <Tag style={{ marginInlineEnd: 0 }} bordered={false}>
@@ -719,17 +608,17 @@ const MachinesPanel: React.FC<{
             ) : null}
           </div>
           <div style={compactCellMutedStyle}>
-            {record.external_instance_id
-              ? `${record.machine_id || '-'} / ${record.external_instance_id}`
-              : record.machine_id || '-'}
+            {record.provider_machine_id
+              ? `Local #${record.id} / ${record.provider_machine_id}`
+              : `Local #${record.id}`}
           </div>
         </div>
       ),
     },
     {
-      title: '供应商 / 账号',
+      title: 'Provider / Account',
       key: 'provider_account',
-      width: 210,
+      width: 220,
       render: (_, record) => (
         <div style={compactCellStackStyle}>
           <div
@@ -742,38 +631,42 @@ const MachinesPanel: React.FC<{
             }}
           >
             <Tag style={{ marginInlineEnd: 0 }}>{record.provider_code || '-'}</Tag>
-            <Text
-              ellipsis={{ tooltip: record.account_name || '-' }}
-              style={{ minWidth: 0 }}
-            >
+            <Text ellipsis={{ tooltip: record.account_name || '-' }} style={{ minWidth: 0 }}>
               {record.account_name || '-'}
             </Text>
           </div>
           <div style={compactCellMutedStyle}>
-            {record.account_id ? `账号 ID: ${record.account_id}` : '账号 ID: -'}
+            {record.account_id ? `Account ID: ${record.account_id}` : 'Account ID: -'}
           </div>
         </div>
       ),
     },
     {
-      title: '区域 / 规格',
-      key: 'placement',
-      width: 190,
+      title: 'Asset References',
+      key: 'asset_refs',
+      width: 240,
       render: (_, record) => (
         <div style={compactCellStackStyle}>
-          <Text ellipsis={{ tooltip: record.region || '-' }} style={{ minWidth: 0 }}>
-            {record.region || '-'}
+          <Text style={{ minWidth: 0 }}>
+            {`Zone #${formatText(record.asset_zone_id)}`}
           </Text>
           <div style={compactCellMutedStyle}>
-            {[record.zone, record.instance_type].filter(Boolean).join(' / ') || '-'}
+            {`Image #${formatText(record.asset_image_id)} / Type #${formatText(
+              record.asset_instance_type_id,
+            )}`}
+          </div>
+          <div style={compactCellMutedStyle}>
+            {`Subnet #${formatText(record.asset_subnet_id)} / IP #${formatText(
+              record.asset_ip_id,
+            )}`}
           </div>
         </div>
       ),
     },
     {
-      title: '主 IP',
+      title: 'Primary IP',
       key: 'primary_ip',
-      width: 150,
+      width: 160,
       render: (_, record) => {
         const primaryIp = getPrimaryIp(record);
         if (!primaryIp) {
@@ -782,25 +675,31 @@ const MachinesPanel: React.FC<{
         const extraIpCount = Math.max((record.ips?.length || 0) - 1, 0);
         return (
           <div style={compactCellStackStyle}>
-            <div style={{ ...compactCellStyle, display: 'flex', alignItems: 'center' }}>
-              <Tag
-                color={primaryIp.is_primary ? 'green' : 'default'}
-                style={{ marginInlineEnd: 0 }}
-              >
-                {primaryIp.ip || '-'}
-              </Tag>
-            </div>
+            <Tag color={primaryIp.is_primary ? 'green' : 'default'} style={{ marginInlineEnd: 0 }}>
+              {primaryIp.ip || '-'}
+            </Tag>
             <div style={compactCellMutedStyle}>
-              {extraIpCount ? `另 ${extraIpCount} 个` : primaryIp.bind_type || '-'}
+              {extraIpCount ? `+${extraIpCount} more / ${primaryIp.bind_type || '-'}` : primaryIp.bind_type || '-'}
             </div>
           </div>
         );
       },
     },
     {
-      title: '状态',
-      key: 'status',
+      title: 'Disk / Bandwidth',
+      key: 'size',
       width: 180,
+      render: (_, record) => (
+        <div style={compactCellStackStyle}>
+          <Text>{`${formatText(record.system_disk_size_gb)} GB`}</Text>
+          <div style={compactCellMutedStyle}>{`${formatText(record.bandwidth_mbps)} Mbps`}</div>
+        </div>
+      ),
+    },
+    {
+      title: 'Status',
+      key: 'status',
+      width: 190,
       render: (_, record) => (
         <div style={compactCellStackStyle}>
           <div
@@ -816,35 +715,25 @@ const MachinesPanel: React.FC<{
               {record.status || '-'}
             </Tag>
             {record.sync_status ? (
-              <Text
-                type="secondary"
-                ellipsis={{ tooltip: record.sync_status }}
-                style={{ minWidth: 0 }}
-              >
+              <Text type="secondary" ellipsis={{ tooltip: record.sync_status }} style={{ minWidth: 0 }}>
                 {record.sync_status}
               </Text>
             ) : null}
           </div>
           <div style={compactCellMutedStyle}>
             {record.create_task_id ? (
-              <a
-                onClick={() =>
-                  history.push(
-                    buildAssetTaskDetailPath(record.create_task_id || ''),
-                  )
-                }
-              >
+              <a onClick={() => history.push(buildAssetTaskDetailPath(record.create_task_id || ''))}>
                 {`Task #${record.create_task_id}`}
               </a>
             ) : (
-              `尝试次数: ${formatText(record.create_attempt)}`
+              `Attempt: ${formatText(record.create_attempt)}`
             )}
           </div>
         </div>
       ),
     },
     {
-      title: '最近异常',
+      title: 'Last Error',
       dataIndex: 'last_error_summary',
       width: 260,
       ellipsis: true,
@@ -869,59 +758,39 @@ const MachinesPanel: React.FC<{
         ),
     },
     {
-      title: '最近同步',
+      title: 'Last Synced',
       dataIndex: 'last_synced_at',
       width: 170,
       ellipsis: true,
       render: (_, record) => (
-        <Text
-          ellipsis={{ tooltip: formatTime(record.last_synced_at) }}
-          style={{ display: 'block' }}
-        >
+        <Text ellipsis={{ tooltip: formatTime(record.last_synced_at) }} style={{ display: 'block' }}>
           {formatTime(record.last_synced_at)}
         </Text>
       ),
     },
     {
-      title: '操作',
+      title: 'Action',
       valueType: 'option',
-      width: 200,
+      width: 180,
       fixed: 'right',
-      render: (_, record) => {
-        return [
-          <a
-            key="detail"
-            onClick={() => void loadMachineDetail(record.id, 'basic')}
-          >
-            详情
-          </a>,
-          <a
-            key="edit"
-            onClick={() => void openManualEditor(record)}
-          >
-            编辑
-          </a>,
-          <Dropdown
-            key="more"
-            menu={{ items: buildRowActionItems(record) }}
-            trigger={['click']}
-          >
-            <a>
-              <Space size={4}>
-                <MoreOutlined />
-                更多
-              </Space>
-            </a>
-          </Dropdown>,
-        ];
-      },
+      render: (_, record) => [
+        <a key="detail" onClick={() => void loadMachineDetail(record.id, 'basic')}>
+          Detail
+        </a>,
+        <Dropdown key="more" menu={{ items: buildRowActionItems(record) }} trigger={['click']}>
+          <a>
+            <Space size={4}>
+              <MoreOutlined />
+              More
+            </Space>
+          </a>
+        </Dropdown>,
+      ],
     },
   ];
 
   const noAccountReason =
-    filteredAccounts.length === 0
-      ? '请先创建供应商账号。'
-      : undefined;
+    filteredAccounts.length === 0 ? 'Create a provider account first.' : undefined;
 
   return (
     <>
@@ -930,8 +799,8 @@ const MachinesPanel: React.FC<{
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          message="当前没有可用的供应商账号"
-          description="请先创建供应商账号，再回来执行供应商创建、导入和 SSH 操作。"
+          message="No provider account available"
+          description="Create a provider account first, then return to machine create/import or SSH operations."
         />
       ) : null}
 
@@ -939,7 +808,7 @@ const MachinesPanel: React.FC<{
         {activeFilterItems.length ? (
           <div style={{ ...controlPanelRowStyle, marginBottom: 10 }}>
             <Space size={[8, 8]} wrap>
-              <Text strong>当前筛选</Text>
+              <Text strong>Current Filters</Text>
               {activeFilterItems.map((item) => (
                 <Tag key={item.key} color="blue" bordered={false} style={{ marginInlineEnd: 0 }}>
                   {`${item.label}: ${item.value}`}
@@ -947,37 +816,47 @@ const MachinesPanel: React.FC<{
               ))}
             </Space>
             <Button type="link" size="small" onClick={onResetFilters}>
-              清空筛选
+              Clear Filters
             </Button>
           </div>
         ) : null}
         <div style={controlPanelRowStyle}>
           <Space size={[12, 12]} wrap>
-            <Text strong>快捷视图</Text>
-            <Text type="secondary">状态</Text>
+            <Text strong>Quick View</Text>
+            <Text type="secondary">Status</Text>
             <Segmented
               size="small"
               value={filters.status || '__all'}
               options={QUICK_STATUS_OPTIONS}
-              onChange={handleQuickStatusChange}
+              onChange={(value) =>
+                onApplyFilters({
+                  ...filters,
+                  status: value === '__all' ? undefined : String(value),
+                })
+              }
             />
-            <Text type="secondary">来源</Text>
+            <Text type="secondary">Source</Text>
             <Segmented
               size="small"
               value={filters.source || '__all'}
               options={QUICK_SOURCE_OPTIONS}
-              onChange={handleQuickSourceChange}
+              onChange={(value) =>
+                onApplyFilters({
+                  ...filters,
+                  source: value === '__all' ? undefined : String(value),
+                })
+              }
             />
           </Space>
           <Space size={[8, 8]} wrap>
             <Tag color="red" bordered={false} style={{ marginInlineEnd: 0 }}>
-              {`异常: ${pageInsights.failed}`}
+              {`Error: ${pageInsights.failed}`}
             </Tag>
             <Tag color="processing" bordered={false} style={{ marginInlineEnd: 0 }}>
-              {`创建中: ${pageInsights.creating}`}
+              {`Creating: ${pageInsights.creating}`}
             </Tag>
             <Tag color="success" bordered={false} style={{ marginInlineEnd: 0 }}>
-              {`活跃: ${pageInsights.active}`}
+              {`Active: ${pageInsights.active}`}
             </Tag>
           </Space>
         </div>
@@ -987,33 +866,26 @@ const MachinesPanel: React.FC<{
         rowKey="id"
         actionRef={actionRef}
         size="small"
-        scroll={{ x: 1600 }}
+        scroll={{ x: 1700 }}
         options={false}
         search={false}
         pagination={{
           defaultPageSize: 20,
           showSizeChanger: true,
-          showTotal: (total) => `共 ${total} 台机器`,
-        }}
-        locale={{
-          emptyText: activeFilterItems.length
-            ? '当前筛选条件下没有机器。'
-            : '暂无机器数据。',
+          showTotal: (total) => `Total ${total} machine(s)`,
         }}
         columns={columns}
         rowSelection={{
           selectedRowKeys: selectedRows.map((item) => item.id),
           onChange: (_, rows) => setSelectedRows(rows),
         }}
-        tableAlertRender={({ selectedRowKeys }) =>
-          `已选择 ${selectedRowKeys.length} 台机器`
-        }
+        tableAlertRender={({ selectedRowKeys }) => `Selected ${selectedRowKeys.length} machine(s)`}
         tableAlertOptionRender={() => [
           <a key="command" onClick={() => openCommandModal()}>
-            执行命令
+            Run Command
           </a>,
           <a key="sync" onClick={() => void handleBatchSync()}>
-            批量同步
+            Batch Sync
           </a>,
           <a
             key="status"
@@ -1022,7 +894,7 @@ const MachinesPanel: React.FC<{
               setBatchStatusOpen(true);
             }}
           >
-            批量改状态
+            Batch Status
           </a>,
           <a
             key="tags"
@@ -1031,13 +903,13 @@ const MachinesPanel: React.FC<{
               setBatchTagOpen(true);
             }}
           >
-            批量改标签
+            Batch Tags
           </a>,
           <a key="delete" onClick={() => openBatchDeleteConfirm()}>
-            批量删除
+            Batch Delete
           </a>,
           <a key="clear" onClick={() => setSelectedRows([])}>
-            清空选择
+            Clear
           </a>,
         ]}
         request={async (params) => {
@@ -1072,17 +944,13 @@ const MachinesPanel: React.FC<{
               key="provider-create"
               icon={<CloudUploadOutlined />}
               onClick={() => {
-                setProviderWizardInitialValues({
+                setProviderCreateInitialValues({
                   account_id: filters.account_id,
-                  count: 1,
-                  zone: {
-                    country_code: filters.region,
-                  },
                 });
-                setProviderWizardOpen(true);
+                setProviderCreateOpen(true);
               }}
             >
-              供应商创建
+              Provider Create
             </Button>,
             noAccountReason ||
               (filters.provider_code &&
@@ -1090,7 +958,7 @@ const MachinesPanel: React.FC<{
                 providerMap.get(filters.provider_code),
                 MACHINE_CREATE_ACTION_KEYS,
               ) === false
-                ? '当前供应商能力不支持供应商创建。'
+                ? 'Current provider capability does not support provider create.'
                 : undefined),
           );
 
@@ -1100,11 +968,11 @@ const MachinesPanel: React.FC<{
               icon={<CloudDownloadOutlined />}
               onClick={() => {
                 setImportAccountId(filters.account_id);
-                setImportRegion(filters.region);
+                setImportProviderRegionId(filters.region);
                 setImportOpen(true);
               }}
             >
-              供应商导入
+              Provider Import
             </Button>,
             noAccountReason ||
               (filters.provider_code &&
@@ -1112,135 +980,83 @@ const MachinesPanel: React.FC<{
                 providerMap.get(filters.provider_code),
                 MACHINE_IMPORT_ACTION_KEYS,
               ) === false
-                ? '当前供应商能力不支持供应商导入。'
+                ? 'Current provider capability does not support provider import.'
                 : undefined),
           );
 
           return [
-            <Button
-              key="manual"
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => {
-                setEditing(null);
-                manualForm.resetFields();
-                manualForm.setFieldsValue({
-                  region: filters.region,
-                  status: 'active',
-                });
-                setManualOpen(true);
-              }}
-            >
-              手动录入
-            </Button>,
             createButton,
             importButton,
-            <Button
-              key="refresh"
-              icon={<ReloadOutlined />}
-              onClick={() => actionRef.current?.reload()}
-            >
-              刷新
+            <Button key="refresh" icon={<ReloadOutlined />} onClick={() => actionRef.current?.reload()}>
+              Refresh
             </Button>,
           ];
         }}
       />
 
-      <MachineManualModal
-        open={manualOpen}
-        editing={editing}
-        form={manualForm}
-        saving={saving}
-        onCancel={() => {
-          setManualOpen(false);
-          setEditing(null);
-          manualForm.resetFields();
-        }}
-        onSubmit={async () => {
-          try {
-            const values = await manualForm.validateFields();
-            const payload = buildMachinePayload(values);
-            setSaving(true);
-            if (editing) {
-              await updateAssetMachine({
-                id: editing.id,
-                name: payload.name,
-                region: payload.region,
-                zone: payload.zone,
-                instance_type: payload.instance_type,
-                image_id: payload.image_id,
-                billing_type: payload.billing_type,
-                status: payload.status,
-                metadata: payload.metadata,
-                tags: payload.tags,
-                spec: payload.spec,
-              });
-              message.success('Machine updated.');
-            } else {
-              const response = await createAssetMachineManual(
-                payload as API.AssetMachineCreateManualParams,
-              );
-              setManualCreateResult(response.data);
-              message.success('Machine created.');
-            }
-            setManualOpen(false);
-            setEditing(null);
-            manualForm.resetFields();
-            actionRef.current?.reload();
-          } catch (error: any) {
-            message.error(normalizeDevErrorMessage(error));
-          } finally {
-            setSaving(false);
-          }
-        }}
-      />
-
-      <MachineCreateWizardModal
-        open={providerWizardOpen}
+      <MachineProviderCreateModal
+        open={providerCreateOpen}
         mode="create"
         accounts={filteredAccounts}
-        initialValues={providerWizardInitialValues}
+        sshKeys={availableSshKeys}
+        initialValues={providerCreateInitialValues}
         onCancel={() => {
-          setProviderWizardOpen(false);
-          setProviderWizardInitialValues(undefined);
+          setProviderCreateOpen(false);
+          setProviderCreateInitialValues(undefined);
         }}
-        onSuccess={handleProviderWizardSuccess}
+        onSuccess={handleCreateSuccess}
       />
 
-      <MachineCreateWizardModal
-        open={retryWizardOpen}
+      <MachineProviderCreateModal
+        open={retryCreateOpen}
         mode="retry"
         accounts={filteredAccounts}
+        sshKeys={availableSshKeys}
         retrying={retrying}
         onCancel={() => {
-          setRetryWizardOpen(false);
+          setRetryCreateOpen(false);
           setRetrying(null);
         }}
-        onSuccess={handleProviderWizardSuccess}
+        onSuccess={handleCreateSuccess}
       />
 
-      <MachineImportModal
+      <MachineProviderImportModal
         open={importOpen}
         accounts={filteredAccounts}
-        accountId={importAccountId}
-        region={importRegion}
+        initialAccountId={importAccountId}
+        initialProviderRegionId={importProviderRegionId}
         saving={saving}
-        onAccountIdChange={setImportAccountId}
-        onRegionChange={setImportRegion}
         onCancel={() => setImportOpen(false)}
-        onSubmit={async () => {
-          if (!importAccountId) {
-            message.error('请选择供应商账号。');
+        onSubmit={async ({ accountId, machines }) => {
+          if (!machines.length) {
+            message.error('Select provider machines first.');
             return;
           }
           try {
             setSaving(true);
-            const response = await importAssetMachinesFromProvider({
-              account_id: importAccountId,
-              region: importRegion?.trim() || undefined,
-            });
+            for (const machine of machines) {
+              await importAssetMachineFromProvider({
+                account_id: accountId,
+                provider_id: machine.provider_id ?? undefined,
+                provider_machine_id: machine.provider_machine_id,
+                provider_region_id: machine.zone?.provider_region_id,
+                name: machine.name,
+                billing_type: machine.billing_type,
+                status: machine.status,
+                source: machine.source,
+                tags: machine.tags,
+                zone: machine.zone,
+                image: machine.image,
+                instance_type_resource: machine.instance_type_resource,
+                subnet: machine.subnet,
+                ip: machine.ip,
+                security_groups: machine.security_groups,
+                label: machine.label,
+              });
+            }
             setImportOpen(false);
-            onTaskAck(response.data, '供应商机器导入任务已提交。');
+            actionRef.current?.reload();
+            message.success(`Imported ${machines.length} provider machine(s).`);
           } catch (error: any) {
             message.error(normalizeDevErrorMessage(error));
           } finally {
@@ -1278,7 +1094,7 @@ const MachinesPanel: React.FC<{
             setCommandOpen(false);
             commandForm.resetFields();
             setSelectedRows([]);
-            onTaskAck(response.data, 'Batch command submitted.');
+            onTaskAck(response.data, 'Batch command submitted');
           } catch (error: any) {
             message.error(normalizeDevErrorMessage(error));
           } finally {
@@ -1307,7 +1123,7 @@ const MachinesPanel: React.FC<{
       />
 
       <Modal
-        title={`批量更新 ${selectedIds.length} 台机器状态`}
+        title={`Update status for ${selectedIds.length} machine(s)`}
         open={batchStatusOpen}
         destroyOnHidden
         confirmLoading={saving}
@@ -1325,7 +1141,7 @@ const MachinesPanel: React.FC<{
             });
             setBatchStatusOpen(false);
             batchStatusForm.resetFields();
-            handleBatchMutationResult('批量更新机器状态', response.data);
+            handleBatchMutationResult('Batch update machine status', response.data);
           } catch (error: any) {
             message.error(normalizeDevErrorMessage(error));
           } finally {
@@ -1336,8 +1152,8 @@ const MachinesPanel: React.FC<{
         <Form form={batchStatusForm} layout="vertical">
           <Form.Item
             name="status"
-            label="状态"
-            rules={[{ required: true, message: '请选择状态。' }]}
+            label="Status"
+            rules={[{ required: true, message: 'Select a status.' }]}
           >
             <Select options={MACHINE_STATUS_OPTIONS} />
           </Form.Item>
@@ -1345,7 +1161,7 @@ const MachinesPanel: React.FC<{
       </Modal>
 
       <Modal
-        title={`批量替换 ${selectedIds.length} 台机器标签`}
+        title={`Replace tags for ${selectedIds.length} machine(s)`}
         open={batchTagOpen}
         destroyOnHidden
         width={760}
@@ -1364,7 +1180,7 @@ const MachinesPanel: React.FC<{
             });
             setBatchTagOpen(false);
             batchTagForm.resetFields();
-            handleBatchMutationResult('批量更新机器标签', response.data);
+            handleBatchMutationResult('Batch update machine tags', response.data);
           } catch (error: any) {
             message.error(normalizeDevErrorMessage(error));
           } finally {
@@ -1373,89 +1189,8 @@ const MachinesPanel: React.FC<{
         }}
       >
         <Form form={batchTagForm} layout="vertical">
-          <AssetTagEditor name="tags" label="标签" />
+          <AssetTagEditor name="tags" label="Tags" />
         </Form>
-      </Modal>
-
-      <Modal
-        title={
-          manualCreateResult
-            ? `Manual Machine Created #${manualCreateResult.id}`
-            : 'Manual Machine Created'
-        }
-        open={Boolean(manualCreateResult)}
-        footer={[
-          <Button key="close" type="primary" onClick={() => setManualCreateResult(null)}>
-            Close
-          </Button>,
-        ]}
-        width={860}
-        destroyOnHidden
-        onCancel={() => setManualCreateResult(null)}
-      >
-        {manualCreateResult ? (
-          <Space direction="vertical" size={16} style={{ width: '100%' }}>
-            <Descriptions bordered column={2}>
-              <Descriptions.Item label="Machine Record ID">
-                {manualCreateResult.id}
-              </Descriptions.Item>
-              <Descriptions.Item label="Inject Task ID">
-                {manualCreateResult.trust_token?.inject_task_id ? (
-                  <a
-                    onClick={() =>
-                      history.push(
-                        buildAssetTaskDetailPath(
-                          manualCreateResult.trust_token?.inject_task_id || '',
-                        ),
-                      )
-                    }
-                  >
-                    {manualCreateResult.trust_token.inject_task_id}
-                  </a>
-                ) : (
-                  '-'
-                )}
-              </Descriptions.Item>
-              <Descriptions.Item label="Machine ID">
-                {manualCreateResult.trust_token?.machine_id || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label="Asset Machine ID">
-                {formatText(manualCreateResult.trust_token?.asset_machine_id)}
-              </Descriptions.Item>
-              <Descriptions.Item label="Inject Status">
-                {manualCreateResult.trust_token?.inject_status || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label="Expires In Seconds">
-                {formatText(manualCreateResult.trust_token?.expires_in_seconds)}
-              </Descriptions.Item>
-              <Descriptions.Item label="Inject Task URL" span={2}>
-                {manualCreateResult.trust_token?.inject_task_url || '-'}
-              </Descriptions.Item>
-            </Descriptions>
-            {manualCreateResult.trust_token?.trust_token ? (
-              <Typography.Paragraph copyable>
-                {manualCreateResult.trust_token.trust_token}
-              </Typography.Paragraph>
-            ) : null}
-            {manualCreateResult.trust_token?.inject_task_id ? (
-              <Button
-                onClick={() =>
-                  history.push(
-                    buildAssetTaskDetailPath(
-                      manualCreateResult.trust_token?.inject_task_id || '',
-                    ),
-                  )
-                }
-              >
-                View Inject Task
-              </Button>
-            ) : null}
-            <JsonBlock
-              title="asset.config payload"
-              value={manualCreateResult.trust_token?.config}
-            />
-          </Space>
-        ) : null}
       </Modal>
     </>
   );

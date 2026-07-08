@@ -16,16 +16,30 @@ import type {
   SharedFilters,
 } from '../types';
 import { buildAssetTaskDetailPath, normalizeDevErrorMessage } from '../utils';
+import ImagesPanel from './panels/ImagesPanel';
+import InstanceTypesPanel from './panels/InstanceTypesPanel';
 import IpsPanel from './panels/IpsPanel';
 import MachineScriptsPanel from './panels/MachineScriptsPanel';
 import MachinesPanel from './panels/MachinesPanel';
 import ProviderAccountsPanel from './panels/ProviderAccountsPanel';
+import RegionsPanel from './panels/RegionsPanel';
+import SecurityGroupsPanel from './panels/SecurityGroupsPanel';
 import SshKeysPanel from './panels/SshKeysPanel';
+import SubnetsPanel from './panels/SubnetsPanel';
+import TagsPanel from './panels/TagsPanel';
+import ZonesPanel from './panels/ZonesPanel';
 import SharedFilterBar from './SharedFilterBar';
 
 const getAssetPath = (kind: AssetResourceKey) => {
   const pathMap: Record<AssetResourceKey, string> = {
     accounts: '/asset/provider-accounts',
+    regions: '/asset/regions',
+    zones: '/asset/zones',
+    'instance-types': '/asset/instance-types',
+    images: '/asset/images',
+    'security-groups': '/asset/security-groups',
+    subnets: '/asset/subnets',
+    tags: '/asset/tags',
     machines: '/asset/machines',
     ips: '/asset/ips',
     'ssh-keys': '/asset/ssh-keys',
@@ -37,6 +51,13 @@ const getAssetPath = (kind: AssetResourceKey) => {
 const getAssetTitle = (kind: AssetPageKind) => {
   const titleMap: Record<AssetPageKind, string> = {
     accounts: '供应商账号',
+    regions: '区域',
+    zones: '可用区',
+    'instance-types': '实例规格',
+    images: '镜像',
+    'security-groups': '安全组',
+    subnets: '子网',
+    tags: '标签',
     machines: '机器',
     ips: 'IP',
     'ssh-keys': 'SSH 密钥',
@@ -52,7 +73,16 @@ const AssetPageContent: React.FC<{ kind: AssetPageKind }> = ({ kind }) => {
   const [accounts, setAccounts] = useState<API.AssetProviderAccount[]>([]);
   const [sshKeys, setSshKeys] = useState<API.AssetSshKey[]>([]);
   const [loadingMeta, setLoadingMeta] = useState(false);
-  const showSharedFilters = kind !== 'scripts';
+  const isStandaloneResource =
+    kind === 'regions' ||
+    kind === 'zones' ||
+    kind === 'instance-types' ||
+    kind === 'images' ||
+    kind === 'security-groups' ||
+    kind === 'subnets' ||
+    kind === 'tags';
+  const showSharedFilters = kind !== 'scripts' && !isStandaloneResource;
+  const shouldLoadProviders = showSharedFilters || isStandaloneResource;
 
   const loadProviders = async () => {
     const response = await listAssetProviders({ page: 1, page_size: 200 });
@@ -73,16 +103,20 @@ const AssetPageContent: React.FC<{ kind: AssetPageKind }> = ({ kind }) => {
   };
 
   const reloadReferenceData = async () => {
-    if (!showSharedFilters) {
+    if (!shouldLoadProviders) {
       return;
     }
     setLoadingMeta(true);
     try {
-      await Promise.all([
-        loadProviders(),
-        loadAccountsCatalog(),
-        loadSshKeyCatalog(),
-      ]);
+      if (showSharedFilters) {
+        await Promise.all([
+          loadProviders(),
+          loadAccountsCatalog(),
+          loadSshKeyCatalog(),
+        ]);
+        return;
+      }
+      await loadProviders();
     } catch (error: any) {
       message.error(normalizeDevErrorMessage(error));
     } finally {
@@ -91,10 +125,10 @@ const AssetPageContent: React.FC<{ kind: AssetPageKind }> = ({ kind }) => {
   };
 
   useEffect(() => {
-    if (showSharedFilters) {
+    if (shouldLoadProviders) {
       void reloadReferenceData();
     }
-  }, [showSharedFilters]);
+  }, [shouldLoadProviders]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(history.location.search);
@@ -132,7 +166,7 @@ const AssetPageContent: React.FC<{ kind: AssetPageKind }> = ({ kind }) => {
     <PageContainer
       title={getAssetTitle(kind)}
       extra={
-        showSharedFilters
+        shouldLoadProviders
           ? [
               <Button
                 key="reload-meta"
@@ -167,6 +201,17 @@ const AssetPageContent: React.FC<{ kind: AssetPageKind }> = ({ kind }) => {
             onJumpToResource={handleJumpToResource}
           />
         ) : null}
+        {kind === 'regions' ? <RegionsPanel providers={providers} /> : null}
+        {kind === 'zones' ? <ZonesPanel providers={providers} /> : null}
+        {kind === 'instance-types' ? (
+          <InstanceTypesPanel providers={providers} />
+        ) : null}
+        {kind === 'images' ? <ImagesPanel providers={providers} /> : null}
+        {kind === 'security-groups' ? (
+          <SecurityGroupsPanel providers={providers} />
+        ) : null}
+        {kind === 'subnets' ? <SubnetsPanel providers={providers} /> : null}
+        {kind === 'tags' ? <TagsPanel /> : null}
         {kind === 'machines' ? (
           <MachinesPanel
             filters={filters}

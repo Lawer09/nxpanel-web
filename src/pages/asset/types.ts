@@ -1,5 +1,12 @@
 export type AssetResourceKey =
   | 'accounts'
+  | 'regions'
+  | 'zones'
+  | 'instance-types'
+  | 'images'
+  | 'security-groups'
+  | 'subnets'
+  | 'tags'
   | 'machines'
   | 'ips'
   | 'ssh-keys'

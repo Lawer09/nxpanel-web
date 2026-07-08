@@ -8,7 +8,6 @@ import {
   Descriptions,
   Drawer,
   Form,
-  Input,
   Select,
   Space,
   Tabs,
@@ -38,8 +37,15 @@ type OperationFilters = {
   provider_code?: string;
   account_id?: number;
   status?: string;
-  operation_type?: string;
 };
+
+const OPERATION_STATUS_OPTIONS = [
+  { label: '排队中', value: 'pending' },
+  { label: '执行中', value: 'running' },
+  { label: '成功', value: 'succeeded' },
+  { label: '失败', value: 'failed' },
+  { label: '已取消', value: 'cancelled' },
+];
 
 const OperationFiltersBar: React.FC<{
   filters: OperationFilters;
@@ -75,7 +81,6 @@ const OperationFiltersBar: React.FC<{
           provider_code: values.provider_code,
           account_id: values.account_id,
           status: values.status,
-          operation_type: values.operation_type?.trim() || undefined,
         })
       }
     >
@@ -107,17 +112,8 @@ const OperationFiltersBar: React.FC<{
           allowClear
           style={{ width: 160 }}
           placeholder="全部状态"
-          options={[
-            { label: '排队中', value: 'pending' },
-            { label: '执行中', value: 'running' },
-            { label: '成功', value: 'succeeded' },
-            { label: '失败', value: 'failed' },
-            { label: '已取消', value: 'cancelled' },
-          ]}
+          options={OPERATION_STATUS_OPTIONS}
         />
-      </Form.Item>
-      <Form.Item name="operation_type" label="操作类型">
-        <Input placeholder="例如 create_machine" style={{ width: 220 }} />
       </Form.Item>
       <Form.Item>
         <Space>
@@ -283,7 +279,7 @@ const AssetOperationsContent: React.FC = () => {
     <PageContainer title="操作记录">
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         {initialTaskId ? (
-          <Text type="secondary">当前高亮任务：#{initialTaskId}</Text>
+          <Text type="secondary">当前高亮任务：{initialTaskId}</Text>
         ) : null}
         <OperationFiltersBar
           filters={filters}
@@ -316,14 +312,12 @@ const AssetOperationsContent: React.FC = () => {
                 provider_code: filters.provider_code,
                 account_id: filters.account_id,
                 status: filters.status,
-                operation_type: filters.operation_type,
               });
               const items = response.data?.items || [];
               const sortedItems = initialTaskId
                 ? [...items].sort((left, right) => {
                     const leftMatch = String(left.id) === initialTaskId ? 1 : 0;
-                    const rightMatch =
-                      String(right.id) === initialTaskId ? 1 : 0;
+                    const rightMatch = String(right.id) === initialTaskId ? 1 : 0;
                     return rightMatch - leftMatch;
                   })
                 : items;
@@ -370,9 +364,7 @@ const AssetOperationsContent: React.FC = () => {
                 label: '概览',
                 children: (
                   <Descriptions bordered column={2}>
-                    <Descriptions.Item label="ID">
-                      {detail.id}
-                    </Descriptions.Item>
+                    <Descriptions.Item label="ID">{detail.id}</Descriptions.Item>
                     <Descriptions.Item label="状态">
                       <Tag color={getOperationStatusColor(detail.status)}>
                         {getOperationStatusLabel(detail.status)}
