@@ -1,15 +1,39 @@
-import { ReloadOutlined } from '@ant-design/icons';
+import {
+  CloudDownloadOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { ProTable } from '@ant-design/pro-components';
-import { App, Button, Form, Input, Select, Space, Tag } from 'antd';
+import {
+  App,
+  Button,
+  Descriptions,
+  Drawer,
+  Form,
+  Input,
+  Modal,
+  Select,
+  Space,
+  Tag,
+  Typography,
+} from 'antd';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { listAssetImages } from '@/services/asset-service/api';
+import {
+  deleteAssetImage,
+  listAssetProviderAccounts,
+  listAssetImages,
+} from '@/services/asset-service/api';
+import ImageEditModal from '../images/ImageEditModal';
+import ImageImportModal from '../images/ImageImportModal';
 import {
   formatText,
   formatTime,
   getAssetSourceLabel,
   normalizeDevErrorMessage,
 } from '../../utils';
+
+const { Text } = Typography;
 
 type ImageFilters = {
   provider_code?: string;
@@ -21,9 +45,9 @@ type ImageFilters = {
 };
 
 const SOURCE_OPTIONS = [
-  { label: '手动录入', value: 'manual' },
-  { label: '云上导入', value: 'import' },
-  { label: '云上创建', value: 'provider' },
+  { label: 'Manual', value: 'manual' },
+  { label: 'Import', value: 'import' },
+  { label: 'Provider', value: 'provider' },
 ];
 
 const STATUS_OPTIONS = [
@@ -36,90 +60,153 @@ const STATUS_OPTIONS = [
 const ImagesPanel: React.FC<{
   providers: API.AssetProvider[];
 }> = ({ providers }) => {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const actionRef = useRef<ActionType | undefined>(undefined);
   const [filterForm] = Form.useForm<ImageFilters>();
   const [filters, setFilters] = useState<ImageFilters>({});
+  const [accounts, setAccounts] = useState<API.AssetProviderAccount[]>([]);
+  const [editing, setEditing] = useState<API.AssetImage | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [detail, setDetail] = useState<API.AssetImage | null>(null);
 
   useEffect(() => {
     actionRef.current?.reload();
   }, [filters]);
 
+  useEffect(() => {
+    const loadAccounts = async () => {
+      try {
+        const response = await listAssetProviderAccounts({ page: 1, page_size: 200 });
+        setAccounts(response.data?.items || []);
+      } catch (error: any) {
+        message.error(normalizeDevErrorMessage(error));
+      }
+    };
+    void loadAccounts();
+  }, [message]);
+
   const columns: ProColumns<API.AssetImage>[] = useMemo(
     () => [
       {
-        title: '本地 ID',
+        title: 'Local ID',
         dataIndex: 'id',
         width: 100,
       },
       {
-        title: '供应商',
+        title: 'Provider',
         dataIndex: 'provider_code',
         width: 140,
         render: (_, record) => <Tag>{record.provider_code || '-'}</Tag>,
       },
       {
-        title: '镜像 ID',
+        title: 'Provider Image ID',
         dataIndex: 'provider_image_id',
         width: 220,
         ellipsis: true,
         renderText: formatText,
       },
       {
-        title: '镜像名称',
+        title: 'Image Name',
         dataIndex: 'name',
         width: 220,
         ellipsis: true,
         renderText: formatText,
       },
       {
-        title: '类型 / 系统',
+        title: 'Type / OS',
         width: 220,
         render: (_, record) =>
           `${formatText(record.type)} / ${formatText(record.os_type)}`,
       },
       {
-        title: '分类 / 版本',
+        title: 'Category / Version',
         width: 220,
         render: (_, record) =>
           `${formatText(record.category)} / ${formatText(record.version)}`,
       },
       {
-        title: '状态',
+        title: 'Status',
         dataIndex: 'status',
         width: 140,
         renderText: formatText,
       },
       {
-        title: '标签数',
+        title: 'Tags',
         dataIndex: 'tags',
         width: 100,
         render: (_, record) => (record.tags?.length ? String(record.tags.length) : '-'),
       },
       {
-        title: '关联可用区',
+        title: 'Zone IDs',
         dataIndex: 'zone_ids',
         width: 220,
         render: (_, record) =>
           record.zone_ids?.length
-            ? `${record.zone_ids.length} 个 (${record.zone_ids.join(', ')})`
+            ? `${record.zone_ids.length} (${record.zone_ids.join(', ')})`
             : '-',
       },
       {
-        title: '来源',
+        title: 'Source',
         dataIndex: 'source',
         width: 140,
         render: (_, record) => formatText(getAssetSourceLabel(record.source)),
       },
       {
-        title: '更新时间',
+        title: 'Updated At',
         dataIndex: 'updated_at',
         width: 180,
         ellipsis: true,
         renderText: formatTime,
       },
+      {
+        title: 'Action',
+        valueType: 'option',
+        width: 180,
+        fixed: 'right',
+        render: (_, record) => [
+          <a
+            key="detail"
+            onClick={() => setDetail(record)}
+          >
+            Detail
+          </a>,
+          <a
+            key="edit"
+            onClick={() => {
+              setEditing(record);
+              setEditOpen(true);
+            }}
+          >
+            Edit
+          </a>,
+          <a
+            key="delete"
+            onClick={() => {
+              modal.confirm({
+                title: `Delete image #${record.id}?`,
+                content: 'This only deletes the local image record.',
+                okText: 'Delete',
+                okButtonProps: { danger: true },
+                onOk: async () => {
+                  try {
+                    await deleteAssetImage(record.id);
+                    message.success('Image deleted.');
+                    actionRef.current?.reload();
+                  } catch (error: any) {
+                    message.error(normalizeDevErrorMessage(error));
+                    throw error;
+                  }
+                },
+              });
+            }}
+          >
+            Delete
+          </a>,
+        ],
+      },
     ],
-    [],
+    [message, modal],
   );
 
   return (
@@ -138,12 +225,12 @@ const ImagesPanel: React.FC<{
           })
         }
       >
-        <Form.Item name="provider_code" label="供应商">
+        <Form.Item name="provider_code" label="Provider">
           <Select
             allowClear
             showSearch
             optionFilterProp="label"
-            placeholder="全部供应商"
+            placeholder="All providers"
             style={{ width: 220 }}
             options={providers.map((item) => ({
               label: `${item.name || item.code} (${item.code})`,
@@ -151,35 +238,25 @@ const ImagesPanel: React.FC<{
             }))}
           />
         </Form.Item>
-        <Form.Item name="source" label="来源">
-          <Select
-            allowClear
-            placeholder="全部来源"
-            style={{ width: 160 }}
-            options={SOURCE_OPTIONS}
-          />
+        <Form.Item name="source" label="Source">
+          <Select allowClear placeholder="All source" style={{ width: 160 }} options={SOURCE_OPTIONS} />
         </Form.Item>
-        <Form.Item name="status" label="状态">
-          <Select
-            allowClear
-            placeholder="全部状态"
-            style={{ width: 160 }}
-            options={STATUS_OPTIONS}
-          />
+        <Form.Item name="status" label="Status">
+          <Select allowClear placeholder="All status" style={{ width: 160 }} options={STATUS_OPTIONS} />
         </Form.Item>
-        <Form.Item name="resource_id" label="镜像 ID">
-          <Input placeholder="精确匹配 provider_image_id" style={{ width: 220 }} />
+        <Form.Item name="resource_id" label="Image ID">
+          <Input placeholder="Exact provider_image_id" style={{ width: 220 }} />
         </Form.Item>
-        <Form.Item name="zone_id" label="可用区 ID">
-          <Input placeholder="按本地 zone_id 过滤" style={{ width: 180 }} />
+        <Form.Item name="zone_id" label="Zone ID">
+          <Input placeholder="Filter by local zone_id" style={{ width: 180 }} />
         </Form.Item>
-        <Form.Item name="name" label="关键字">
-          <Input placeholder="匹配镜像名称或镜像 ID" style={{ width: 220 }} />
+        <Form.Item name="name" label="Keyword">
+          <Input placeholder="Match image name or id" style={{ width: 220 }} />
         </Form.Item>
         <Form.Item>
           <Space>
             <Button type="primary" htmlType="submit">
-              应用
+              Apply
             </Button>
             <Button
               onClick={() => {
@@ -187,7 +264,7 @@ const ImagesPanel: React.FC<{
                 setFilters({});
               }}
             >
-              重置
+              Reset
             </Button>
           </Space>
         </Form.Item>
@@ -197,7 +274,7 @@ const ImagesPanel: React.FC<{
         rowKey="id"
         actionRef={actionRef}
         search={false}
-        scroll={{ x: 2100 }}
+        scroll={{ x: 2300 }}
         columns={columns}
         request={async (params) => {
           try {
@@ -223,14 +300,97 @@ const ImagesPanel: React.FC<{
         }}
         toolBarRender={() => [
           <Button
+            key="create"
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              setEditing(null);
+              setEditOpen(true);
+            }}
+          >
+            Create
+          </Button>,
+          <Button
+            key="import"
+            icon={<CloudDownloadOutlined />}
+            onClick={() => setImportOpen(true)}
+          >
+            Import From Provider
+          </Button>,
+          <Button
             key="refresh"
             icon={<ReloadOutlined />}
             onClick={() => actionRef.current?.reload()}
           >
-            刷新
+            Refresh
           </Button>,
         ]}
       />
+
+      <ImageEditModal
+        open={editOpen}
+        providers={providers}
+        editing={editing}
+        onCancel={() => {
+          setEditOpen(false);
+          setEditing(null);
+        }}
+        onSuccess={() => {
+          setEditOpen(false);
+          setEditing(null);
+          actionRef.current?.reload();
+        }}
+      />
+
+      <ImageImportModal
+        open={importOpen}
+        accounts={accounts}
+        onCancel={() => setImportOpen(false)}
+        onSuccess={() => {
+          setImportOpen(false);
+          actionRef.current?.reload();
+        }}
+      />
+
+      <Drawer
+        title={detail ? detail.name || detail.provider_image_id || `Image #${detail.id}` : 'Image Detail'}
+        open={Boolean(detail)}
+        width={860}
+        onClose={() => setDetail(null)}
+      >
+        {detail ? (
+          <Descriptions bordered column={2}>
+            <Descriptions.Item label="Local ID">{detail.id}</Descriptions.Item>
+            <Descriptions.Item label="Provider">{detail.provider_code || '-'}</Descriptions.Item>
+            <Descriptions.Item label="Provider Image ID">
+              {detail.provider_image_id || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Name">{detail.name || '-'}</Descriptions.Item>
+            <Descriptions.Item label="Type">{detail.type || '-'}</Descriptions.Item>
+            <Descriptions.Item label="OS Type">{detail.os_type || '-'}</Descriptions.Item>
+            <Descriptions.Item label="Category">{detail.category || '-'}</Descriptions.Item>
+            <Descriptions.Item label="Version">{detail.version || '-'}</Descriptions.Item>
+            <Descriptions.Item label="Status">{detail.status || '-'}</Descriptions.Item>
+            <Descriptions.Item label="Source">
+              {formatText(getAssetSourceLabel(detail.source))}
+            </Descriptions.Item>
+            <Descriptions.Item label="Zone IDs" span={2}>
+              {detail.zone_ids?.length ? detail.zone_ids.join(', ') : '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Tags" span={2}>
+              <Space size={[8, 8]} wrap>
+                {detail.tags?.length
+                  ? detail.tags.map((tag) => (
+                      <Tag key={`${tag.key}:${tag.value}`}>{`${tag.key}=${tag.value}`}</Tag>
+                    ))
+                  : '-'}
+              </Space>
+            </Descriptions.Item>
+            <Descriptions.Item label="Created At">{formatTime(detail.created_at)}</Descriptions.Item>
+            <Descriptions.Item label="Updated At">{formatTime(detail.updated_at)}</Descriptions.Item>
+          </Descriptions>
+        ) : null}
+      </Drawer>
     </>
   );
 };

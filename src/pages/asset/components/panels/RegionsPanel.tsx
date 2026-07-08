@@ -1,9 +1,18 @@
-import { ReloadOutlined } from '@ant-design/icons';
+import {
+  CloudDownloadOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { ProTable } from '@ant-design/pro-components';
 import { App, Button, Form, Input, Select, Space, Tag } from 'antd';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { listAssetRegions } from '@/services/asset-service/api';
+import {
+  listAssetProviderAccounts,
+  listAssetRegions,
+} from '@/services/asset-service/api';
+import RegionCreateModal from '../regions/RegionCreateModal';
+import RegionImportModal from '../regions/RegionImportModal';
 import {
   formatText,
   formatTime,
@@ -19,9 +28,9 @@ type RegionFilters = {
 };
 
 const REGION_SOURCE_OPTIONS = [
-  { label: '手动录入', value: 'manual' },
-  { label: '云上导入', value: 'import' },
-  { label: '云上创建', value: 'provider' },
+  { label: 'Manual', value: 'manual' },
+  { label: 'Import', value: 'import' },
+  { label: 'Provider', value: 'provider' },
 ];
 
 const RegionsPanel: React.FC<{
@@ -31,46 +40,62 @@ const RegionsPanel: React.FC<{
   const actionRef = useRef<ActionType | undefined>(undefined);
   const [filterForm] = Form.useForm<RegionFilters>();
   const [filters, setFilters] = useState<RegionFilters>({});
+  const [accounts, setAccounts] = useState<API.AssetProviderAccount[]>([]);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   useEffect(() => {
     actionRef.current?.reload();
   }, [filters]);
 
+  useEffect(() => {
+    const loadAccounts = async () => {
+      try {
+        const response = await listAssetProviderAccounts({ page: 1, page_size: 200 });
+        setAccounts(response.data?.items || []);
+      } catch (error: any) {
+        message.error(normalizeDevErrorMessage(error));
+      }
+    };
+
+    void loadAccounts();
+  }, [message]);
+
   const columns: ProColumns<API.AssetRegion>[] = useMemo(
     () => [
       {
-        title: '本地 ID',
+        title: 'Local ID',
         dataIndex: 'id',
         width: 100,
       },
       {
-        title: '供应商',
+        title: 'Provider',
         dataIndex: 'provider_code',
         width: 140,
         render: (_, record) => <Tag>{record.provider_code || '-'}</Tag>,
       },
       {
-        title: '供应商地域 ID',
+        title: 'Provider Region ID',
         dataIndex: 'provider_region_id',
         width: 220,
         ellipsis: true,
         renderText: formatText,
       },
       {
-        title: '区域名称',
+        title: 'Region Name',
         dataIndex: 'region_name',
         width: 220,
         ellipsis: true,
         renderText: formatText,
       },
       {
-        title: '来源',
+        title: 'Source',
         dataIndex: 'source',
         width: 140,
         render: (_, record) => formatText(getAssetSourceLabel(record.source)),
       },
       {
-        title: '更新时间',
+        title: 'Updated At',
         dataIndex: 'updated_at',
         width: 180,
         ellipsis: true,
@@ -94,12 +119,12 @@ const RegionsPanel: React.FC<{
           })
         }
       >
-        <Form.Item name="provider_code" label="供应商">
+        <Form.Item name="provider_code" label="Provider">
           <Select
             allowClear
             showSearch
             optionFilterProp="label"
-            placeholder="全部供应商"
+            placeholder="All providers"
             style={{ width: 220 }}
             options={providers.map((item) => ({
               label: `${item.name || item.code} (${item.code})`,
@@ -107,24 +132,24 @@ const RegionsPanel: React.FC<{
             }))}
           />
         </Form.Item>
-        <Form.Item name="source" label="来源">
+        <Form.Item name="source" label="Source">
           <Select
             allowClear
-            placeholder="全部来源"
+            placeholder="All source"
             style={{ width: 160 }}
             options={REGION_SOURCE_OPTIONS}
           />
         </Form.Item>
-        <Form.Item name="region_id" label="地域 ID">
-          <Input placeholder="精确匹配 provider_region_id" style={{ width: 220 }} />
+        <Form.Item name="region_id" label="Region ID">
+          <Input placeholder="Exact provider_region_id" style={{ width: 220 }} />
         </Form.Item>
-        <Form.Item name="name" label="关键字">
-          <Input placeholder="匹配地域 ID 或区域名称" style={{ width: 220 }} />
+        <Form.Item name="name" label="Keyword">
+          <Input placeholder="Match region id or name" style={{ width: 220 }} />
         </Form.Item>
         <Form.Item>
           <Space>
             <Button type="primary" htmlType="submit">
-              应用
+              Apply
             </Button>
             <Button
               onClick={() => {
@@ -132,7 +157,7 @@ const RegionsPanel: React.FC<{
                 setFilters({});
               }}
             >
-              重置
+              Reset
             </Button>
           </Space>
         </Form.Item>
@@ -166,13 +191,48 @@ const RegionsPanel: React.FC<{
         }}
         toolBarRender={() => [
           <Button
+            key="create"
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setCreateOpen(true)}
+          >
+            Create
+          </Button>,
+          <Button
+            key="import"
+            icon={<CloudDownloadOutlined />}
+            onClick={() => setImportOpen(true)}
+          >
+            Import From Provider
+          </Button>,
+          <Button
             key="refresh"
             icon={<ReloadOutlined />}
             onClick={() => actionRef.current?.reload()}
           >
-            刷新
+            Refresh
           </Button>,
         ]}
+      />
+
+      <RegionCreateModal
+        open={createOpen}
+        providers={providers}
+        onCancel={() => setCreateOpen(false)}
+        onSuccess={() => {
+          setCreateOpen(false);
+          actionRef.current?.reload();
+        }}
+      />
+
+      <RegionImportModal
+        open={importOpen}
+        accounts={accounts}
+        onCancel={() => setImportOpen(false)}
+        onSuccess={() => {
+          setImportOpen(false);
+          actionRef.current?.reload();
+        }}
       />
     </>
   );

@@ -80,7 +80,10 @@ declare namespace API {
     city_name?: string;
     time_zone?: string;
     source?: string;
+    region_id?: number;
     region_ids?: number[];
+    provider_region_id?: string;
+    provider_region_ids?: string[];
     created_at?: string;
     updated_at?: string;
     [key: string]: any;
@@ -390,6 +393,23 @@ declare namespace API {
     subnet?: AssetProviderMachineSubnet;
     ip?: AssetProviderMachineIp | null;
     security_groups?: AssetProviderMachineSecurityGroup[];
+    label?: string;
+    [key: string]: any;
+  }
+
+  interface AssetProviderImage {
+    provider_id?: number | null;
+    provider_image_id: string;
+    name?: string;
+    type?: string;
+    os_type?: string;
+    category?: string;
+    version?: string;
+    status?: string;
+    tags?: AssetTagItem[];
+    provider_zone_id?: string;
+    provider_zone_ids?: string[];
+    source?: string;
     label?: string;
     [key: string]: any;
   }
@@ -723,6 +743,74 @@ declare namespace API {
     ip?: AssetProviderMachineIp | null;
     security_groups?: AssetProviderMachineSecurityGroup[];
     label?: string;
+  }
+
+  interface AssetImageCreateParams {
+    provider_image_id?: string;
+    provider_id?: number;
+    name: string;
+    type?: string;
+    os_type?: string;
+    category?: string;
+    version?: string;
+    status?: string;
+    tags?: AssetTagItem[];
+    source?: string;
+    zone_id?: number;
+    zone_ids?: number[];
+    provider_zone_id?: string;
+    provider_zone_ids?: string[];
+  }
+
+  interface AssetRegionCreateParams {
+    provider_id: number;
+    provider_region_id: string;
+    region_name?: string;
+    source?: string;
+  }
+
+  interface AssetZoneCreateParams {
+    provider_zone_id?: string;
+    provider_id?: number;
+    provider_name?: string;
+    country_code?: string;
+    country_name?: string;
+    city_code?: string;
+    city_name?: string;
+    time_zone?: string;
+    source?: string;
+    region_id?: number;
+    region_ids?: number[];
+    provider_region_id?: string;
+    provider_region_ids?: string[];
+  }
+
+  interface AssetProviderRegionListParams {
+    page?: number;
+    page_size?: number;
+    provider_region_id?: string;
+    refresh?: boolean;
+  }
+
+  interface AssetProviderZoneListParams {
+    page?: number;
+    page_size?: number;
+    provider_region_id?: string;
+    provider_zone_id?: string;
+    refresh?: boolean;
+  }
+
+  interface AssetImageUpdateParams extends AssetImageCreateParams {
+    id: number;
+  }
+
+  interface AssetProviderImageListParams {
+    page?: number;
+    page_size?: number;
+    provider_image_id?: string;
+    provider_zone_id?: string;
+    status?: string;
+    refresh?: boolean;
   }
 
   interface AssetMachineCreateFromProviderParams {

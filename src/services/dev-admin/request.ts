@@ -17,6 +17,8 @@ type DevAdminRequestOptions = {
   auth?: boolean;
 };
 
+type DevAdminResponsePayload = Partial<API.DevAdminApiResponse<unknown>>;
+
 export class DevAdminUnauthorizedError extends Error {
   constructor(message: string) {
     super(message);
@@ -26,22 +28,31 @@ export class DevAdminUnauthorizedError extends Error {
 
 export class DevAdminRequestError extends Error {
   httpStatus?: number;
+  responseCode?: number;
   errorType?: string;
   errorDetail?: string;
+  requestId?: string;
+  timestamp?: number;
 
   constructor(
     message: string,
     options?: {
       httpStatus?: number;
+      responseCode?: number;
       errorType?: string;
       errorDetail?: string;
+      requestId?: string;
+      timestamp?: number;
     },
   ) {
     super(message);
     this.name = 'DevAdminRequestError';
     this.httpStatus = options?.httpStatus;
+    this.responseCode = options?.responseCode;
     this.errorType = options?.errorType;
     this.errorDetail = options?.errorDetail;
+    this.requestId = options?.requestId;
+    this.timestamp = options?.timestamp;
   }
 }
 
@@ -70,22 +81,152 @@ const buildQuery = (params?: Record<string, unknown>) => {
     .join('&');
 };
 
-const getErrorMessage = (payload: Partial<API.DevAdminApiResponse<unknown>> | undefined) =>
-  payload?.message || payload?.error?.detail || payload?.error?.type || 'Management request failed.';
+const normalizeErrorText = (value?: string | null) => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const text = value.trim();
+  return text ? text : undefined;
+};
+
+const combineErrorMessage = (message?: string | null, detail?: string | null) => {
+  const normalizedMessage = normalizeErrorText(message);
+  const normalizedDetail = normalizeErrorText(detail);
+
+  if (normalizedMessage && normalizedDetail) {
+    const lowerMessage = normalizedMessage.toLowerCase();
+    const lowerDetail = normalizedDetail.toLowerCase();
+    if (
+      lowerMessage === lowerDetail ||
+      lowerMessage.includes(lowerDetail) ||
+      lowerDetail.includes(lowerMessage)
+    ) {
+      return normalizedDetail.length >= normalizedMessage.length
+        ? normalizedDetail
+        : normalizedMessage;
+    }
+    return `${normalizedMessage}: ${normalizedDetail}`;
+  }
+
+  return normalizedDetail || normalizedMessage;
+};
+
+const isDevAdminResponsePayload = (value: unknown): value is DevAdminResponsePayload => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  return (
+    'message' in value ||
+    'error' in value ||
+    'code' in value ||
+    'request_id' in value ||
+    'timestamp' in value
+  );
+};
+
+const getErrorMessage = (
+  payload: DevAdminResponsePayload | undefined,
+  fallback: string = 'Management request failed.',
+) =>
+  combineErrorMessage(payload?.message, payload?.error?.detail) ||
+  normalizeErrorText(payload?.error?.type) ||
+  fallback;
+
+export const extractDevAdminErrorPayload = (
+  error: unknown,
+): DevAdminResponsePayload | undefined => {
+  if (isDevAdminResponsePayload(error)) {
+    return error;
+  }
+
+  if (!error || typeof error !== 'object') {
+    return undefined;
+  }
+
+  const errorLike = error as {
+    data?: unknown;
+    info?: { data?: unknown };
+    response?: { data?: unknown };
+  };
+
+  if (isDevAdminResponsePayload(errorLike.data)) {
+    return errorLike.data;
+  }
+
+  if (isDevAdminResponsePayload(errorLike.info?.data)) {
+    return errorLike.info?.data;
+  }
+
+  if (isDevAdminResponsePayload(errorLike.response?.data)) {
+    return errorLike.response?.data;
+  }
+
+  return undefined;
+};
+
+export const formatDevAdminErrorMessage = (
+  error: unknown,
+  fallback: string = 'Management request failed.',
+) => {
+  if (error instanceof DevAdminRequestError) {
+    return (
+      combineErrorMessage(error.message, error.errorDetail) ||
+      normalizeErrorText(error.errorType) ||
+      fallback
+    );
+  }
+
+  if (error instanceof DevAdminUnauthorizedError) {
+    return normalizeErrorText(error.message) || fallback;
+  }
+
+  const payload = extractDevAdminErrorPayload(error);
+  if (payload) {
+    return getErrorMessage(payload, fallback);
+  }
+
+  if (!error || typeof error !== 'object') {
+    return fallback;
+  }
+
+  const errorLike = error as {
+    message?: string;
+    errorDetail?: string;
+    errorType?: string;
+    error?: {
+      detail?: string;
+      type?: string;
+    } | null;
+  };
+
+  return (
+    combineErrorMessage(
+      errorLike.message,
+      errorLike.errorDetail || errorLike.error?.detail,
+    ) ||
+    normalizeErrorText(errorLike.errorType || errorLike.error?.type) ||
+    fallback
+  );
+};
 
 const buildRequestError = (
   response: Response,
-  payload: Partial<API.DevAdminApiResponse<unknown>> | undefined,
+  payload: DevAdminResponsePayload | undefined,
 ) =>
-  new DevAdminRequestError(getErrorMessage(payload) || `HTTP ${response.status}`, {
+  new DevAdminRequestError(getErrorMessage(payload, `HTTP ${response.status}`), {
     httpStatus: response.status,
+    responseCode: payload?.code,
     errorType: payload?.error?.type,
     errorDetail: payload?.error?.detail,
+    requestId: payload?.request_id,
+    timestamp: payload?.timestamp,
   });
 
 const isLegacyNodeControlSignatureError = (
   path: string,
-  payload: Partial<API.DevAdminApiResponse<unknown>> | undefined,
+  payload: DevAdminResponsePayload | undefined,
 ) =>
   path.startsWith(NODE_CONTROL_ALIAS_PREFIX) &&
   typeof payload?.error?.detail === 'string' &&

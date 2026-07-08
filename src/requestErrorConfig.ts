@@ -1,20 +1,56 @@
-﻿import { history } from '@umijs/max';
+import { history } from '@umijs/max';
+import {
+  extractDevAdminErrorPayload,
+  formatDevAdminErrorMessage,
+} from '@/services/dev-admin/request';
+
+const isV4Url = (url?: string) => typeof url === 'string' && url.includes('/v4/');
+
+const isV4RequestError = (error: any) => {
+  if (isV4Url(error?.response?.url)) {
+    return true;
+  }
+
+  if (isV4Url(error?.request?.url)) {
+    return true;
+  }
+
+  if (isV4Url(error?.config?.url)) {
+    return true;
+  }
+
+  if (isV4Url(error?.info?.request?.url)) {
+    return true;
+  }
+
+  return false;
+};
 
 const errorConfig = {
-  // 错误处理
+  // Error handling
   errorHandler: (error: any) => {
     const { response } = error;
+    const payload = isV4RequestError(error)
+      ? extractDevAdminErrorPayload(error)
+      : undefined;
 
-    // 只处理网络层错误，不处理业务逻辑错误
-    // 业务逻辑错误（如 status: "fail"）已经在响应中返回了
+    if (payload) {
+      error.message = formatDevAdminErrorMessage(
+        payload,
+        error?.message || `HTTP ${response?.status || 'request failed'}`,
+      );
+      error.errorType = error.errorType || payload.error?.type;
+      error.errorDetail = error.errorDetail || payload.error?.detail;
+      error.requestId = error.requestId || payload.request_id;
+      error.responseCode = error.responseCode || payload.code;
+      error.timestamp = error.timestamp || payload.timestamp;
+    }
 
     if (response?.status === 401) {
-      // 清除 token
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user_token');
       localStorage.removeItem('user_info');
       localStorage.removeItem('secure_path');
-      // 跳转登录页
       history.push('/user/login');
       return;
     }
@@ -34,22 +70,19 @@ const errorConfig = {
       return;
     }
 
-    // 其他 HTTP 错误不拦截，让原始错误通过
     throw error;
   },
 
-  // 请求拦截器 - 添加认证信息
+  // Request interceptors
   requestInterceptors: [
     (config: any) => {
       if (typeof config?.url === 'string' && config.url.startsWith('/v4/')) {
         return config;
       }
 
-      // 从本地存储读取 token
       const token = localStorage.getItem('auth_token');
       if (token) {
         config.headers = config.headers || {};
-        // 直接使用 token（后端返回的已经是 "Bearer xxx" 格式）
         config.headers.Authorization = token;
       }
 
@@ -62,21 +95,18 @@ const errorConfig = {
         !config.url.startsWith('/v3')
       ) {
         config.url = `/api/v2/${securePath}${config.url}`;
-      }
-      else if (securePath && config.url.startsWith('/v3'))
-      {
-        let urlWithoutV3 = config.url.replace('/v3', ''); // 移除 "/v3"
+      } else if (securePath && config.url.startsWith('/v3')) {
+        const urlWithoutV3 = config.url.replace('/v3', '');
         config.url = `/api/v3/${securePath}${urlWithoutV3}`;
       }
+
       return config;
     },
   ],
 
-  // 响应拦截器
+  // Response interceptors
   responseInterceptors: [
     (response: any) => {
-      // 即使是 4xx 错误（如 400），如果响应体中有有效数据，也直接返回
-      // 让业务层处理 status: "fail" 的情况
       return response;
     },
   ],

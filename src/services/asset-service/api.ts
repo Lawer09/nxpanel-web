@@ -22,6 +22,45 @@ export async function listAssetProviderMachines(
   );
 }
 
+export async function listAssetProviderRegions(
+  providerType: string,
+  accountId: number,
+  params?: API.AssetProviderRegionListParams,
+) {
+  return devAdminRequest<API.AssetPageResult<API.AssetRegion>>(
+    `${ASSET_PREFIX}/provider/${providerType}/${accountId}/regions`,
+    {
+      params: toQueryParams(params),
+    },
+  );
+}
+
+export async function listAssetProviderZones(
+  providerType: string,
+  accountId: number,
+  params?: API.AssetProviderZoneListParams,
+) {
+  return devAdminRequest<API.AssetPageResult<API.AssetZone>>(
+    `${ASSET_PREFIX}/provider/${providerType}/${accountId}/zones`,
+    {
+      params: toQueryParams(params),
+    },
+  );
+}
+
+export async function listAssetProviderImages(
+  providerType: string,
+  accountId: number,
+  params?: API.AssetProviderImageListParams,
+) {
+  return devAdminRequest<API.AssetPageResult<API.AssetProviderImage>>(
+    `${ASSET_PREFIX}/provider/${providerType}/${accountId}/images`,
+    {
+      params: toQueryParams(params),
+    },
+  );
+}
+
 export async function listAssetProviderAccounts(params?: API.AssetListParams) {
   return devAdminRequest<API.AssetPageResult<API.AssetProviderAccount>>(
     `${ASSET_PREFIX}/provider-accounts`,
@@ -39,11 +78,25 @@ export async function listAssetRegions(
   });
 }
 
+export async function createAssetRegion(body: API.AssetRegionCreateParams) {
+  return devAdminRequest<{ id: number }>(`${ASSET_PREFIX}/regions/create`, {
+    method: 'POST',
+    body,
+  });
+}
+
 export async function listAssetZones(
   params?: API.AssetListParams & { zone_id?: string; region_id?: string },
 ) {
   return devAdminRequest<API.AssetPageResult<API.AssetZone>>(`${ASSET_PREFIX}/zones`, {
     params: toQueryParams(params),
+  });
+}
+
+export async function createAssetZone(body: API.AssetZoneCreateParams) {
+  return devAdminRequest<{ id: number }>(`${ASSET_PREFIX}/zones/create`, {
+    method: 'POST',
+    body,
   });
 }
 
@@ -63,6 +116,27 @@ export async function listAssetImages(
 ) {
   return devAdminRequest<API.AssetPageResult<API.AssetImage>>(`${ASSET_PREFIX}/images`, {
     params: toQueryParams(params),
+  });
+}
+
+export async function createAssetImage(body: API.AssetImageCreateParams) {
+  return devAdminRequest<{ id: number }>(`${ASSET_PREFIX}/images/create`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function updateAssetImage(body: API.AssetImageUpdateParams) {
+  return devAdminRequest<{ ok: boolean }>(`${ASSET_PREFIX}/images/update`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function deleteAssetImage(id: number) {
+  return devAdminRequest<{ ok: boolean }>(`${ASSET_PREFIX}/images/delete`, {
+    method: 'POST',
+    body: { id },
   });
 }
 
