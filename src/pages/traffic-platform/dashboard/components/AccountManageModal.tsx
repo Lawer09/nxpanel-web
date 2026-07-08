@@ -19,7 +19,6 @@ const AccountManageModal: React.FC = () => {
   const [allocationOpen, setAllocationOpen] = useState(false);
   const [allocationLoading, setAllocationLoading] = useState(false);
   const [allocationAccount, setAllocationAccount] = useState<API.TrafficAccountItem | undefined>();
-
   const [keyword, setKeyword] = useState('');
   const [enabledStatus, setEnabledStatus] = useState<number | undefined>(undefined);
   const [filterPlatformCode, setFilterPlatformCode] = useState<string | undefined>(undefined);
@@ -107,7 +106,6 @@ const AccountManageModal: React.FC = () => {
             setAllocationAccount(r);
             allocationForm.resetFields();
             allocationForm.setFieldsValue({
-              accountId: r.id,
               amountGb: 10,
             });
             setAllocationOpen(true);
@@ -362,16 +360,22 @@ const AccountManageModal: React.FC = () => {
         onCancel={() => {
           setAllocationOpen(false);
           setAllocationAccount(undefined);
+          allocationForm.resetFields();
         }}
         onOk={async () => {
+          if (!allocationAccount) {
+            message.error('请选择流量账户');
+            return;
+          }
           const values = await allocationForm.validateFields();
           setAllocationLoading(true);
           try {
             const res = await createTrafficAllocation({
-              accountId: Number(values.accountId),
-              targetUserId: values.targetUserId,
-              targetUsername: values.targetUsername,
+              accountId: allocationAccount.id,
+              targetUserId: String(allocationAccount.externalAccountId),
+              targetUsername: allocationAccount.accountName,
               amountGb: Number(values.amountGb),
+              remark: values.remark,
             });
             if (res.code !== 0) {
               message.error(res.msg || '流量分配失败');
@@ -396,35 +400,22 @@ const AccountManageModal: React.FC = () => {
         okButtonProps={{ style: { backgroundColor: '#7C3AED' } }}
       >
         <Form form={allocationForm} layout="vertical" preserve={false}>
-          <Form.Item name="accountId" hidden>
-            <Input />
-          </Form.Item>
           <Form.Item label="流量账号">
             <Input
               value={allocationAccount ? `${allocationAccount.accountName} (${allocationAccount.platformCode})` : ''}
               disabled
             />
           </Form.Item>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="targetUserId"
-                label="目标用户 ID"
-                rules={[{ required: true, message: '请输入目标用户 ID' }]}
-              >
-                <Input placeholder="例如 2" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="targetUsername"
-                label="目标用户名"
-                rules={[{ required: true, message: '请输入目标用户名' }]}
-              >
-                <Input placeholder="例如 kookeey" />
-              </Form.Item>
-            </Col>
-          </Row>
+          <Form.Item label="目标用户">
+            <Input
+              value={
+                allocationAccount
+                  ? `${allocationAccount.externalAccountId} - ${allocationAccount.accountName}`
+                  : ''
+              }
+              disabled
+            />
+          </Form.Item>
           <Form.Item
             name="amountGb"
             label="分配流量 (GB)"
@@ -440,6 +431,13 @@ const AccountManageModal: React.FC = () => {
             ]}
           >
             <InputNumber min={0.01} precision={2} step={1} style={{ width: '100%' }} placeholder="例如 10" />
+          </Form.Item>
+          <Form.Item
+            name="remark"
+            label="备注"
+            rules={[{ required: true, message: '请输入备注' }]}
+          >
+            <Input.TextArea rows={3} placeholder="请输入分配备注" />
           </Form.Item>
         </Form>
       </Modal>

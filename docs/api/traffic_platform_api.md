@@ -145,7 +145,8 @@ Body:
   "accountId": 1,
   "targetUserId": "2",
   "targetUsername": "kookeey",
-  "amountGb": 10
+  "amountGb": 10,
+  "remark": "给子账户补充可用流量"
 }
 ```
 
@@ -156,6 +157,7 @@ Body:
 - `targetUserId`：划转目标用户 ID
 - `targetUsername`：划转目标用户名
 - `amountGb`：划转流量 GB
+- `remark`：本次分配备注
 - `statusCode`：外部流量代理服务 HTTP 状态码
 - `response`：外部流量代理服务原始 JSON 响应
 

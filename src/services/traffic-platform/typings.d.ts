@@ -110,6 +110,7 @@ declare namespace API {
     targetUserId: string;
     targetUsername: string;
     amountGb: number;
+    remark?: string;
   }
 
   interface TrafficAllocationCreateResult {
@@ -118,6 +119,7 @@ declare namespace API {
     targetUserId: string;
     targetUsername: string;
     amountGb: number;
+    remark?: string;
     statusCode: number;
     response?: {
       code?: number;

@@ -232,7 +232,7 @@ traffic_platform 专有解读
   - `traffic_allocation`
 - `actions[]` 可选扩展字段（该模块当前支持）  - `template` / `recoverTemplate`
   - `subject` / `recoverSubject`（`email` 使用  - `toAdmin` / `recipients`（`email` 使用  - `webhookUrl` / `method` / `headers` / `timeoutSeconds`（`webhook` 使用  - `signing.enabled` / `signing.secret` / `signing.timestampHeader` / `signing.signatureHeader`（`webhook` 可选签名）
-  - `target_user_id` / `target_username` / `amount_gb`（`traffic_allocation` 使用，分别对应目标用户 ID、目标用户名、分配流量 GB）
+  - `sourceAccountId` / `amountGb`（`traffic_allocation` 使用，分别对应来源代理流量账号 ID、分配流量 GB）
 
 Body 示例
 ```json

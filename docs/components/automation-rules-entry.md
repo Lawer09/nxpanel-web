@@ -34,7 +34,7 @@ actionsRender: () => [
 - 所有请求都依赖当前登录态下的 `secure_path` 与 token 拦截器，不能脱离项目请求封装单独使用。
 - 模块切换后会重置当前选中规则，并按新模块重新查询规则与执行记录。
 - 表单提交会进行通用校验：必填字段、条件/动作数量、条件值结构等。
-- `traffic_platform` 的 `actions.type=traffic_allocation` 会在前端填写 `targetUserId`、`targetUsername`、`amountGb`，提交时分别映射为 `target_user_id`、`target_username`、`amount_gb`。
+- `traffic_platform` 的 `actions.type=traffic_allocation` 会从代理流量账号下拉选择 `sourceAccountId`，并填写 `amountGb`，提交时保持 `{ type, sourceAccountId, amountGb }` 结构。
 - `project_aggregate` 模块下 `targetType` 固定为 `project_daily_aggregate`，作用范围使用 `projectCodes`。
 - `project_aggregate` 的 `actions.type=webhook` 支持扩展字段：`webhookUrl`、`headers`、`timeoutSeconds`、`signing`（启用开关、密钥、请求头名）。
 - `project_ad_revenue_hourly` 模块下 `targetType` 固定为 `project_ad_revenue_hourly`，作用范围使用 `projectCodes`，并支持 `includeDisabled` 控制是否包含已禁用的项目广告账号映射。

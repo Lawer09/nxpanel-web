@@ -519,3 +519,25 @@ CSS Modules 中顶层 `:global` 会生成真正的全局样式，不会自动带
 - `src/services/version/api.ts`
 - `src/app.tsx`
 - `src/components/VersionNoticeModal/index.tsx`
+
+## 代理流量账号列表流量分配误用广告账户
+
+### 出现场景
+
+在代理流量 Dashboard 的账号管理弹窗中，点击某个代理流量账号行的“流量分配”操作时，弹窗曾加载广告账户列表并将广告账户 ID 作为分配目标提交。
+
+### 问题原因
+
+账号列表行操作本身已经具备当前代理流量账号上下文，`/v3/traffic-platform/traffic-allocations/create` 的 `accountId` 表示本地代理流量账号 ID，不应从广告账户列表派生。将广告账户下拉接入该弹窗会导致提交的账号来源与当前行不一致。
+
+### 解决方式
+
+流量分配弹窗不再加载广告账户列表，目标用户信息改为只读展示当前行代理流量账号；提交时固定使用当前行的 `id/externalAccountId/accountName` 生成 `accountId/targetUserId/targetUsername`。
+
+### 影响范围
+
+代理流量账号管理弹窗中的“流量分配”行操作。
+
+### 相关文件
+
+- `src/pages/traffic-platform/dashboard/components/AccountManageModal.tsx`
