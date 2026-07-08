@@ -27,8 +27,10 @@ import {
   updateUser,
 } from '@/services/user/api';
 import AidLoginBanRuleModal from './components/AidLoginBanRuleModal';
+import AllowedIpModal from './components/AllowedIpModal';
 import BlockedIpModal from './components/BlockedIpModal';
 import GenerateUserModal from './components/GenerateUserModal';
+import IpAllowlistRuleModal from './components/IpAllowlistRuleModal';
 import SendMailModal from './components/SendMailModal';
 import UserDetailDrawer from './components/UserDetailDrawer';
 import UserFormModal from './components/UserFormModal';
@@ -141,7 +143,9 @@ const UserManagePage: React.FC = () => {
   const [generateOpen, setGenerateOpen] = useState(false);
   const [sendMailOpen, setSendMailOpen] = useState(false);
   const [blockedIpOpen, setBlockedIpOpen] = useState(false);
+  const [allowedIpOpen, setAllowedIpOpen] = useState(false);
   const [banRuleOpen, setBanRuleOpen] = useState(false);
+  const [allowlistRuleOpen, setAllowlistRuleOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<API.UserItem[]>([]);
   const [currentFilter, setCurrentFilter] = useState<API.UserFilter[]>([]);
   const [currentQuery, setCurrentQuery] = useState<API.UserFetchParams>({
@@ -149,6 +153,7 @@ const UserManagePage: React.FC = () => {
     pageSize: 15,
     sort: [{ id: 'created_at', desc: true }],
   });
+  const [appMappings, setAppMappings] = useState<ProjectUserAppMapping[]>([]);
   const [appIdOptions, setAppIdOptions] = useState<AppIdOption[]>([]);
   const [appIdOptionsLoading, setAppIdOptionsLoading] = useState(false);
   const [resultSummary, setResultSummary] = useState<{
@@ -173,23 +178,20 @@ const UserManagePage: React.FC = () => {
 
         if (res.code !== 0) {
           messageApi.error(res.msg || '获取应用 ID 列表失败');
+          setAppMappings([]);
           setAppIdOptions([]);
           return;
         }
 
-        setAppIdOptions(
-          buildAppIdOptions(
-            getMappingList(
-              res.data as
-                | ProjectUserAppMapping[]
-                | { data?: ProjectUserAppMapping[] }
-                | undefined,
-            ),
-          ),
+        const mappings = getMappingList(
+          res.data as ProjectUserAppMapping[] | { data?: ProjectUserAppMapping[] } | undefined,
         );
+        setAppMappings(mappings);
+        setAppIdOptions(buildAppIdOptions(mappings));
       } catch {
         if (!ignore) {
           messageApi.error('获取应用 ID 列表失败');
+          setAppMappings([]);
           setAppIdOptions([]);
         }
       } finally {
@@ -794,8 +796,14 @@ const UserManagePage: React.FC = () => {
           <Button key="blockedIp" onClick={() => setBlockedIpOpen(true)}>
             封禁 IP
           </Button>,
+          <Button key="allowedIp" onClick={() => setAllowedIpOpen(true)}>
+            IP 白名单
+          </Button>,
           <Button key="banRule" onClick={() => setBanRuleOpen(true)}>
             封禁策略
+          </Button>,
+          <Button key="allowlistRule" onClick={() => setAllowlistRuleOpen(true)}>
+            白名单策略
           </Button>,
           <Button
             key="sendMail"
@@ -843,8 +851,18 @@ const UserManagePage: React.FC = () => {
       {/* Blocked IP modal */}
       <BlockedIpModal open={blockedIpOpen} onOpenChange={setBlockedIpOpen} />
 
+      {/* Allowed IP modal */}
+      <AllowedIpModal open={allowedIpOpen} onOpenChange={setAllowedIpOpen} />
+
       {/* Ban rule modal */}
       <AidLoginBanRuleModal open={banRuleOpen} onOpenChange={setBanRuleOpen} />
+
+      {/* Allowlist rule modal */}
+      <IpAllowlistRuleModal
+        open={allowlistRuleOpen}
+        mappings={appMappings}
+        onOpenChange={setAllowlistRuleOpen}
+      />
 
       {/* Send mail modal */}
       <SendMailModal

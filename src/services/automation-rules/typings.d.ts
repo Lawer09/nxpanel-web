@@ -34,6 +34,9 @@ declare namespace API {
       timestampHeader?: string;
       signatureHeader?: string;
     };
+    target_user_id?: string;
+    target_username?: string;
+    amount_gb?: number;
     params?: Record<string, any>;
   }
 

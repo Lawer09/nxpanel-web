@@ -3,7 +3,7 @@ import { Button, Modal, Form, Input, Select, App, Space, Tag, InputNumber, Row, 
 import { PlusOutlined, SearchOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { ProTable, ActionType, ProColumns } from '@ant-design/pro-components';
 import { useDashboard } from '../DashboardContext';
-import { getTrafficAccounts, toggleTrafficAccountStatus, updateTrafficAccount, createTrafficAccount, getTrafficAccountDetail, testTrafficAccount } from '@/services/traffic-platform/api';
+import { createTrafficAllocation, getTrafficAccounts, toggleTrafficAccountStatus, updateTrafficAccount, createTrafficAccount, getTrafficAccountDetail, testTrafficAccount } from '@/services/traffic-platform/api';
 import dayjs from 'dayjs';
 
 const AccountManageModal: React.FC = () => {
@@ -14,7 +14,11 @@ const AccountManageModal: React.FC = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [current, setCurrent] = useState<any>();
   const [form] = Form.useForm();
+  const [allocationForm] = Form.useForm();
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [allocationOpen, setAllocationOpen] = useState(false);
+  const [allocationLoading, setAllocationLoading] = useState(false);
+  const [allocationAccount, setAllocationAccount] = useState<API.TrafficAccountItem | undefined>();
 
   const [keyword, setKeyword] = useState('');
   const [enabledStatus, setEnabledStatus] = useState<number | undefined>(undefined);
@@ -95,6 +99,21 @@ const AccountManageModal: React.FC = () => {
           }}
         >
           测试连接
+        </a>,
+        <a
+          key="allocate"
+          style={{ color: '#7C3AED' }}
+          onClick={() => {
+            setAllocationAccount(r);
+            allocationForm.resetFields();
+            allocationForm.setFieldsValue({
+              accountId: r.id,
+              amountGb: 10,
+            });
+            setAllocationOpen(true);
+          }}
+        >
+          流量分配
         </a>,
         <a
           key="toggle"
@@ -333,6 +352,94 @@ const AccountManageModal: React.FC = () => {
 
           <Form.Item name="remark" label="备注">
             <Input.TextArea rows={3} placeholder="请输入备注信息" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="流量分配"
+        open={allocationOpen}
+        onCancel={() => {
+          setAllocationOpen(false);
+          setAllocationAccount(undefined);
+        }}
+        onOk={async () => {
+          const values = await allocationForm.validateFields();
+          setAllocationLoading(true);
+          try {
+            const res = await createTrafficAllocation({
+              accountId: Number(values.accountId),
+              targetUserId: values.targetUserId,
+              targetUsername: values.targetUsername,
+              amountGb: Number(values.amountGb),
+            });
+            if (res.code !== 0) {
+              message.error(res.msg || '流量分配失败');
+              return;
+            }
+
+            const orderId = res.data?.response?.data?.order_id;
+            message.success(orderId ? `流量分配成功，订单号 ${orderId}` : (res.msg || '流量分配成功'));
+            setAllocationOpen(false);
+            setAllocationAccount(undefined);
+            allocationForm.resetFields();
+            actionRef.current?.reload();
+            reloadKpi();
+          } finally {
+            setAllocationLoading(false);
+          }
+        }}
+        confirmLoading={allocationLoading}
+        destroyOnHidden
+        width={560}
+        okText="确认分配"
+        okButtonProps={{ style: { backgroundColor: '#7C3AED' } }}
+      >
+        <Form form={allocationForm} layout="vertical" preserve={false}>
+          <Form.Item name="accountId" hidden>
+            <Input />
+          </Form.Item>
+          <Form.Item label="流量账号">
+            <Input
+              value={allocationAccount ? `${allocationAccount.accountName} (${allocationAccount.platformCode})` : ''}
+              disabled
+            />
+          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="targetUserId"
+                label="目标用户 ID"
+                rules={[{ required: true, message: '请输入目标用户 ID' }]}
+              >
+                <Input placeholder="例如 2" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="targetUsername"
+                label="目标用户名"
+                rules={[{ required: true, message: '请输入目标用户名' }]}
+              >
+                <Input placeholder="例如 kookeey" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item
+            name="amountGb"
+            label="分配流量 (GB)"
+            rules={[
+              { required: true, message: '请输入分配流量' },
+              {
+                validator: async (_, value) => {
+                  if (value === undefined || value === null || Number(value) <= 0) {
+                    throw new Error('分配流量必须大于 0');
+                  }
+                },
+              },
+            ]}
+          >
+            <InputNumber min={0.01} precision={2} step={1} style={{ width: '100%' }} placeholder="例如 10" />
           </Form.Item>
         </Form>
       </Modal>

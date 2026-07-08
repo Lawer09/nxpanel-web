@@ -84,6 +84,17 @@ export async function testTrafficAccount(id: number) {
   );
 }
 
+export async function createTrafficAllocation(data: API.TrafficAllocationCreateParams) {
+  return request<API.ApiResponse<API.TrafficAllocationCreateResult>>(
+    '/v3/traffic-platform/traffic-allocations/create',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data,
+    },
+  );
+}
+
 // ── 流量查询 ──────────────────────────────────────────────────────────────────
 
 export async function getTrafficHourly(params: API.TrafficHourlyQuery) {

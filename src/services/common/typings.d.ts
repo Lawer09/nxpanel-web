@@ -33,6 +33,6 @@ declare namespace API {
     is_admin?: boolean;
     user_type?: string;
     menus?: string[];
-    loginMode?: 'operation' | 'management';
+    loginMode?: 'operation' | 'management' | 'ads';
   }
 }

@@ -193,6 +193,41 @@ declare namespace API {
     bannedUserIds: number[];
   }
 
+  interface UserAllowedIpItem {
+    id: number;
+    ip: string;
+    reason?: string | null;
+    metadata?: Record<string, any> | null;
+    operator_user_id?: number | null;
+    operator_user?: BlockedIpUserLite | null;
+    created_at?: number;
+    updated_at?: number;
+  }
+
+  interface UserAllowedIpFetchParams {
+    ip?: string;
+    operatorUserId?: number;
+    current?: number;
+    pageSize?: number;
+  }
+
+  interface UserAllowedIpSaveParams {
+    ips: string[];
+    reason?: string;
+  }
+
+  interface UserAllowedIpSaveResult {
+    requestedCount: number;
+    allowedIpCount: number;
+    allowedIps: string[];
+  }
+
+  interface UserAllowedIpBatchDeleteResult {
+    deletedCount: number;
+    requestedCount: number;
+    missingIds?: number[];
+  }
+
   interface AidLoginBanRuleWeeklyWindow {
     weekday: number;
     start: string;
@@ -260,6 +295,53 @@ declare namespace API {
     packageNames?: string[];
     projectCodes?: string[];
     countries?: string[];
+    reason?: string;
+  }
+
+  interface IpAllowlistRuleUserLite {
+    id: number;
+    email: string;
+  }
+
+  interface IpAllowlistRuleItem {
+    id: number;
+    name: string;
+    enabled: boolean;
+    countries?: string[];
+    projectCodes?: string[];
+    packageNames?: string[];
+    reason?: string | null;
+    createdBy?: IpAllowlistRuleUserLite | null;
+    updatedBy?: IpAllowlistRuleUserLite | null;
+    createdAt?: number;
+    updatedAt?: number;
+  }
+
+  interface IpAllowlistRuleFetchParams {
+    enabled?: boolean;
+    country?: string;
+    projectCode?: string;
+    packageName?: string;
+    current?: number;
+    pageSize?: number;
+  }
+
+  interface IpAllowlistRuleSaveParams {
+    name: string;
+    enabled?: boolean;
+    countries?: string[];
+    projectCodes?: string[];
+    packageNames?: string[];
+    reason?: string;
+  }
+
+  interface IpAllowlistRuleUpdateParams {
+    id: number;
+    name?: string;
+    enabled?: boolean;
+    countries?: string[];
+    projectCodes?: string[];
+    packageNames?: string[];
     reason?: string;
   }
 

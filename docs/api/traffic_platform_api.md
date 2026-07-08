@@ -134,6 +134,36 @@ Body（可选字段）：
 
 `PATCH /traffic-platform/accounts/{id}/status`
 
+### 3.6 流量分配
+
+`POST /traffic-platform/traffic-allocations/create`
+
+Body:
+
+```json
+{
+  "accountId": 1,
+  "targetUserId": "2",
+  "targetUsername": "kookeey",
+  "amountGb": 10
+}
+```
+
+返回字段：
+
+- `accountId`：本地代理流量账号 ID
+- `accountName`：本地代理流量账号名称
+- `targetUserId`：划转目标用户 ID
+- `targetUsername`：划转目标用户名
+- `amountGb`：划转流量 GB
+- `statusCode`：外部流量代理服务 HTTP 状态码
+- `response`：外部流量代理服务原始 JSON 响应
+
+失败返回：
+
+- `code=404`：流量平台账号不存在
+- `code=500`：外部服务配置缺失、请求超时或返回非 2xx
+
 Body：
 
 ```json

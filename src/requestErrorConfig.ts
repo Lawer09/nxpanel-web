@@ -3,8 +3,14 @@ import {
   extractDevAdminErrorPayload,
   formatDevAdminErrorMessage,
 } from '@/services/dev-admin/request';
+import {
+  clearAdsAuthToken,
+  getAdsAuthToken,
+} from '@/services/ads-console/authStorage';
 
 const isV4Url = (url?: string) => typeof url === 'string' && url.includes('/v4/');
+const isAdsConsoleUrl = (url?: string) =>
+  typeof url === 'string' && url.includes('/ads-api');
 
 const isV4RequestError = (error: any) => {
   if (isV4Url(error?.response?.url)) {
@@ -46,6 +52,17 @@ const errorConfig = {
       error.timestamp = error.timestamp || payload.timestamp;
     }
 
+    if (
+      response?.status === 401 &&
+      (isAdsConsoleUrl(error?.response?.url) ||
+        isAdsConsoleUrl(error?.request?.url) ||
+        isAdsConsoleUrl(error?.config?.url))
+    ) {
+      clearAdsAuthToken();
+      history.push('/user/login?mode=ads');
+      return;
+    }
+
     if (response?.status === 401) {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user_token');
@@ -76,6 +93,18 @@ const errorConfig = {
   // Request interceptors
   requestInterceptors: [
     (config: any) => {
+      if (
+        typeof config?.url === 'string' &&
+        config.url.startsWith('/ads-api')
+      ) {
+        const token = getAdsAuthToken();
+        if (token) {
+          config.headers = config.headers || {};
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+      }
+
       if (typeof config?.url === 'string' && config.url.startsWith('/v4/')) {
         return config;
       }
@@ -92,6 +121,7 @@ const errorConfig = {
         typeof config?.url === 'string' &&
         config.url.startsWith('/') &&
         !config.url.startsWith('/api/') &&
+        !config.url.startsWith('/ads-api') &&
         !config.url.startsWith('/v3')
       ) {
         config.url = `/api/v2/${securePath}${config.url}`;
@@ -107,6 +137,14 @@ const errorConfig = {
   // Response interceptors
   responseInterceptors: [
     (response: any) => {
+      if (
+        isAdsConsoleUrl(response?.config?.url) &&
+        response?.data?.success === false &&
+        response?.data?.errorCode === 401
+      ) {
+        clearAdsAuthToken();
+        history.replace('/user/login?mode=ads');
+      }
       return response;
     },
   ],

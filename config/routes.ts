@@ -145,6 +145,208 @@ export default [
     component: './ad-spend',
   },
   {
+    path: '/ads-console',
+    name: '投放管理',
+    icon: 'fundOutlined',
+    routes: [
+      {
+        path: '/ads-console',
+        redirect: '/ads-console/dashboard',
+      },
+      {
+        path: '/ads-console/dashboard',
+        name: '投放首页',
+        component: './ads-console/dashboard',
+      },
+      {
+        path: '/ads-console/report',
+        name: '报表',
+        routes: [
+          {
+            path: '/ads-console/report',
+            redirect: '/ads-console/report/overall',
+          },
+          {
+            path: '/ads-console/report/overall',
+            name: 'Overall日报',
+            component: './ads-console/report/overall',
+          },
+          {
+            path: '/ads-console/report/overall-hour',
+            name: 'Overall小时报表',
+            component: './ads-console/report/overall-hour',
+          },
+          {
+            path: '/ads-console/report/event',
+            name: 'Event日报',
+            component: './ads-console/report/event',
+          },
+        ],
+      },
+      {
+        path: '/ads-console/changelog',
+        name: '更新日志',
+        component: './ads-console/changelog',
+      },
+      {
+        path: '/ads-console/ads',
+        name: '广告投放',
+        routes: [
+          {
+            path: '/ads-console/ads',
+            redirect: '/ads-console/ads/summary',
+          },
+          {
+            path: '/ads-console/ads/summary',
+            name: '广告汇总',
+            component: './ads-console/ads/summary',
+          },
+          {
+            path: '/ads-console/ads/account',
+            name: '广告账户',
+            component: './ads-console/ads/account',
+          },
+          {
+            path: '/ads-console/ads/campaign',
+            name: 'Campaign',
+            component: './ads-console/ads/campaign',
+          },
+          {
+            path: '/ads-console/ads/campaign/create',
+            hideInMenu: true,
+            component: './ads-console/ads/campaign/create',
+          },
+          {
+            path: '/ads-console/ads/adset',
+            name: 'Ad Set',
+            component: './ads-console/ads/adset',
+          },
+          {
+            path: '/ads-console/ads/ad',
+            name: 'Ad',
+            component: './ads-console/ads/ad',
+          },
+          {
+            path: '/ads-console/ads/creative',
+            name: 'Creative',
+            component: './ads-console/ads/creative',
+          },
+          {
+            path: '/ads-console/ads/create',
+            name: '创建广告',
+            hideInMenu: true,
+            component: './ads-console/ads/create',
+          },
+        ],
+      },
+      {
+        path: '/ads-console/automation',
+        name: '自动化',
+        routes: [
+          {
+            path: '/ads-console/automation',
+            redirect: '/ads-console/automation/rule',
+          },
+          {
+            path: '/ads-console/automation/rule',
+            name: '规则管理',
+            component: './ads-console/automation/rule',
+          },
+          {
+            path: '/ads-console/automation/history',
+            name: '执行历史',
+            component: './ads-console/automation/history',
+          },
+        ],
+      },
+      {
+        path: '/ads-console/org',
+        name: '组织管理',
+        routes: [
+          {
+            path: '/ads-console/org',
+            redirect: '/ads-console/org/agency',
+          },
+          {
+            path: '/ads-console/org/agency',
+            name: '代理商管理',
+            component: './ads-console/org/agency',
+          },
+          {
+            path: '/ads-console/org/team',
+            name: '团队管理',
+            component: './ads-console/org/team',
+          },
+          {
+            path: '/ads-console/org/group',
+            name: '项目组管理',
+            component: './ads-console/org/group',
+          },
+          {
+            path: '/ads-console/org/account',
+            name: '账户管理',
+            component: './ads-console/org/account',
+          },
+        ],
+      },
+      {
+        path: '/ads-console/system',
+        name: '系统管理',
+        routes: [
+          {
+            path: '/ads-console/system',
+            redirect: '/ads-console/system/token',
+          },
+          {
+            path: '/ads-console/system/token',
+            name: 'Token 管理',
+            component: './ads-console/system/token',
+          },
+          {
+            path: '/ads-console/system/bm',
+            name: 'BM 管理',
+            component: './ads-console/system/bm',
+          },
+          {
+            path: '/ads-console/system/user',
+            name: '用户管理',
+            component: './ads-console/system/user',
+          },
+          {
+            path: '/ads-console/system/role',
+            name: '角色管理',
+            component: './ads-console/system/role',
+          },
+          {
+            path: '/ads-console/system/permission',
+            name: '权限管理',
+            component: './ads-console/system/permission',
+          },
+          {
+            path: '/ads-console/system/dict',
+            name: '字典管理',
+            component: './ads-console/system/dict',
+          },
+          {
+            path: '/ads-console/system/tenant',
+            name: '租户管理',
+            component: './ads-console/system/tenant',
+          },
+          {
+            path: '/ads-console/system/log',
+            name: '操作日志',
+            component: './ads-console/system/log',
+          },
+          {
+            path: '/ads-console/system/changelog',
+            name: '更新日志管理',
+            component: './ads-console/system/changelog',
+          },
+        ],
+      },
+    ],
+  },
+  {
     path: '/traffic-platform',
     name: 'traffic-platform',
     icon: 'cloudServer',

@@ -244,3 +244,39 @@
 - `src/services/user/api.ts`
 - `src/services/user/typings.d.ts`
 - `docs/api/user_api.md`
+
+## 用户管理缺少 IP 白名单与白名单策略维护入口
+
+### 出现场景
+
+用户管理页已经支持封禁 IP 和封禁策略，但后端新增了 IP 白名单与自动白名单策略接口后，前端仍缺少对应的查询、批量录入、删除和规则维护入口，人工维护可信 IP 仍需借助外部接口调试工具。
+
+### 问题原因
+
+- 用户管理页工具栏只暴露了“封禁 IP / 封禁策略”两类风险控制入口。
+- 用户服务层缺少 `allowedIp` 与 `ipAllowlistRule` 相关类型和接口封装。
+- 页面内没有沿用现有弹窗模式承接白名单记录和规则维护。
+
+### 解决方式
+
+- 复用“封禁 IP”弹窗模式新增 `IP 白名单` 列表弹窗，支持按 IP、操作人筛选，支持批量录入多个 IP，并支持单条/批量删除。
+- 复用“封禁策略”的列表加表单弹窗模式新增 `白名单策略`，支持启停、国家/项目代号/包名条件维护和删除。
+- 白名单批量录入支持按空白字符或逗号拆分多个 IP，前端先去重并限制最多 500 个。
+- 白名单策略表单增加前端校验，强制国家、项目代号、包名至少配置一类条件，国家输入统一转为大写。
+
+### 影响范围
+
+- 用户管理页工具栏新增白名单维护入口
+- IP 白名单记录维护
+- IP 白名单自动规则维护
+- 用户相关接口文档与前端类型定义
+
+### 相关文件
+
+- `src/pages/user-manage/index.tsx`
+- `src/pages/user-manage/components/AllowedIpModal.tsx`
+- `src/pages/user-manage/components/IpAllowlistRuleModal.tsx`
+- `src/pages/user-manage/components/IpAllowlistRuleFormModal.tsx`
+- `src/services/user/api.ts`
+- `src/services/user/typings.d.ts`
+- `docs/api/user_api.md`

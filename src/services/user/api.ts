@@ -167,6 +167,57 @@ export async function batchBlockBlockedIps(
   });
 }
 
+export async function fetchAllowedIps(
+  params: API.UserAllowedIpFetchParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<{ data: API.UserAllowedIpItem[]; total: number }>>(
+    '/v3/user/allowedIp/fetch',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: params,
+      ...(options || {}),
+    },
+  );
+}
+
+export async function saveAllowedIps(
+  body: API.UserAllowedIpSaveParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.UserAllowedIpSaveResult>>('/v3/user/allowedIp/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+export async function deleteAllowedIp(body: { id: number }, options?: { [key: string]: any }) {
+  return request<API.ApiResponse<boolean>>('/v3/user/allowedIp/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+export async function batchDeleteAllowedIps(
+  body: { ids: number[] },
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.UserAllowedIpBatchDeleteResult>>(
+    '/v3/user/allowedIp/batchDelete',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: body,
+      ...(options || {}),
+    },
+  );
+}
+
 export async function fetchAidLoginBanRules(
   params: API.AidLoginBanRuleFetchParams,
   options?: { [key: string]: any },
@@ -208,6 +259,54 @@ export async function updateAidLoginBanRule(
 
 export async function deleteAidLoginBanRule(body: { id: number }, options?: { [key: string]: any }) {
   return request<API.ApiResponse<boolean>>('/v3/user/aidLoginBanRule/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+export async function fetchIpAllowlistRules(
+  params: API.IpAllowlistRuleFetchParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<{ data: API.IpAllowlistRuleItem[]; total: number }>>(
+    '/v3/user/ipAllowlistRule/fetch',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: params,
+      ...(options || {}),
+    },
+  );
+}
+
+export async function saveIpAllowlistRule(
+  body: API.IpAllowlistRuleSaveParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<boolean>>('/v3/user/ipAllowlistRule/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+export async function updateIpAllowlistRule(
+  body: API.IpAllowlistRuleUpdateParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<boolean>>('/v3/user/ipAllowlistRule/update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+export async function deleteIpAllowlistRule(body: { id: number }, options?: { [key: string]: any }) {
+  return request<API.ApiResponse<boolean>>('/v3/user/ipAllowlistRule/delete', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,

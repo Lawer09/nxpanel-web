@@ -9,6 +9,8 @@ import { Spin } from 'antd';
 import { createStyles } from 'antd-style';
 import React from 'react';
 import { flushSync } from 'react-dom';
+import { logoutAdsConsole } from '@/services/ads-console/auth';
+import { clearAdsAuthToken } from '@/services/ads-console/authStorage';
 import { logoutDevAdmin } from '@/services/dev-admin/api';
 import HeaderDropdown from '../HeaderDropdown';
 
@@ -78,6 +80,18 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
       history.replace('/user/login?mode=management');
     }
   };
+
+  const adsLoginOut = async () => {
+    try {
+      await logoutAdsConsole();
+    } catch {
+      // Ads console logout may fail when the token has already expired.
+    } finally {
+      clearAdsAuthToken();
+      history.replace('/user/login?mode=ads');
+    }
+  };
+
   const { styles } = useStyles();
 
   const { initialState, setInitialState } = useModel('@@initialState');
@@ -92,6 +106,10 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
         });
         if (loginMode === 'management') {
           await managementLoginOut();
+          return;
+        }
+        if (loginMode === 'ads') {
+          await adsLoginOut();
           return;
         }
         operationLoginOut();

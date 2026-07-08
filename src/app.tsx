@@ -20,6 +20,14 @@ import {
   getDevAdminSession,
 } from '@/services/dev-admin/session';
 import {
+  adsLoginDataToCurrentUser,
+  getAdsConsoleUserInfo,
+} from '@/services/ads-console/auth';
+import {
+  clearAdsAuthToken,
+  getAdsAuthToken,
+} from '@/services/ads-console/authStorage';
+import {
   getDefinedMenuPaths,
   getFirstAllowedDefinedMenuPath,
   isAllowedDefinedMenuPath,
@@ -36,6 +44,7 @@ const loginPath = '/user/login';
 const RUNTIME_VERSION_KEY = 'nxpanel_runtime_version';
 const VERSION_CHECK_INTERVAL = 60_000;
 const devHomePath = '/nodes/overview';
+const adsHomePath = '/ads-console/dashboard';
 const authFreePaths = [
   loginPath,
   '/user/register',
@@ -47,14 +56,19 @@ const isManagementPathname = (pathname: string) =>
   pathname.startsWith('/dev') ||
   pathname.startsWith('/iam') ||
   pathname.startsWith('/asset');
+const isAdsConsolePathname = (pathname: string) =>
+  pathname.startsWith('/ads-console');
 const filterOperationMenu = (menuData: any[]) =>
   menuData.filter(
     (item) =>
       item.path !== '/nodes' &&
       item.path !== '/dev' &&
       item.path !== '/iam' &&
-      item.path !== '/asset',
+      item.path !== '/asset' &&
+      item.path !== '/ads-console',
   );
+const filterAdsConsoleMenu = (menuData: any[]) =>
+  menuData.filter((item) => item.path === '/ads-console');
 const filterDefinedMenu = (menuData: any[], allowedPaths: Set<string>): any[] =>
   filterOperationMenu(menuData)
     .map((item) => {
@@ -221,15 +235,35 @@ export async function getInitialState(): Promise<{
   const fetchUserInfo = async () => {
     return getCachedUser();
   };
+
+  const fetchAdsUserInfo = async () => {
+    if (typeof window === 'undefined' || !getAdsAuthToken()) {
+      return undefined;
+    }
+    try {
+      const res = await getAdsConsoleUserInfo();
+      if (res?.success && res.data) {
+        return adsLoginDataToCurrentUser(res.data);
+      }
+    } catch (_error) {
+      clearAdsAuthToken();
+    }
+    return undefined;
+  };
   // 如果不是登录页面，执行
   const { location } = history;
   if (!authFreePaths.includes(location.pathname)) {
-    const devSession = isManagementPathname(location.pathname)
-      ? getDevAdminSession()
-      : undefined;
-    const currentUser = devSession?.accessToken
-      ? buildDevAdminCurrentUser(devSession.user)
-      : await fetchUserInfo();
+    let currentUser: API.CurrentUser | undefined;
+    if (isManagementPathname(location.pathname)) {
+      const devSession = getDevAdminSession();
+      currentUser = devSession?.accessToken
+        ? buildDevAdminCurrentUser(devSession.user)
+        : undefined;
+    } else if (isAdsConsolePathname(location.pathname)) {
+      currentUser = await fetchAdsUserInfo();
+    } else {
+      currentUser = await fetchUserInfo();
+    }
     return {
       fetchUserInfo,
       currentUser,
@@ -249,6 +283,7 @@ export const layout: RunTimeLayoutConfig = ({
 }) => {
   const isManagementMode =
     initialState?.currentUser?.loginMode === 'management';
+  const isAdsMode = initialState?.currentUser?.loginMode === 'ads';
   const isDefinedMenuMode = isDefinedMenuUser(initialState?.currentUser);
 
   return {
@@ -257,7 +292,7 @@ export const layout: RunTimeLayoutConfig = ({
         <Question key="doc" />,
         <SelectLang key="SelectLang" />,
       ];
-      if (isManagementMode) {
+      if (isManagementMode || isAdsMode) {
         return commonActions;
       }
       return [
@@ -287,6 +322,9 @@ export const layout: RunTimeLayoutConfig = ({
             item.path === '/asset',
         );
       }
+      if (isAdsMode) {
+        return filterAdsConsoleMenu(menuData);
+      }
       if (isDefinedMenuMode) {
         return filterDefinedMenu(
           menuData,
@@ -299,12 +337,42 @@ export const layout: RunTimeLayoutConfig = ({
       const { location } = history;
       void checkRuntimeVersionAndReload();
       const isManagementPath = isManagementPathname(location.pathname);
+      const isAdsPath = isAdsConsolePathname(location.pathname);
       const isAuthFreePath = authFreePaths.includes(location.pathname);
       const currentUser = initialState?.currentUser;
       const loginMode = currentUser?.loginMode;
 
+      if (!currentUser && !isAuthFreePath && isAdsPath) {
+        const searchParams = new URLSearchParams({
+          mode: 'ads',
+          redirect: location.pathname + location.search,
+        });
+        history.push({
+          pathname: loginPath,
+          search: searchParams.toString(),
+        });
+        return;
+      }
+
       if (!currentUser && !isAuthFreePath && !isManagementPath) {
         history.push(`${loginPath}?mode=operation`);
+        return;
+      }
+
+      if (currentUser && isAdsPath && loginMode !== 'ads') {
+        const searchParams = new URLSearchParams({
+          mode: 'ads',
+          redirect: location.pathname + location.search,
+        });
+        history.replace({
+          pathname: loginPath,
+          search: searchParams.toString(),
+        });
+        return;
+      }
+
+      if (loginMode === 'ads' && !isAdsPath && !isAuthFreePath) {
+        history.replace(adsHomePath);
         return;
       }
 
@@ -355,7 +423,7 @@ export const layout: RunTimeLayoutConfig = ({
         width: '331px',
       },
     ],
-    links: isDev && !isManagementMode
+    links: isDev && !isManagementMode && !isAdsMode
       ? [
           <Link key="openapi" to="/umi/plugin/openapi" target="_blank">
             <LinkOutlined />
@@ -366,7 +434,9 @@ export const layout: RunTimeLayoutConfig = ({
     headerTitleRender: (logo) => (
       <div
         onClick={() => {
-          history.push(isManagementMode ? devHomePath : '/');
+          history.push(
+            isManagementMode ? devHomePath : isAdsMode ? adsHomePath : '/',
+          );
         }}
         style={{
           display: 'flex',

@@ -81,6 +81,7 @@ type ActionConfig = {
   hasRecoverTemplate?: boolean;
   hasEmailFields?: boolean;
   hasWebhookFields?: boolean;
+  hasTrafficAllocationFields?: boolean;
   description?: string;
 };
 
@@ -120,6 +121,9 @@ type RuleFormValues = {
     signingSecret?: string;
     signingTimestampHeader?: string;
     signingSignatureHeader?: string;
+    targetUserId?: string;
+    targetUsername?: string;
+    amountGb?: number;
   }>;
   cooldownSeconds: number;
   recoveryEnabled: boolean;
@@ -255,6 +259,12 @@ const MODULE_CONFIGS: Record<ModuleKey, ModuleConfig> = {
         label: '禁用账户',
         value: 'disable_account',
         description: '命中规则后自动禁用目标账号',
+      },
+      {
+        label: '流量分配',
+        value: 'traffic_allocation',
+        hasTrafficAllocationFields: true,
+        description: '命中规则后向指定用户分配代理平台流量',
       },
     ],
   },
@@ -585,6 +595,9 @@ const AutomationRulesEntry: React.FC = () => {
                   signingSecret: action?.signing?.secret,
                   signingTimestampHeader: action?.signing?.timestampHeader,
                   signingSignatureHeader: action?.signing?.signatureHeader,
+                  targetUserId: action?.targetUserId ?? action?.target_user_id,
+                  targetUsername: action?.targetUsername ?? action?.target_username,
+                  amountGb: action?.amountGb ?? action?.amount_gb,
                 }))
               : [{ type: moduleConfig.actions[0]?.value ?? 'telegram_admin', template: '', recoverTemplate: '' }],
           cooldownSeconds: Number(data?.cooldownSeconds ?? 0),
@@ -662,6 +675,14 @@ const AutomationRulesEntry: React.FC = () => {
 
   const normalizeActionsForSubmit = (actions: RuleFormValues['actions']) => {
     return (actions || []).map((action) => {
+      if (action.type === 'traffic_allocation') {
+        return {
+          type: 'traffic_allocation',
+          target_user_id: action.targetUserId,
+          target_username: action.targetUsername,
+          amount_gb: Number(action.amountGb),
+        };
+      }
       if (action.type !== 'webhook') return action;
       let headers: Record<string, any> | undefined;
       if (action.headersText && action.headersText.trim()) {
@@ -1365,6 +1386,9 @@ const AutomationRulesEntry: React.FC = () => {
                                                   { name: ['actions', field.name, 'signingSecret'], value: undefined },
                                                   { name: ['actions', field.name, 'signingTimestampHeader'], value: undefined },
                                                   { name: ['actions', field.name, 'signingSignatureHeader'], value: undefined },
+                                                  { name: ['actions', field.name, 'targetUserId'], value: undefined },
+                                                  { name: ['actions', field.name, 'targetUsername'], value: undefined },
+                                                  { name: ['actions', field.name, 'amountGb'], value: undefined },
                                                 ]);
                                               }}
                                             />
@@ -1471,6 +1495,37 @@ const AutomationRulesEntry: React.FC = () => {
                                                       <Col span={12}>
                                                         <Form.Item name={[field.name, 'signingSignatureHeader']} label="签名请求头">
                                                           <Input placeholder="X-Signature" />
+                                                        </Form.Item>
+                                                      </Col>
+                                                    </Row>
+                                                  ) : null}
+                                                  {actionCfg?.hasTrafficAllocationFields ? (
+                                                    <Row gutter={10}>
+                                                      <Col span={8}>
+                                                        <Form.Item
+                                                          name={[field.name, 'targetUserId']}
+                                                          label="目标用户 ID"
+                                                          rules={[{ required: true, message: '请输入目标用户 ID' }]}
+                                                        >
+                                                          <Input placeholder="target_user_id" />
+                                                        </Form.Item>
+                                                      </Col>
+                                                      <Col span={8}>
+                                                        <Form.Item
+                                                          name={[field.name, 'targetUsername']}
+                                                          label="目标用户名"
+                                                          rules={[{ required: true, message: '请输入目标用户名' }]}
+                                                        >
+                                                          <Input placeholder="target_username" />
+                                                        </Form.Item>
+                                                      </Col>
+                                                      <Col span={8}>
+                                                        <Form.Item
+                                                          name={[field.name, 'amountGb']}
+                                                          label="分配流量 GB"
+                                                          rules={[{ required: true, message: '请输入分配流量' }]}
+                                                        >
+                                                          <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="amount_gb" />
                                                         </Form.Item>
                                                       </Col>
                                                     </Row>

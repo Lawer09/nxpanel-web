@@ -105,6 +105,30 @@ declare namespace API {
     [key: string]: any;
   }
 
+  interface TrafficAllocationCreateParams {
+    accountId: number;
+    targetUserId: string;
+    targetUsername: string;
+    amountGb: number;
+  }
+
+  interface TrafficAllocationCreateResult {
+    accountId: number;
+    accountName: string;
+    targetUserId: string;
+    targetUsername: string;
+    amountGb: number;
+    statusCode: number;
+    response?: {
+      code?: number;
+      data?: {
+        order_id?: string;
+        [key: string]: any;
+      };
+      [key: string]: any;
+    };
+  }
+
   // ── 流量查询 ────────────────────────────────────────────────────────────────
 
   interface TrafficHourlyQuery {

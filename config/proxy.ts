@@ -11,6 +11,12 @@
  */
 export default {
   dev: {
+    '/ads-api/': {
+      target: 'https://console.adsmakeup.com',
+      changeOrigin: true,
+      secure: false,
+      pathRewrite: { '^/ads-api': '/api' },
+    },
     '/api/': {
       target: 'https://pupu.apptilaus.com',
       changeOrigin: true,
