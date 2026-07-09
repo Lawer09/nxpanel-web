@@ -264,7 +264,7 @@ const DnsPage: React.FC = () => {
         domain: preset?.domain,
         ipv4: preset?.ipv4,
         subdomain: preset?.subdomain,
-        unique: true,
+        unique: false,
       });
       setResolveOpen(true);
     },
@@ -1106,7 +1106,7 @@ const DnsPage: React.FC = () => {
         onOk={handleResolveSubmit}
         okText="确认解析"
       >
-        <Form form={resolveForm} layout="vertical" preserve={false} initialValues={{ unique: true }}>
+        <Form form={resolveForm} layout="vertical" preserve={false} initialValues={{ unique: false }}>
           <Form.Item
             name="ipv4"
             label="IPv4 地址"
