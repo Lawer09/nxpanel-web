@@ -33,9 +33,10 @@ import {
   toIncludeExcludeValue,
   type ProjectExcludeFilters,
 } from '@/pages/report/project/includeExclude';
+import ProjectAdMatchRateModal from '@/pages/report/project/components/ProjectAdMatchRateModal';
 import { buildProjectTrendSearch, PROJECT_TREND_DASHBOARD_PATH } from '@/pages/report/project-trend/utils';
 import { getProjectCodes, getProjectDepartments } from '@/services/project/api';
-import { exportProjectReport, queryProjectReport } from '@/services/report/api';
+import { exportProjectReport, queryProjectHourlyAdMatchRate, queryProjectReport } from '@/services/report/api';
 
 const { RangePicker } = DatePicker;
 
@@ -63,6 +64,14 @@ type AppliedReportState = {
   dimensions: string[];
   metrics: string[];
   sorter?: ReportSorterState;
+};
+
+type AdMatchRateModalState = {
+  open: boolean;
+  loading: boolean;
+  projectCode?: string;
+  dateRange: [string, string];
+  rows: API.ProjectHourlyAdMatchRateItem[];
 };
 
 const REAL_PROJECT_REPORT_DIMENSIONS: API.ProjectReportDimension[] = ['reportDate', 'projectCode', 'country'];
@@ -159,6 +168,12 @@ const ProjectAggregatesPage: React.FC = () => {
   const [projectOptions, setProjectOptions] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
   const [appliedState, setAppliedState] = useState<AppliedReportState | null>(null);
+  const [adMatchRateModal, setAdMatchRateModal] = useState<AdMatchRateModalState>({
+    open: false,
+    loading: false,
+    dateRange: [dayjs().subtract(1, 'day').format('YYYY-MM-DD'), today],
+    rows: [],
+  });
   const projectOptionsLoadedRef = useRef(false);
 
   const handleJumpToDashboard = useCallback(
@@ -182,7 +197,63 @@ const ProjectAggregatesPage: React.FC = () => {
     [appliedState, today],
   );
 
-  const dimensionOptions = createProjectDimensionOptions({ onJump: handleJumpToDashboard });
+  const queryAdMatchRateDetail = useCallback(
+    async (projectCode: string, dateRange: [string, string]) => {
+      const [dateFrom, dateTo] = dateRange;
+      setAdMatchRateModal((prev) => ({
+        ...prev,
+        open: true,
+        loading: true,
+        projectCode,
+        dateRange,
+        rows: [],
+      }));
+
+      const res = await queryProjectHourlyAdMatchRate({
+        projectCode,
+        dateFrom,
+        dateTo,
+      });
+
+      if (res.code !== 0) {
+        messageApi.error(res.msg || '获取广告匹配率详情失败');
+        setAdMatchRateModal((prev) => ({
+          ...prev,
+          loading: false,
+          dateRange,
+          rows: [],
+        }));
+        return;
+      }
+
+      setAdMatchRateModal({
+        open: true,
+        loading: false,
+        projectCode: res.data?.projectCode || projectCode,
+        dateRange: [res.data?.dateFrom || dateFrom, res.data?.dateTo || dateTo],
+        rows: Array.isArray(res.data?.data) ? res.data.data : [],
+      });
+    },
+    [messageApi],
+  );
+
+  const handleOpenAdMatchRateModal = useCallback(
+    async (projectCode: string) => {
+      const dateRange =
+        resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, appliedState?.query.dateRangePreset) ||
+        appliedState?.query.dateRange ||
+        [dayjs().subtract(1, 'day').format('YYYY-MM-DD'), today];
+      await queryAdMatchRateDetail(projectCode, dateRange);
+    },
+    [appliedState, queryAdMatchRateDetail, today],
+  );
+
+  const dimensionOptions = createProjectDimensionOptions({
+    onJump: handleJumpToDashboard,
+    onLimitTagClick: (projectCode) => {
+      void handleOpenAdMatchRateModal(projectCode);
+    },
+  });
 
   const refreshProjectCodes = useCallback(async () => {
     const res = await getProjectCodes();
@@ -258,6 +329,25 @@ const ProjectAggregatesPage: React.FC = () => {
 
   return (
     <PageContainer>
+      <ProjectAdMatchRateModal
+        open={adMatchRateModal.open}
+        loading={adMatchRateModal.loading}
+        projectCode={adMatchRateModal.projectCode}
+        initialDateRange={adMatchRateModal.dateRange}
+        rows={adMatchRateModal.rows}
+        onCancel={() =>
+          setAdMatchRateModal((prev) => ({
+            ...prev,
+            open: false,
+            loading: false,
+            rows: [],
+          }))
+        }
+        onQuery={(dateRange) => {
+          if (!adMatchRateModal.projectCode) return;
+          void queryAdMatchRateDetail(adMatchRateModal.projectCode, dateRange);
+        }}
+      />
       <UniversalReportTable<API.ProjectReportItem, QueryState>
         storageKey="report.projectReport"
         title="项目报表"

@@ -173,7 +173,12 @@
 - `summary` 与 `data`、`total`、`page`、`pageSize` 同级，位于 `data` 对象内部
 - Dashboard 广告收入卡片会优先读取 `summary.adRevenueNow`、`summary.adRevenueDiff`；若后端未返回，前端会回退到当前趋势数据的全量求和结果
 - 若返回行带有 `topRevenueCountries`，前端会在项目报表和项目小时汇总的“广告收入”列中补充展示最高收益国家；悬浮后展示完整国家收益列表，格式为 `国家 / 收益 / 占比`
-- 若返回项目维度伴随字段 `recentHourlyAdMatchRates`，前端会在“限流” Tag 悬浮层内补充展示最近 12 小时广告匹配率迷你图，并额外绘制 `70%` 参考线
+- “限流” Tag 在项目报表中始终展示，并按最近 12 小时状态使用三色语义：
+  - 绿色：最近 12 小时均未发生限流
+  - 黄色：最近 12 小时存在限流，但当前未限流
+  - 红色：当前正在限流
+- 前端会在“限流” Tag 悬浮层内始终展示最近 12 小时广告匹配率迷你图，并额外绘制 `70%` 参考线；若后端未返回该字段，则展示空态图表
+- 点击“限流” Tag 后，前端会按当前已选日期范围调用 `POST /v3/report/project/hourly/ad-match-rate`，并在弹窗中展示可手动切换日期范围的小时匹配率图表详情；弹窗不再展示下方明细列表
 - `totalCost = adSpendCost + trafficCost`
 - `trafficCostRatio = trafficCost / totalCost`，前端展示为百分比时乘以 100
 - `impressionsPerUser = adImpressions / dauUsers`

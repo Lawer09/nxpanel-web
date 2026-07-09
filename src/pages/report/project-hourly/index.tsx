@@ -30,10 +30,11 @@ import {
   toOrderDirection,
 } from '@/pages/report/project/reportShared';
 import { applyIncludeExcludeField, toIncludeExcludeValue, type ProjectExcludeFilters } from '@/pages/report/project/includeExclude';
+import ProjectAdMatchRateModal from '@/pages/report/project/components/ProjectAdMatchRateModal';
 import { buildProjectTrendSearch, PROJECT_TREND_DASHBOARD_PATH } from '@/pages/report/project-trend/utils';
 import { aggregateHourly, getProjectCodes, getProjectDepartments, getProjects } from '@/services/project/api';
 import type { ProjectItem } from '@/services/project/types';
-import { queryProjectHourlyReport } from '@/services/report/api';
+import { queryProjectHourlyAdMatchRate, queryProjectHourlyReport } from '@/services/report/api';
 
 const { RangePicker } = DatePicker;
 
@@ -74,6 +75,14 @@ type SyncHourlyFormValues = {
   hourFrom?: number;
   hourTo?: number;
   projectId?: number;
+};
+
+type AdMatchRateModalState = {
+  open: boolean;
+  loading: boolean;
+  projectCode?: string;
+  dateRange: [string, string];
+  rows: API.ProjectHourlyAdMatchRateItem[];
 };
 
 const REAL_PROJECT_HOURLY_DIMENSIONS: API.ProjectHourlyReportDimension[] = ['reportDate', 'hour', 'projectCode', 'country'];
@@ -180,6 +189,12 @@ const ProjectHourlyReportPage: React.FC = () => {
   const [appliedState, setAppliedState] = useState<AppliedReportState | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncModalOpen, setSyncModalOpen] = useState(false);
+  const [adMatchRateModal, setAdMatchRateModal] = useState<AdMatchRateModalState>({
+    open: false,
+    loading: false,
+    dateRange: [today, today],
+    rows: [],
+  });
   const projectOptionsLoadedRef = useRef(false);
 
   const syncProjectOptions = useMemo(
@@ -212,7 +227,64 @@ const ProjectHourlyReportPage: React.FC = () => {
     [appliedState, today],
   );
 
-  const dimensionOptions = createProjectDimensionOptions({ onJump: handleJumpToDashboard, includeHour: true });
+  const queryAdMatchRateDetail = useCallback(
+    async (projectCode: string, dateRange: [string, string]) => {
+      const [dateFrom, dateTo] = dateRange;
+      setAdMatchRateModal((prev) => ({
+        ...prev,
+        open: true,
+        loading: true,
+        projectCode,
+        dateRange,
+        rows: [],
+      }));
+
+      const res = await queryProjectHourlyAdMatchRate({
+        projectCode,
+        dateFrom,
+        dateTo,
+      });
+
+      if (res.code !== 0) {
+        messageApi.error(res.msg || '获取广告匹配率详情失败');
+        setAdMatchRateModal((prev) => ({
+          ...prev,
+          loading: false,
+          dateRange,
+          rows: [],
+        }));
+        return;
+      }
+
+      setAdMatchRateModal({
+        open: true,
+        loading: false,
+        projectCode: res.data?.projectCode || projectCode,
+        dateRange: [res.data?.dateFrom || dateFrom, res.data?.dateTo || dateTo],
+        rows: Array.isArray(res.data?.data) ? res.data.data : [],
+      });
+    },
+    [messageApi],
+  );
+
+  const handleOpenAdMatchRateModal = useCallback(
+    async (projectCode: string) => {
+      const dateRange =
+        resolveDateRangeByPreset(STANDARD_DATE_PRESET_ITEMS, appliedState?.query.dateRangePreset) ||
+        appliedState?.query.dateRange ||
+        [today, today];
+      await queryAdMatchRateDetail(projectCode, dateRange);
+    },
+    [appliedState, queryAdMatchRateDetail, today],
+  );
+
+  const dimensionOptions = createProjectDimensionOptions({
+    onJump: handleJumpToDashboard,
+    onLimitTagClick: (projectCode) => {
+      void handleOpenAdMatchRateModal(projectCode);
+    },
+    includeHour: true,
+  });
 
   const refreshProjectCodes = useCallback(
     async () => {
@@ -382,6 +454,25 @@ const ProjectHourlyReportPage: React.FC = () => {
         </Button>,
       ]}
     >
+      <ProjectAdMatchRateModal
+        open={adMatchRateModal.open}
+        loading={adMatchRateModal.loading}
+        projectCode={adMatchRateModal.projectCode}
+        initialDateRange={adMatchRateModal.dateRange}
+        rows={adMatchRateModal.rows}
+        onCancel={() =>
+          setAdMatchRateModal((prev) => ({
+            ...prev,
+            open: false,
+            loading: false,
+            rows: [],
+          }))
+        }
+        onQuery={(dateRange) => {
+          if (!adMatchRateModal.projectCode) return;
+          void queryAdMatchRateDetail(adMatchRateModal.projectCode, dateRange);
+        }}
+      />
       <Modal
         destroyOnHidden
         title="同步小时数据"

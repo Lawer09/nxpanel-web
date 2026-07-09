@@ -146,6 +146,16 @@ export async function queryProjectHourlyReport(data: API.ProjectHourlyReportQuer
   );
 }
 
+export async function queryProjectHourlyAdMatchRate(data: API.ProjectHourlyAdMatchRateQuery) {
+  return request<API.ApiResponse<API.ProjectHourlyAdMatchRateResult>>(
+    '/v3/report/project/hourly/ad-match-rate',
+    {
+      method: 'POST',
+      data,
+    },
+  );
+}
+
 export async function exportProjectReport(data: API.ProjectReportQuery) {
   const result = await request<Blob>('/v3/report/project/export', {
     method: 'POST',

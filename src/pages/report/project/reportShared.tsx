@@ -139,11 +139,19 @@ export const getAppPlatformColor = (appPlatform?: string | null) => {
   return 'blue';
 };
 
-const getIsLimitTagMeta = (isLimited: unknown) => {
+const LIMIT_MATCH_RATE_THRESHOLD = 70;
+
+const getIsLimitTagMeta = (isLimited: unknown, recentRows: RecentHourlyAdMatchRateItem[]) => {
   if (isLimited === true || isLimited === 'true' || isLimited === 1 || isLimited === '1') {
     return { label: '限流', color: 'red' as const };
   }
-  return null;
+
+  const hasRecentLimit = recentRows.some((item) => item.adMatchRate < LIMIT_MATCH_RATE_THRESHOLD);
+  if (hasRecentLimit) {
+    return { label: '限流', color: 'gold' as const };
+  }
+
+  return { label: '限流', color: 'green' as const };
 };
 
 const getHourlyStatusMessages = (hourlyStatus: unknown) => {
@@ -160,7 +168,7 @@ const getHourlyStatusMessages = (hourlyStatus: unknown) => {
   return messages;
 };
 
-type RecentHourlyAdMatchRateItem = {
+export type RecentHourlyAdMatchRateItem = {
   reportDate: string;
   hour: number;
   hourStart?: string;
@@ -169,7 +177,7 @@ type RecentHourlyAdMatchRateItem = {
   adMatchRate: number;
 };
 
-const parseRecentHourlyAdMatchRates = (value: unknown): RecentHourlyAdMatchRateItem[] => {
+export const parseRecentHourlyAdMatchRates = (value: unknown): RecentHourlyAdMatchRateItem[] => {
   if (!Array.isArray(value)) return [];
 
   const normalized: Array<RecentHourlyAdMatchRateItem | null> = value.map((item) => {
@@ -203,19 +211,50 @@ const getRecentHourlyAdMatchRateLabel = (item: RecentHourlyAdMatchRateItem) => {
   return `${item.reportDate.slice(5)} ${String(item.hour).padStart(2, '0')}:00`;
 };
 
-const renderRecentHourlyAdMatchRateChart = (record?: Record<string, unknown>) => {
-  const rows = parseRecentHourlyAdMatchRates(record?.recentHourlyAdMatchRates);
-  if (!rows.length) return null;
+export const renderRecentHourlyAdMatchRateChart = (
+  rows: RecentHourlyAdMatchRateItem[],
+  options?: {
+    width?: number;
+    height?: number;
+    emptyText?: string;
+  },
+) => {
+  const width = options?.width ?? 176;
+  const height = options?.height ?? 72;
+  const referenceValue = LIMIT_MATCH_RATE_THRESHOLD;
 
-  const width = 176;
-  const height = 72;
+  if (!rows.length) {
+    return (
+      <Space direction="vertical" size={6} style={{ width: '100%' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+          <span>最近12小时广告匹配率</span>
+          <span>--</span>
+        </div>
+        <svg
+          width={width}
+          height={height}
+          viewBox={`0 0 ${width} ${height}`}
+          role="img"
+          aria-label="最近12小时广告匹配率趋势图"
+        >
+          <line x1={28} y1={36} x2={168} y2={36} stroke="#f97316" strokeWidth="1" strokeDasharray="3 3" />
+          <text x={2} y={40} fontSize="10" fill="#6b7280">
+            70%
+          </text>
+          <text x={width / 2} y={height / 2} textAnchor="middle" fontSize="11" fill="#9ca3af">
+            {options?.emptyText ?? '暂无最近12小时数据'}
+          </text>
+        </svg>
+      </Space>
+    );
+  }
+
   const paddingTop = 8;
   const paddingRight = 8;
   const paddingBottom = 14;
   const paddingLeft = 28;
   const chartWidth = width - paddingLeft - paddingRight;
   const chartHeight = height - paddingTop - paddingBottom;
-  const referenceValue = 70;
   const values = rows.map((item) => item.adMatchRate);
   const minValue = Math.max(0, Math.min(referenceValue, ...values) - 5);
   const maxValue = Math.min(100, Math.max(referenceValue, ...values) + 5);
@@ -274,11 +313,10 @@ const renderRecentHourlyAdMatchRateChart = (record?: Record<string, unknown>) =>
           );
         })}
       </svg>
-      <div style={{ color: '#6b7280', fontSize: 12 }}>
-        最新：{getRecentHourlyAdMatchRateLabel(latest)}
-        {latest.adRequests !== null && latest.adMatchedRequests !== null
-          ? `，请求 ${fmtInt(latest.adRequests)} / 匹配 ${fmtInt(latest.adMatchedRequests)}`
-          : ''}
+      <div style={{ color: '#6b7280', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div>最新：{getRecentHourlyAdMatchRateLabel(latest)}</div>
+        <div>当前请求：{latest.adRequests !== null ? fmtInt(latest.adRequests) : '--'}</div>
+        <div>当前匹配：{latest.adMatchedRequests !== null ? fmtInt(latest.adMatchedRequests) : '--'}</div>
       </div>
     </Space>
   );
@@ -689,18 +727,14 @@ export const renderProjectCodeWithMeta = (
   projectCode: unknown,
   record: API.ProjectReportItem,
   onJump?: (projectCode: string, record: API.ProjectReportItem) => void,
+  onLimitTagClick?: (projectCode: string, record: API.ProjectReportItem) => void,
 ) => {
   const codeText = projectCode ? String(projectCode) : '--';
-  const isLimitTagMeta = getIsLimitTagMeta(record.isLimited);
+  const recentHourlyAdMatchRates = parseRecentHourlyAdMatchRates(record.recentHourlyAdMatchRates);
+  const isLimitTagMeta = getIsLimitTagMeta(record.isLimited, recentHourlyAdMatchRates);
   const hourlyStatusMessages = getHourlyStatusMessages(record.hourly_status);
-  const recentHourlyAdMatchRateChart = renderRecentHourlyAdMatchRateChart(record);
-  const limitTooltipContent =
-    isLimitTagMeta && (recentHourlyAdMatchRateChart || hourlyStatusMessages.length) ? (
-      <Space direction="vertical" size={6}>
-        {recentHourlyAdMatchRateChart}
-        {hourlyStatusMessages.length ? <div>异常原因：{hourlyStatusMessages.join('、')}</div> : null}
-      </Space>
-    ) : null;
+  const recentHourlyAdMatchRateChart = renderRecentHourlyAdMatchRateChart(recentHourlyAdMatchRates);
+  const limitTooltipContent = <Space direction="vertical" size={6}>{recentHourlyAdMatchRateChart}</Space>;
 
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, maxWidth: '100%' }}>
@@ -717,19 +751,20 @@ export const renderProjectCodeWithMeta = (
       ) : (
         <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{codeText}</span>
       )}
-      {isLimitTagMeta ? (
-        limitTooltipContent ? (
-          <Tooltip title={limitTooltipContent}>
-            <Tag color={isLimitTagMeta.color} style={{ marginInlineEnd: 0 }}>
-              {isLimitTagMeta.label}
-            </Tag>
-          </Tooltip>
-        ) : (
-          <Tag color={isLimitTagMeta.color} style={{ marginInlineEnd: 0 }}>
-            {isLimitTagMeta.label}
-          </Tag>
-        )
-      ) : null}
+      <Tooltip title={limitTooltipContent}>
+        <Tag
+          color={isLimitTagMeta.color}
+          style={{ marginInlineEnd: 0, cursor: onLimitTagClick && projectCode ? 'pointer' : 'default' }}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (!projectCode || !onLimitTagClick) return;
+            onLimitTagClick(String(projectCode), record);
+          }}
+        >
+          {isLimitTagMeta.label}
+        </Tag>
+      </Tooltip>
       {hourlyStatusMessages.length ? (
         <Tooltip title={hourlyStatusMessages.join('、')}>
           <Tag color="orange" style={{ marginInlineEnd: 0 }}>
@@ -743,9 +778,11 @@ export const renderProjectCodeWithMeta = (
 
 export const createProjectDimensionOptions = ({
   onJump,
+  onLimitTagClick,
   includeHour = false,
 }: {
   onJump?: (projectCode: string, record: API.ProjectReportItem) => void;
+  onLimitTagClick?: (projectCode: string, record: API.ProjectReportItem) => void;
   includeHour?: boolean;
 }) => {
   const baseDimensions = [
@@ -770,7 +807,8 @@ export const createProjectDimensionOptions = ({
         title: '项目编码',
         dataIndex: 'projectCode',
         width: 180,
-        render: (value: unknown, record: API.ProjectReportItem) => renderProjectCodeWithMeta(value, record, onJump),
+        render: (value: unknown, record: API.ProjectReportItem) =>
+          renderProjectCodeWithMeta(value, record, onJump, onLimitTagClick),
       },
     },
     {

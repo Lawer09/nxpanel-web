@@ -346,6 +346,29 @@ declare namespace API {
     orderDirection?: 'asc' | 'desc';
   }
 
+  interface ProjectHourlyAdMatchRateQuery {
+    projectCode: string;
+    dateFrom: string;
+    dateTo: string;
+  }
+
+  interface ProjectHourlyAdMatchRateItem {
+    reportDate: string;
+    hour: number;
+    hourStart?: string;
+    projectCode: string;
+    adRequests?: number | null;
+    adMatchedRequests?: number | null;
+    adMatchRate?: string | number | null;
+  }
+
+  interface ProjectHourlyAdMatchRateResult {
+    projectCode: string;
+    dateFrom: string;
+    dateTo: string;
+    data: ProjectHourlyAdMatchRateItem[];
+  }
+
   type ProjectReportItem = Record<string, any>;
 
   type UserReportRow = Record<string, any>;
