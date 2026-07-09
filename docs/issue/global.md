@@ -141,9 +141,55 @@ React 19 类型定义下，`useRef<T>()` 需要显式传入初始值；旧写法
 ### 相关文件
 
 - `src/pages/traffic-platform/dashboard/components/AccountManageModal.tsx`
+
+## 代理流量账号标签编辑入口
+
+### 出现场景
+
+代理流量账号管理需要维护账号标签，并支持在列表中快速查看和编辑标签，而不应每次都进入完整账号编辑流程。
+
+### 问题原因
+
+账号标签属于轻量元数据，若仅依赖主编辑弹窗保存，会让“查看标签”和“只改标签”两个常见动作路径过长，也不利于按标签快速修订账号状态标记。
+
+### 解决方式
+
+在账号管理表格中新增标签列，直接展示 `tags`；点击任一标签或“添加标签”占位即可打开独立标签弹窗，同时在操作列增加“更新标签”入口，调用 `/accounts/update-tags` 单独保存。
+
+### 影响范围
+
+代理流量账号管理表格的标签展示与标签维护操作。
+
+### 相关文件
+
+- `src/pages/traffic-platform/dashboard/components/AccountManageModal.tsx`
+- `src/services/traffic-platform/api.ts`
+- `src/services/traffic-platform/typings.d.ts`
 - `src/pages/traffic-platform/dashboard/components/PlatformManageModal.tsx`
 - `src/pages/traffic-platform/dashboard/components/SyncTaskModal.tsx`
 - `src/pages/traffic-platform/dashboard/components/UsageDataTabs.tsx`
+
+## ProTable 多选批量操作需要显式清理选中态
+
+### 出现场景
+
+在代理流量账号管理表格中新增批量更新标签、批量禁用这类多选操作后，如果提交成功后不主动清空 `selectedRowKeys`，表格刷新后仍会保留上一轮选中态，容易让用户误以为当前批量操作对象没有变化。
+
+### 问题原因
+
+`ProTable` 的 `rowSelection` 在受控模式下由外部状态驱动；仅调用 `actionRef.current?.reload()` 不会自动重置选中项。
+
+### 解决方式
+
+批量操作成功后同时执行数据刷新和 `setSelectedRowKeys([])`，并在批量标签弹窗关闭时清理批量编辑上下文，避免单个账号编辑和批量编辑状态串用。
+
+### 影响范围
+
+所有使用 `ProTable` 受控多选并带批量操作按钮的页面或弹窗。
+
+### 相关文件
+
+- `src/pages/traffic-platform/dashboard/components/AccountManageModal.tsx`
 
 ## 流量接口响应结构与类型声明不一致导致的编译错误
 
@@ -528,11 +574,11 @@ CSS Modules 中顶层 `:global` 会生成真正的全局样式，不会自动带
 
 ### 问题原因
 
-账号列表行操作本身已经具备当前代理流量账号上下文，`/v3/traffic-platform/traffic-allocations/create` 的 `accountId` 表示本地代理流量账号 ID，不应从广告账户列表派生。将广告账户下拉接入该弹窗会导致提交的账号来源与当前行不一致。
+`/v3/traffic-platform/traffic-allocations/create` 的 `accountId` 表示本地代理流量账号 ID，不应从广告账户列表派生。流量分配弹窗应基于代理流量账号列表提供选择，默认带出当前行，但仍允许切换到其他代理流量账号。
 
 ### 解决方式
 
-流量分配弹窗不再加载广告账户列表，目标用户信息改为只读展示当前行代理流量账号；提交时固定使用当前行的 `id/externalAccountId/accountName` 生成 `accountId/targetUserId/targetUsername`。
+流量分配弹窗不再加载广告账户列表，改为加载代理流量账号列表并默认选中当前行作为来源流量账号；目标用户固定为当前点击行，用户切换流量账号时只更新 `accountId`，不再改动 `targetUserId/targetUsername`。
 
 ### 影响范围
 
@@ -541,3 +587,32 @@ CSS Modules 中顶层 `:global` 会生成真正的全局样式，不会自动带
 ### 相关文件
 
 - `src/pages/traffic-platform/dashboard/components/AccountManageModal.tsx`
+
+## 代理流量分配需要基于主账号标签约束来源与目标
+
+### 出现场景
+
+代理流量账号管理新增标签筛选和“主账号”标签后，流量分配不再是任意账号之间可互相划转：主账号只能作为来源账号，普通账号只能作为目标账号，且来源账号还要和目标账号共享同一组业务标签。
+
+### 问题原因
+
+如果前端仅按“当前行可分配、来源账号全量可选”处理，会出现两类错误：
+- 把带“主账号”标签的账号也当作可分配目标
+- 让来源账号列表出现与当前目标账号标签不匹配的主账号
+
+### 解决方式
+
+在账号列表请求中增加 `tags[]` 筛选支持；账号管理表格增加默认“主账号”标签下拉。分配入口增加标签约束：
+- 目标账号标签包含“主账号”时，直接禁用“流量分配”
+- 来源账号列表仅拉取并展示同时包含“主账号”与目标账号全部标签的账号
+- 目标账号没有标签时，来源账号列表直接置空
+
+### 影响范围
+
+代理流量账号管理表格筛选与流量分配弹窗。
+
+### 相关文件
+
+- `src/pages/traffic-platform/dashboard/components/AccountManageModal.tsx`
+- `src/services/traffic-platform/api.ts`
+- `src/services/traffic-platform/typings.d.ts`

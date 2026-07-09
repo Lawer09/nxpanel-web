@@ -13,7 +13,7 @@
 | `id` | `string` | 否 | 按 ID 查询，逗号分隔多个，例如 `"1,2,3"` |
 | `current` | `int` | 否 | 页码，默认 `1` |
 | `pageSize` | `int` | 否 | 每页条数，默认 `10` |
-| `onlyBanned` | `bool` | 否 | 只查询已封禁用户 |
+| `banned` | `bool\|int` | 否 | 按封禁状态筛选：`1` / `true` 查询已封禁，`0` / `false` 查询未封禁，空值不筛选 |
 | `createdAtFrom` | `string\|int` | 否 | 注册时间起始，包含边界；支持 Unix 时间戳、`YYYY-MM-DD`、`YYYY-MM-DD HH:mm:ss` |
 | `createdAtTo` | `string\|int` | 否 | 注册时间结束，包含边界；支持 Unix 时间戳、`YYYY-MM-DD`、`YYYY-MM-DD HH:mm:ss`，仅日期格式会按当天 `23:59:59` 处理 |
 | `meta` | `object` | 否 | 按 `register_metadata` JSON 字段筛选，key 为元数据字段名 |
@@ -29,7 +29,7 @@ POST /api/v3/admin/user/fetch
         "app_id": "com.example.app",
         "channel": "telegram"
     },
-    "onlyBanned": true,
+    "banned": true,
     "createdAtFrom": "2026-06-01 00:00:00",
     "createdAtTo": "2026-06-14 23:59:59",
     "current": 1,

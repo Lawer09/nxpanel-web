@@ -280,3 +280,33 @@
 - `src/services/user/api.ts`
 - `src/services/user/typings.d.ts`
 - `docs/api/user_api.md`
+
+## 用户筛选仍沿用 onlyBanned 导致无法筛选未封禁用户
+
+### 出现场景
+
+用户管理页原有筛选项只有“仅封禁用户”开关，打开后只能查询已封禁用户，关闭后则完全不筛选，无法直接筛出“未封禁用户”。同时后端用户列表查询已改为直接读取 `banned` 字段，前端继续发送 `onlyBanned` 会和最新接口约定不一致。
+
+### 问题原因
+
+- 筛选栏仍保留旧的布尔开关设计，只覆盖“封禁”与“不筛选”两种状态。
+- 用户查询参数类型和文档仍记录 `onlyBanned`，没有同步到新的 `banned` 语义。
+
+### 解决方式
+
+- 将筛选项改为“封禁状态”三态选择：已封禁、未封禁、不筛选。
+- 用户列表查询统一发送 `banned` 字段：
+  `banned=1/true` 查询已封禁，`banned=0/false` 查询未封禁，空值不传。
+- 当前结果摘要同步按 `banned` 展示“已封禁 / 未封禁”标签。
+
+### 影响范围
+
+- 用户管理页筛选栏
+- 用户列表查询参数构造
+- 用户 API 文档与前端类型定义
+
+### 相关文件
+
+- `src/pages/user-manage/index.tsx`
+- `src/services/user/typings.d.ts`
+- `docs/api/user_api.md`

@@ -86,7 +86,7 @@ declare namespace API {
     id?: string;
     current?: number;
     pageSize?: number;
-    onlyBanned?: boolean;
+    banned?: boolean | number;
     createdAtFrom?: string | number;
     createdAtTo?: string | number;
     meta?: Record<string, string | number>;

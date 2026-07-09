@@ -46,6 +46,7 @@ declare namespace API {
     platformName: string;
     accountName: string;
     externalAccountId: string;
+    tags?: string[];
     timezone: string;
     enabled: number;
     lastSyncAt: string;
@@ -62,6 +63,7 @@ declare namespace API {
     platformCode?: string;
     enabled?: number;
     keyword?: string;
+    tags?: string[];
     page?: number;
     pageSize?: number;
   }
@@ -71,6 +73,7 @@ declare namespace API {
     accountName: string;
     externalAccountId: string;
     credential: Record<string, any>;
+    tags?: string[];
     timezone?: string;
     enabled?: number;
     remark?: string;
@@ -80,9 +83,30 @@ declare namespace API {
     accountName?: string;
     externalAccountId?: string;
     credential?: Record<string, any>;
+    tags?: string[];
     timezone?: string;
     enabled?: number;
     remark?: string;
+  }
+
+  interface TrafficAccountUpdateTagsParams {
+    id: number;
+    tags: string[];
+  }
+
+  interface TrafficAccountBatchUpdateTagsParams {
+    ids: number[];
+    tags: string[];
+  }
+
+  interface TrafficAccountBatchDisableParams {
+    ids: number[];
+  }
+
+  interface TrafficAccountBatchResult {
+    requested: number;
+    updated: number;
+    missingIds?: number[];
   }
 
   interface TrafficAccountTestOverview {

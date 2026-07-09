@@ -38,7 +38,30 @@ export async function toggleTrafficPlatformStatus(id: number, enabled: number) {
 export async function getTrafficAccounts(params?: API.TrafficAccountQuery) {
   return request<API.ApiResponse<API.PageResult<API.TrafficAccountItem>>>(
     '/v3/traffic-platform/accounts',
-    { method: 'GET', params },
+    {
+      method: 'GET',
+      params,
+      paramsSerializer: (query) => {
+        const searchParams = new URLSearchParams();
+        const appendArray = (key: string, values?: Array<string | number>) => {
+          if (!Array.isArray(values)) return;
+          values.forEach((value) => {
+            if (value !== undefined && value !== null && `${value}` !== '') {
+              searchParams.append(key, `${value}`);
+            }
+          });
+        };
+
+        if (query.platformCode) searchParams.append('platformCode', `${query.platformCode}`);
+        if (query.enabled !== undefined) searchParams.append('enabled', `${query.enabled}`);
+        if (query.keyword) searchParams.append('keyword', `${query.keyword}`);
+        if (query.page !== undefined) searchParams.append('page', `${query.page}`);
+        if (query.pageSize !== undefined) searchParams.append('pageSize', `${query.pageSize}`);
+        appendArray('tags[]', query.tags);
+
+        return searchParams.toString();
+      },
+    },
   );
 }
 
@@ -71,6 +94,36 @@ export async function toggleTrafficAccountStatus(id: number, enabled: number) {
     headers: { 'Content-Type': 'application/json' },
     data: { id, enabled },
   });
+}
+
+export async function updateTrafficAccountTags(data: API.TrafficAccountUpdateTagsParams) {
+  return request<API.ApiResponse<boolean>>(`/v3/traffic-platform/accounts/update-tags`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data,
+  });
+}
+
+export async function batchUpdateTrafficAccountTags(data: API.TrafficAccountBatchUpdateTagsParams) {
+  return request<API.ApiResponse<API.TrafficAccountBatchResult>>(
+    `/v3/traffic-platform/accounts/batch-update-tags`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data,
+    },
+  );
+}
+
+export async function batchDisableTrafficAccounts(data: API.TrafficAccountBatchDisableParams) {
+  return request<API.ApiResponse<API.TrafficAccountBatchResult>>(
+    `/v3/traffic-platform/accounts/batch-disable`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data,
+    },
+  );
 }
 
 export async function testTrafficAccount(id: number) {

@@ -1,10 +1,23 @@
 import React, { useRef, useState } from 'react';
-import { Button, Modal, Form, Input, Select, App, Space, Tag, InputNumber, Row, Col, Radio } from 'antd';
+import { Button, Dropdown, Modal, Form, Input, Select, App, Space, Tag, InputNumber, Row, Col, Radio } from 'antd';
 import { PlusOutlined, SearchOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { ProTable, ActionType, ProColumns } from '@ant-design/pro-components';
 import { useDashboard } from '../DashboardContext';
-import { createTrafficAllocation, getTrafficAccounts, toggleTrafficAccountStatus, updateTrafficAccount, createTrafficAccount, getTrafficAccountDetail, testTrafficAccount } from '@/services/traffic-platform/api';
+import {
+  batchDisableTrafficAccounts,
+  batchUpdateTrafficAccountTags,
+  createTrafficAccount,
+  createTrafficAllocation,
+  getTrafficAccountDetail,
+  getTrafficAccounts,
+  testTrafficAccount,
+  toggleTrafficAccountStatus,
+  updateTrafficAccount,
+  updateTrafficAccountTags,
+} from '@/services/traffic-platform/api';
 import dayjs from 'dayjs';
+
+const PRIMARY_ACCOUNT_TAG = '主账号';
 
 const AccountManageModal: React.FC = () => {
   const { accountModalOpen, setAccountModalOpen, platformOptions, reloadKpi } = useDashboard();
@@ -15,18 +28,173 @@ const AccountManageModal: React.FC = () => {
   const [current, setCurrent] = useState<any>();
   const [form] = Form.useForm();
   const [allocationForm] = Form.useForm();
+  const [tagForm] = Form.useForm();
   const [submitLoading, setSubmitLoading] = useState(false);
   const [allocationOpen, setAllocationOpen] = useState(false);
   const [allocationLoading, setAllocationLoading] = useState(false);
-  const [allocationAccount, setAllocationAccount] = useState<API.TrafficAccountItem | undefined>();
+  const [tagModalOpen, setTagModalOpen] = useState(false);
+  const [tagSubmitLoading, setTagSubmitLoading] = useState(false);
+  const [tagEditingAccount, setTagEditingAccount] = useState<API.TrafficAccountItem | undefined>();
+  const [batchTagEditingIds, setBatchTagEditingIds] = useState<number[]>([]);
+  const [allocationSourceAccount, setAllocationSourceAccount] = useState<API.TrafficAccountItem | undefined>();
+  const [allocationTargetAccount, setAllocationTargetAccount] = useState<API.TrafficAccountItem | undefined>();
+  const [allocationAccountOptions, setAllocationAccountOptions] = useState<API.TrafficAccountItem[]>([]);
+  const [allocationAccountOptionsLoading, setAllocationAccountOptionsLoading] = useState(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
   const [keyword, setKeyword] = useState('');
   const [enabledStatus, setEnabledStatus] = useState<number | undefined>(undefined);
   const [filterPlatformCode, setFilterPlatformCode] = useState<string | undefined>(undefined);
+  const [filterTags, setFilterTags] = useState<string[]>([]);
+
+  const hasPrimaryTag = (tags?: string[]) =>
+    (tags || []).some((tag) => tag.trim() === PRIMARY_ACCOUNT_TAG);
+
+  const loadAllocationAccountOptions = async (targetAccount: API.TrafficAccountItem) => {
+    const targetTags = normalizeTags(targetAccount.tags);
+    if (!targetTags.length) {
+      setAllocationAccountOptions([]);
+      return;
+    }
+
+    setAllocationAccountOptionsLoading(true);
+    try {
+      const res = await getTrafficAccounts({
+        page: 1,
+        pageSize: 200,
+        tags: [PRIMARY_ACCOUNT_TAG, ...targetTags],
+      });
+      if (res.code !== 0) {
+        message.error(res.msg || '获取流量账号列表失败');
+        return;
+      }
+
+      const rows = ((res.data?.data || res.data || []) as API.TrafficAccountItem[]).filter((item) => {
+        const normalizedTags = normalizeTags(item.tags);
+        return hasPrimaryTag(normalizedTags) && targetTags.every((tag) => normalizedTags.includes(tag));
+      });
+      setAllocationAccountOptions(rows);
+    } finally {
+      setAllocationAccountOptionsLoading(false);
+    }
+  };
+
+  const openTagEditor = (record: API.TrafficAccountItem) => {
+    setTagEditingAccount(record);
+    setBatchTagEditingIds([]);
+    tagForm.setFieldsValue({
+      tags: record.tags || [],
+    });
+    setTagModalOpen(true);
+  };
+
+  const clearTagEditorState = () => {
+    setTagModalOpen(false);
+    setTagEditingAccount(undefined);
+    setBatchTagEditingIds([]);
+    tagForm.resetFields();
+  };
+
+  const openBatchTagEditor = () => {
+    if (!selectedRowKeys.length) {
+      message.error('请先选择账号');
+      return;
+    }
+    setTagEditingAccount(undefined);
+    setBatchTagEditingIds(selectedRowKeys);
+    tagForm.setFieldsValue({
+      tags: [],
+    });
+    setTagModalOpen(true);
+  };
+
+  const normalizeTags = (tags?: string[]) =>
+    (tags || [])
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+  const validateTags = async (_: unknown, value?: string[]) => {
+    const rawTags = value || [];
+    const normalized = normalizeTags(rawTags);
+    if (normalized.length > 20) {
+      throw new Error('最多 20 个标签');
+    }
+    const tooLong = normalized.find((item) => item.length > 50);
+    if (tooLong) {
+      throw new Error('单个标签最长 50 个字符');
+    }
+  };
+
+  const getBatchResultSummary = (
+    result: API.TrafficAccountBatchResult | undefined,
+    fallbackRequested: number,
+  ) => {
+    const missingIds = result?.missingIds ?? [];
+    const requested = result?.requested ?? fallbackRequested;
+    const updated = result?.updated ?? fallbackRequested;
+    const missingText = missingIds.length ? `，未找到 ID：${missingIds.join(', ')}` : '';
+    return { requested, updated, missingText };
+  };
+
+  const handleBatchDisable = () => {
+    if (!selectedRowKeys.length) {
+      message.error('请先选择账号');
+      return;
+    }
+    Modal.confirm({
+      title: '批量禁用账号',
+      content: `确定要禁用选中的 ${selectedRowKeys.length} 个账号吗？`,
+      okText: '确认禁用',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        const res = await batchDisableTrafficAccounts({ ids: selectedRowKeys });
+        if (res.code !== 0) {
+          message.error(res.msg || '批量禁用失败');
+          return;
+        }
+        const summary = getBatchResultSummary(res.data, selectedRowKeys.length);
+        message.success(
+          `批量禁用完成：请求 ${summary.requested} 个，更新 ${summary.updated} 个${summary.missingText}`,
+        );
+        setSelectedRowKeys([]);
+        actionRef.current?.reload();
+        reloadKpi();
+      },
+    });
+  };
 
   const columns: ProColumns<API.TrafficAccountItem>[] = [
     { title: '账号名称', dataIndex: 'accountName', width: 140 },
     { title: '平台', dataIndex: 'platformCode', width: 100 },
     { title: '外部账号ID', dataIndex: 'externalAccountId', width: 120 },
+    {
+      title: '标签',
+      dataIndex: 'tags',
+      width: 220,
+      render: (_, r) => {
+        const tags = r.tags || [];
+        if (!tags.length) {
+          return (
+            <a style={{ color: '#2563EB' }} onClick={() => openTagEditor(r)}>
+              添加标签
+            </a>
+          );
+        }
+
+        return (
+          <Space size={[4, 4]} wrap>
+            {tags.map((tag) => (
+              <Tag
+                key={`${r.id}-${tag}`}
+                style={{ cursor: 'pointer', marginInlineEnd: 0 }}
+                onClick={() => openTagEditor(r)}
+              >
+                {tag}
+              </Tag>
+            ))}
+          </Space>
+        );
+      },
+    },
     { 
       title: '剩余流量', 
       dataIndex: 'balance', 
@@ -53,8 +221,10 @@ const AccountManageModal: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 220,
-      render: (_, r) => [
+      width: 180,
+      render: (_, r) => {
+        const targetHasPrimaryTag = hasPrimaryTag(r.tags);
+        return [
         <a
           key="edit"
           style={{ color: '#2563EB' }}
@@ -68,6 +238,7 @@ const AccountManageModal: React.FC = () => {
             const creds = Object.entries(detailRes.data.credentialMasked || {}).map(([key, val]) => ({ key, value: '' }));
             form.setFieldsValue({
               ...detailRes.data,
+              tags: detailRes.data.tags || [],
               credentials: creds.length ? creds : [{ key: '', value: '' }],
             });
             setFormOpen(true);
@@ -76,59 +247,74 @@ const AccountManageModal: React.FC = () => {
           编辑
         </a>,
         <a
-          key="test"
-          style={{ color: '#06B6D4' }}
-          onClick={async () => {
-            const res = await testTrafficAccount(r.id);
-            if (res.code !== 0) {
-              message.error(res.msg || '测试失败');
-              return;
-            }
-            const ov = res.data?.overview || res.data?.debug?.overview || res.data;
-            Modal.success({
-              title: '测试成功',
-              content: (
-                <div>
-                  <div>余额: {ov?.balance ?? 0}</div>
-                  <div>今日用量: {ov?.todayUse ?? ov?.today_use ?? 0}</div>
-                  <div>本月用量: {ov?.monthUse ?? ov?.month_use ?? 0}</div>
-                </div>
-              ),
-            });
+          key="tags"
+          style={{ color: '#0F766E' }}
+          onClick={() => openTagEditor(r)}
+        >
+          更新标签
+        </a>,
+        <Dropdown
+          key="more"
+          menu={{
+            items: [
+              {
+                key: 'allocate',
+                label: '流量分配',
+                disabled: targetHasPrimaryTag,
+                onClick: async () => {
+                  setAllocationTargetAccount(r);
+                  setAllocationSourceAccount(undefined);
+                  setAllocationAccountOptions([]);
+                  allocationForm.resetFields();
+                  allocationForm.setFieldsValue({
+                    amountGb: 10,
+                  });
+                  await loadAllocationAccountOptions(r);
+                  setAllocationOpen(true);
+                },
+              },
+              {
+                key: 'test',
+                label: '测试连接',
+                onClick: async () => {
+                  const res = await testTrafficAccount(r.id);
+                  if (res.code !== 0) {
+                    message.error(res.msg || '测试失败');
+                    return;
+                  }
+                  const ov = res.data?.overview || res.data?.debug?.overview || res.data;
+                  Modal.success({
+                    title: '测试成功',
+                    content: (
+                      <div>
+                        <div>余额: {ov?.balance ?? 0}</div>
+                        <div>今日用量: {ov?.todayUse ?? ov?.today_use ?? 0}</div>
+                        <div>本月用量: {ov?.monthUse ?? ov?.month_use ?? 0}</div>
+                      </div>
+                    ),
+                  });
+                },
+              },
+              {
+                key: 'toggle',
+                label: r.enabled === 1 ? '禁用' : '启用',
+                onClick: async () => {
+                  const res = await toggleTrafficAccountStatus(r.id, r.enabled === 1 ? 0 : 1);
+                  if (res.code !== 0) {
+                    message.error(res.msg || '操作失败');
+                    return;
+                  }
+                  actionRef.current?.reload();
+                  reloadKpi();
+                },
+              },
+            ],
           }}
         >
-          测试连接
-        </a>,
-        <a
-          key="allocate"
-          style={{ color: '#7C3AED' }}
-          onClick={() => {
-            setAllocationAccount(r);
-            allocationForm.resetFields();
-            allocationForm.setFieldsValue({
-              amountGb: 10,
-            });
-            setAllocationOpen(true);
-          }}
-        >
-          流量分配
-        </a>,
-        <a
-          key="toggle"
-          style={{ color: r.enabled === 1 ? '#EF4444' : '#10B981' }}
-          onClick={async () => {
-            const res = await toggleTrafficAccountStatus(r.id, r.enabled === 1 ? 0 : 1);
-            if (res.code !== 0) {
-              message.error(res.msg || '操作失败');
-              return;
-            }
-            actionRef.current?.reload();
-            reloadKpi();
-          }}
-        >
-          {r.enabled === 1 ? '禁用' : '启用'}
-        </a>,
-      ],
+          <a>更多</a>
+        </Dropdown>,
+      ];
+      },
     },
   ];
 
@@ -155,8 +341,14 @@ const AccountManageModal: React.FC = () => {
         actionRef={actionRef}
         search={false}
         columns={columns}
+        rowSelection={{
+          selectedRowKeys,
+          onChange: (keys) => setSelectedRowKeys(keys.map((key) => Number(key))),
+        }}
+        tableAlertRender={({ selectedRowKeys: keys }) => <span>已选择 {keys.length} 个账号</span>}
+        tableAlertOptionRender={false}
         options={false}
-        params={{ keyword, enabled: enabledStatus, platformCode: filterPlatformCode }}
+        params={{ keyword, enabled: enabledStatus, platformCode: filterPlatformCode, tags: filterTags }}
         headerTitle={
           <Space size={16} wrap>
             <Select 
@@ -177,6 +369,14 @@ const AccountManageModal: React.FC = () => {
               ]}
               value={enabledStatus}
               onChange={setEnabledStatus}
+              allowClear
+            />
+            <Select
+              placeholder="标签筛选"
+              style={{ width: 180 }}
+              options={[{ label: PRIMARY_ACCOUNT_TAG, value: PRIMARY_ACCOUNT_TAG }]}
+              value={filterTags[0]}
+              onChange={(value) => setFilterTags(value ? [value] : [])}
               allowClear
             />
             <Input 
@@ -202,6 +402,7 @@ const AccountManageModal: React.FC = () => {
                 enabled: 1, 
                 timezone: 'Asia/Shanghai', 
                 balance: 0,
+                tags: [],
                 credentials: [{ key: 'accessid', value: '' }, { key: 'secret', value: '' }]
               });
               setFormOpen(true);
@@ -209,12 +410,19 @@ const AccountManageModal: React.FC = () => {
           >
             新增账号
           </Button>,
+          <Button key="batchTags" disabled={!selectedRowKeys.length} onClick={openBatchTagEditor}>
+            批量更新标签
+          </Button>,
+          <Button key="batchDisable" danger disabled={!selectedRowKeys.length} onClick={handleBatchDisable}>
+            批量禁用
+          </Button>,
         ]}
         request={async (params) => {
           const res = await getTrafficAccounts({ 
             platformCode: params.platformCode as string | undefined,
             enabled: params.enabled as number | undefined,
             keyword: params.keyword as string | undefined, 
+            tags: params.tags as string[] | undefined,
             page: params.current, 
             pageSize: params.pageSize 
           });
@@ -248,6 +456,7 @@ const AccountManageModal: React.FC = () => {
             accountName: values.accountName,
             externalAccountId: values.externalAccountId,
             credential: credentialObj,
+            tags: normalizeTags(values.tags).slice(0, 20),
             timezone: values.timezone,
             enabled: values.enabled,
             remark: values.remark,
@@ -351,6 +560,93 @@ const AccountManageModal: React.FC = () => {
           <Form.Item name="remark" label="备注">
             <Input.TextArea rows={3} placeholder="请输入备注信息" />
           </Form.Item>
+          <Form.Item
+            name="tags"
+            label="标签"
+            rules={[{ validator: validateTags }]}
+          >
+            <Select mode="tags" placeholder="输入后回车添加，最多 20 个" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={batchTagEditingIds.length ? '批量更新标签' : '更新标签'}
+        open={tagModalOpen}
+        onCancel={clearTagEditorState}
+        onOk={async () => {
+          const isBatchTagEdit = batchTagEditingIds.length > 0;
+          if (!isBatchTagEdit && !tagEditingAccount) {
+            message.error('请选择账号');
+            return;
+          }
+          const values = await tagForm.validateFields();
+          const tags = normalizeTags(values.tags).slice(0, 20);
+          setTagSubmitLoading(true);
+          try {
+            if (isBatchTagEdit) {
+              const res = await batchUpdateTrafficAccountTags({
+                ids: batchTagEditingIds,
+                tags,
+              });
+              if (res.code !== 0) {
+                message.error(res.msg || '批量更新标签失败');
+                return;
+              }
+              const summary = getBatchResultSummary(res.data, batchTagEditingIds.length);
+              message.success(
+                `批量更新标签完成：请求 ${summary.requested} 个，更新 ${summary.updated} 个${summary.missingText}`,
+              );
+              setSelectedRowKeys([]);
+            } else {
+              const res = await updateTrafficAccountTags({
+                id: tagEditingAccount!.id,
+                tags,
+              });
+              if (res.code !== 0) {
+                message.error(res.msg || '更新标签失败');
+                return;
+              }
+              message.success('标签更新成功');
+            }
+            clearTagEditorState();
+            actionRef.current?.reload();
+            reloadKpi();
+          } finally {
+            setTagSubmitLoading(false);
+          }
+        }}
+        confirmLoading={tagSubmitLoading}
+        destroyOnHidden
+        width={520}
+      >
+        <Form form={tagForm} layout="vertical" preserve={false}>
+          <Form.Item label={batchTagEditingIds.length ? '批量账号' : '账号'}>
+            <Input
+              value={
+                batchTagEditingIds.length
+                  ? `已选择 ${batchTagEditingIds.length} 个账号，提交后将覆盖所选账号标签`
+                  : tagEditingAccount
+                    ? `${tagEditingAccount.accountName} (${tagEditingAccount.platformCode})`
+                    : ''
+              }
+              disabled
+            />
+          </Form.Item>
+          <Form.Item
+            name="tags"
+            label="标签"
+            rules={[{ validator: validateTags }]}
+          >
+            <Select
+              mode="tags"
+              placeholder={
+                batchTagEditingIds.length
+                  ? '输入后回车添加，留空提交可批量清空标签，最多 20 个'
+                  : '输入后回车添加，最多 20 个'
+              }
+            />
+          </Form.Item>
         </Form>
       </Modal>
 
@@ -359,21 +655,26 @@ const AccountManageModal: React.FC = () => {
         open={allocationOpen}
         onCancel={() => {
           setAllocationOpen(false);
-          setAllocationAccount(undefined);
+          setAllocationSourceAccount(undefined);
+          setAllocationTargetAccount(undefined);
           allocationForm.resetFields();
         }}
         onOk={async () => {
-          if (!allocationAccount) {
+          if (!allocationSourceAccount) {
             message.error('请选择流量账户');
+            return;
+          }
+          if (!allocationTargetAccount) {
+            message.error('目标账户不存在');
             return;
           }
           const values = await allocationForm.validateFields();
           setAllocationLoading(true);
           try {
             const res = await createTrafficAllocation({
-              accountId: allocationAccount.id,
-              targetUserId: String(allocationAccount.externalAccountId),
-              targetUsername: allocationAccount.accountName,
+              accountId: allocationSourceAccount.id,
+              targetUserId: String(allocationTargetAccount.externalAccountId),
+              targetUsername: allocationTargetAccount.accountName,
               amountGb: Number(values.amountGb),
               remark: values.remark,
             });
@@ -385,7 +686,8 @@ const AccountManageModal: React.FC = () => {
             const orderId = res.data?.response?.data?.order_id;
             message.success(orderId ? `流量分配成功，订单号 ${orderId}` : (res.msg || '流量分配成功'));
             setAllocationOpen(false);
-            setAllocationAccount(undefined);
+            setAllocationSourceAccount(undefined);
+            setAllocationTargetAccount(undefined);
             allocationForm.resetFields();
             actionRef.current?.reload();
             reloadKpi();
@@ -400,17 +702,31 @@ const AccountManageModal: React.FC = () => {
         okButtonProps={{ style: { backgroundColor: '#7C3AED' } }}
       >
         <Form form={allocationForm} layout="vertical" preserve={false}>
-          <Form.Item label="流量账号">
-            <Input
-              value={allocationAccount ? `${allocationAccount.accountName} (${allocationAccount.platformCode})` : ''}
-              disabled
+          <Form.Item
+            name="accountId"
+            label="流量账号"
+            rules={[{ required: true, message: '请选择流量账号' }]}
+          >
+            <Select
+              showSearch
+              loading={allocationAccountOptionsLoading}
+              placeholder="请选择流量账号"
+              optionFilterProp="label"
+              options={allocationAccountOptions.map((item) => ({
+                label: `${item.accountName} (${item.platformCode})`,
+                value: item.id,
+              }))}
+              onChange={(value) => {
+                const nextAccount = allocationAccountOptions.find((item) => item.id === value);
+                setAllocationSourceAccount(nextAccount);
+              }}
             />
           </Form.Item>
           <Form.Item label="目标用户">
             <Input
               value={
-                allocationAccount
-                  ? `${allocationAccount.externalAccountId} - ${allocationAccount.accountName}`
+                allocationTargetAccount
+                  ? `${allocationTargetAccount.externalAccountId} - ${allocationTargetAccount.accountName}`
                   : ''
               }
               disabled

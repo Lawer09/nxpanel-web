@@ -158,14 +158,14 @@ const UserManagePage: React.FC = () => {
   const [appIdOptionsLoading, setAppIdOptionsLoading] = useState(false);
   const [resultSummary, setResultSummary] = useState<{
     total: number;
-    banned: boolean;
+    banned?: boolean;
     idSearch?: string;
     emailSearch?: string;
     metaAppId?: string;
     metaCountry?: string;
     metaIp?: string;
     metaChannel?: string;
-  }>({ total: 0, banned: false });
+  }>({ total: 0 });
 
   useEffect(() => {
     let ignore = false;
@@ -359,12 +359,21 @@ const UserManagePage: React.FC = () => {
       hideInTable: true,
     },
     {
-      title: '仅封禁用户',
-      dataIndex: 'only_banned',
-      valueType: 'switch',
+      title: '封禁状态',
+      dataIndex: 'banned_filter',
+      valueType: 'select',
+      valueEnum: {
+        1: { text: '已封禁' },
+        0: { text: '未封禁' },
+      },
       hideInTable: true,
       search: {
-        transform: (value) => (value ? { onlyBanned: true } : {}),
+        transform: (value) => {
+          if (value === undefined || value === null || value === '') {
+            return {};
+          }
+          return { banned: value === 1 || value === '1' || value === true || value === 'true' };
+        },
       },
     },
     {
@@ -670,7 +679,8 @@ const UserManagePage: React.FC = () => {
       >
         <Space size={[16, 12]} wrap>
           <Text>当前结果：{resultSummary.total} 个用户</Text>
-          {resultSummary.banned ? <Tag color="error">仅看封禁用户</Tag> : null}
+          {resultSummary.banned === true ? <Tag color="error">已封禁</Tag> : null}
+          {resultSummary.banned === false ? <Tag color="default">未封禁</Tag> : null}
           {resultSummary.idSearch ? <Tag>用户 ID：{resultSummary.idSearch}</Tag> : null}
           {resultSummary.emailSearch ? <Tag>邮箱：{resultSummary.emailSearch}</Tag> : null}
           {resultSummary.metaAppId ? <Tag>包名：{resultSummary.metaAppId}</Tag> : null}
@@ -757,7 +767,13 @@ const UserManagePage: React.FC = () => {
             id: params.id_search || undefined,
             current: params.current,
             pageSize: params.pageSize,
-            onlyBanned: params.onlyBanned ? true : undefined,
+            banned:
+              params.banned === undefined || params.banned === null || params.banned === ''
+                ? undefined
+                : params.banned === true ||
+                    params.banned === 'true' ||
+                    params.banned === 1 ||
+                    params.banned === '1',
             createdAtFrom: formatCreatedAtQueryValue(params.createdAtFrom),
             createdAtTo: formatCreatedAtQueryValue(params.createdAtTo, true),
             meta: Object.keys(meta).length ? meta : undefined,
@@ -774,7 +790,13 @@ const UserManagePage: React.FC = () => {
           const total = (res.data as any)?.total || 0;
           setResultSummary({
             total,
-            banned: !!params.onlyBanned,
+            banned:
+              params.banned === undefined || params.banned === null || params.banned === ''
+                ? undefined
+                : params.banned === true ||
+                    params.banned === 'true' ||
+                    params.banned === 1 ||
+                    params.banned === '1',
             idSearch: params.id_search,
             emailSearch: params.email_search,
             metaAppId: params.meta_app_id,

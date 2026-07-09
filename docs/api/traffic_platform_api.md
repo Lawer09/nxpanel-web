@@ -85,6 +85,7 @@ Query 参数：
 | platformCode | string | 否 | 平台编码 |
 | enabled | int | 否 | 0/1 |
 | keyword | string | 否 | 按账号名/外部账号ID检索 |
+| tags[] | string[] | 否 | 按标签筛选，支持多值，如 `tags[]=main&tags[]=low-balance` |
 | page | int | 否 | 默认1 |
 | pageSize | int | 否 | 默认20，最大200 |
 
@@ -134,7 +135,76 @@ Body（可选字段）：
 
 `PATCH /traffic-platform/accounts/{id}/status`
 
-### 3.6 流量分配
+### 3.5 修改账号标签
+
+`POST /accounts/update-tags`
+
+Body：
+
+```json
+{
+  "id": 1,
+  "tags": ["总账号", "低余额"]
+}
+```
+
+说明：
+
+- `tags` 最多 20 个，每个标签最长 50 个字符。
+- 后端会 trim、移除空标签并去重。
+- 传 `tags: []` 表示清空标签。
+
+### 3.6 批量修改账号标签
+
+`POST /traffic-platform/accounts/batch-update-tags`
+
+Body：
+
+```json
+{
+  "ids": [1, 2, 3],
+  "tags": ["总账号", "低余额"]
+}
+```
+
+说明：
+
+- 按 `ids` 批量覆盖账号 `tags`。
+- `tags: []` 表示批量清空标签。
+
+返回：
+
+```json
+{
+  "requested": 3,
+  "updated": 2,
+  "missingIds": [3]
+}
+```
+
+### 3.7 批量禁用账号
+
+`POST /traffic-platform/accounts/batch-disable`
+
+Body：
+
+```json
+{
+  "ids": [1, 2, 3]
+}
+```
+
+返回：
+
+```json
+{
+  "requested": 3,
+  "updated": 2,
+  "missingIds": [3]
+}
+```
+
+### 3.8 流量分配
 
 `POST /traffic-platform/traffic-allocations/create`
 
@@ -166,6 +236,14 @@ Body:
 - `code=404`：流量平台账号不存在
 - `code=500`：外部服务配置缺失、请求超时或返回非 2xx
 
+分配规则补充：
+
+- 标签包含“主账号”的账号不可作为分配目标，前端应禁用“流量分配”入口。
+- 分配弹窗中的来源流量账号列表，仅查询并展示同时满足以下条件的账号：
+  - 标签包含“主账号”
+  - 标签包含当前目标账号的全部标签
+- 如果当前目标账号没有任何标签，则来源流量账号列表返回空。
+
 Body：
 
 ```json
@@ -174,7 +252,7 @@ Body：
 }
 ```
 
-### 3.6 测试账号连接
+### 3.9 测试账号连接
 
 `POST /traffic-platform/accounts/{id}/test`
 
