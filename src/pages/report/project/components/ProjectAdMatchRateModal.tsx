@@ -11,6 +11,14 @@ import { fmtInt, parseRecentHourlyAdMatchRates } from '@/pages/report/project/re
 const { RangePicker } = DatePicker;
 const DATE_PRESETS = toRangePickerPresets(STANDARD_DATE_PRESET_ITEMS);
 
+const EMPTY_TEXT = '所选日期范围暂无匹配率数据';
+const REFERENCE_MATCH_RATE = 70;
+const CHART_HEIGHT = 280;
+const CHART_PADDING_TOP = 16;
+const CHART_PADDING_RIGHT = 24;
+const CHART_PADDING_BOTTOM = 48;
+const CHART_PADDING_LEFT = 52;
+
 type ProjectAdMatchRateModalProps = {
   open: boolean;
   loading?: boolean;
@@ -28,9 +36,6 @@ type ChartDatum = {
   adRequests: number | null;
   adMatchedRequests: number | null;
 };
-
-const EMPTY_TEXT = '所选日期范围暂无匹配率数据';
-const REFERENCE_MATCH_RATE = 70;
 
 const ProjectAdMatchRateModal: React.FC<ProjectAdMatchRateModalProps> = ({
   open,
@@ -65,14 +70,20 @@ const ProjectAdMatchRateModal: React.FC<ProjectAdMatchRateModalProps> = ({
       data: chartData,
       autoFit: false,
       width: chartWidth,
-      height: 280,
+      height: CHART_HEIGHT,
       xField: 'timeLabel',
       yField: 'adMatchRate',
-      padding: [16, 24, 48, 52],
+      padding: [
+        CHART_PADDING_TOP,
+        CHART_PADDING_RIGHT,
+        CHART_PADDING_BOTTOM,
+        CHART_PADDING_LEFT,
+      ],
       scale: {
         y: {
-          min: 0,
-          max: 100,
+          type: 'linear',
+          domain: [0, 100],
+          tickCount: 6,
         },
       },
       axis: {
@@ -83,7 +94,7 @@ const ProjectAdMatchRateModal: React.FC<ProjectAdMatchRateModalProps> = ({
         },
         y: {
           title: false,
-          labelFormatter: (value: string | number) => `${value}%`,
+          labelFormatter: (value: string | number) => `${Number(value).toFixed(0)}%`,
         },
       },
       point: {
@@ -100,42 +111,23 @@ const ProjectAdMatchRateModal: React.FC<ProjectAdMatchRateModalProps> = ({
           lineWidth: 2,
         },
       },
-      annotations: [
-        {
-          type: 'lineY',
-          y: REFERENCE_MATCH_RATE,
-          style: {
-            stroke: '#fa8c16',
-            lineDash: [4, 4],
-            lineWidth: 1,
-          },
-          text: {
-            content: '70%',
-            position: 'left',
-            style: {
-              fill: '#8c8c8c',
-              fontSize: 12,
-            },
-          },
-        },
-      ],
       tooltip: {
         title: (datum: ChartDatum) => datum.timeLabel,
-        items: [
+        items: (datum: ChartDatum) => [
           {
-            field: 'adMatchRate',
             name: '匹配率',
-            valueFormatter: (value: number) => `${Number(value).toFixed(2)}%`,
+            value: `${Number(datum.adMatchRate).toFixed(2)}%`,
+            color: '#1677ff',
           },
           {
-            field: 'adRequests',
             name: '当前请求',
-            valueFormatter: (value: number | null) => (value === null ? '--' : fmtInt(value)),
+            value: datum.adRequests === null ? '--' : fmtInt(datum.adRequests),
+            color: '#1677ff',
           },
           {
-            field: 'adMatchedRequests',
             name: '当前匹配',
-            valueFormatter: (value: number | null) => (value === null ? '--' : fmtInt(value)),
+            value: datum.adMatchedRequests === null ? '--' : fmtInt(datum.adMatchedRequests),
+            color: '#1677ff',
           },
         ],
       },
@@ -149,6 +141,11 @@ const ProjectAdMatchRateModal: React.FC<ProjectAdMatchRateModalProps> = ({
     }),
     [chartData, chartWidth],
   );
+
+  const referenceLineTop = useMemo(() => {
+    const plotHeight = CHART_HEIGHT - CHART_PADDING_TOP - CHART_PADDING_BOTTOM;
+    return CHART_PADDING_TOP + ((100 - REFERENCE_MATCH_RATE) / 100) * plotHeight;
+  }, []);
 
   const handleQuery = () => {
     onQuery(dateRange);
@@ -183,7 +180,32 @@ const ProjectAdMatchRateModal: React.FC<ProjectAdMatchRateModalProps> = ({
         <Spin spinning={loading}>
           {chartData.length ? (
             <div style={{ overflowX: 'auto', overflowY: 'hidden' }}>
-              <div style={{ width: chartWidth }}>
+              <div style={{ width: chartWidth, position: 'relative' }}>
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: CHART_PADDING_LEFT,
+                    right: CHART_PADDING_RIGHT,
+                    top: referenceLineTop,
+                    borderTop: '1px dashed #fa8c16',
+                    pointerEvents: 'none',
+                    zIndex: 1,
+                  }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 12,
+                    top: referenceLineTop - 10,
+                    color: '#8c8c8c',
+                    fontSize: 12,
+                    lineHeight: '20px',
+                    pointerEvents: 'none',
+                    zIndex: 1,
+                  }}
+                >
+                  70%
+                </div>
                 <Line {...(lineConfig as any)} />
               </div>
             </div>
