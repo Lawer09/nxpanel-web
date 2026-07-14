@@ -290,22 +290,22 @@ export default [
         ],
       },
       {
+        path: '/ads-console/system/token',
+        name: 'Token 管理',
+        component: './ads-console/system/token',
+      },
+      {
+        path: '/ads-console/system/bm',
+        name: 'BM 管理',
+        component: './ads-console/system/bm',
+      },
+      {
         path: '/ads-console/system',
         name: '系统设置',
         routes: [
           {
             path: '/ads-console/system',
-            redirect: '/ads-console/system/token',
-          },
-          {
-            path: '/ads-console/system/token',
-            name: 'Token 管理',
-            component: './ads-console/system/token',
-          },
-          {
-            path: '/ads-console/system/bm',
-            name: 'BM 管理',
-            component: './ads-console/system/bm',
+            redirect: '/ads-console/system/user',
           },
           {
             path: '/ads-console/system/user',
