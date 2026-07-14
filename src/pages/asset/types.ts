@@ -154,6 +154,10 @@ export type IpFormValues = {
   ip_version?: number;
   type?: string;
   source?: string;
+  provider_id?: number;
+  region_id?: number;
+  provider_region_id?: string;
+  provider_ip_id?: string;
   region?: string;
   status?: string;
   ownership?: string;
@@ -192,7 +196,6 @@ export type SshKeyEditFormValues = {
 export type AssetTagFormValue = {
   key?: string;
   value?: string;
-  label?: string;
 };
 
 export type MachineScriptFormValues = {

@@ -1,10 +1,14 @@
 import { App, Button, Input, Modal, Select, Space, Table, Tag, Typography } from 'antd';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  createAssetImage,
+  batchCreateAssetImages,
   listAssetProviderImages,
 } from '@/services/asset-service/api';
-import { normalizeDevErrorMessage } from '../../utils';
+import {
+  getAssetBatchFailureLines,
+  getAssetBatchResultSummary,
+  normalizeDevErrorMessage,
+} from '../../utils';
 
 const { Text } = Typography;
 
@@ -85,25 +89,41 @@ const ImageImportModal: React.FC<Props> = ({
       message.error('Select provider images first.');
       return;
     }
+
+    const fallbackProviderId = selectedAccount?.provider_id;
+    if (!fallbackProviderId) {
+      message.error('Current account has no provider id.');
+      return;
+    }
+
     try {
       setSaving(true);
-      for (const item of selectedItems) {
-        await createAssetImage({
-          provider_id: item.provider_id ?? undefined,
+      const response = await batchCreateAssetImages({
+        batch_size: selectedItems.length,
+        items: selectedItems.map((item) => ({
+          provider_id: Number(item.provider_id || fallbackProviderId),
           provider_image_id: item.provider_image_id,
           name: item.name || item.label || item.provider_image_id,
-          type: item.type,
-          os_type: item.os_type,
-          category: item.category,
-          version: item.version,
-          status: item.status,
+          type: item.type || undefined,
+          os_type: item.os_type || undefined,
+          category: item.category || undefined,
+          version: item.version || undefined,
+          status: item.status || undefined,
           tags: item.tags,
           source: 'import',
-          provider_zone_id: item.provider_zone_id,
+          provider_zone_id: item.provider_zone_id || undefined,
           provider_zone_ids: item.provider_zone_ids,
-        });
+        })),
+      });
+      const summary = getAssetBatchResultSummary(response.data);
+      const failureLines = getAssetBatchFailureLines(response.data);
+      if (response.data.failed > 0) {
+        message.warning(
+          failureLines.length ? `${summary} ${failureLines.join('; ')}` : summary,
+        );
+      } else {
+        message.success(summary);
       }
-      message.success(`Imported ${selectedItems.length} image(s).`);
       onSuccess();
     } catch (error: any) {
       message.error(normalizeDevErrorMessage(error));

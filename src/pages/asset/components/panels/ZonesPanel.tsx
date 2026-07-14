@@ -8,6 +8,8 @@ import { ProTable } from '@ant-design/pro-components';
 import { App, Button, Form, Input, Select, Space, Tag } from 'antd';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  batchDeleteAssetZones,
+  deleteAssetZone,
   listAssetProviderAccounts,
   listAssetZones,
 } from '@/services/asset-service/api';
@@ -16,6 +18,8 @@ import ZoneImportModal from '../zones/ZoneImportModal';
 import {
   formatText,
   formatTime,
+  getAssetBatchFailureLines,
+  getAssetBatchResultSummary,
   getAssetSourceLabel,
   normalizeDevErrorMessage,
 } from '../../utils';
@@ -36,17 +40,22 @@ const ZONE_SOURCE_OPTIONS = [
 const ZonesPanel: React.FC<{
   providers: API.AssetProvider[];
 }> = ({ providers }) => {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const actionRef = useRef<ActionType | undefined>(undefined);
   const [filterForm] = Form.useForm<ZoneFilters>();
   const [filters, setFilters] = useState<ZoneFilters>({});
   const [accounts, setAccounts] = useState<API.AssetProviderAccount[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<API.AssetZone[]>([]);
 
   useEffect(() => {
     actionRef.current?.reload();
+    setSelectedRows([]);
   }, [filters]);
+
+  const selectedIds = useMemo(() => selectedRows.map((item) => item.id), [selectedRows]);
 
   useEffect(() => {
     const loadAccounts = async () => {
@@ -60,6 +69,57 @@ const ZonesPanel: React.FC<{
 
     void loadAccounts();
   }, [message]);
+
+  const handleBatchMutationResult = (title: string, result: API.AssetBatchResult) => {
+    const summary = getAssetBatchResultSummary(result);
+    if (result.failed > 0) {
+      const failureLines = getAssetBatchFailureLines(result);
+      modal.info({
+        title: `${title} Result`,
+        width: 720,
+        content: (
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <span>{summary}</span>
+            <div>
+              {failureLines.map((line) => (
+                <div key={line}>{line}</div>
+              ))}
+            </div>
+          </Space>
+        ),
+      });
+      message.warning(summary);
+    } else {
+      message.success(summary);
+    }
+    setSelectedRows([]);
+    actionRef.current?.reload();
+  };
+
+  const openBatchDeleteConfirm = () => {
+    if (!selectedIds.length) {
+      message.info('Select zones first.');
+      return;
+    }
+    modal.confirm({
+      title: `Delete ${selectedIds.length} selected zone record(s)?`,
+      content: 'This only deletes local zone records.',
+      okText: 'Delete',
+      okButtonProps: { danger: true, loading: saving },
+      onOk: async () => {
+        try {
+          setSaving(true);
+          const response = await batchDeleteAssetZones({ ids: selectedIds });
+          handleBatchMutationResult('Batch delete zones', response.data);
+        } catch (error: any) {
+          message.error(normalizeDevErrorMessage(error));
+          throw error;
+        } finally {
+          setSaving(false);
+        }
+      },
+    });
+  };
 
   const columns: ProColumns<API.AssetZone>[] = useMemo(
     () => [
@@ -123,8 +183,38 @@ const ZonesPanel: React.FC<{
         ellipsis: true,
         renderText: formatTime,
       },
+      {
+        title: 'Action',
+        valueType: 'option',
+        width: 120,
+        render: (_, record) => [
+          <a
+            key="delete"
+            onClick={() => {
+              modal.confirm({
+                title: `Delete zone #${record.id}?`,
+                content: 'This only deletes the local zone record.',
+                okText: 'Delete',
+                okButtonProps: { danger: true },
+                onOk: async () => {
+                  try {
+                    await deleteAssetZone(record.id);
+                    message.success('Zone deleted.');
+                    actionRef.current?.reload();
+                  } catch (error: any) {
+                    message.error(normalizeDevErrorMessage(error));
+                    throw error;
+                  }
+                },
+              });
+            }}
+          >
+            Delete
+          </a>,
+        ],
+      },
     ],
-    [],
+    [message, modal],
   );
 
   return (
@@ -191,6 +281,19 @@ const ZonesPanel: React.FC<{
         search={false}
         scroll={{ x: 1480 }}
         columns={columns}
+        rowSelection={{
+          selectedRowKeys: selectedIds,
+          onChange: (_, rows) => setSelectedRows(rows),
+        }}
+        tableAlertRender={({ selectedRowKeys }) => `Selected ${selectedRowKeys.length} zone(s)`}
+        tableAlertOptionRender={() => [
+          <a key="delete" onClick={() => openBatchDeleteConfirm()}>
+            Batch Delete
+          </a>,
+          <a key="clear" onClick={() => setSelectedRows([])}>
+            Clear
+          </a>,
+        ]}
         request={async (params) => {
           try {
             const response = await listAssetZones({

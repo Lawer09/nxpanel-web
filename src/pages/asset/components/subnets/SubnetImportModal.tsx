@@ -1,8 +1,8 @@
 import { App, Button, Input, Modal, Select, Space, Table, Typography } from 'antd';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  batchCreateAssetRegions,
-  listAssetProviderRegions,
+  batchCreateAssetSubnets,
+  listAssetProviderSubnets,
 } from '@/services/asset-service/api';
 import {
   getAssetBatchFailureLines,
@@ -19,7 +19,7 @@ type Props = {
   onSuccess: () => void;
 };
 
-const RegionImportModal: React.FC<Props> = ({
+const SubnetImportModal: React.FC<Props> = ({
   open,
   accounts,
   onCancel,
@@ -28,7 +28,9 @@ const RegionImportModal: React.FC<Props> = ({
   const { message } = App.useApp();
   const [accountId, setAccountId] = useState<number | undefined>();
   const [providerRegionId, setProviderRegionId] = useState<string | undefined>();
-  const [items, setItems] = useState<API.AssetRegion[]>([]);
+  const [providerSubnetId, setProviderSubnetId] = useState<string | undefined>();
+  const [vpcId, setVpcId] = useState<string | undefined>();
+  const [items, setItems] = useState<API.AssetProviderSubnet[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -39,7 +41,7 @@ const RegionImportModal: React.FC<Props> = ({
   );
   const selectedAccount = accountId ? accountMap.get(accountId) : undefined;
   const selectedItems = useMemo(
-    () => items.filter((item) => selectedRowKeys.includes(item.provider_region_id || item.id)),
+    () => items.filter((item) => selectedRowKeys.includes(item.provider_subnet_id || '')),
     [items, selectedRowKeys],
   );
 
@@ -49,21 +51,25 @@ const RegionImportModal: React.FC<Props> = ({
     }
     setAccountId(undefined);
     setProviderRegionId(undefined);
+    setProviderSubnetId(undefined);
+    setVpcId(undefined);
     setItems([]);
     setSelectedRowKeys([]);
   }, [open]);
 
-  const loadRegions = async (refresh?: boolean) => {
+  const loadSubnets = async (refresh?: boolean) => {
     if (!selectedAccount?.provider_code || !accountId) {
       setItems([]);
       return;
     }
     setLoading(true);
     try {
-      const response = await listAssetProviderRegions(selectedAccount.provider_code, accountId, {
+      const response = await listAssetProviderSubnets(selectedAccount.provider_code, accountId, {
         page: 1,
         page_size: 200,
         provider_region_id: providerRegionId?.trim() || undefined,
+        provider_subnet_id: providerSubnetId?.trim() || undefined,
+        vpc_id: vpcId?.trim() || undefined,
         refresh,
       });
       setItems(response.data?.items || []);
@@ -78,7 +84,7 @@ const RegionImportModal: React.FC<Props> = ({
 
   const handleImport = async () => {
     if (!selectedItems.length) {
-      message.error('Select provider regions first.');
+      message.error('Select provider subnets first.');
       return;
     }
 
@@ -90,13 +96,18 @@ const RegionImportModal: React.FC<Props> = ({
 
     try {
       setSaving(true);
-      const response = await batchCreateAssetRegions({
+      const response = await batchCreateAssetSubnets({
         batch_size: selectedItems.length,
         items: selectedItems.map((item) => ({
           provider_id: Number(item.provider_id || fallbackProviderId),
-          provider_region_id: item.provider_region_id || '',
-          region_name: item.region_name || undefined,
+          provider_subnet_id: item.provider_subnet_id || undefined,
+          cidr_block: item.cidr_block || undefined,
+          gateway_ip_address: item.gateway_ip_address || undefined,
+          vpc_id: item.vpc_id || undefined,
+          vpc_name: item.vpc_name || undefined,
           source: 'import',
+          provider_region_id: item.provider_region_id || undefined,
+          tags: item.tags,
         })),
       });
       const summary = getAssetBatchResultSummary(response.data);
@@ -118,9 +129,9 @@ const RegionImportModal: React.FC<Props> = ({
 
   return (
     <Modal
-      title="Import Provider Regions"
+      title="Import Provider Subnets"
       open={open}
-      width={960}
+      width={1120}
       destroyOnHidden
       confirmLoading={saving}
       onCancel={onCancel}
@@ -155,19 +166,42 @@ const RegionImportModal: React.FC<Props> = ({
               placeholder="Optional provider_region_id filter"
             />
           </div>
+          <div style={{ flex: 1 }}>
+            <Text strong style={{ display: 'block', marginBottom: 8 }}>
+              Provider Subnet ID
+            </Text>
+            <Input
+              value={providerSubnetId}
+              onChange={(event) => setProviderSubnetId(event.target.value)}
+              placeholder="Optional provider_subnet_id filter"
+            />
+          </div>
+        </Space>
+
+        <Space size={16} align="start" style={{ width: '100%' }}>
+          <div style={{ flex: 1 }}>
+            <Text strong style={{ display: 'block', marginBottom: 8 }}>
+              VPC ID
+            </Text>
+            <Input
+              value={vpcId}
+              onChange={(event) => setVpcId(event.target.value)}
+              placeholder="Optional vpc_id filter"
+            />
+          </div>
         </Space>
 
         <Space>
-          <Button loading={loading} type="primary" onClick={() => void loadRegions()}>
-            Load Provider Regions
+          <Button loading={loading} type="primary" onClick={() => void loadSubnets()}>
+            Load Provider Subnets
           </Button>
-          <Button loading={loading} onClick={() => void loadRegions(true)}>
+          <Button loading={loading} onClick={() => void loadSubnets(true)}>
             Refresh Provider Data
           </Button>
         </Space>
 
-        <Table<API.AssetRegion>
-          rowKey={(record) => record.provider_region_id || String(record.id)}
+        <Table<API.AssetProviderSubnet>
+          rowKey={(record) => record.provider_subnet_id || ''}
           loading={loading}
           size="small"
           pagination={{ pageSize: 10, showSizeChanger: true }}
@@ -178,27 +212,33 @@ const RegionImportModal: React.FC<Props> = ({
           dataSource={items}
           columns={[
             {
-              title: 'Region',
+              title: 'Subnet',
               render: (_, record) => (
                 <Space direction="vertical" size={0}>
-                  <Text strong>{record.region_name || record.provider_region_id || '-'}</Text>
-                  <Text type="secondary">{record.provider_region_id || '-'}</Text>
+                  <Text strong>{record.provider_subnet_id || '-'}</Text>
+                  <Text type="secondary">{record.cidr_block || '-'}</Text>
                 </Space>
               ),
             },
             {
-              title: 'Provider',
-              width: 180,
-              render: (_, record) => record.provider_code || '-',
+              title: 'VPC',
+              width: 220,
+              render: (_, record) =>
+                [record.vpc_name, record.vpc_id].filter(Boolean).join(' / ') || '-',
             },
             {
-              title: 'Source',
-              width: 120,
-              render: (_, record) => record.source || '-',
+              title: 'Gateway IP',
+              width: 180,
+              render: (_, record) => record.gateway_ip_address || '-',
+            },
+            {
+              title: 'Provider Region',
+              width: 180,
+              render: (_, record) => record.provider_region_id || '-',
             },
           ]}
           locale={{
-            emptyText: accountId ? 'No provider regions found.' : 'Select an account first.',
+            emptyText: accountId ? 'No provider subnets found.' : 'Select an account first.',
           }}
         />
       </Space>
@@ -206,4 +246,4 @@ const RegionImportModal: React.FC<Props> = ({
   );
 };
 
-export default RegionImportModal;
+export default SubnetImportModal;

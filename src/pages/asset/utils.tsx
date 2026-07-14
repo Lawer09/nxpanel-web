@@ -165,7 +165,6 @@ export const normalizeAssetTags = (values?: AssetTagFormValue[]) =>
       cleanupObject({
         key: item.key?.trim(),
         value: item.value?.trim(),
-        label: item.label?.trim(),
       }),
     )
     .filter((item) => item.key && item.value) as API.AssetTagItem[];

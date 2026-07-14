@@ -1,8 +1,8 @@
 import { App, Button, Input, Modal, Select, Space, Table, Typography } from 'antd';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  batchCreateAssetRegions,
-  listAssetProviderRegions,
+  batchCreateAssetTags,
+  listAssetProviderTags,
 } from '@/services/asset-service/api';
 import {
   getAssetBatchFailureLines,
@@ -19,7 +19,7 @@ type Props = {
   onSuccess: () => void;
 };
 
-const RegionImportModal: React.FC<Props> = ({
+const TagImportModal: React.FC<Props> = ({
   open,
   accounts,
   onCancel,
@@ -27,8 +27,8 @@ const RegionImportModal: React.FC<Props> = ({
 }) => {
   const { message } = App.useApp();
   const [accountId, setAccountId] = useState<number | undefined>();
-  const [providerRegionId, setProviderRegionId] = useState<string | undefined>();
-  const [items, setItems] = useState<API.AssetRegion[]>([]);
+  const [providerTagId, setProviderTagId] = useState<string | undefined>();
+  const [items, setItems] = useState<API.AssetProviderTag[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -39,7 +39,7 @@ const RegionImportModal: React.FC<Props> = ({
   );
   const selectedAccount = accountId ? accountMap.get(accountId) : undefined;
   const selectedItems = useMemo(
-    () => items.filter((item) => selectedRowKeys.includes(item.provider_region_id || item.id)),
+    () => items.filter((item) => selectedRowKeys.includes(item.provider_tag_id || item.id)),
     [items, selectedRowKeys],
   );
 
@@ -48,22 +48,22 @@ const RegionImportModal: React.FC<Props> = ({
       return;
     }
     setAccountId(undefined);
-    setProviderRegionId(undefined);
+    setProviderTagId(undefined);
     setItems([]);
     setSelectedRowKeys([]);
   }, [open]);
 
-  const loadRegions = async (refresh?: boolean) => {
+  const loadTags = async (refresh?: boolean) => {
     if (!selectedAccount?.provider_code || !accountId) {
       setItems([]);
       return;
     }
     setLoading(true);
     try {
-      const response = await listAssetProviderRegions(selectedAccount.provider_code, accountId, {
+      const response = await listAssetProviderTags(selectedAccount.provider_code, accountId, {
         page: 1,
         page_size: 200,
-        provider_region_id: providerRegionId?.trim() || undefined,
+        provider_tag_id: providerTagId?.trim() || undefined,
         refresh,
       });
       setItems(response.data?.items || []);
@@ -78,25 +78,18 @@ const RegionImportModal: React.FC<Props> = ({
 
   const handleImport = async () => {
     if (!selectedItems.length) {
-      message.error('Select provider regions first.');
-      return;
-    }
-
-    const fallbackProviderId = selectedAccount?.provider_id;
-    if (!fallbackProviderId) {
-      message.error('Current account has no provider id.');
+      message.error('Select provider tags first.');
       return;
     }
 
     try {
       setSaving(true);
-      const response = await batchCreateAssetRegions({
+      const response = await batchCreateAssetTags({
         batch_size: selectedItems.length,
         items: selectedItems.map((item) => ({
-          provider_id: Number(item.provider_id || fallbackProviderId),
-          provider_region_id: item.provider_region_id || '',
-          region_name: item.region_name || undefined,
-          source: 'import',
+          provider_tag_id: item.provider_tag_id || undefined,
+          key: item.key || '',
+          value: item.value || undefined,
         })),
       });
       const summary = getAssetBatchResultSummary(response.data);
@@ -118,7 +111,7 @@ const RegionImportModal: React.FC<Props> = ({
 
   return (
     <Modal
-      title="Import Provider Regions"
+      title="Import Provider Tags"
       open={open}
       width={960}
       destroyOnHidden
@@ -147,27 +140,27 @@ const RegionImportModal: React.FC<Props> = ({
           </div>
           <div style={{ flex: 1 }}>
             <Text strong style={{ display: 'block', marginBottom: 8 }}>
-              Provider Region ID
+              Provider Tag ID
             </Text>
             <Input
-              value={providerRegionId}
-              onChange={(event) => setProviderRegionId(event.target.value)}
-              placeholder="Optional provider_region_id filter"
+              value={providerTagId}
+              onChange={(event) => setProviderTagId(event.target.value)}
+              placeholder="Optional provider_tag_id filter"
             />
           </div>
         </Space>
 
         <Space>
-          <Button loading={loading} type="primary" onClick={() => void loadRegions()}>
-            Load Provider Regions
+          <Button loading={loading} type="primary" onClick={() => void loadTags()}>
+            Load Provider Tags
           </Button>
-          <Button loading={loading} onClick={() => void loadRegions(true)}>
+          <Button loading={loading} onClick={() => void loadTags(true)}>
             Refresh Provider Data
           </Button>
         </Space>
 
-        <Table<API.AssetRegion>
-          rowKey={(record) => record.provider_region_id || String(record.id)}
+        <Table<API.AssetProviderTag>
+          rowKey={(record) => record.provider_tag_id || String(record.id)}
           loading={loading}
           size="small"
           pagination={{ pageSize: 10, showSizeChanger: true }}
@@ -178,27 +171,25 @@ const RegionImportModal: React.FC<Props> = ({
           dataSource={items}
           columns={[
             {
-              title: 'Region',
+              title: 'Tag',
               render: (_, record) => (
                 <Space direction="vertical" size={0}>
-                  <Text strong>{record.region_name || record.provider_region_id || '-'}</Text>
-                  <Text type="secondary">{record.provider_region_id || '-'}</Text>
+                  <Text strong>
+                    {record.key || '-'}
+                    {record.value ? `=${record.value}` : ''}
+                  </Text>
+                  <Text type="secondary">{record.provider_tag_id || '-'}</Text>
                 </Space>
               ),
             },
             {
-              title: 'Provider',
-              width: 180,
-              render: (_, record) => record.provider_code || '-',
-            },
-            {
-              title: 'Source',
-              width: 120,
-              render: (_, record) => record.source || '-',
+              title: 'Value',
+              width: 240,
+              render: (_, record) => record.value || '-',
             },
           ]}
           locale={{
-            emptyText: accountId ? 'No provider regions found.' : 'Select an account first.',
+            emptyText: accountId ? 'No provider tags found.' : 'Select an account first.',
           }}
         />
       </Space>
@@ -206,4 +197,4 @@ const RegionImportModal: React.FC<Props> = ({
   );
 };
 
-export default RegionImportModal;
+export default TagImportModal;

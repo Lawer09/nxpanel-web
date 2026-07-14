@@ -1,10 +1,14 @@
 import { App, Button, Input, Modal, Select, Space, Table, Typography } from 'antd';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  createAssetZone,
+  batchCreateAssetZones,
   listAssetProviderZones,
 } from '@/services/asset-service/api';
-import { normalizeDevErrorMessage } from '../../utils';
+import {
+  getAssetBatchFailureLines,
+  getAssetBatchResultSummary,
+  normalizeDevErrorMessage,
+} from '../../utils';
 
 const { Text } = Typography;
 
@@ -89,8 +93,9 @@ const ZoneImportModal: React.FC<Props> = ({
 
     try {
       setSaving(true);
-      for (const item of selectedItems) {
-        await createAssetZone({
+      const response = await batchCreateAssetZones({
+        batch_size: selectedItems.length,
+        items: selectedItems.map((item) => ({
           provider_id: Number(item.provider_id || fallbackProviderId),
           provider_zone_id: item.provider_zone_id || undefined,
           provider_name: item.provider_name || undefined,
@@ -104,9 +109,17 @@ const ZoneImportModal: React.FC<Props> = ({
           region_ids: item.region_ids,
           provider_region_id: item.provider_region_id || item.provider_region_ids?.[0],
           provider_region_ids: item.provider_region_ids,
-        });
+        })),
+      });
+      const summary = getAssetBatchResultSummary(response.data);
+      const failureLines = getAssetBatchFailureLines(response.data);
+      if (response.data.failed > 0) {
+        message.warning(
+          failureLines.length ? `${summary} ${failureLines.join('; ')}` : summary,
+        );
+      } else {
+        message.success(summary);
       }
-      message.success(`Imported ${selectedItems.length} zone(s).`);
       onSuccess();
     } catch (error: any) {
       message.error(normalizeDevErrorMessage(error));

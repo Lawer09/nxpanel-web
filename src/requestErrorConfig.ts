@@ -8,9 +8,28 @@ import {
   getAdsAuthToken,
 } from '@/services/ads-console/authStorage';
 
+const ADS_CONSOLE_BASE_URL = 'https://console.adsmakeup.com';
+
 const isV4Url = (url?: string) => typeof url === 'string' && url.includes('/v4/');
+const isLocalHostname = () => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  const { hostname } = window.location;
+  return (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname.startsWith('192.168.')
+  );
+};
 const isAdsConsoleUrl = (url?: string) =>
-  typeof url === 'string' && url.includes('/ads-api');
+  typeof url === 'string' &&
+  (url.includes('/ads-api') || url.startsWith(ADS_CONSOLE_BASE_URL));
+const isAdsConsoleConfig = (config?: { baseURL?: string; url?: string }) =>
+  isAdsConsoleUrl(config?.url) ||
+  (typeof config?.baseURL === 'string' &&
+    config.baseURL.startsWith(ADS_CONSOLE_BASE_URL));
 
 const isV4RequestError = (error: any) => {
   if (isV4Url(error?.response?.url)) {
@@ -56,7 +75,7 @@ const errorConfig = {
       response?.status === 401 &&
       (isAdsConsoleUrl(error?.response?.url) ||
         isAdsConsoleUrl(error?.request?.url) ||
-        isAdsConsoleUrl(error?.config?.url))
+        isAdsConsoleConfig(error?.config))
     ) {
       clearAdsAuthToken();
       history.push('/user/login?mode=ads');
@@ -97,6 +116,11 @@ const errorConfig = {
         typeof config?.url === 'string' &&
         config.url.startsWith('/ads-api')
       ) {
+        config.baseURL = isLocalHostname() ? '' : ADS_CONSOLE_BASE_URL;
+        if (config.baseURL) {
+          config.url = config.url.replace(/^\/ads-api/, '/api');
+        }
+
         const token = getAdsAuthToken();
         if (token) {
           config.headers = config.headers || {};
@@ -138,7 +162,7 @@ const errorConfig = {
   responseInterceptors: [
     (response: any) => {
       if (
-        isAdsConsoleUrl(response?.config?.url) &&
+        isAdsConsoleConfig(response?.config) &&
         response?.data?.success === false &&
         response?.data?.errorCode === 401
       ) {

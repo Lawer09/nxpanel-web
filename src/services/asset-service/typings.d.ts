@@ -109,6 +109,22 @@ declare namespace API {
     [key: string]: any;
   }
 
+  interface AssetProviderInstanceType {
+    provider_id?: number | null;
+    provider_instance_type_id?: string;
+    name?: string;
+    cpu_count?: number;
+    memory_mb?: number;
+    bps?: number;
+    pps?: number;
+    with_stock?: boolean;
+    internet_bandwidth_limit?: number;
+    provider_zone_id?: string;
+    provider_zone_ids?: string[];
+    source?: string;
+    [key: string]: any;
+  }
+
   interface AssetImage {
     id: number;
     provider_image_id?: string;
@@ -142,6 +158,16 @@ declare namespace API {
     [key: string]: any;
   }
 
+  interface AssetProviderSecurityGroup {
+    provider_id?: number | null;
+    provider_name?: string;
+    provider_security_group_id?: string;
+    name?: string;
+    tags?: AssetTagItem[];
+    source?: string;
+    [key: string]: any;
+  }
+
   interface AssetSubnet {
     id: number;
     provider_id?: number | null;
@@ -159,6 +185,19 @@ declare namespace API {
     [key: string]: any;
   }
 
+  interface AssetProviderSubnet {
+    provider_id?: number | null;
+    provider_subnet_id?: string;
+    cidr_block?: string;
+    gateway_ip_address?: string;
+    vpc_id?: string;
+    vpc_name?: string;
+    provider_region_id?: string;
+    tags?: AssetTagItem[];
+    source?: string;
+    [key: string]: any;
+  }
+
   interface AssetProviderTag {
     id: number;
     provider_tag_id?: string;
@@ -167,6 +206,17 @@ declare namespace API {
     created_at?: string;
     updated_at?: string;
     [key: string]: any;
+  }
+
+  interface AssetTagCreateParams {
+    provider_tag_id?: string;
+    key: string;
+    value?: string;
+  }
+
+  interface AssetBatchCreateTagsParams {
+    items: AssetTagCreateParams[];
+    batch_size?: number;
   }
 
   type AssetMachineCreateCatalogCategory =
@@ -414,6 +464,21 @@ declare namespace API {
     [key: string]: any;
   }
 
+  interface AssetProviderIp {
+    provider_id?: number | null;
+    provider_ip_id?: string;
+    ip?: string;
+    ip_version?: number;
+    type?: string;
+    source?: string;
+    provider_region_id?: string;
+    status?: string;
+    ownership?: string;
+    tags?: AssetTagItem[];
+    label?: string;
+    [key: string]: any;
+  }
+
   interface AssetIp {
     id: number;
     ip?: string;
@@ -422,6 +487,9 @@ declare namespace API {
     source?: string;
     provider_id?: number | null;
     provider_code?: string;
+    provider_ip_id?: string;
+    region_id?: number;
+    provider_region_id?: string;
     account_id?: number | null;
     account_name?: string;
     external_ip_id?: string;
@@ -762,6 +830,11 @@ declare namespace API {
     provider_zone_ids?: string[];
   }
 
+  interface AssetBatchCreateImagesParams {
+    items: AssetImageCreateParams[];
+    batch_size?: number;
+  }
+
   interface AssetRegionCreateParams {
     provider_id: number;
     provider_region_id: string;
@@ -785,6 +858,70 @@ declare namespace API {
     provider_region_ids?: string[];
   }
 
+  interface AssetBatchCreateRegionsParams {
+    items: AssetRegionCreateParams[];
+    batch_size?: number;
+  }
+
+  interface AssetBatchCreateZonesParams {
+    items: AssetZoneCreateParams[];
+    batch_size?: number;
+  }
+
+  interface AssetInstanceTypeCreateParams {
+    provider_id?: number;
+    provider_instance_type_id?: string;
+    name?: string;
+    cpu_count?: number;
+    memory_mb?: number;
+    bps?: number;
+    pps?: number;
+    with_stock?: boolean;
+    internet_bandwidth_limit?: number;
+    source?: string;
+    zone_id?: number;
+    zone_ids?: number[];
+    provider_zone_id?: string;
+    provider_zone_ids?: string[];
+  }
+
+  interface AssetBatchCreateInstanceTypesParams {
+    items: AssetInstanceTypeCreateParams[];
+    batch_size?: number;
+  }
+
+  interface AssetSecurityGroupCreateParams {
+    provider_security_group_id?: string;
+    name?: string;
+    tags?: AssetTagItem[];
+    provider_id?: number;
+    provider_name?: string;
+    source?: string;
+  }
+
+  interface AssetBatchCreateSecurityGroupsParams {
+    items: AssetSecurityGroupCreateParams[];
+    batch_size?: number;
+  }
+
+  interface AssetSubnetCreateParams {
+    provider_id?: number;
+    provider_subnet_id?: string;
+    cidr_block?: string;
+    gateway_ip_address?: string;
+    vpc_id?: string;
+    vpc_name?: string;
+    source?: string;
+    region_id?: number;
+    provider_region_id?: string;
+    tags?: AssetTagItem[];
+  }
+
+  interface AssetBatchCreateSubnetsParams {
+    items: AssetSubnetCreateParams[];
+    batch_size?: number;
+  }
+
   interface AssetProviderRegionListParams {
     page?: number;
     page_size?: number;
@@ -797,6 +934,39 @@ declare namespace API {
     page_size?: number;
     provider_region_id?: string;
     provider_zone_id?: string;
+    refresh?: boolean;
+  }
+
+  interface AssetProviderInstanceTypeListParams {
+    page?: number;
+    page_size?: number;
+    provider_instance_type_id?: string;
+    provider_zone_id?: string;
+    refresh?: boolean;
+  }
+
+  interface AssetProviderSecurityGroupListParams {
+    page?: number;
+    page_size?: number;
+    provider_region_id?: string;
+    provider_zone_id?: string;
+    provider_security_group_id?: string;
+    refresh?: boolean;
+  }
+
+  interface AssetProviderSubnetListParams {
+    page?: number;
+    page_size?: number;
+    provider_region_id?: string;
+    provider_subnet_id?: string;
+    vpc_id?: string;
+    refresh?: boolean;
+  }
+
+  interface AssetProviderTagListParams {
+    page?: number;
+    page_size?: number;
+    provider_tag_id?: string;
     refresh?: boolean;
   }
 
@@ -911,15 +1081,46 @@ declare namespace API {
     tags?: AssetTagItem[];
   }
 
+  interface AssetIpCreateParams {
+    ip: string;
+    ip_version?: number;
+    type?: string;
+    source?: string;
+    provider_id?: number;
+    region_id?: number;
+    provider_region_id?: string;
+    status?: string;
+    ownership?: string;
+    provider_ip_id?: string;
+    tags?: AssetTagItem[];
+  }
+
+  interface AssetBatchCreateIpsParams {
+    items: AssetIpCreateParams[];
+    batch_size?: number;
+  }
+
   interface AssetIpUpdateParams {
     id: number;
     type?: string;
+    region_id?: number;
+    provider_region_id?: string;
+    provider_ip_id?: string;
     region?: string;
     status?: string;
     ownership?: string;
     external_ip_id?: string;
     metadata?: Record<string, any>;
     tags?: AssetTagItem[];
+  }
+
+  interface AssetProviderIpListParams {
+    page?: number;
+    page_size?: number;
+    provider_region_id?: string;
+    provider_ip_id?: string;
+    status?: string;
+    refresh?: boolean;
   }
 
   interface AssetIpPullFromProviderParams {

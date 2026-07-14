@@ -23,6 +23,7 @@ import {
 } from 'antd';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  batchDeleteAssetProviderAccounts,
   createAssetProviderAccount,
   deleteAssetProviderAccount,
   listAssetIps,
@@ -45,6 +46,8 @@ import {
   cleanupObject,
   formatText,
   formatTime,
+  getAssetBatchFailureLines,
+  getAssetBatchResultSummary,
   isProviderCapabilitySupported,
   normalizeAssetTags,
   normalizeDevErrorMessage,
@@ -71,7 +74,7 @@ const ProviderAccountsPanel: React.FC<{
   onAccountCatalogChanged: () => Promise<void>;
   onJumpToResource: JumpToResourceHandler;
 }> = ({ filters, providers, onAccountCatalogChanged, onJumpToResource }) => {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const actionRef = useRef<ActionType | undefined>(undefined);
   const [form] = Form.useForm<AccountFormValues>();
   const [open, setOpen] = useState(false);
@@ -86,6 +89,7 @@ const ProviderAccountsPanel: React.FC<{
   const [credentialExpanded, setCredentialExpanded] = useState<string[]>([
     'credential',
   ]);
+  const [selectedRows, setSelectedRows] = useState<API.AssetProviderAccount[]>([]);
 
   const providerMap = useMemo(
     () => new Map(providers.map((item) => [item.code, item])),
@@ -94,7 +98,10 @@ const ProviderAccountsPanel: React.FC<{
 
   useEffect(() => {
     actionRef.current?.reload();
+    setSelectedRows([]);
   }, [filters]);
+
+  const selectedIds = useMemo(() => selectedRows.map((item) => item.id), [selectedRows]);
 
   const openCreate = () => {
     setEditing(null);
@@ -139,6 +146,58 @@ const ProviderAccountsPanel: React.FC<{
     } catch {
       setRelatedCounts({ machines: 0, ips: 0, sshKeys: 0 });
     }
+  };
+
+  const handleBatchMutationResult = async (title: string, result: API.AssetBatchResult) => {
+    const summary = getAssetBatchResultSummary(result);
+    if (result.failed > 0) {
+      const failureLines = getAssetBatchFailureLines(result);
+      modal.info({
+        title: `${title} Result`,
+        width: 720,
+        content: (
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <span>{summary}</span>
+            <div>
+              {failureLines.map((line) => (
+                <div key={line}>{line}</div>
+              ))}
+            </div>
+          </Space>
+        ),
+      });
+      message.warning(summary);
+    } else {
+      message.success(summary);
+    }
+    setSelectedRows([]);
+    await onAccountCatalogChanged();
+    actionRef.current?.reload();
+  };
+
+  const openBatchDeleteConfirm = () => {
+    if (!selectedIds.length) {
+      message.info('Select provider accounts first.');
+      return;
+    }
+    modal.confirm({
+      title: `Delete ${selectedIds.length} selected provider account(s)?`,
+      content: 'This deletes the selected local provider account records.',
+      okText: 'Delete',
+      okButtonProps: { danger: true, loading: saving },
+      onOk: async () => {
+        try {
+          setSaving(true);
+          const response = await batchDeleteAssetProviderAccounts({ ids: selectedIds });
+          await handleBatchMutationResult('Batch delete provider accounts', response.data);
+        } catch (error: any) {
+          message.error(normalizeDevErrorMessage(error));
+          throw error;
+        } finally {
+          setSaving(false);
+        }
+      },
+    });
   };
 
   const columns: ProColumns<API.AssetProviderAccount>[] = [
@@ -275,6 +334,21 @@ const ProviderAccountsPanel: React.FC<{
         search={false}
         scroll={{ x: 1180 }}
         columns={columns}
+        rowSelection={{
+          selectedRowKeys: selectedIds,
+          onChange: (_, rows) => setSelectedRows(rows),
+        }}
+        tableAlertRender={({ selectedRowKeys }) =>
+          `Selected ${selectedRowKeys.length} provider account(s)`
+        }
+        tableAlertOptionRender={() => [
+          <a key="delete" onClick={() => openBatchDeleteConfirm()}>
+            Batch Delete
+          </a>,
+          <a key="clear" onClick={() => setSelectedRows([])}>
+            Clear
+          </a>,
+        ]}
         request={async (params) => {
           try {
             const response = await listAssetProviderAccounts({

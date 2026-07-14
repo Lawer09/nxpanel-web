@@ -1,8 +1,8 @@
-import { App, Button, Input, Modal, Select, Space, Table, Typography } from 'antd';
+import { App, Button, Input, Modal, Select, Space, Table, Tag, Typography } from 'antd';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  batchCreateAssetRegions,
-  listAssetProviderRegions,
+  batchCreateAssetIps,
+  listAssetProviderIps,
 } from '@/services/asset-service/api';
 import {
   getAssetBatchFailureLines,
@@ -12,23 +12,41 @@ import {
 
 const { Text } = Typography;
 
+const PROVIDER_STATUS_OPTIONS = [
+  { label: 'available', value: 'available' },
+  { label: 'bound', value: 'bound' },
+  { label: 'binding', value: 'binding' },
+  { label: 'unavailable', value: 'unavailable' },
+  { label: 'reserved', value: 'reserved' },
+  { label: 'released', value: 'released' },
+  { label: 'unknown', value: 'unknown' },
+];
+
 type Props = {
   open: boolean;
   accounts: API.AssetProviderAccount[];
+  initialAccountId?: number;
+  initialProviderRegionId?: string;
   onCancel: () => void;
   onSuccess: () => void;
 };
 
-const RegionImportModal: React.FC<Props> = ({
+const IpImportModal: React.FC<Props> = ({
   open,
   accounts,
+  initialAccountId,
+  initialProviderRegionId,
   onCancel,
   onSuccess,
 }) => {
   const { message } = App.useApp();
-  const [accountId, setAccountId] = useState<number | undefined>();
-  const [providerRegionId, setProviderRegionId] = useState<string | undefined>();
-  const [items, setItems] = useState<API.AssetRegion[]>([]);
+  const [accountId, setAccountId] = useState<number | undefined>(initialAccountId);
+  const [providerRegionId, setProviderRegionId] = useState<string | undefined>(
+    initialProviderRegionId,
+  );
+  const [providerIpId, setProviderIpId] = useState<string | undefined>();
+  const [status, setStatus] = useState<string | undefined>();
+  const [items, setItems] = useState<API.AssetProviderIp[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -39,7 +57,7 @@ const RegionImportModal: React.FC<Props> = ({
   );
   const selectedAccount = accountId ? accountMap.get(accountId) : undefined;
   const selectedItems = useMemo(
-    () => items.filter((item) => selectedRowKeys.includes(item.provider_region_id || item.id)),
+    () => items.filter((item) => selectedRowKeys.includes(item.provider_ip_id || item.ip || '')),
     [items, selectedRowKeys],
   );
 
@@ -47,23 +65,27 @@ const RegionImportModal: React.FC<Props> = ({
     if (!open) {
       return;
     }
-    setAccountId(undefined);
-    setProviderRegionId(undefined);
+    setAccountId(initialAccountId);
+    setProviderRegionId(initialProviderRegionId);
+    setProviderIpId(undefined);
+    setStatus(undefined);
     setItems([]);
     setSelectedRowKeys([]);
-  }, [open]);
+  }, [initialAccountId, initialProviderRegionId, open]);
 
-  const loadRegions = async (refresh?: boolean) => {
+  const loadProviderIps = async (refresh?: boolean) => {
     if (!selectedAccount?.provider_code || !accountId) {
       setItems([]);
       return;
     }
     setLoading(true);
     try {
-      const response = await listAssetProviderRegions(selectedAccount.provider_code, accountId, {
+      const response = await listAssetProviderIps(selectedAccount.provider_code, accountId, {
         page: 1,
         page_size: 200,
         provider_region_id: providerRegionId?.trim() || undefined,
+        provider_ip_id: providerIpId?.trim() || undefined,
+        status: status || undefined,
         refresh,
       });
       setItems(response.data?.items || []);
@@ -78,7 +100,13 @@ const RegionImportModal: React.FC<Props> = ({
 
   const handleImport = async () => {
     if (!selectedItems.length) {
-      message.error('Select provider regions first.');
+      message.error('Select provider IPs first.');
+      return;
+    }
+
+    const invalidItem = selectedItems.find((item) => !item.ip);
+    if (invalidItem) {
+      message.error('Selected provider IP row is missing ip.');
       return;
     }
 
@@ -90,13 +118,19 @@ const RegionImportModal: React.FC<Props> = ({
 
     try {
       setSaving(true);
-      const response = await batchCreateAssetRegions({
+      const response = await batchCreateAssetIps({
         batch_size: selectedItems.length,
         items: selectedItems.map((item) => ({
           provider_id: Number(item.provider_id || fallbackProviderId),
-          provider_region_id: item.provider_region_id || '',
-          region_name: item.region_name || undefined,
+          ip: item.ip || '',
+          ip_version: item.ip_version || undefined,
+          type: item.type || undefined,
           source: 'import',
+          provider_region_id: item.provider_region_id || undefined,
+          status: item.status || undefined,
+          ownership: item.ownership || undefined,
+          provider_ip_id: item.provider_ip_id || undefined,
+          tags: item.tags,
         })),
       });
       const summary = getAssetBatchResultSummary(response.data);
@@ -118,9 +152,9 @@ const RegionImportModal: React.FC<Props> = ({
 
   return (
     <Modal
-      title="Import Provider Regions"
+      title="Import Provider IPs"
       open={open}
-      width={960}
+      width={1120}
       destroyOnHidden
       confirmLoading={saving}
       onCancel={onCancel}
@@ -155,19 +189,45 @@ const RegionImportModal: React.FC<Props> = ({
               placeholder="Optional provider_region_id filter"
             />
           </div>
+          <div style={{ flex: 1 }}>
+            <Text strong style={{ display: 'block', marginBottom: 8 }}>
+              Provider IP ID
+            </Text>
+            <Input
+              value={providerIpId}
+              onChange={(event) => setProviderIpId(event.target.value)}
+              placeholder="Optional provider_ip_id filter"
+            />
+          </div>
+        </Space>
+
+        <Space size={16} align="start" style={{ width: '100%' }}>
+          <div style={{ width: 240 }}>
+            <Text strong style={{ display: 'block', marginBottom: 8 }}>
+              Status
+            </Text>
+            <Select
+              allowClear
+              value={status}
+              style={{ width: '100%' }}
+              options={PROVIDER_STATUS_OPTIONS}
+              onChange={setStatus}
+              placeholder="Optional status filter"
+            />
+          </div>
         </Space>
 
         <Space>
-          <Button loading={loading} type="primary" onClick={() => void loadRegions()}>
-            Load Provider Regions
+          <Button loading={loading} type="primary" onClick={() => void loadProviderIps()}>
+            Load Provider IPs
           </Button>
-          <Button loading={loading} onClick={() => void loadRegions(true)}>
+          <Button loading={loading} onClick={() => void loadProviderIps(true)}>
             Refresh Provider Data
           </Button>
         </Space>
 
-        <Table<API.AssetRegion>
-          rowKey={(record) => record.provider_region_id || String(record.id)}
+        <Table<API.AssetProviderIp>
+          rowKey={(record) => record.provider_ip_id || record.ip || ''}
           loading={loading}
           size="small"
           pagination={{ pageSize: 10, showSizeChanger: true }}
@@ -178,27 +238,37 @@ const RegionImportModal: React.FC<Props> = ({
           dataSource={items}
           columns={[
             {
-              title: 'Region',
+              title: 'IP',
               render: (_, record) => (
                 <Space direction="vertical" size={0}>
-                  <Text strong>{record.region_name || record.provider_region_id || '-'}</Text>
-                  <Text type="secondary">{record.provider_region_id || '-'}</Text>
+                  <Text strong>{record.ip || '-'}</Text>
+                  <Text type="secondary">{record.provider_ip_id || '-'}</Text>
                 </Space>
               ),
             },
             {
-              title: 'Provider',
+              title: 'Version / Type',
               width: 180,
-              render: (_, record) => record.provider_code || '-',
+              render: (_, record) => `${record.ip_version || '-'} / ${record.type || '-'}`,
             },
             {
-              title: 'Source',
+              title: 'Provider Region',
+              width: 180,
+              render: (_, record) => record.provider_region_id || '-',
+            },
+            {
+              title: 'Status',
               width: 120,
-              render: (_, record) => record.source || '-',
+              render: (_, record) => <Tag>{record.status || '-'}</Tag>,
+            },
+            {
+              title: 'Ownership',
+              width: 120,
+              render: (_, record) => record.ownership || '-',
             },
           ]}
           locale={{
-            emptyText: accountId ? 'No provider regions found.' : 'Select an account first.',
+            emptyText: accountId ? 'No provider IPs found.' : 'Select an account first.',
           }}
         />
       </Space>
@@ -206,4 +276,4 @@ const RegionImportModal: React.FC<Props> = ({
   );
 };
 
-export default RegionImportModal;
+export default IpImportModal;

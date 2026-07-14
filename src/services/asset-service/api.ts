@@ -48,6 +48,58 @@ export async function listAssetProviderZones(
   );
 }
 
+export async function listAssetProviderInstanceTypes(
+  providerType: string,
+  accountId: number,
+  params?: API.AssetProviderInstanceTypeListParams,
+) {
+  return devAdminRequest<API.AssetPageResult<API.AssetProviderInstanceType>>(
+    `${ASSET_PREFIX}/provider/${providerType}/${accountId}/instance-types`,
+    {
+      params: toQueryParams(params),
+    },
+  );
+}
+
+export async function listAssetProviderSecurityGroups(
+  providerType: string,
+  accountId: number,
+  params?: API.AssetProviderSecurityGroupListParams,
+) {
+  return devAdminRequest<API.AssetPageResult<API.AssetProviderSecurityGroup>>(
+    `${ASSET_PREFIX}/provider/${providerType}/${accountId}/security-groups`,
+    {
+      params: toQueryParams(params),
+    },
+  );
+}
+
+export async function listAssetProviderSubnets(
+  providerType: string,
+  accountId: number,
+  params?: API.AssetProviderSubnetListParams,
+) {
+  return devAdminRequest<API.AssetPageResult<API.AssetProviderSubnet>>(
+    `${ASSET_PREFIX}/provider/${providerType}/${accountId}/subnets`,
+    {
+      params: toQueryParams(params),
+    },
+  );
+}
+
+export async function listAssetProviderTags(
+  providerType: string,
+  accountId: number,
+  params?: API.AssetProviderTagListParams,
+) {
+  return devAdminRequest<API.AssetPageResult<API.AssetProviderTag>>(
+    `${ASSET_PREFIX}/provider/${providerType}/${accountId}/tags`,
+    {
+      params: toQueryParams(params),
+    },
+  );
+}
+
 export async function listAssetProviderImages(
   providerType: string,
   accountId: number,
@@ -55,6 +107,19 @@ export async function listAssetProviderImages(
 ) {
   return devAdminRequest<API.AssetPageResult<API.AssetProviderImage>>(
     `${ASSET_PREFIX}/provider/${providerType}/${accountId}/images`,
+    {
+      params: toQueryParams(params),
+    },
+  );
+}
+
+export async function listAssetProviderIps(
+  providerType: string,
+  accountId: number,
+  params?: API.AssetProviderIpListParams,
+) {
+  return devAdminRequest<API.AssetPageResult<API.AssetProviderIp>>(
+    `${ASSET_PREFIX}/provider/${providerType}/${accountId}/ips`,
     {
       params: toQueryParams(params),
     },
@@ -85,6 +150,27 @@ export async function createAssetRegion(body: API.AssetRegionCreateParams) {
   });
 }
 
+export async function batchCreateAssetRegions(body: API.AssetBatchCreateRegionsParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/regions/batch-create`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function deleteAssetRegion(id: number) {
+  return devAdminRequest<{ ok: boolean }>(`${ASSET_PREFIX}/regions/delete`, {
+    method: 'POST',
+    body: { id },
+  });
+}
+
+export async function batchDeleteAssetRegions(body: API.AssetBatchMutationParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/regions/batch-delete`, {
+    method: 'POST',
+    body,
+  });
+}
+
 export async function listAssetZones(
   params?: API.AssetListParams & { zone_id?: string; region_id?: string },
 ) {
@@ -95,6 +181,27 @@ export async function listAssetZones(
 
 export async function createAssetZone(body: API.AssetZoneCreateParams) {
   return devAdminRequest<{ id: number }>(`${ASSET_PREFIX}/zones/create`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function batchCreateAssetZones(body: API.AssetBatchCreateZonesParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/zones/batch-create`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function deleteAssetZone(id: number) {
+  return devAdminRequest<{ ok: boolean }>(`${ASSET_PREFIX}/zones/delete`, {
+    method: 'POST',
+    body: { id },
+  });
+}
+
+export async function batchDeleteAssetZones(body: API.AssetBatchMutationParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/zones/batch-delete`, {
     method: 'POST',
     body,
   });
@@ -111,6 +218,36 @@ export async function listAssetInstanceTypes(
   );
 }
 
+export async function createAssetInstanceType(body: API.AssetInstanceTypeCreateParams) {
+  return devAdminRequest<{ id: number }>(`${ASSET_PREFIX}/instance-types/create`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function batchCreateAssetInstanceTypes(
+  body: API.AssetBatchCreateInstanceTypesParams,
+) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/instance-types/batch-create`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function deleteAssetInstanceType(id: number) {
+  return devAdminRequest<{ ok: boolean }>(`${ASSET_PREFIX}/instance-types/delete`, {
+    method: 'POST',
+    body: { id },
+  });
+}
+
+export async function batchDeleteAssetInstanceTypes(body: API.AssetBatchMutationParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/instance-types/batch-delete`, {
+    method: 'POST',
+    body,
+  });
+}
+
 export async function listAssetImages(
   params?: API.AssetListParams & { zone_id?: string; resource_id?: string },
 ) {
@@ -121,6 +258,13 @@ export async function listAssetImages(
 
 export async function createAssetImage(body: API.AssetImageCreateParams) {
   return devAdminRequest<{ id: number }>(`${ASSET_PREFIX}/images/create`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function batchCreateAssetImages(body: API.AssetBatchCreateImagesParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/images/batch-create`, {
     method: 'POST',
     body,
   });
@@ -140,6 +284,13 @@ export async function deleteAssetImage(id: number) {
   });
 }
 
+export async function batchDeleteAssetImages(body: API.AssetBatchMutationParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/images/batch-delete`, {
+    method: 'POST',
+    body,
+  });
+}
+
 export async function listAssetSecurityGroups(
   params?: API.AssetListParams & { resource_id?: string },
 ) {
@@ -151,6 +302,36 @@ export async function listAssetSecurityGroups(
   );
 }
 
+export async function createAssetSecurityGroup(body: API.AssetSecurityGroupCreateParams) {
+  return devAdminRequest<{ id: number }>(`${ASSET_PREFIX}/security-groups/create`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function batchCreateAssetSecurityGroups(
+  body: API.AssetBatchCreateSecurityGroupsParams,
+) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/security-groups/batch-create`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function deleteAssetSecurityGroup(id: number) {
+  return devAdminRequest<{ ok: boolean }>(`${ASSET_PREFIX}/security-groups/delete`, {
+    method: 'POST',
+    body: { id },
+  });
+}
+
+export async function batchDeleteAssetSecurityGroups(body: API.AssetBatchMutationParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/security-groups/batch-delete`, {
+    method: 'POST',
+    body,
+  });
+}
+
 export async function listAssetSubnets(
   params?: API.AssetListParams & { region_id?: string; vpc_id?: string; resource_id?: string },
 ) {
@@ -159,11 +340,67 @@ export async function listAssetSubnets(
   });
 }
 
+export async function createAssetSubnet(body: API.AssetSubnetCreateParams) {
+  return devAdminRequest<{ id: number }>(`${ASSET_PREFIX}/subnets/create`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function batchCreateAssetSubnets(body: API.AssetBatchCreateSubnetsParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/subnets/batch-create`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function deleteAssetSubnet(id: number) {
+  return devAdminRequest<{ ok: boolean }>(`${ASSET_PREFIX}/subnets/delete`, {
+    method: 'POST',
+    body: { id },
+  });
+}
+
+export async function batchDeleteAssetSubnets(body: API.AssetBatchMutationParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/subnets/batch-delete`, {
+    method: 'POST',
+    body,
+  });
+}
+
 export async function listAssetTags(
-  params?: API.AssetListParams & { resource_id?: string; key?: string; value?: string },
+  params?: API.AssetListParams & { provider_tag_id?: string; key?: string; value?: string },
 ) {
   return devAdminRequest<API.AssetPageResult<API.AssetProviderTag>>(`${ASSET_PREFIX}/tags`, {
     params: toQueryParams(params),
+  });
+}
+
+export async function createAssetTag(body: API.AssetTagCreateParams) {
+  return devAdminRequest<{ id: number }>(`${ASSET_PREFIX}/tags/create`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function batchCreateAssetTags(body: API.AssetBatchCreateTagsParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/tags/batch-create`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function deleteAssetTag(id: number) {
+  return devAdminRequest<{ ok: boolean }>(`${ASSET_PREFIX}/tags/delete`, {
+    method: 'POST',
+    body: { id },
+  });
+}
+
+export async function batchDeleteAssetTags(body: API.AssetBatchMutationParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/tags/batch-delete`, {
+    method: 'POST',
+    body,
   });
 }
 
@@ -185,6 +422,13 @@ export async function deleteAssetProviderAccount(id: number) {
   return devAdminRequest<{ ok: boolean }>(`${ASSET_PREFIX}/provider-accounts/delete`, {
     method: 'POST',
     body: { id },
+  });
+}
+
+export async function batchDeleteAssetProviderAccounts(body: API.AssetBatchMutationParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/provider-accounts/batch-delete`, {
+    method: 'POST',
+    body,
   });
 }
 
@@ -372,6 +616,20 @@ export async function listAssetIps(params?: API.AssetListParams) {
 
 export async function getAssetIpDetail(ipId: number) {
   return devAdminRequest<API.AssetIp>(`${ASSET_PREFIX}/ips/${ipId}`);
+}
+
+export async function createAssetIp(body: API.AssetIpCreateParams) {
+  return devAdminRequest<{ id: number }>(`${ASSET_PREFIX}/ips/create`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export async function batchCreateAssetIps(body: API.AssetBatchCreateIpsParams) {
+  return devAdminRequest<API.AssetBatchResult>(`${ASSET_PREFIX}/ips/batch-create`, {
+    method: 'POST',
+    body,
+  });
 }
 
 export async function importAssetIpManual(body: API.AssetIpImportManualParams) {

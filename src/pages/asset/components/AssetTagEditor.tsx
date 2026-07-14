@@ -32,12 +32,6 @@ const AssetTagEditor: React.FC<Props> = ({ name, label = 'Tags' }) => (
               >
                 <Input placeholder="value" />
               </Form.Item>
-              <Form.Item
-                name={[field.name, 'label']}
-                style={{ flex: 1, marginBottom: 0 }}
-              >
-                <Input placeholder="label" />
-              </Form.Item>
               <Button
                 icon={<DeleteOutlined />}
                 onClick={() => remove(field.name)}
@@ -47,7 +41,7 @@ const AssetTagEditor: React.FC<Props> = ({ name, label = 'Tags' }) => (
           <Button
             type="dashed"
             icon={<PlusOutlined />}
-            onClick={() => add({ key: '', value: '', label: '' })}
+            onClick={() => add({ key: '', value: '' })}
           >
             Add Tag
           </Button>

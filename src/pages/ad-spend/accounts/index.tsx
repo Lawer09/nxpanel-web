@@ -217,7 +217,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({ embedded = false }) 
             <Input placeholder="AdsMakeup 主账号" />
           </Form.Item>
           <Form.Item name="baseUrl" label="Base URL" rules={[{ required: true, message: '请输入 Base URL' }]}>
-            <Input placeholder="http://console.adsmakeup.com" />
+            <Input placeholder="https://console.adsmakeup.com" />
           </Form.Item>
           <Form.Item name="username" label="用户名" rules={[{ required: true, message: '请输入用户名' }]}>
             <Input placeholder="beilin" />

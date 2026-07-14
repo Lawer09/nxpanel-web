@@ -1,8 +1,8 @@
-import { App, Button, Input, Modal, Select, Space, Table, Typography } from 'antd';
+import { App, Button, Input, Modal, Select, Space, Table, Tag, Typography } from 'antd';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  batchCreateAssetRegions,
-  listAssetProviderRegions,
+  batchCreateAssetSecurityGroups,
+  listAssetProviderSecurityGroups,
 } from '@/services/asset-service/api';
 import {
   getAssetBatchFailureLines,
@@ -19,7 +19,7 @@ type Props = {
   onSuccess: () => void;
 };
 
-const RegionImportModal: React.FC<Props> = ({
+const SecurityGroupImportModal: React.FC<Props> = ({
   open,
   accounts,
   onCancel,
@@ -28,7 +28,9 @@ const RegionImportModal: React.FC<Props> = ({
   const { message } = App.useApp();
   const [accountId, setAccountId] = useState<number | undefined>();
   const [providerRegionId, setProviderRegionId] = useState<string | undefined>();
-  const [items, setItems] = useState<API.AssetRegion[]>([]);
+  const [providerZoneId, setProviderZoneId] = useState<string | undefined>();
+  const [providerSecurityGroupId, setProviderSecurityGroupId] = useState<string | undefined>();
+  const [items, setItems] = useState<API.AssetProviderSecurityGroup[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -39,7 +41,10 @@ const RegionImportModal: React.FC<Props> = ({
   );
   const selectedAccount = accountId ? accountMap.get(accountId) : undefined;
   const selectedItems = useMemo(
-    () => items.filter((item) => selectedRowKeys.includes(item.provider_region_id || item.id)),
+    () =>
+      items.filter((item) =>
+        selectedRowKeys.includes(item.provider_security_group_id || ''),
+      ),
     [items, selectedRowKeys],
   );
 
@@ -49,23 +54,31 @@ const RegionImportModal: React.FC<Props> = ({
     }
     setAccountId(undefined);
     setProviderRegionId(undefined);
+    setProviderZoneId(undefined);
+    setProviderSecurityGroupId(undefined);
     setItems([]);
     setSelectedRowKeys([]);
   }, [open]);
 
-  const loadRegions = async (refresh?: boolean) => {
+  const loadSecurityGroups = async (refresh?: boolean) => {
     if (!selectedAccount?.provider_code || !accountId) {
       setItems([]);
       return;
     }
     setLoading(true);
     try {
-      const response = await listAssetProviderRegions(selectedAccount.provider_code, accountId, {
-        page: 1,
-        page_size: 200,
-        provider_region_id: providerRegionId?.trim() || undefined,
-        refresh,
-      });
+      const response = await listAssetProviderSecurityGroups(
+        selectedAccount.provider_code,
+        accountId,
+        {
+          page: 1,
+          page_size: 200,
+          provider_region_id: providerRegionId?.trim() || undefined,
+          provider_zone_id: providerZoneId?.trim() || undefined,
+          provider_security_group_id: providerSecurityGroupId?.trim() || undefined,
+          refresh,
+        },
+      );
       setItems(response.data?.items || []);
       setSelectedRowKeys([]);
     } catch (error: any) {
@@ -78,7 +91,7 @@ const RegionImportModal: React.FC<Props> = ({
 
   const handleImport = async () => {
     if (!selectedItems.length) {
-      message.error('Select provider regions first.');
+      message.error('Select provider security groups first.');
       return;
     }
 
@@ -90,13 +103,15 @@ const RegionImportModal: React.FC<Props> = ({
 
     try {
       setSaving(true);
-      const response = await batchCreateAssetRegions({
+      const response = await batchCreateAssetSecurityGroups({
         batch_size: selectedItems.length,
         items: selectedItems.map((item) => ({
           provider_id: Number(item.provider_id || fallbackProviderId),
-          provider_region_id: item.provider_region_id || '',
-          region_name: item.region_name || undefined,
+          provider_security_group_id: item.provider_security_group_id || undefined,
+          name: item.name || undefined,
+          provider_name: item.provider_name || undefined,
           source: 'import',
+          tags: item.tags,
         })),
       });
       const summary = getAssetBatchResultSummary(response.data);
@@ -118,9 +133,9 @@ const RegionImportModal: React.FC<Props> = ({
 
   return (
     <Modal
-      title="Import Provider Regions"
+      title="Import Provider Security Groups"
       open={open}
-      width={960}
+      width={1100}
       destroyOnHidden
       confirmLoading={saving}
       onCancel={onCancel}
@@ -155,19 +170,42 @@ const RegionImportModal: React.FC<Props> = ({
               placeholder="Optional provider_region_id filter"
             />
           </div>
+          <div style={{ flex: 1 }}>
+            <Text strong style={{ display: 'block', marginBottom: 8 }}>
+              Provider Zone ID
+            </Text>
+            <Input
+              value={providerZoneId}
+              onChange={(event) => setProviderZoneId(event.target.value)}
+              placeholder="Optional provider_zone_id filter"
+            />
+          </div>
+        </Space>
+
+        <Space size={16} align="start" style={{ width: '100%' }}>
+          <div style={{ flex: 1 }}>
+            <Text strong style={{ display: 'block', marginBottom: 8 }}>
+              Provider Security Group ID
+            </Text>
+            <Input
+              value={providerSecurityGroupId}
+              onChange={(event) => setProviderSecurityGroupId(event.target.value)}
+              placeholder="Optional provider_security_group_id filter"
+            />
+          </div>
         </Space>
 
         <Space>
-          <Button loading={loading} type="primary" onClick={() => void loadRegions()}>
-            Load Provider Regions
+          <Button loading={loading} type="primary" onClick={() => void loadSecurityGroups()}>
+            Load Provider Security Groups
           </Button>
-          <Button loading={loading} onClick={() => void loadRegions(true)}>
+          <Button loading={loading} onClick={() => void loadSecurityGroups(true)}>
             Refresh Provider Data
           </Button>
         </Space>
 
-        <Table<API.AssetRegion>
-          rowKey={(record) => record.provider_region_id || String(record.id)}
+        <Table<API.AssetProviderSecurityGroup>
+          rowKey={(record) => record.provider_security_group_id || ''}
           loading={loading}
           size="small"
           pagination={{ pageSize: 10, showSizeChanger: true }}
@@ -178,27 +216,39 @@ const RegionImportModal: React.FC<Props> = ({
           dataSource={items}
           columns={[
             {
-              title: 'Region',
+              title: 'Security Group',
               render: (_, record) => (
                 <Space direction="vertical" size={0}>
-                  <Text strong>{record.region_name || record.provider_region_id || '-'}</Text>
-                  <Text type="secondary">{record.provider_region_id || '-'}</Text>
+                  <Text strong>{record.name || record.provider_security_group_id || '-'}</Text>
+                  <Text type="secondary">
+                    {record.provider_security_group_id || '-'}
+                  </Text>
                 </Space>
               ),
             },
             {
-              title: 'Provider',
+              title: 'Provider Name',
               width: 180,
-              render: (_, record) => record.provider_code || '-',
+              render: (_, record) => record.provider_name || '-',
+            },
+            {
+              title: 'Tags',
+              width: 220,
+              render: (_, record) =>
+                record.tags?.length
+                  ? record.tags.map((tag) => `${tag.key}=${tag.value}`).join(', ')
+                  : '-',
             },
             {
               title: 'Source',
               width: 120,
-              render: (_, record) => record.source || '-',
+              render: (_, record) => <Tag>{record.source || '-'}</Tag>,
             },
           ]}
           locale={{
-            emptyText: accountId ? 'No provider regions found.' : 'Select an account first.',
+            emptyText: accountId
+              ? 'No provider security groups found.'
+              : 'Select an account first.',
           }}
         />
       </Space>
@@ -206,4 +256,4 @@ const RegionImportModal: React.FC<Props> = ({
   );
 };
 
-export default RegionImportModal;
+export default SecurityGroupImportModal;

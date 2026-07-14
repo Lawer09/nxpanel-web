@@ -20,6 +20,7 @@ import {
 } from 'antd';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  batchDeleteAssetImages,
   deleteAssetImage,
   listAssetProviderAccounts,
   listAssetImages,
@@ -29,6 +30,8 @@ import ImageImportModal from '../images/ImageImportModal';
 import {
   formatText,
   formatTime,
+  getAssetBatchFailureLines,
+  getAssetBatchResultSummary,
   getAssetSourceLabel,
   normalizeDevErrorMessage,
 } from '../../utils';
@@ -69,10 +72,15 @@ const ImagesPanel: React.FC<{
   const [editOpen, setEditOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [detail, setDetail] = useState<API.AssetImage | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<API.AssetImage[]>([]);
 
   useEffect(() => {
     actionRef.current?.reload();
+    setSelectedRows([]);
   }, [filters]);
+
+  const selectedIds = useMemo(() => selectedRows.map((item) => item.id), [selectedRows]);
 
   useEffect(() => {
     const loadAccounts = async () => {
@@ -85,6 +93,57 @@ const ImagesPanel: React.FC<{
     };
     void loadAccounts();
   }, [message]);
+
+  const handleBatchMutationResult = (title: string, result: API.AssetBatchResult) => {
+    const summary = getAssetBatchResultSummary(result);
+    if (result.failed > 0) {
+      const failureLines = getAssetBatchFailureLines(result);
+      modal.info({
+        title: `${title} Result`,
+        width: 720,
+        content: (
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <span>{summary}</span>
+            <div>
+              {failureLines.map((line) => (
+                <div key={line}>{line}</div>
+              ))}
+            </div>
+          </Space>
+        ),
+      });
+      message.warning(summary);
+    } else {
+      message.success(summary);
+    }
+    setSelectedRows([]);
+    actionRef.current?.reload();
+  };
+
+  const openBatchDeleteConfirm = () => {
+    if (!selectedIds.length) {
+      message.info('Select images first.');
+      return;
+    }
+    modal.confirm({
+      title: `Delete ${selectedIds.length} selected image record(s)?`,
+      content: 'This only deletes local image records.',
+      okText: 'Delete',
+      okButtonProps: { danger: true, loading: saving },
+      onOk: async () => {
+        try {
+          setSaving(true);
+          const response = await batchDeleteAssetImages({ ids: selectedIds });
+          handleBatchMutationResult('Batch delete images', response.data);
+        } catch (error: any) {
+          message.error(normalizeDevErrorMessage(error));
+          throw error;
+        } finally {
+          setSaving(false);
+        }
+      },
+    });
+  };
 
   const columns: ProColumns<API.AssetImage>[] = useMemo(
     () => [
@@ -276,6 +335,19 @@ const ImagesPanel: React.FC<{
         search={false}
         scroll={{ x: 2300 }}
         columns={columns}
+        rowSelection={{
+          selectedRowKeys: selectedIds,
+          onChange: (_, rows) => setSelectedRows(rows),
+        }}
+        tableAlertRender={({ selectedRowKeys }) => `Selected ${selectedRowKeys.length} image(s)`}
+        tableAlertOptionRender={() => [
+          <a key="delete" onClick={() => openBatchDeleteConfirm()}>
+            Batch Delete
+          </a>,
+          <a key="clear" onClick={() => setSelectedRows([])}>
+            Clear
+          </a>,
+        ]}
         request={async (params) => {
           try {
             const response = await listAssetImages({
