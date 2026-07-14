@@ -19,6 +19,7 @@
 | GET | `/projects/departments` | 部门列表 | `ProjectController::departments` |
 | POST | `/projects/aggregate` | 手动聚合（同步） | `ProjectController::aggregate` |
 | POST | `/projects/aggregate-async` | 手动聚合（异步） | `ProjectController::aggregateAsync` |
+| POST | `/projects/aggregate-hourly` | 手动聚合（小时） | `ProjectController::aggregateHourly` |
 | GET | `/projects/traffic-accounts` | 流量账号列表 | `ProjectTrafficAccountController::index` |
 | POST | `/projects/traffic-accounts/create` | 新增流量账号关联 | `ProjectTrafficAccountController::store` |
 | POST | `/projects/traffic-accounts/update` | 修改流量账号关联 | `ProjectTrafficAccountController::update` |
@@ -729,11 +730,49 @@
 
 | 参数 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| projectId | int | 是 | 项目 ID |
+| projectId | int | 否 | 项目 ID；不传时同步全部项目 |
 | startDate | string | 是 | 开始日期（Y-m-d） |
 | endDate | string | 是 | 结束日期（Y-m-d），须 >= startDate |
 
-### 9.2 异步聚合
+#### 前端接入说明
+
+- 项目管理页在标题右侧提供“同步”入口。
+- 弹窗中项目代号为可选项；留空时前端不会传 `projectId`，后端按全部项目执行同步。
+
+### 9.2 小时聚合
+
+- **方法/路径**：`POST /v3/projects/aggregate-hourly`
+- **说明**：手动重建项目小时报表数据，可按日期、小时范围和项目限制范围。
+
+#### 请求参数（body JSON）
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| startDate | string | 是 | 开始日期（Y-m-d） |
+| endDate | string | 是 | 结束日期（Y-m-d），须 >= startDate |
+| hourFrom | int | 否 | 开始小时，0-23 |
+| hourTo | int | 否 | 结束小时，0-23，须 >= hourFrom |
+| projectId | int | 否 | 项目 ID；不传时同步全部项目 |
+
+#### 请求示例
+
+```json
+{
+  "startDate": "2026-06-29",
+  "endDate": "2026-06-29",
+  "hourFrom": 9,
+  "hourTo": 12,
+  "projectId": 12
+}
+```
+
+#### 前端接入说明
+
+- 项目管理页“同步”弹窗支持切换到“小时同步”。
+- 小时范围可清空；清空时前端不传 `hourFrom/hourTo`。
+- 项目代号可留空；留空时前端不传 `projectId`，后端按全部项目执行同步。
+
+### 9.3 异步聚合
 
 - **方法/路径**：`POST /v3/projects/aggregate-async`
 - **控制器**：`ProjectController::aggregateAsync`
@@ -743,7 +782,7 @@
 
 | 参数 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| projectId | int | 是 | 项目 ID |
+| projectId | int | 否 | 项目 ID；不传时同步全部项目 |
 | startDate | string | 是 | 开始日期（Y-m-d） |
 | endDate | string | 是 | 结束日期（Y-m-d），须 >= startDate |
 

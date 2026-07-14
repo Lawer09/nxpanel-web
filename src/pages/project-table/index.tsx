@@ -22,6 +22,7 @@ import { formatUTC8 } from '@/utils/format';
 import ProjectTableForm from './components/ProjectTableForm';
 import ProjectTableDetailDrawer from './components/ProjectTableDetailDrawer';
 import ProjectBatchImportModal from './components/ProjectBatchImportModal';
+import ProjectSyncModal from './components/ProjectSyncModal';
 import { PROJECT_TABLE_FIELDS } from './fields';
 import { PROJECT_APP_PLATFORM_OPTIONS, PROJECT_AD_STATUS_OPTIONS } from '@/pages/project/constants';
 import { buildProjectTrendSearch, PROJECT_TREND_DASHBOARD_PATH } from '@/pages/report/project-trend/utils';
@@ -67,6 +68,7 @@ const ProjectTablePage: React.FC = () => {
   const [departmentOptions, setDepartmentOptions] = useState<Array<{ label: string; value: string }>>([]);
   const [departmentOptionsLoaded, setDepartmentOptionsLoaded] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
 
   const reloadTable = () => {
     actionRef.current?.reload();
@@ -340,7 +342,16 @@ const ProjectTablePage: React.FC = () => {
   ];
 
   return (
-    <PageContainer header={{ title: '项目管理' }}>
+    <PageContainer
+      header={{
+        title: '项目管理',
+        extra: [
+          <Button key="sync" onClick={() => setSyncOpen(true)}>
+            同步
+          </Button>,
+        ],
+      }}
+    >
       <ProTable<ProjectItem, ProjectFetchRequest>
         actionRef={actionRef}
         rowKey="id"
@@ -447,6 +458,8 @@ const ProjectTablePage: React.FC = () => {
           reloadTable();
         }}
       />
+
+      <ProjectSyncModal open={syncOpen} onClose={() => setSyncOpen(false)} />
 
       <Modal
         title={

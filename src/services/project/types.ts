@@ -328,7 +328,7 @@ export interface ProjectResourceIdRequest {
 }
 
 export interface AggregateRequest {
-  projectId: number;
+  projectId?: number;
   startDate: string;
   endDate: string;
 }
