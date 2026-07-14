@@ -9,23 +9,13 @@ import {
 } from '@/services/ads-console/authStorage';
 
 const ADS_CONSOLE_BASE_URL = 'https://console.adsmakeup.com';
+const ADS_CONSOLE_API_PREFIX = '/ads-api';
 
 const isV4Url = (url?: string) => typeof url === 'string' && url.includes('/v4/');
-const isLocalHostname = () => {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-
-  const { hostname } = window.location;
-  return (
-    hostname === 'localhost' ||
-    hostname === '127.0.0.1' ||
-    hostname.startsWith('192.168.')
-  );
-};
 const isAdsConsoleUrl = (url?: string) =>
   typeof url === 'string' &&
-  (url.includes('/ads-api') || url.startsWith(ADS_CONSOLE_BASE_URL));
+  (url.includes(ADS_CONSOLE_API_PREFIX) ||
+    url.startsWith(ADS_CONSOLE_BASE_URL));
 const isAdsConsoleConfig = (config?: { baseURL?: string; url?: string }) =>
   isAdsConsoleUrl(config?.url) ||
   (typeof config?.baseURL === 'string' &&
@@ -114,12 +104,9 @@ const errorConfig = {
     (config: any) => {
       if (
         typeof config?.url === 'string' &&
-        config.url.startsWith('/ads-api')
+        config.url.startsWith(ADS_CONSOLE_API_PREFIX)
       ) {
-        config.baseURL = isLocalHostname() ? '' : ADS_CONSOLE_BASE_URL;
-        if (config.baseURL) {
-          config.url = config.url.replace(/^\/ads-api/, '/api');
-        }
+        config.baseURL = '';
 
         const token = getAdsAuthToken();
         if (token) {
@@ -145,7 +132,7 @@ const errorConfig = {
         typeof config?.url === 'string' &&
         config.url.startsWith('/') &&
         !config.url.startsWith('/api/') &&
-        !config.url.startsWith('/ads-api') &&
+        !config.url.startsWith(ADS_CONSOLE_API_PREFIX) &&
         !config.url.startsWith('/v3')
       ) {
         config.url = `/api/v2/${securePath}${config.url}`;

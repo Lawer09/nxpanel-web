@@ -291,7 +291,7 @@ export default [
       },
       {
         path: '/ads-console/system',
-        name: '系统管理',
+        name: '系统设置',
         routes: [
           {
             path: '/ads-console/system',
