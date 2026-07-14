@@ -30,7 +30,7 @@ import type { SortOrder } from "antd/es/table/interface";
 import dayjs from "dayjs";
 import React, { useEffect, useRef, useState } from "react";
 
-type ReportType = AdsConsole.ReportObjectName;
+type ReportType = Extract<AdsConsole.ReportObjectName, "account" | "campaign" | "adset">;
 type FilterKey = "objectId" | "accountId" | "campaignId" | "country" | "groupId" | "actionType";
 type VisibleDimension = "date" | "objectId" | "country" | "groupId" | "actionType";
 type MetricKey = "actionCount" | "cpa";

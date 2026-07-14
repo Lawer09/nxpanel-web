@@ -98,6 +98,7 @@
         "dauUsers": 560,
         "fbDauUsers": 510,
         "adRevenue": "320.500000",
+        "adRevenueDayOverDay": "0.125000",
         "topRevenueCountries": [
           {
             "country": "US",
@@ -116,6 +117,7 @@
         "impressionsPerUser": "153.571429",
         "arpu": "0.572321",
         "adSpendCost": "180.000000",
+        "adSpendCostDayOverDay": "-0.050000",
         "adSpendCpi": "1.500000",
         "adSpendCpc": "0.042857",
         "adSpendCpm": "2.093023",
@@ -124,6 +126,7 @@
         "trafficCostRatio": "0.017467",
         "totalCost": "183.200000",
         "profit": "137.300000",
+        "profitDayOverDay": "0.200000",
         "roi": "1.749454",
         "updatedAt": "2026-06-05 10:00:00"
       }
@@ -135,6 +138,7 @@
       "dauUsers": 1350,
       "fbDauUsers": 1210,
       "adRevenue": "880.500000",
+      "adRevenueDayOverDay": "0.110000",
       "adRequests": 280000,
       "adMatchedRequests": 255000,
       "adImpressions": 240000,
@@ -146,6 +150,7 @@
       "impressionsPerUser": "177.777778",
       "arpu": "0.652222",
       "adSpendCost": "500.000000",
+      "adSpendCostDayOverDay": "-0.030000",
       "adSpendCpi": "1.666667",
       "adSpendCpc": "0.042373",
       "adSpendCpm": "2.083333",
@@ -154,6 +159,7 @@
       "trafficCostRatio": "0.020061",
       "totalCost": "510.240000",
       "profit": "370.260000",
+      "profitDayOverDay": "0.180000",
       "roi": "1.725597",
       "updatedAt": "2026-06-05 10:00:00"
     },
@@ -171,6 +177,8 @@
 
 - `summary` 为当前筛选条件下的整体汇总，不受分页影响
 - `summary` 与 `data`、`total`、`page`、`pageSize` 同级，位于 `data` 对象内部
+- `data[]` 与 `summary` 会返回 `adRevenueDayOverDay`、`adSpendCostDayOverDay`、`profitDayOverDay`，用于在广告收入、投放支出、利润列以括号展示环比；增长显示绿色，降低显示红色；公式为 `(当前值 - 昨日值) / 昨日值`
+- 广告收入列不再直接拼接展示 `adRevenueDiff`，前端会在悬浮广告收入数值时展示该差值
 - Dashboard 广告收入卡片会优先读取 `summary.adRevenueNow`、`summary.adRevenueDiff`；若后端未返回，前端会回退到当前趋势数据的全量求和结果
 - 若返回行带有 `topRevenueCountries`，前端会在项目报表和项目小时汇总的“广告收入”列中补充展示最高收益国家；悬浮后展示完整国家收益列表，格式为 `国家 / 收益 / 占比`
 - “限流” Tag 在项目报表中始终展示，并按最近 12 小时状态使用三色语义：

@@ -322,7 +322,7 @@ export const renderRecentHourlyAdMatchRateChart = (
   );
 };
 
-const fmtRevenueWithDiff = (adRevenue: unknown, record?: Record<string, unknown>) => {
+const renderRevenueValue = (adRevenue: unknown, record?: Record<string, unknown>) => {
   const revenueText = fmtCurrency(adRevenue);
   if (revenueText === '--') return revenueText;
 
@@ -330,7 +330,11 @@ const fmtRevenueWithDiff = (adRevenue: unknown, record?: Record<string, unknown>
   const diffText = fmtCurrency(diffValue);
   if (diffText === '--') return revenueText;
 
-  return `${revenueText} (${diffText})`;
+  return (
+    <Tooltip title={`广告收入差值：${diffText}`}>
+      <span>{revenueText}</span>
+    </Tooltip>
+  );
 };
 
 type TopRevenueCountryItem = {
@@ -360,6 +364,46 @@ const fmtRatioDecimalPercent = (value: unknown) => {
   const next = toSafeNumber(value);
   if (next === null) return '--';
   return `${(next * 100).toFixed(2)}%`;
+};
+
+const fmtDayOverDay = (value: unknown) => {
+  const next = toSafeNumber(value);
+  if (next === null) return null;
+  const sign = next > 0 ? '+' : '';
+  return `${sign}${(next * 100).toFixed(2)}%`;
+};
+
+const renderDayOverDay = (record: Record<string, unknown> | undefined, field: string) => {
+  const value = toSafeNumber(record?.[field]);
+  const text = fmtDayOverDay(value);
+  if (!text) return null;
+  const color = value === null || value === 0 ? '#6b7280' : value > 0 ? '#16a34a' : '#dc2626';
+
+  return (
+    <span style={{ color, fontSize: 12, lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+      ({text})
+    </span>
+  );
+};
+
+const renderMetricWithDayOverDay = (
+  mainText: React.ReactNode,
+  record: Record<string, unknown> | undefined,
+  dayOverDayField: string,
+  extra?: React.ReactNode,
+) => {
+  const dayOverDay = renderDayOverDay(record, dayOverDayField);
+  if (!dayOverDay && !extra) return mainText;
+
+  return (
+    <Space direction="vertical" size={2}>
+      <span>
+        {mainText}
+        {dayOverDay ? <span style={{ marginLeft: 4 }}>{dayOverDay}</span> : null}
+      </span>
+      {extra}
+    </Space>
+  );
 };
 
 const renderTopRevenueCountries = (record?: Record<string, unknown>) => {
@@ -437,19 +481,10 @@ const renderTopRevenueCountries = (record?: Record<string, unknown>) => {
 };
 
 const renderRevenueWithMeta = (adRevenue: unknown, record?: Record<string, unknown>) => {
-  const revenueText = fmtRevenueWithDiff(adRevenue, record);
+  const revenueText = renderRevenueValue(adRevenue, record);
   const topRevenueCountries = renderTopRevenueCountries(record);
 
-  if (!topRevenueCountries) {
-    return revenueText;
-  }
-
-  return (
-    <Space direction="vertical" size={2}>
-      <span>{revenueText}</span>
-      {topRevenueCountries}
-    </Space>
-  );
+  return renderMetricWithDayOverDay(revenueText, record, 'adRevenueDayOverDay', topRevenueCountries);
 };
 
 const renderTotalCostBreakdown = (record?: Record<string, unknown>) => {
@@ -550,15 +585,16 @@ export const PROJECT_REPORT_METRIC_OPTIONS = [
   {
     label: '广告收入',
     value: 'adRevenue',
-    tooltip: '广告收入（最新广告收入差值）',
+    tooltip: '广告收入（悬浮数值查看广告收入差值）',
     column: {
       title: '广告收入',
-      tooltip: '广告收入（最新广告收入差值）',
+      tooltip: '广告收入（悬浮数值查看广告收入差值）',
       dataIndex: 'adRevenue',
       width: 190,
       render: (value: unknown, record: API.ProjectReportItem) => renderRevenueWithMeta(value, record),
     },
-    formatter: (value: number, record?: Record<string, unknown>) => fmtRevenueWithDiff(value, record),
+    formatter: (value: number, record?: Record<string, unknown>) =>
+      renderMetricWithDayOverDay(renderRevenueValue(value, record), record, 'adRevenueDayOverDay'),
   },
   {
     label: '广告请求数',
@@ -623,8 +659,17 @@ export const PROJECT_REPORT_METRIC_OPTIONS = [
   {
     label: '投放支出',
     value: 'adSpendCost',
-    column: { title: '投放支出', dataIndex: 'adSpendCost', width: 110, render: fmtCurrency },
-    formatter: (value: number) => fmtCurrency(value),
+    tooltip: '投放支出环比 = (当前投放支出 - 昨日投放支出) / 昨日投放支出',
+    column: {
+      title: '投放支出',
+      tooltip: '投放支出环比 = (当前投放支出 - 昨日投放支出) / 昨日投放支出',
+      dataIndex: 'adSpendCost',
+      width: 130,
+      render: (value: unknown, record: API.ProjectReportItem) =>
+        renderMetricWithDayOverDay(fmtCurrency(value), record, 'adSpendCostDayOverDay'),
+    },
+    formatter: (value: number, record?: Record<string, unknown>) =>
+      renderMetricWithDayOverDay(fmtCurrency(value), record, 'adSpendCostDayOverDay'),
   },
   {
     label: '投放 CPI',
@@ -679,8 +724,17 @@ export const PROJECT_REPORT_METRIC_OPTIONS = [
   {
     label: '利润',
     value: 'profit',
-    column: { title: '利润', dataIndex: 'profit', width: 100, render: fmtCurrency },
-    formatter: (value: number) => fmtCurrency(value),
+    tooltip: '利润环比 = (当前利润 - 昨日利润) / 昨日利润',
+    column: {
+      title: '利润',
+      tooltip: '利润环比 = (当前利润 - 昨日利润) / 昨日利润',
+      dataIndex: 'profit',
+      width: 120,
+      render: (value: unknown, record: API.ProjectReportItem) =>
+        renderMetricWithDayOverDay(fmtCurrency(value), record, 'profitDayOverDay'),
+    },
+    formatter: (value: number, record?: Record<string, unknown>) =>
+      renderMetricWithDayOverDay(fmtCurrency(value), record, 'profitDayOverDay'),
   },
   {
     label: 'ROI',
@@ -711,8 +765,9 @@ const adRevenueMetricOption = PROJECT_REPORT_METRIC_OPTIONS.find(
   | undefined;
 const adRevenueTooltipContent = (
   <div>
-    <div>广告收入（最新广告收入差值）</div>
+    <div>广告收入（悬浮数值查看广告收入差值）</div>
     <div>占比条为国家收益占比，US默认蓝色展示</div>
+    <div>环比 = (当前广告收入 - 昨日广告收入) / 昨日广告收入</div>
   </div>
 );
 

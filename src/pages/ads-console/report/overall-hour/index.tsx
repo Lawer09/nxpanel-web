@@ -10,6 +10,10 @@ import {
 } from "@/services/ads-console/orgOptions";
 import { getOverallHourReportPage } from "@/services/ads-console/report";
 import {
+  getPlatformAccountPage,
+  getPlatformObjectOptions,
+} from "@/services/ads-console/platform";
+import {
   type ActionType,
   type ProColumns,
   ProTable,
@@ -33,8 +37,17 @@ import dayjs from "dayjs";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type ReportType = AdsConsole.HourReportObjectName;
-type FilterKey = "objectId" | "accountId" | "campaignId" | "groupId" | "agencyId" | "hour";
-type VisibleDimension = "date" | "hour" | "objectId" | "groupId" | "agencyId";
+type ReportPlatform = AdsConsole.ReportPlatform;
+type FilterKey =
+  | "objectId"
+  | "platformAccountId"
+  | "accountId"
+  | "campaignId"
+  | "country"
+  | "groupId"
+  | "agencyId"
+  | "hour";
+type VisibleDimension = "date" | "hour" | "objectId" | "country" | "groupId" | "agencyId";
 type MetricKey =
   | "spend"
   | "impressions"
@@ -43,7 +56,7 @@ type MetricKey =
   | "cpm"
   | "cpc"
   | "roas";
-type BackendDimension = "date" | "hour" | "object_id" | "group_id" | "agency_id";
+type BackendDimension = "date" | "hour" | "object_id" | "country" | "group_id" | "agency_id";
 
 const METRIC_ORDER: MetricKey[] = [
   "spend",
@@ -68,9 +81,12 @@ type ReportSchema = {
 };
 
 type QueryState = {
+  platform?: ReportPlatform;
+  platformAccountId?: string;
   startDate?: string;
   endDate?: string;
   objectId?: string;
+  country?: string;
   accountId?: string;
   campaignId?: string;
   groupId?: string;
@@ -94,17 +110,25 @@ const REPORT_TYPE_OPTIONS: { label: string; value: ReportType }[] = [
   { label: "广告 Ad", value: "ad" },
 ];
 
+const MINTEGRAL_REPORT_TYPE_OPTIONS: { label: string; value: ReportType }[] = [
+  { label: "活动 Campaign", value: "campaign" },
+  { label: "广告单元 Offer", value: "offer" },
+];
+
 const OBJECT_ID_LABEL_MAP: Record<ReportType, string> = {
   account: "账户ID",
   campaign: "活动ID",
   adset: "广告组ID",
   ad: "广告ID",
+  offer: "广告单元ID",
 };
 
 const FILTER_OPTIONS: Record<FilterKey, { label: string; placeholder: string }> = {
   objectId: { label: "对象ID", placeholder: "请选择对象ID" },
+  platformAccountId: { label: "平台账户", placeholder: "请选择平台账户" },
   accountId: { label: "账户ID", placeholder: "请选择账户ID" },
   campaignId: { label: "活动ID", placeholder: "请选择活动ID" },
+  country: { label: "国家", placeholder: "请选择国家" },
   groupId: { label: "项目组", placeholder: "请选择项目组" },
   agencyId: { label: "代理商", placeholder: "请选择代理商" },
   hour: { label: "小时", placeholder: "请选择小时" },
@@ -114,6 +138,7 @@ const DIMENSION_OPTIONS: Record<VisibleDimension, { label: string; backend: Back
   date: { label: "日期", backend: "date" },
   hour: { label: "小时", backend: "hour" },
   objectId: { label: "对象ID", backend: "object_id" },
+  country: { label: "国家", backend: "country" },
   groupId: { label: "项目组", backend: "group_id" },
   agencyId: { label: "代理商", backend: "agency_id" },
 };
@@ -161,6 +186,29 @@ const REPORT_SCHEMAS: Record<ReportType, ReportSchema> = {
     defaultMetrics: [...METRIC_ORDER],
     defaultSort: "hour",
   },
+  offer: {
+    filters: ["platformAccountId", "objectId", "country", "hour"],
+    dimensions: ["date", "hour", "objectId", "country"],
+    metrics: ["spend", "impressions", "clicks", "ctr", "cpm", "cpc"],
+    defaultDimensions: ["date", "hour"],
+    defaultMetrics: ["spend", "impressions", "clicks", "ctr", "cpm", "cpc"],
+    defaultSort: "hour",
+  },
+};
+
+const getReportSchema = (platform: ReportPlatform, type: ReportType): ReportSchema => {
+  if (platform === "mintegral") {
+    return {
+      ...REPORT_SCHEMAS[type],
+      filters: ["platformAccountId", "objectId", "country", "hour"],
+      dimensions: ["date", "hour", "objectId", "country"],
+      metrics: ["spend", "impressions", "clicks", "ctr", "cpm", "cpc"],
+      defaultDimensions: ["date", "hour"],
+      defaultMetrics: ["spend", "impressions", "clicks", "ctr", "cpm", "cpc"],
+      defaultSort: "hour",
+    };
+  }
+  return REPORT_SCHEMAS[type];
 };
 
 const HOUR_OPTIONS: AdsConsole.SelectOption[] = Array.from({ length: 24 }).map((_, hour) => ({
@@ -177,6 +225,9 @@ const normalizeDateValue = (value: unknown): string | undefined => {
 
 const normalizeSelectValue = (value: unknown): string | undefined => {
   if (!value && value !== 0) return undefined;
+  if (Array.isArray(value)) {
+    return normalizeSelectValue(value[0]);
+  }
   if (typeof value === "string" || typeof value === "number") return String(value);
   if (typeof value === "object" && value !== null && "value" in value) {
     return String((value as { value: string | number }).value);
@@ -187,7 +238,7 @@ const normalizeSelectValue = (value: unknown): string | undefined => {
 const toSelectOptions = (items: unknown[] | undefined): AdsConsole.SelectOption[] => {
   if (!Array.isArray(items)) return [];
   return items
-    .map((item): AdsConsole.SelectOption | null => {
+    .map<AdsConsole.SelectOption | null>((item) => {
       if (typeof item === "string" || typeof item === "number") {
         const value = String(item);
         return { label: value, value };
@@ -205,7 +256,7 @@ const toSelectOptions = (items: unknown[] | undefined): AdsConsole.SelectOption[
 const toObjectIdOptions = (options: AdsConsole.SelectOption[] | undefined): AdsConsole.SelectOption[] => {
   if (!Array.isArray(options)) return [];
   return options
-    .map((item): AdsConsole.SelectOption | null => {
+    .map<AdsConsole.SelectOption | null>((item) => {
       const value = normalizeSelectValue(item.value);
       if (!value) return null;
       const rawLabel = normalizeSelectValue(item.label) || value;
@@ -246,9 +297,11 @@ const OverallHourReportPage: React.FC = () => {
   const [form] = Form.useForm();
   const actionRef = useRef<ActionType>(undefined);
 
+  const [platform, setPlatform] = useState<ReportPlatform>("facebook");
   const [reportType, setReportType] = useState<ReportType>("account");
+  const selectedPlatformAccountId = Form.useWatch("platformAccountId", form);
   const objectIdLabel = OBJECT_ID_LABEL_MAP[reportType];
-  const schema = REPORT_SCHEMAS[reportType];
+  const schema = getReportSchema(platform, reportType);
 
   const [selectedDimensions, setSelectedDimensions] = useState<VisibleDimension[]>(
     schema.defaultDimensions
@@ -258,10 +311,11 @@ const OverallHourReportPage: React.FC = () => {
     schema.defaultDimensions
   );
   const [appliedMetrics, setAppliedMetrics] = useState<MetricKey[]>(sortMetrics(schema.defaultMetrics));
-  const [queryState, setQueryState] = useState<QueryState>(defaultDateQuery);
+  const [queryState, setQueryState] = useState<QueryState>(() => ({ platform: "facebook", ...defaultDateQuery() }));
   const [requestSeq, setRequestSeq] = useState(0);
 
   const [idOptions, setIdOptions] = useState<AdsConsole.SelectOption[]>([]);
+  const [platformAccountOptions, setPlatformAccountOptions] = useState<AdsConsole.SelectOption[]>([]);
   const [accountOptions, setAccountOptions] = useState<AdsConsole.SelectOption[]>([]);
   const [campaignOptions, setCampaignOptions] = useState<AdsConsole.SelectOption[]>([]);
   const [objectNameMap, setObjectNameMap] = useState<Record<string, string>>({});
@@ -286,6 +340,24 @@ const OverallHourReportPage: React.FC = () => {
 
   useEffect(() => {
     const loadCommonOptions = async () => {
+      if (platform === "mintegral") {
+        setGroupOptions([]);
+        setAgencyOptions([]);
+        const accountRes = await getPlatformAccountPage({
+          platform: "mintegral",
+          status: 1,
+          current: 1,
+          size: 1000,
+        });
+        setPlatformAccountOptions(
+          (accountRes?.data?.records || []).map((item) => ({
+            label: item.accountId ? `${item.name} (${item.accountId})` : item.name,
+            value: String(item.id),
+          }))
+        );
+        return;
+      }
+      setPlatformAccountOptions([]);
       const [groupRes, agencyRes] = await Promise.all([
         getGroupOptions(),
         getAgencyOptions(),
@@ -305,12 +377,21 @@ const OverallHourReportPage: React.FC = () => {
     };
 
     loadCommonOptions();
-  }, []);
+  }, [platform]);
 
   useEffect(() => {
     const loadTypeOptions = async () => {
       let rawIdOptions: AdsConsole.SelectOption[] = [];
-      if (reportType === "account") {
+      if (platform === "mintegral") {
+        const objectRes = await getPlatformObjectOptions({
+          platform: "mintegral",
+          platformAccountId: normalizeSelectValue(selectedPlatformAccountId),
+          objectType: reportType,
+        });
+        rawIdOptions = toSelectOptions(objectRes?.data as unknown[]);
+        setAccountOptions([]);
+        setCampaignOptions([]);
+      } else if (reportType === "account") {
         const accountRes = await getAccountOptions();
         rawIdOptions = toSelectOptions(accountRes?.data as unknown[]);
       } else if (reportType === "campaign") {
@@ -326,16 +407,18 @@ const OverallHourReportPage: React.FC = () => {
       setIdOptions(toObjectIdOptions(rawIdOptions));
       setObjectNameMap(toOptionLabelMap(rawIdOptions));
 
-      const [accountRes, campaignRes] = await Promise.all([
-        getAccountOptions(),
-        getCampaignOptions(),
-      ]);
-      setAccountOptions(toObjectIdOptions(toSelectOptions(accountRes?.data as unknown[])));
-      setCampaignOptions(toObjectIdOptions(toSelectOptions(campaignRes?.data as unknown[])));
+      if (platform === "facebook") {
+        const [accountRes, campaignRes] = await Promise.all([
+          getAccountOptions(),
+          getCampaignOptions(),
+        ]);
+        setAccountOptions(toObjectIdOptions(toSelectOptions(accountRes?.data as unknown[])));
+        setCampaignOptions(toObjectIdOptions(toSelectOptions(campaignRes?.data as unknown[])));
+      }
     };
 
     loadTypeOptions();
-  }, [reportType]);
+  }, [platform, reportType, selectedPlatformAccountId]);
 
   const columns = useMemo<ProColumns<AdsConsole.RptOverallHourVO>[]>(() => {
     const cols: ProColumns<AdsConsole.RptOverallHourVO>[] = [];
@@ -375,6 +458,15 @@ const OverallHourReportPage: React.FC = () => {
           if (!objectId) return "-";
           return objectNameMap[objectId] || objectId;
         },
+      });
+    }
+
+    if (appliedDimensions.includes("country")) {
+      cols.push({
+        title: "国家",
+        dataIndex: "country",
+        width: 120,
+        render: (_, record) => normalizeSelectValue(record.country) || "-",
       });
     }
 
@@ -489,9 +581,12 @@ const OverallHourReportPage: React.FC = () => {
     }
 
     const nextQuery: QueryState = {
+      platform,
+      platformAccountId: normalizeSelectValue(values.platformAccountId),
       startDate: normalizeDateValue(dateRange?.[0]),
       endDate: normalizeDateValue(dateRange?.[1]),
       objectId: normalizeSelectValue(values.objectId),
+      country: normalizeSelectValue(values.country),
       accountId: normalizeSelectValue(values.accountId),
       campaignId: normalizeSelectValue(values.campaignId),
       groupId: normalizeSelectValue(values.groupId),
@@ -506,55 +601,70 @@ const OverallHourReportPage: React.FC = () => {
   };
 
   const resetConfig = () => {
-    const nextSchema = REPORT_SCHEMAS[reportType];
+    const nextSchema = getReportSchema(platform, reportType);
     setSelectedDimensions(nextSchema.defaultDimensions);
     setSelectedMetrics(sortMetrics(nextSchema.defaultMetrics));
     setAppliedDimensions(nextSchema.defaultDimensions);
     setAppliedMetrics(sortMetrics(nextSchema.defaultMetrics));
     form.setFieldsValue({
       dateRange: defaultDateRange(),
+      platformAccountId: undefined,
       objectId: undefined,
+      country: undefined,
       accountId: undefined,
       campaignId: undefined,
       groupId: undefined,
       agencyId: undefined,
       hour: undefined,
     });
-    setQueryState(defaultDateQuery());
+    setQueryState({ platform, ...defaultDateQuery() });
     setRequestSeq((prev) => prev + 1);
   };
 
   const handleReportTypeChange = (nextType: ReportType) => {
-    const nextSchema = REPORT_SCHEMAS[nextType];
+    const nextSchema = getReportSchema(platform, nextType);
     const current = form.getFieldsValue();
-    const pruned: Record<string, unknown> = {
-      dateRange: current.dateRange,
-      hour: current.hour,
-      groupId: current.groupId,
-      agencyId: current.agencyId,
-    };
+    let pruned: Record<string, unknown>;
 
-    const OBJECT_ID_CARRY_OVER: Partial<Record<ReportType, FilterKey>> = {
-      account: "accountId",
-      campaign: "campaignId",
-    };
-    const carryOverTarget = OBJECT_ID_CARRY_OVER[reportType];
-    if (carryOverTarget && current.objectId && nextSchema.filters.includes(carryOverTarget)) {
-      pruned[carryOverTarget] = current.objectId;
+    if (platform === "mintegral") {
+      pruned = {
+        dateRange: current.dateRange,
+        platformAccountId: current.platformAccountId,
+        country: current.country,
+        hour: current.hour,
+      };
+    } else {
+      pruned = {
+        dateRange: current.dateRange,
+        hour: current.hour,
+        groupId: current.groupId,
+        agencyId: current.agencyId,
+      };
+
+      const OBJECT_ID_CARRY_OVER: Partial<Record<ReportType, FilterKey>> = {
+        account: "accountId",
+        campaign: "campaignId",
+      };
+      const carryOverTarget = OBJECT_ID_CARRY_OVER[reportType];
+      if (carryOverTarget && current.objectId && nextSchema.filters.includes(carryOverTarget)) {
+        pruned[carryOverTarget] = current.objectId;
+      }
+
+      if (nextType === "account" && current.accountId) {
+        pruned.objectId = current.accountId;
+      }
+
+      nextSchema.filters.forEach((key) => {
+        if (key === "objectId") return;
+        if (pruned[key] !== undefined) return;
+        pruned[key] = current[key];
+      });
     }
-
-    if (nextType === "account" && current.accountId) {
-      pruned.objectId = current.accountId;
-    }
-
-    nextSchema.filters.forEach((key) => {
-      if (key === "objectId") return;
-      if (pruned[key] !== undefined) return;
-      pruned[key] = current[key];
-    });
 
     form.setFieldsValue({
+      platformAccountId: undefined,
       objectId: undefined,
+      country: undefined,
       accountId: undefined,
       campaignId: undefined,
       groupId: undefined,
@@ -565,7 +675,10 @@ const OverallHourReportPage: React.FC = () => {
 
     setQueryState((prev) => ({
       ...prev,
+      platform,
+      platformAccountId: normalizeSelectValue(pruned.platformAccountId),
       objectId: normalizeSelectValue(pruned.objectId as string | undefined),
+      country: normalizeSelectValue(pruned.country as string | undefined),
       accountId: normalizeSelectValue(pruned.accountId as string | undefined),
       campaignId: normalizeSelectValue(pruned.campaignId as string | undefined),
       groupId: normalizeSelectValue(pruned.groupId as string | undefined),
@@ -581,6 +694,30 @@ const OverallHourReportPage: React.FC = () => {
     setRequestSeq((prev) => prev + 1);
   };
 
+  const handlePlatformChange = (nextPlatform: ReportPlatform) => {
+    const nextType: ReportType = nextPlatform === "mintegral" ? "campaign" : "account";
+    const nextSchema = getReportSchema(nextPlatform, nextType);
+    setPlatform(nextPlatform);
+    setReportType(nextType);
+    setSelectedDimensions(nextSchema.defaultDimensions);
+    setSelectedMetrics(sortMetrics(nextSchema.defaultMetrics));
+    setAppliedDimensions(nextSchema.defaultDimensions);
+    setAppliedMetrics(sortMetrics(nextSchema.defaultMetrics));
+    form.setFieldsValue({
+      dateRange: defaultDateRange(),
+      platformAccountId: undefined,
+      objectId: undefined,
+      country: undefined,
+      accountId: undefined,
+      campaignId: undefined,
+      groupId: undefined,
+      agencyId: undefined,
+      hour: undefined,
+    });
+    setQueryState({ platform: nextPlatform, ...defaultDateQuery() });
+    setRequestSeq((prev) => prev + 1);
+  };
+
   const dimensionSelectOptions = schema.dimensions.map((key) => ({
     label: key === "objectId" ? objectIdLabel : DIMENSION_OPTIONS[key].label,
     value: key,
@@ -592,14 +729,19 @@ const OverallHourReportPage: React.FC = () => {
 
   const filterOptionsMap: Record<FilterKey, AdsConsole.SelectOption[]> = {
     objectId: idOptions,
+    platformAccountId: platformAccountOptions,
     accountId: accountOptions,
     campaignId: campaignOptions,
+    country: [],
     groupId: groupOptions,
     agencyId: agencyOptions,
     hour: HOUR_OPTIONS,
   };
 
-  const reportTypeTabItems = REPORT_TYPE_OPTIONS.map((item) => ({
+  const reportTypeTabItems = (platform === "mintegral"
+    ? MINTEGRAL_REPORT_TYPE_OPTIONS
+    : REPORT_TYPE_OPTIONS
+  ).map((item) => ({
     label: item.label,
     value: item.value,
   }));
@@ -625,6 +767,17 @@ const OverallHourReportPage: React.FC = () => {
             }}
           >
             <Space size={10} align="center" wrap>
+              <Typography.Text strong style={{ fontSize: 13, color: "#0f172a" }}>
+                平台
+              </Typography.Text>
+              <Segmented
+                value={platform}
+                options={[
+                  { label: "Facebook", value: "facebook" },
+                  { label: "Mintegral", value: "mintegral" },
+                ]}
+                onChange={(value) => handlePlatformChange(value as ReportPlatform)}
+              />
               <Typography.Text strong style={{ fontSize: 13, color: "#0f172a" }}>
                 报表类型
               </Typography.Text>
@@ -690,6 +843,8 @@ const OverallHourReportPage: React.FC = () => {
                           : FILTER_OPTIONS[key].placeholder
                       }
                       options={filterOptionsMap[key]}
+                      mode={platform === "mintegral" && key === "country" ? "tags" : undefined}
+                      maxCount={platform === "mintegral" && key === "country" ? 1 : undefined}
                     />
                   </Form.Item>
                 </Col>
@@ -749,9 +904,12 @@ const OverallHourReportPage: React.FC = () => {
         <ProTable<AdsConsole.RptOverallHourVO, ReportSearchParams>
           rowKey={(record) =>
             [
+              record.platform,
+              record.platformAccountId,
               record.objectId,
               record.date,
               record.hour,
+              record.country,
               record.groupId,
               record.agencyId,
             ]
@@ -780,18 +938,25 @@ const OverallHourReportPage: React.FC = () => {
             const sortValue = activeSortKey ? (sort[activeSortKey] as SortOrder | undefined) : undefined;
             const sortOrder =
               sortValue === "ascend" ? "asc" : sortValue === "descend" ? "desc" : "desc";
+            const requestPlatform = params.platform || "facebook";
+            const isMintegral = requestPlatform === "mintegral";
 
             const res = await getOverallHourReportPage({
+              platform: requestPlatform,
               objectName: requestReportType,
               current: params.current,
               size: params.pageSize,
               startDate: params.startDate,
               endDate: params.endDate,
+              platformAccountId: isMintegral
+                ? normalizeSelectValue(params.platformAccountId)
+                : undefined,
               objectId: normalizeSelectValue(params.objectId),
-              accountId: normalizeSelectValue(params.accountId),
-              campaignId: normalizeSelectValue(params.campaignId),
-              groupId: normalizeSelectValue(params.groupId),
-              agencyId: normalizeSelectValue(params.agencyId),
+              country: isMintegral ? normalizeSelectValue(params.country) : undefined,
+              accountId: isMintegral ? undefined : normalizeSelectValue(params.accountId),
+              campaignId: isMintegral ? undefined : normalizeSelectValue(params.campaignId),
+              groupId: isMintegral ? undefined : normalizeSelectValue(params.groupId),
+              agencyId: isMintegral ? undefined : normalizeSelectValue(params.agencyId),
               hour: params.hour ? Number(params.hour) : undefined,
               dims: requestDimensions.map((d) => DIMENSION_OPTIONS[d].backend),
               metrics: requestMetrics,
@@ -812,5 +977,4 @@ const OverallHourReportPage: React.FC = () => {
 };
 
 export default OverallHourReportPage;
-
 

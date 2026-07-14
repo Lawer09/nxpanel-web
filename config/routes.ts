@@ -300,6 +300,11 @@ export default [
         component: './ads-console/system/bm',
       },
       {
+        path: '/ads-console/system/platform',
+        name: '平台账户',
+        component: './ads-console/system/platform',
+      },
+      {
         path: '/ads-console/system',
         name: '系统设置',
         routes: [

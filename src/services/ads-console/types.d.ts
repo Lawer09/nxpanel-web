@@ -206,8 +206,9 @@ declare namespace AdsConsole {
     userSummaries: DashboardUserSummary[];
   };
 
-  type ReportObjectName = 'account' | 'campaign' | 'adset';
-  type HourReportObjectName = 'account' | 'campaign' | 'adset' | 'ad';
+  type ReportPlatform = 'facebook' | 'mintegral';
+  type ReportObjectName = 'account' | 'campaign' | 'adset' | 'offer';
+  type HourReportObjectName = 'account' | 'campaign' | 'adset' | 'ad' | 'offer';
 
   type OverallReportDimension =
     | 'date'
@@ -219,6 +220,7 @@ declare namespace AdsConsole {
     | 'date'
     | 'hour'
     | 'object_id'
+    | 'country'
     | 'group_id'
     | 'agency_id';
   type OverallHourReportMetric =
@@ -259,6 +261,8 @@ declare namespace AdsConsole {
   type RptOverallDayVO = {
     id: string;
     objectId: string;
+    platform?: ReportPlatform;
+    platformAccountId?: string;
     objectName: ReportObjectName;
     groupId?: string;
     groupName?: string;
@@ -291,6 +295,8 @@ declare namespace AdsConsole {
     endDate?: string;
     sortField?: string;
     sortOrder?: 'asc' | 'desc';
+    platform?: ReportPlatform;
+    platformAccountId?: string;
     objectName: ReportObjectName;
     objectId?: string;
     accountId?: string;
@@ -310,11 +316,14 @@ declare namespace AdsConsole {
 
   type RptOverallHourVO = {
     objectId: string;
+    platform?: ReportPlatform;
+    platformAccountId?: string;
     objectName: HourReportObjectName;
     groupId?: string;
     groupName?: string;
     agencyId?: string;
     date: string;
+    country?: string;
     hour?: number;
     impressions?: number;
     clicks?: number;
@@ -332,8 +341,11 @@ declare namespace AdsConsole {
     endDate?: string;
     sortField?: string;
     sortOrder?: 'asc' | 'desc';
+    platform?: ReportPlatform;
+    platformAccountId?: string;
     objectName: HourReportObjectName;
     objectId?: string;
+    country?: string;
     accountId?: string;
     campaignId?: string;
     groupId?: string;
@@ -885,6 +897,50 @@ declare namespace AdsConsole {
     version: string;
     title: string;
     content: string;
+  };
+
+  type AdPlatformAccount = {
+    id: string;
+    platform: 'facebook' | 'mintegral';
+    name: string;
+    accountId?: string;
+    accountName?: string;
+    currency?: string;
+    balance?: number;
+    accessKey?: string;
+    apiKey?: string;
+    rawConfig?: string;
+    status?: number;
+    lastValidateTime?: string;
+    lastSyncStatus?: number;
+    lastSyncTime?: string;
+    lastSyncMsg?: string;
+    createTime?: string;
+  };
+
+  type AdPlatformObject = {
+    id: string;
+    platform: string;
+    platformAccountId?: string;
+    accountId: string;
+    objectType: string;
+    objectId: string;
+    parentObjectType?: string;
+    parentObjectId?: string;
+    name?: string;
+    status?: string;
+    lastSyncTime?: string;
+  };
+
+  type AdPlatformSyncHistory = {
+    id: string;
+    platform: string;
+    platformAccountId?: string;
+    objectType?: string;
+    objectId?: string;
+    syncStatus: number;
+    syncTime: string;
+    syncMsg?: string;
   };
 
   type FbToken = {

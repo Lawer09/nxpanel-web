@@ -30,6 +30,7 @@
 ## 返回字段
 
 - 小时报表返回字段与项目日报保持一致，并额外返回 `hour`
+- 小时报表不返回日报环比字段：`adRevenueDayOverDay`、`adSpendCostDayOverDay`、`profitDayOverDay`
 - 当返回行包含唯一 `projectCode` 时，会附带项目元数据字段，例如 `adStatus`、`appPlatform`、`appName`、`packageName`
 - 当 `groupBy` 不包含某个维度时，该维度字段返回 `null`
 - 若返回伴随字段 `hourly_status`，前端会在项目编码列右侧展示单个 `异常` Tag；悬浮后按位展示原因：
