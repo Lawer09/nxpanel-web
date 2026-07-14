@@ -20,6 +20,13 @@
 | `filter` | `array` | 否 | 通用字段筛选，格式 `[{id, value}]` |
 | `sort` | `array` | 否 | 排序，格式 `[{id, desc: bool}]` |
 
+`filter` 可用于邀请关系筛选，例如：
+
+- 查询“有邀请者”的用户：`{"id": "invite_user_id", "value": "notnull:1"}`
+- 查询“没有邀请者”的用户：`{"id": "invite_user_id", "value": "null:1"}`
+- 查询“由某个用户邀请”的用户：`{"id": "invite_user_id", "value": "eq:123"}`
+- 按邀请人邮箱筛选：`{"id": "invite_user.email", "value": "example@example.com"}`
+
 ### 示例
 
 ```json
@@ -40,6 +47,19 @@ POST /api/v3/admin/user/fetch
     "sort": [
         {"id": "created_at", "desc": true}
     ]
+}
+```
+
+按邀请关系筛选示例：
+
+```json
+POST /api/v3/admin/user/fetch
+{
+    "filter": [
+        {"id": "invite_user_id", "value": "notnull:1"}
+    ],
+    "current": 1,
+    "pageSize": 20
 }
 ```
 

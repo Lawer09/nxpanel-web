@@ -310,3 +310,82 @@
 - `src/pages/user-manage/index.tsx`
 - `src/services/user/typings.d.ts`
 - `docs/api/user_api.md`
+
+## 用户管理缺少邀请关系筛选入口
+
+### 出现场景
+
+用户管理页需要筛出“有邀请者 / 无邀请者”的用户，或直接按邀请人 ID、邀请人邮箱定位某一批被邀请用户，但当前筛选栏没有对应入口，只能手动拼接口请求。
+
+### 问题原因
+
+- 前端筛选栏尚未暴露用户列表接口里的通用 `filter` 邀请关系能力。
+- `invite_user_id` 和 `invite_user.email` 虽然后端都支持筛选，但页面没有将这些条件映射成可操作的筛选控件。
+
+### 解决方式
+
+- 在用户管理筛选栏新增“邀请状态”“邀请人 ID”“邀请人邮箱”三个筛选项。
+- “邀请状态”映射为 `invite_user_id` 的 `notnull:1 / null:1`。
+- “邀请人 ID”映射为 `invite_user_id = eq:xxx`，“邀请人邮箱”映射为 `invite_user.email`。
+- 当前筛选结果摘要同步展示邀请筛选条件，避免用户忘记当前查询上下文。
+
+### 影响范围
+
+- 用户管理页筛选栏
+- 用户列表查询的 `filter` 参数构造
+- 用户 API 文档
+
+### 相关文件
+
+- `src/pages/user-manage/index.tsx`
+- `docs/api/user_api.md`
+
+## 用户管理邀请筛选值被 ProTable transform 吞掉
+
+### 出现场景
+
+用户管理页新增“邀请状态”筛选后，界面上能正常选择“有邀请者 / 无邀请者”，但实际发往 `/v3/user/fetch` 的请求里 `filter` 仍为空，导致筛选完全不生效。
+
+### 问题原因
+
+- 相关筛选字段配置了 `search.transform: () => ({})`。
+- `ProTable` 在存在 `transform` 时不会再把原始 `dataIndex` 值保留到 `request` 参数里，返回空对象等于把表单值直接丢弃。
+
+### 解决方式
+
+- 去掉邀请状态、邀请人 ID、邀请人邮箱三个筛选项上的空 `transform` 配置。
+- 让 `request` 直接读取原始 `params.invite_filter / invite_user_id_search / invite_user_email_search` 并组装后端 `filter`。
+
+### 影响范围
+
+- 用户管理页邀请关系筛选
+- `ProTable` 自定义筛选项取值方式
+
+### 相关文件
+
+- `src/pages/user-manage/index.tsx`
+
+## 用户管理列表缺少邀请人信息展示
+
+### 出现场景
+
+后端用户列表已经返回 `invite_user.id` 和 `invite_user.email`，但用户管理主列表没有直接展示邀请人信息。排查用户来源或核对邀请关系时，需要先开筛选或进入详情页，效率偏低。
+
+### 问题原因
+
+- 主列表此前为了压缩横向空间，将邀请人列留在注释状态，没有真正渲染。
+- 已有接口返回的 `invite_user` 关联信息没有在列表层复用。
+
+### 解决方式
+
+- 在用户管理主列表恢复“邀请人”列展示。
+- 单元格上方显示邀请人邮箱，下方显示邀请人 ID；无邀请人时显示 `-`。
+
+### 影响范围
+
+- 用户管理主列表的邀请关系可见性
+- 用户来源排查效率
+
+### 相关文件
+
+- `src/pages/user-manage/index.tsx`

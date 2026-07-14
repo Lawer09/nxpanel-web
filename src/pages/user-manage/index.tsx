@@ -161,6 +161,9 @@ const UserManagePage: React.FC = () => {
     banned?: boolean;
     idSearch?: string;
     emailSearch?: string;
+    inviteStatus?: 'has' | 'none';
+    inviteUserId?: string;
+    inviteUserEmail?: string;
     metaAppId?: string;
     metaCountry?: string;
     metaIp?: string;
@@ -359,6 +362,26 @@ const UserManagePage: React.FC = () => {
       hideInTable: true,
     },
     {
+      title: '邀请状态',
+      dataIndex: 'invite_filter',
+      valueType: 'select',
+      valueEnum: {
+        has: { text: '有邀请者' },
+        none: { text: '无邀请者' },
+      },
+      hideInTable: true,
+    },
+    {
+      title: '邀请人 ID',
+      dataIndex: 'invite_user_id_search',
+      hideInTable: true,
+    },
+    {
+      title: '邀请人邮箱',
+      dataIndex: 'invite_user_email_search',
+      hideInTable: true,
+    },
+    {
       title: '封禁状态',
       dataIndex: 'banned_filter',
       valueType: 'select',
@@ -428,32 +451,27 @@ const UserManagePage: React.FC = () => {
       render: (_, record) =>
         record.balance != null ? `$ ${Number(record.balance).toFixed(2)}` : '-',
     },
-    // {
-    //   title: '佣金余额',
-    //   dataIndex: 'commission_balance',
-    //   width: 100,
-    //   search: false,
-    //   render: (_, record) =>
-    //     record.commission_balance != null
-    //       ? `$ ${Number(record.commission_balance).toFixed(2)}`
-    //       : '-',
-    // },
-    // {
-    //   title: '邀请人',
-    //   dataIndex: 'invite_user',
-    //   width: 160,
-    //   search: false,
-    //   render: (_, record) =>
-    //     record.invite_user ? (
-    //       <Tooltip title={`ID: ${record.invite_user.id}`}>
-    //         <Text type="secondary" style={{ fontSize: 12 }}>
-    //           {record.invite_user.email}
-    //         </Text>
-    //       </Tooltip>
-    //     ) : (
-    //       '-'
-    //     ),
-    // },
+    {
+      title: '邀请人',
+      dataIndex: 'invite_user',
+      width: 220,
+      search: false,
+      render: (_, record) =>
+        record.invite_user ? (
+          <Space direction="vertical" size={0} style={{ minWidth: 0 }}>
+            <Tooltip title={record.invite_user.email}>
+              <Text ellipsis style={{ maxWidth: 200 }}>
+                {record.invite_user.email}
+              </Text>
+            </Tooltip>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              ID: {record.invite_user.id}
+            </Text>
+          </Space>
+        ) : (
+          <Text type="secondary">-</Text>
+        ),
+    },
     {
       title: '注册时间',
       dataIndex: 'created_at',
@@ -683,6 +701,10 @@ const UserManagePage: React.FC = () => {
           {resultSummary.banned === false ? <Tag color="default">未封禁</Tag> : null}
           {resultSummary.idSearch ? <Tag>用户 ID：{resultSummary.idSearch}</Tag> : null}
           {resultSummary.emailSearch ? <Tag>邮箱：{resultSummary.emailSearch}</Tag> : null}
+          {resultSummary.inviteStatus === 'has' ? <Tag>有邀请者</Tag> : null}
+          {resultSummary.inviteStatus === 'none' ? <Tag>无邀请者</Tag> : null}
+          {resultSummary.inviteUserId ? <Tag>邀请人 ID：{resultSummary.inviteUserId}</Tag> : null}
+          {resultSummary.inviteUserEmail ? <Tag>邀请人邮箱：{resultSummary.inviteUserEmail}</Tag> : null}
           {resultSummary.metaAppId ? <Tag>包名：{resultSummary.metaAppId}</Tag> : null}
           {resultSummary.metaCountry ? <Tag>国家：{resultSummary.metaCountry}</Tag> : null}
           {resultSummary.metaIp ? <Tag>IP：{resultSummary.metaIp}</Tag> : null}
@@ -748,6 +770,23 @@ const UserManagePage: React.FC = () => {
           if (params.email_search) {
             filter.push({ id: 'email', value: `like:${params.email_search}` });
           }
+          if (params.invite_filter === 'has') {
+            filter.push({ id: 'invite_user_id', value: 'notnull:1' });
+          } else if (params.invite_filter === 'none') {
+            filter.push({ id: 'invite_user_id', value: 'null:1' });
+          }
+          if (params.invite_user_id_search) {
+            filter.push({
+              id: 'invite_user_id',
+              value: `eq:${String(params.invite_user_id_search).trim()}`,
+            });
+          }
+          if (params.invite_user_email_search) {
+            filter.push({
+              id: 'invite_user.email',
+              value: String(params.invite_user_email_search).trim(),
+            });
+          }
           const metaCountry = getSingleSelectValue(params.meta_country);
           const metaIp = getSingleSelectValue(params.meta_ip);
           const meta: Record<string, string | number> = {};
@@ -799,6 +838,16 @@ const UserManagePage: React.FC = () => {
                     params.banned === '1',
             idSearch: params.id_search,
             emailSearch: params.email_search,
+            inviteStatus:
+              params.invite_filter === 'has' || params.invite_filter === 'none'
+                ? params.invite_filter
+                : undefined,
+            inviteUserId: params.invite_user_id_search
+              ? String(params.invite_user_id_search).trim()
+              : undefined,
+            inviteUserEmail: params.invite_user_email_search
+              ? String(params.invite_user_email_search).trim()
+              : undefined,
             metaAppId: params.meta_app_id,
             metaCountry: metaCountry ? String(metaCountry) : undefined,
             metaIp: metaIp ? String(metaIp) : undefined,
