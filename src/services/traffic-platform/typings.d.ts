@@ -46,6 +46,7 @@ declare namespace API {
     platformName: string;
     accountName: string;
     externalAccountId: string;
+    balance?: number;
     tags?: string[];
     timezone: string;
     enabled: number;

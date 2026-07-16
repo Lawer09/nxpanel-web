@@ -28,8 +28,22 @@ export async function getAdsConsoleUserInfo(options?: Record<string, any>) {
   });
 }
 
+export async function getAdsConsolePermissionRoutes(
+  options?: Record<string, any>,
+) {
+  return request<AdsConsole.Result<AdsConsole.RouteMenuItem[]>>(
+    '/ads-api/sys/permission/routes',
+    {
+      method: 'GET',
+      skipErrorHandler: true,
+      ...(options || {}),
+    },
+  );
+}
+
 export function adsLoginDataToCurrentUser(
   data: AdsConsole.LoginData,
+  menus?: AdsConsole.RouteMenuItem[],
 ): AdsConsole.CurrentUser {
   return {
     id: data.userId ? Number(data.userId) : undefined,
@@ -47,6 +61,7 @@ export function adsLoginDataToCurrentUser(
     teamName: data.teamName,
     agencyNames: data.agencyNames || [],
     groupNames: data.groupNames || [],
+    adsMenus: menus,
     loginMode: 'ads',
   };
 }

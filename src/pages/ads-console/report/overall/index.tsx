@@ -316,10 +316,24 @@ const MINTEGRAL_REPORT_TYPE_OPTIONS: { label: string; value: ReportType }[] = [
   { label: "Offer", value: "offer" },
 ];
 
+const KWAI_REPORT_TYPE_OPTIONS: { label: string; value: ReportType }[] = [
+  { label: "Campaign", value: "campaign" },
+  { label: "Ad Set", value: "adset" },
+  { label: "Ad", value: "ad" },
+];
+
+const GOOGLE_ADS_REPORT_TYPE_OPTIONS: { label: string; value: ReportType }[] = [
+  { label: "Campaign", value: "campaign" },
+  { label: "Ad Group", value: "ad_group" },
+  { label: "Ad", value: "ad" },
+];
+
 const OBJECT_ID_LABEL_MAP: Record<ReportType, string> = {
   account: "账户ID",
   campaign: "活动ID",
   adset: "广告组ID",
+  ad_group: "Ad Group ID",
+  ad: "广告ID",
   offer: "Offer ID",
 };
 
@@ -386,6 +400,22 @@ const REPORT_SCHEMAS: Record<ReportType, ReportSchema> = {
     defaultMetrics: [...METRIC_ORDER],
     defaultSort: "date",
   },
+  ad: {
+    filters: ["platformAccountId", "objectId", "country"],
+    dimensions: ["date", "objectId", "country"],
+    metrics: ["spend", "impressions", "clicks", "ctr", "cpm", "cpc"],
+    defaultDimensions: ["date"],
+    defaultMetrics: ["spend", "impressions", "clicks", "ctr", "cpm", "cpc"],
+    defaultSort: "date",
+  },
+  ad_group: {
+    filters: ["platformAccountId", "objectId"],
+    dimensions: ["date", "objectId"],
+    metrics: ["spend", "impressions", "clicks", "ctr", "cpm", "cpc"],
+    defaultDimensions: ["date"],
+    defaultMetrics: ["spend", "impressions", "clicks", "ctr", "cpm", "cpc"],
+    defaultSort: "date",
+  },
   offer: {
     filters: ["platformAccountId", "objectId", "country"],
     dimensions: ["date", "objectId", "country"],
@@ -397,11 +427,22 @@ const REPORT_SCHEMAS: Record<ReportType, ReportSchema> = {
 };
 
 const getReportSchema = (platform: ReportPlatform, type: ReportType) => {
-  if (platform === "mintegral") {
+  if (platform === "mintegral" || platform === "kwai") {
     return {
       ...REPORT_SCHEMAS[type],
-      filters: ["platformAccountId", "objectId", "country"] as FilterKey[],
-      dimensions: ["date", "objectId", "country"] as VisibleDimension[],
+      filters: ["platformAccountId", "objectId", "country", "groupId"] as FilterKey[],
+      dimensions: ["date", "objectId", "country", "groupId"] as VisibleDimension[],
+      metrics: ["spend", "impressions", "clicks", "ctr", "cpm", "cpc"] as MetricKey[],
+      defaultDimensions: ["date"] as VisibleDimension[],
+      defaultMetrics: ["spend", "impressions", "clicks", "ctr", "cpm", "cpc"] as MetricKey[],
+      defaultSort: "date",
+    };
+  }
+  if (platform === "google_ads") {
+    return {
+      ...REPORT_SCHEMAS[type],
+      filters: ["platformAccountId", "objectId", "groupId"] as FilterKey[],
+      dimensions: ["date", "objectId", "groupId"] as VisibleDimension[],
       metrics: ["spend", "impressions", "clicks", "ctr", "cpm", "cpc"] as MetricKey[],
       defaultDimensions: ["date"] as VisibleDimension[],
       defaultMetrics: ["spend", "impressions", "clicks", "ctr", "cpm", "cpc"] as MetricKey[],
@@ -409,6 +450,13 @@ const getReportSchema = (platform: ReportPlatform, type: ReportType) => {
     };
   }
   return REPORT_SCHEMAS[type];
+};
+
+const platformReportTypeOptions = (value: ReportPlatform) => {
+  if (value === "mintegral") return MINTEGRAL_REPORT_TYPE_OPTIONS;
+  if (value === "kwai") return KWAI_REPORT_TYPE_OPTIONS;
+  if (value === "google_ads") return GOOGLE_ADS_REPORT_TYPE_OPTIONS;
+  return REPORT_TYPE_OPTIONS;
 };
 
 const normalizeDateValue = (value: unknown): string | undefined => {
@@ -740,7 +788,7 @@ const ReportPage: React.FC = () => {
       countries: values.country as string[] | undefined,
       accountIds: platform === "facebook" ? values.accountId as string[] | undefined : undefined,
       campaignIds: platform === "facebook" ? values.campaignId as string[] | undefined : undefined,
-      groupIds: platform === "facebook" ? values.groupId as string[] | undefined : undefined,
+      groupIds: values.groupId as string[] | undefined,
       agencyIds: platform === "facebook" ? values.agencyId as string[] | undefined : undefined,
     };
 
@@ -777,7 +825,7 @@ const ReportPage: React.FC = () => {
 
   const handleExport = async () => {
     if (platform !== "facebook") {
-      message.warning("Mintegral 暂未开放 Excel 导出");
+      message.warning("非 Facebook 平台暂未开放 Excel 导出");
       return;
     }
     const values = form.getFieldsValue();
@@ -901,7 +949,7 @@ const ReportPage: React.FC = () => {
       accountIds: platform === "facebook" ? pruned.accountId as string[] | undefined : undefined,
       campaignIds: platform === "facebook" ? pruned.campaignId as string[] | undefined : undefined,
       countries: pruned.country as string[] | undefined,
-      groupIds: platform === "facebook" ? pruned.groupId as string[] | undefined : undefined,
+      groupIds: pruned.groupId as string[] | undefined,
       agencyIds: platform === "facebook" ? pruned.agencyId as string[] | undefined : undefined,
     }));
 
@@ -915,7 +963,7 @@ const ReportPage: React.FC = () => {
   };
 
   const handlePlatformChange = (nextPlatform: ReportPlatform) => {
-    const nextType: ReportType = nextPlatform === "mintegral" ? "campaign" : "account";
+    const nextType = platformReportTypeOptions(nextPlatform)[0].value;
     const nextSchema = getReportSchema(nextPlatform, nextType);
     const dateRange = form.getFieldValue("dateRange");
 
@@ -963,7 +1011,7 @@ const ReportPage: React.FC = () => {
     agencyId: agencyOptions,
   };
 
-  const reportTypeOptions = platform === "mintegral" ? MINTEGRAL_REPORT_TYPE_OPTIONS : REPORT_TYPE_OPTIONS;
+  const reportTypeOptions = platformReportTypeOptions(platform);
   const reportTypeTabItems = reportTypeOptions.map((item) => ({
     label: item.label,
     value: item.value,
@@ -998,6 +1046,8 @@ const ReportPage: React.FC = () => {
                 options={[
                   { label: "Facebook", value: "facebook" },
                   { label: "Mintegral", value: "mintegral" },
+                  { label: "Kwai", value: "kwai" },
+                  { label: "Google Ads", value: "google_ads" },
                 ]}
                 onChange={(value) => handlePlatformChange(value as ReportPlatform)}
               />

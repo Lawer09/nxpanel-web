@@ -290,19 +290,34 @@ export default [
         ],
       },
       {
-        path: '/ads-console/system/token',
+        path: '/ads-console/token',
         name: 'Token 管理',
         component: './ads-console/system/token',
       },
       {
-        path: '/ads-console/system/bm',
+        path: '/ads-console/bm',
         name: 'BM 管理',
         component: './ads-console/system/bm',
       },
       {
-        path: '/ads-console/system/platform',
+        path: '/ads-console/platform',
         name: '平台账户',
         component: './ads-console/system/platform',
+      },
+      {
+        path: '/ads-console/system/token',
+        redirect: '/ads-console/token',
+        hideInMenu: true,
+      },
+      {
+        path: '/ads-console/system/bm',
+        redirect: '/ads-console/bm',
+        hideInMenu: true,
+      },
+      {
+        path: '/ads-console/system/platform',
+        redirect: '/ads-console/platform',
+        hideInMenu: true,
       },
       {
         path: '/ads-console/system',

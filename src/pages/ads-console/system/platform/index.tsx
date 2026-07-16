@@ -1,14 +1,20 @@
 ﻿import {
   addPlatformAccount,
+  bindCampaignGroup,
   createMintegralObject,
   deletePlatformAccount,
+  getCampaignGroupBindingPage,
   getPlatformAccountPage,
   getPlatformObjectPage,
   getPlatformSyncHistoryPage,
+  type PlatformReportGranularity,
+  type PlatformSyncMode,
   syncPlatformAccount,
+  unbindCampaignGroup,
   updatePlatformAccount,
   validatePlatformAccount,
 } from '@/services/ads-console/platform';
+import { getGroupOptions } from '@/services/ads-console/orgOptions';
 import {
   ModalForm,
   type ProColumns,
@@ -21,7 +27,7 @@ import {
 } from '@ant-design/pro-components';
 import { App, Button, Popconfirm, Space, Switch, Tabs, Tag, Tooltip, Typography } from 'antd';
 import dayjs from 'dayjs';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 const SYNC_STATUS_MAP: Record<number, { color: string; text: string }> = {
   0: { color: 'processing', text: '同步中' },
@@ -29,12 +35,36 @@ const SYNC_STATUS_MAP: Record<number, { color: string; text: string }> = {
   2: { color: 'error', text: '失败' },
 };
 
-const PLATFORM_OPTIONS = [{ label: 'Mintegral', value: 'mintegral' }];
+const PLATFORM_OPTIONS = [
+  { label: 'Mintegral', value: 'mintegral' },
+  { label: 'Kwai', value: 'kwai' },
+  { label: 'Google Ads', value: 'google_ads' },
+];
+
+const PLATFORM_VALUE_ENUM = {
+  mintegral: { text: 'Mintegral' },
+  kwai: { text: 'Kwai' },
+  google_ads: { text: 'Google Ads' },
+};
+
+const GROUP_RESOLVE_MODE_OPTIONS = [
+  { label: '账号绑定项目组', value: 'ACCOUNT_DIRECT' },
+  { label: 'Campaign 名称前缀', value: 'CAMPAIGN_NAME_PREFIX' },
+  { label: 'Campaign 显式绑定', value: 'CAMPAIGN_BINDING' },
+  { label: '混合优先级', value: 'MIXED_PRIORITY' },
+];
+
+const GROUP_RESOLVE_MODE_VALUE_ENUM = {
+  ACCOUNT_DIRECT: { text: '账号绑定' },
+  CAMPAIGN_NAME_PREFIX: { text: '名称前缀' },
+  CAMPAIGN_BINDING: { text: 'Campaign 绑定' },
+  MIXED_PRIORITY: { text: '混合优先级' },
+};
 
 type SyncFormValues = {
   dateRange?: [string, string];
-  granularity?: string;
-  syncMode?: string;
+  granularity?: PlatformReportGranularity;
+  syncMode?: PlatformSyncMode;
 };
 
 type CreateFormValues = {
@@ -46,13 +76,28 @@ const PlatformPage: React.FC = () => {
   const { message } = App.useApp();
   const accountActionRef = useRef<ActionType>(undefined);
   const objectActionRef = useRef<ActionType>(undefined);
+  const bindingActionRef = useRef<ActionType>(undefined);
   const historyActionRef = useRef<ActionType>(undefined);
   const [editOpen, setEditOpen] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [bindOpen, setBindOpen] = useState(false);
   const [editRecord, setEditRecord] = useState<AdsConsole.AdPlatformAccount | undefined>();
   const [syncRecord, setSyncRecord] = useState<AdsConsole.AdPlatformAccount | undefined>();
   const [createRecord, setCreateRecord] = useState<AdsConsole.AdPlatformAccount | undefined>();
+  const [bindRecord, setBindRecord] = useState<AdsConsole.AdPlatformObject | undefined>();
+  const [groupOptions, setGroupOptions] = useState<AdsConsole.SelectOption[]>([]);
+
+  useEffect(() => {
+    getGroupOptions().then((res) => {
+      setGroupOptions(
+        (res?.data || []).map((item) => ({
+          label: String(item.label),
+          value: String(item.value),
+        })),
+      );
+    });
+  }, []);
 
   const openAdd = () => {
     setEditRecord(undefined);
@@ -65,7 +110,12 @@ const PlatformPage: React.FC = () => {
   };
 
   const handleSave = async (values: Partial<AdsConsole.AdPlatformAccount>) => {
-    const payload = { ...values, id: editRecord?.id, platform: values.platform || 'mintegral' };
+    const payload = {
+      ...values,
+      id: editRecord?.id,
+      platform: values.platform || 'mintegral',
+      groupResolveMode: values.groupResolveMode || 'ACCOUNT_DIRECT',
+    };
     const res = editRecord?.id ? await updatePlatformAccount(payload) : await addPlatformAccount(payload);
     if (!res?.success) {
       message.error(res?.errorMessage || '保存失败');
@@ -74,6 +124,42 @@ const PlatformPage: React.FC = () => {
     message.success('保存成功');
     accountActionRef.current?.reload();
     return true;
+  };
+
+  const handleBindCampaignGroup = async (values: { groupId?: string }) => {
+    if (!bindRecord?.platform || !bindRecord.platformAccountId || !bindRecord.objectId || !values.groupId) {
+      message.error('Campaign 或项目组信息不完整');
+      return false;
+    }
+    const res = await bindCampaignGroup({
+      platform: bindRecord.platform,
+      platformAccountId: bindRecord.platformAccountId,
+      accountId: bindRecord.accountId,
+      campaignId: bindRecord.objectId,
+      campaignName: bindRecord.name,
+      groupId: values.groupId,
+    });
+    if (!res?.success) {
+      message.error(res?.errorMessage || '绑定失败');
+      return false;
+    }
+    message.success('绑定成功');
+    bindingActionRef.current?.reload();
+    return true;
+  };
+
+  const handleUnbindCampaignGroup = async (record: AdsConsole.AdPlatformCampaignGroupBinding) => {
+    const res = await unbindCampaignGroup({
+      platform: record.platform,
+      platformAccountId: record.platformAccountId,
+      campaignIds: [record.campaignId],
+    });
+    if (res?.success) {
+      message.success('已解除绑定');
+      bindingActionRef.current?.reload();
+    } else {
+      message.error(res?.errorMessage || '解除绑定失败');
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -105,7 +191,7 @@ const PlatformPage: React.FC = () => {
       startDate: values.dateRange[0],
       endDate: values.dateRange[1],
       granularity: values.granularity || 'daily',
-      syncMode: values.syncMode || 'FULL',
+      syncMode: values.syncMode || 'INSIGHTS',
     });
     if (!res?.success) {
       message.error(res?.errorMessage || '同步触发失败');
@@ -149,9 +235,7 @@ const PlatformPage: React.FC = () => {
       title: '平台',
       dataIndex: 'platform',
       valueType: 'select',
-      valueEnum: {
-        mintegral: { text: 'Mintegral' },
-      },
+      valueEnum: PLATFORM_VALUE_ENUM,
       width: 120,
     },
     {
@@ -172,6 +256,26 @@ const PlatformPage: React.FC = () => {
       hideInSearch: true,
       width: 180,
       renderText: (value) => value || '-',
+    },
+    {
+      title: '项目组',
+      dataIndex: 'groupId',
+      valueType: 'select',
+      fieldProps: {
+        options: groupOptions,
+        showSearch: true,
+        optionFilterProp: 'label',
+      },
+      width: 160,
+      render: (_, record) => record.groupName || '-',
+    },
+    {
+      title: '归属模式',
+      dataIndex: 'groupResolveMode',
+      valueType: 'select',
+      valueEnum: GROUP_RESOLVE_MODE_VALUE_ENUM,
+      width: 150,
+      renderText: (value) => GROUP_RESOLVE_MODE_VALUE_ENUM[value as keyof typeof GROUP_RESOLVE_MODE_VALUE_ENUM]?.text || '账号绑定',
     },
     {
       title: '余额',
@@ -253,16 +357,18 @@ const PlatformPage: React.FC = () => {
           >
             同步
           </Button>
-          <Button
-            type="link"
-            size="small"
-            onClick={() => {
-              setCreateRecord(record);
-              setCreateOpen(true);
-            }}
-          >
-            创建
-          </Button>
+          {record.platform === 'mintegral' && (
+            <Button
+              type="link"
+              size="small"
+              onClick={() => {
+                setCreateRecord(record);
+                setCreateOpen(true);
+              }}
+            >
+              创建
+            </Button>
+          )}
           <Popconfirm title="确定删除该平台账户？" onConfirm={() => handleDelete(record.id)}>
             <Button type="link" danger size="small">
               删除
@@ -274,7 +380,8 @@ const PlatformPage: React.FC = () => {
   ];
 
   const objectColumns: ProColumns<AdsConsole.AdPlatformObject>[] = [
-    { title: '平台', dataIndex: 'platform', valueType: 'select', valueEnum: { mintegral: { text: 'Mintegral' } }, width: 120 },
+    { title: '平台', dataIndex: 'platform', valueType: 'select', valueEnum: PLATFORM_VALUE_ENUM, width: 120 },
+    { title: '平台账户ID', dataIndex: 'platformAccountId', width: 140 },
     { title: '账户ID', dataIndex: 'accountId', width: 160 },
     { title: '对象类型', dataIndex: 'objectType', width: 140 },
     { title: '对象ID', dataIndex: 'objectId', width: 180 },
@@ -289,10 +396,76 @@ const PlatformPage: React.FC = () => {
       width: 160,
       render: (_, record) => record.lastSyncTime ? dayjs(record.lastSyncTime).format('YYYY-MM-DD HH:mm:ss') : '-',
     },
+    {
+      title: '操作',
+      valueType: 'option',
+      width: 120,
+      render: (_, record) => record.objectType === 'campaign' ? (
+        <Button
+          type="link"
+          size="small"
+          onClick={() => {
+            setBindRecord(record);
+            setBindOpen(true);
+          }}
+        >
+          绑定项目组
+        </Button>
+      ) : '-',
+    },
+  ];
+
+  const bindingColumns: ProColumns<AdsConsole.AdPlatformCampaignGroupBinding>[] = [
+    { title: '平台', dataIndex: 'platform', valueType: 'select', valueEnum: PLATFORM_VALUE_ENUM, width: 120 },
+    { title: '平台账户ID', dataIndex: 'platformAccountId', width: 140 },
+    { title: '账户ID', dataIndex: 'accountId', width: 160 },
+    { title: 'Campaign ID', dataIndex: 'campaignId', width: 180 },
+    { title: 'Campaign 名称', dataIndex: 'campaignName', width: 220 },
+    {
+      title: '项目组',
+      dataIndex: 'groupId',
+      valueType: 'select',
+      fieldProps: {
+        options: groupOptions,
+        showSearch: true,
+        optionFilterProp: 'label',
+      },
+      width: 160,
+      render: (_, record) => record.groupName || '-',
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      valueType: 'select',
+      valueEnum: {
+        0: { text: '停用', status: 'Error' },
+        1: { text: '启用', status: 'Success' },
+      },
+      width: 100,
+    },
+    {
+      title: '更新时间',
+      dataIndex: 'updateTime',
+      hideInSearch: true,
+      width: 170,
+      render: (_, record) => record.updateTime ? dayjs(record.updateTime).format('YYYY-MM-DD HH:mm:ss') : '-',
+    },
+    {
+      title: '操作',
+      valueType: 'option',
+      width: 110,
+      render: (_, record) => (
+        <Popconfirm title="确定解除该 Campaign 的项目组绑定？" onConfirm={() => handleUnbindCampaignGroup(record)}>
+          <Button type="link" danger size="small">
+            解除
+          </Button>
+        </Popconfirm>
+      ),
+    },
   ];
 
   const historyColumns: ProColumns<AdsConsole.AdPlatformSyncHistory>[] = [
-    { title: '平台', dataIndex: 'platform', valueType: 'select', valueEnum: { mintegral: { text: 'Mintegral' } }, width: 120 },
+    { title: '平台', dataIndex: 'platform', valueType: 'select', valueEnum: PLATFORM_VALUE_ENUM, width: 120 },
     { title: '对象类型', dataIndex: 'objectType', width: 140 },
     { title: '对象ID', dataIndex: 'objectId', width: 180 },
     {
@@ -334,7 +507,12 @@ const PlatformPage: React.FC = () => {
                 actionRef={accountActionRef}
                 columns={accountColumns}
                 request={async (params) => {
-                  const res = await getPlatformAccountPage({ ...params, platform: params.platform || undefined });
+                  const res = await getPlatformAccountPage({
+                    ...params,
+                    platform: params.platform || undefined,
+                    groupId: params.groupId || undefined,
+                    groupResolveMode: params.groupResolveMode || undefined,
+                  });
                   return {
                     data: res.data?.records || [],
                     total: res.data?.total || 0,
@@ -346,7 +524,7 @@ const PlatformPage: React.FC = () => {
                     新增账户
                   </Button>,
                 ]}
-                scroll={{ x: 1180 }}
+                scroll={{ x: 1280 }}
               />
             ),
           },
@@ -367,6 +545,26 @@ const PlatformPage: React.FC = () => {
                   };
                 }}
                 scroll={{ x: 1300 }}
+              />
+            ),
+          },
+          {
+            key: 'bindings',
+            label: 'Campaign 绑定',
+            children: (
+              <ProTable<AdsConsole.AdPlatformCampaignGroupBinding>
+                rowKey="id"
+                actionRef={bindingActionRef}
+                columns={bindingColumns}
+                request={async (params) => {
+                  const res = await getCampaignGroupBindingPage(params);
+                  return {
+                    data: res.data?.records || [],
+                    total: res.data?.total || 0,
+                    success: !!res.success,
+                  };
+                }}
+                scroll={{ x: 1250 }}
               />
             ),
           },
@@ -397,7 +595,11 @@ const PlatformPage: React.FC = () => {
         title={editRecord ? '编辑平台账户' : '新增平台账户'}
         open={editOpen}
         modalProps={{ destroyOnHidden: true, onCancel: () => setEditOpen(false) }}
-        initialValues={editRecord || { platform: 'mintegral', status: 1 }}
+        initialValues={editRecord ? { ...editRecord, groupResolveMode: editRecord.groupResolveMode || 'ACCOUNT_DIRECT' } : {
+          platform: 'mintegral',
+          status: 1,
+          groupResolveMode: 'ACCOUNT_DIRECT',
+        }}
         onFinish={async (values) => {
           const ok = await handleSave(values);
           if (ok) setEditOpen(false);
@@ -406,6 +608,23 @@ const PlatformPage: React.FC = () => {
       >
         <ProFormSelect name="platform" label="平台" options={PLATFORM_OPTIONS} rules={[{ required: true }]} />
         <ProFormText name="name" label="名称" rules={[{ required: true }]} />
+        <ProFormSelect
+          name="groupId"
+          label="项目组"
+          allowClear
+          options={groupOptions}
+          fieldProps={{
+            showSearch: true,
+            optionFilterProp: 'label',
+          }}
+        />
+        <ProFormSelect
+          name="groupResolveMode"
+          label="项目组归属模式"
+          options={GROUP_RESOLVE_MODE_OPTIONS}
+          initialValue="ACCOUNT_DIRECT"
+          rules={[{ required: true }]}
+        />
         <ProFormText name="accessKey" label="Access Key" rules={[{ required: true }]} />
         <ProFormText.Password name="apiKey" label="API Key" rules={[{ required: true }]} />
         <ProFormSelect
@@ -425,7 +644,7 @@ const PlatformPage: React.FC = () => {
         modalProps={{ destroyOnHidden: true, onCancel: () => setSyncOpen(false) }}
         initialValues={{
           granularity: 'daily',
-          syncMode: 'FULL',
+          syncMode: 'INSIGHTS',
           dateRange: [dayjs().subtract(1, 'day').format('YYYY-MM-DD'), dayjs().subtract(1, 'day').format('YYYY-MM-DD')],
         }}
         onFinish={async (values) => {
@@ -447,9 +666,9 @@ const PlatformPage: React.FC = () => {
           name="syncMode"
           label="同步模式"
           options={[
-            { label: '实体 + 报表', value: 'FULL' },
-            { label: '仅实体', value: 'ENTITY' },
-            { label: '仅报表', value: 'INSIGHTS' },
+            { label: '实体', value: 'ENTITY' },
+            { label: '报表', value: 'INSIGHTS' },
+            { label: '全部', value: 'FULL' },
           ]}
         />
         <ProFormDateRangePicker name="dateRange" label="同步日期" rules={[{ required: true }]} />
@@ -483,6 +702,31 @@ const PlatformPage: React.FC = () => {
           name="payload"
           label="官方 JSON Payload"
           fieldProps={{ rows: 14 }}
+          rules={[{ required: true }]}
+        />
+      </ModalForm>
+
+      <ModalForm
+        title={`绑定 Campaign 项目组 ${bindRecord?.name || bindRecord?.objectId || ''}`}
+        open={bindOpen}
+        modalProps={{ destroyOnHidden: true, onCancel: () => setBindOpen(false) }}
+        onFinish={async (values) => {
+          const ok = await handleBindCampaignGroup(values as { groupId?: string });
+          if (ok) setBindOpen(false);
+          return ok;
+        }}
+      >
+        <ProFormText name="campaignId" label="Campaign ID" initialValue={bindRecord?.objectId} disabled />
+        <ProFormText name="campaignName" label="Campaign 名称" initialValue={bindRecord?.name} disabled />
+        <ProFormSelect
+          name="groupId"
+          label="项目组"
+          allowClear={false}
+          options={groupOptions}
+          fieldProps={{
+            showSearch: true,
+            optionFilterProp: 'label',
+          }}
           rules={[{ required: true }]}
         />
       </ModalForm>

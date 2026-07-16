@@ -39,6 +39,20 @@ declare namespace AdsConsole {
     groupNames?: string[];
   };
 
+  type RouteMenuItem = {
+    id: string;
+    name: string;
+    path: string;
+    component: string | null;
+    meta: {
+      title: string;
+      icon?: string;
+      sort?: number;
+      hidden?: boolean;
+    };
+    children?: RouteMenuItem[] | null;
+  };
+
   type CurrentUser = API.CurrentUser & {
     id?: number;
     userId?: number;
@@ -51,6 +65,7 @@ declare namespace AdsConsole {
     teamName?: string;
     agencyNames?: string[];
     groupNames?: string[];
+    adsMenus?: RouteMenuItem[];
   };
 
   type DashboardMetric = {
@@ -206,9 +221,9 @@ declare namespace AdsConsole {
     userSummaries: DashboardUserSummary[];
   };
 
-  type ReportPlatform = 'facebook' | 'mintegral';
-  type ReportObjectName = 'account' | 'campaign' | 'adset' | 'offer';
-  type HourReportObjectName = 'account' | 'campaign' | 'adset' | 'ad' | 'offer';
+  type ReportPlatform = 'facebook' | 'mintegral' | 'kwai' | 'google_ads';
+  type ReportObjectName = 'account' | 'campaign' | 'adset' | 'ad_group' | 'ad' | 'offer';
+  type HourReportObjectName = 'account' | 'campaign' | 'adset' | 'ad_group' | 'ad' | 'offer';
 
   type OverallReportDimension =
     | 'date'
@@ -795,20 +810,6 @@ declare namespace AdsConsole {
     children?: SysPermission[];
   };
 
-  type RouteMenuItem = {
-    id: string;
-    name: string;
-    path: string;
-    component: string | null;
-    meta: {
-      title: string;
-      icon?: string;
-      sort?: number;
-      hidden?: boolean;
-    };
-    children?: RouteMenuItem[] | null;
-  };
-
   type SysDictType = {
     id: string;
     name: string;
@@ -901,10 +902,13 @@ declare namespace AdsConsole {
 
   type AdPlatformAccount = {
     id: string;
-    platform: 'facebook' | 'mintegral';
+    platform: 'facebook' | 'mintegral' | 'kwai' | 'google_ads';
     name: string;
     accountId?: string;
     accountName?: string;
+    groupId?: string;
+    groupName?: string;
+    groupResolveMode?: 'ACCOUNT_DIRECT' | 'CAMPAIGN_NAME_PREFIX' | 'CAMPAIGN_BINDING' | 'MIXED_PRIORITY';
     currency?: string;
     balance?: number;
     accessKey?: string;
@@ -930,6 +934,20 @@ declare namespace AdsConsole {
     name?: string;
     status?: string;
     lastSyncTime?: string;
+  };
+
+  type AdPlatformCampaignGroupBinding = {
+    id: string;
+    platform: string;
+    platformAccountId: string;
+    accountId?: string;
+    campaignId: string;
+    campaignName?: string;
+    groupId: string;
+    groupName?: string;
+    status?: number;
+    createTime?: string;
+    updateTime?: string;
   };
 
   type AdPlatformSyncHistory = {

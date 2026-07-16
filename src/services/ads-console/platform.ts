@@ -2,11 +2,17 @@
 
 const PLATFORM_API_PREFIX = '/ads-api/v2/platform';
 
+export type PlatformSyncMode = 'ENTITY' | 'INSIGHTS' | 'FULL';
+export type PlatformReportGranularity = 'daily' | 'hourly';
+export type GroupResolveMode = 'ACCOUNT_DIRECT' | 'CAMPAIGN_NAME_PREFIX' | 'CAMPAIGN_BINDING' | 'MIXED_PRIORITY';
+
 export async function getPlatformAccountPage(params: {
   current?: number;
   size?: number;
   platform?: string;
   name?: string;
+  groupId?: string;
+  groupResolveMode?: GroupResolveMode;
   status?: number;
 }) {
   return request<AdsConsole.Result<AdsConsole.PageResult<AdsConsole.AdPlatformAccount>>>(`${PLATFORM_API_PREFIX}/account/page`, {
@@ -43,7 +49,12 @@ export async function validatePlatformAccount(id: string) {
 
 export async function syncPlatformAccount(
   id: string,
-  body: { startDate: string; endDate: string; syncMode?: string; granularity?: string },
+  body: {
+    startDate: string;
+    endDate: string;
+    syncMode?: PlatformSyncMode;
+    granularity?: PlatformReportGranularity;
+  },
 ) {
   return request<AdsConsole.Result<null>>(`${PLATFORM_API_PREFIX}/account/${id}/sync`, {
     method: 'POST',
@@ -103,6 +114,51 @@ export async function getPlatformSyncHistoryPage(params: {
   return request<AdsConsole.Result<AdsConsole.PageResult<AdsConsole.AdPlatformSyncHistory>>>(`${PLATFORM_API_PREFIX}/sync-history/page`, {
     method: 'GET',
     params,
+  });
+}
+
+export async function getCampaignGroupBindingPage(params: {
+  current?: number;
+  size?: number;
+  platform?: string;
+  platformAccountId?: string;
+  accountId?: string;
+  campaignId?: string;
+  campaignName?: string;
+  groupId?: string;
+  status?: number;
+}) {
+  return request<AdsConsole.Result<AdsConsole.PageResult<AdsConsole.AdPlatformCampaignGroupBinding>>>(
+    `${PLATFORM_API_PREFIX}/campaign-group-binding/page`,
+    {
+      method: 'GET',
+      params,
+    },
+  );
+}
+
+export async function bindCampaignGroup(body: {
+  platform: string;
+  platformAccountId: string;
+  accountId?: string;
+  campaignId: string;
+  campaignName?: string;
+  groupId: string;
+}) {
+  return request<AdsConsole.Result<null>>(`${PLATFORM_API_PREFIX}/campaign-group-binding`, {
+    method: 'POST',
+    data: body,
+  });
+}
+
+export async function unbindCampaignGroup(body: {
+  platform: string;
+  platformAccountId: string;
+  campaignIds: string[];
+}) {
+  return request<AdsConsole.Result<null>>(`${PLATFORM_API_PREFIX}/campaign-group-binding`, {
+    method: 'DELETE',
+    data: body,
   });
 }
 

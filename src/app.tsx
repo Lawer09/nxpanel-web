@@ -21,6 +21,7 @@ import {
 } from '@/services/dev-admin/session';
 import {
   adsLoginDataToCurrentUser,
+  getAdsConsolePermissionRoutes,
   getAdsConsoleUserInfo,
 } from '@/services/ads-console/auth';
 import {
@@ -69,6 +70,95 @@ const filterOperationMenu = (menuData: any[]) =>
   );
 const filterAdsConsoleMenu = (menuData: any[]) =>
   menuData.filter((item) => item.path === '/ads-console');
+const normalizeAdsPermissionPath = (path?: string) => {
+  if (!path) return undefined;
+  if (path.startsWith('/ads-console')) return path;
+  if (path === '/') return '/ads-console/dashboard';
+  if (path === '/dashboard') return '/ads-console/dashboard';
+  if (path === '/changelog') return '/ads-console/changelog';
+  if (path === '/system/token') return '/ads-console/token';
+  if (path === '/system/bm') return '/ads-console/bm';
+  if (path === '/system/platform') return '/ads-console/platform';
+  return `/ads-console${path.startsWith('/') ? path : `/${path}`}`;
+};
+const collectAdsAllowedPaths = (
+  menus?: AdsConsole.RouteMenuItem[] | null,
+  options?: { includeHidden?: boolean },
+): Set<string> | undefined => {
+  if (!menus?.length) return undefined;
+  const allowedPaths = new Set<string>();
+  const visit = (items?: AdsConsole.RouteMenuItem[] | null) => {
+    items?.forEach((item) => {
+      if (options?.includeHidden || !item.meta?.hidden) {
+        const normalized = normalizeAdsPermissionPath(item.path);
+        if (normalized) allowedPaths.add(normalized);
+      }
+      visit(item.children);
+    });
+  };
+  visit(menus);
+  return allowedPaths;
+};
+const getAdsConsoleAllowedPaths = (currentUser?: API.CurrentUser) =>
+  collectAdsAllowedPaths(
+    (currentUser as AdsConsole.CurrentUser | undefined)?.adsMenus,
+    { includeHidden: true },
+  );
+const getAdsConsoleMenuPaths = (currentUser?: API.CurrentUser) =>
+  collectAdsAllowedPaths(
+    (currentUser as AdsConsole.CurrentUser | undefined)?.adsMenus,
+  );
+const getFirstAllowedAdsConsolePath = (currentUser?: API.CurrentUser) => {
+  const allowedPaths = getAdsConsoleAllowedPaths(currentUser);
+  if (!allowedPaths?.size) return adsHomePath;
+  if (allowedPaths.has(adsHomePath)) return adsHomePath;
+  return Array.from(allowedPaths).find(
+    (path) => path.startsWith('/ads-console') && path !== '/ads-console',
+  ) ?? adsHomePath;
+};
+const isAllowedAdsConsolePath = (
+  pathname: string,
+  currentUser?: API.CurrentUser,
+) => {
+  const allowedPaths = getAdsConsoleAllowedPaths(currentUser);
+  if (!allowedPaths?.size) return true;
+  return allowedPaths.has(pathname);
+};
+const filterAdsConsoleMenuByPermission = (
+  menuData: any[],
+  currentUser?: API.CurrentUser,
+) => {
+  const adsMenu = filterAdsConsoleMenu(menuData);
+  const allowedPaths = getAdsConsoleMenuPaths(currentUser);
+
+  if (!allowedPaths?.size) {
+    return adsMenu;
+  }
+
+  const filterItem = (item: any): any | undefined => {
+    if (item.hideInMenu) return undefined;
+    const children = item.children
+      ?.map(filterItem)
+      .filter(Boolean);
+    const routes = item.routes
+      ?.map(filterItem)
+      .filter(Boolean);
+    const matched = item.path ? allowedPaths.has(item.path) : false;
+    const isAdsRoot = item.path === '/ads-console';
+
+    if (!isAdsRoot && !matched && !children?.length && !routes?.length) {
+      return undefined;
+    }
+
+    return {
+      ...item,
+      ...(item.children ? { children: children ?? [] } : {}),
+      ...(item.routes ? { routes: routes ?? [] } : {}),
+    };
+  };
+
+  return adsMenu.map(filterItem).filter(Boolean);
+};
 const filterDefinedMenu = (menuData: any[], allowedPaths: Set<string>): any[] =>
   filterOperationMenu(menuData)
     .map((item) => {
@@ -243,7 +333,16 @@ export async function getInitialState(): Promise<{
     try {
       const res = await getAdsConsoleUserInfo();
       if (res?.success && res.data) {
-        return adsLoginDataToCurrentUser(res.data);
+        let adsMenus: AdsConsole.RouteMenuItem[] | undefined;
+        try {
+          const routesRes = await getAdsConsolePermissionRoutes();
+          if (routesRes?.success && Array.isArray(routesRes.data)) {
+            adsMenus = routesRes.data;
+          }
+        } catch (_error) {
+          adsMenus = undefined;
+        }
+        return adsLoginDataToCurrentUser(res.data, adsMenus);
       }
     } catch (_error) {
       clearAdsAuthToken();
@@ -323,7 +422,10 @@ export const layout: RunTimeLayoutConfig = ({
         );
       }
       if (isAdsMode) {
-        return filterAdsConsoleMenu(menuData);
+        return filterAdsConsoleMenuByPermission(
+          menuData,
+          initialState?.currentUser,
+        );
       }
       if (isDefinedMenuMode) {
         return filterDefinedMenu(
@@ -373,6 +475,15 @@ export const layout: RunTimeLayoutConfig = ({
 
       if (loginMode === 'ads' && !isAdsPath && !isAuthFreePath) {
         history.replace(adsHomePath);
+        return;
+      }
+
+      if (
+        loginMode === 'ads' &&
+        isAdsPath &&
+        !isAllowedAdsConsolePath(location.pathname, currentUser)
+      ) {
+        history.replace(getFirstAllowedAdsConsolePath(currentUser));
         return;
       }
 

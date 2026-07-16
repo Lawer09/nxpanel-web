@@ -115,10 +115,23 @@ const MINTEGRAL_REPORT_TYPE_OPTIONS: { label: string; value: ReportType }[] = [
   { label: "广告单元 Offer", value: "offer" },
 ];
 
+const KWAI_REPORT_TYPE_OPTIONS: { label: string; value: ReportType }[] = [
+  { label: "Campaign", value: "campaign" },
+  { label: "Ad Set", value: "adset" },
+  { label: "Ad", value: "ad" },
+];
+
+const GOOGLE_ADS_REPORT_TYPE_OPTIONS: { label: string; value: ReportType }[] = [
+  { label: "Campaign", value: "campaign" },
+  { label: "Ad Group", value: "ad_group" },
+  { label: "Ad", value: "ad" },
+];
+
 const OBJECT_ID_LABEL_MAP: Record<ReportType, string> = {
   account: "账户ID",
   campaign: "活动ID",
   adset: "广告组ID",
+  ad_group: "Ad Group ID",
   ad: "广告ID",
   offer: "广告单元ID",
 };
@@ -186,6 +199,14 @@ const REPORT_SCHEMAS: Record<ReportType, ReportSchema> = {
     defaultMetrics: [...METRIC_ORDER],
     defaultSort: "hour",
   },
+  ad_group: {
+    filters: ["platformAccountId", "objectId", "hour"],
+    dimensions: ["date", "hour", "objectId"],
+    metrics: ["spend", "impressions", "clicks", "ctr", "cpm", "cpc"],
+    defaultDimensions: ["date", "hour"],
+    defaultMetrics: ["spend", "impressions", "clicks", "ctr", "cpm", "cpc"],
+    defaultSort: "hour",
+  },
   offer: {
     filters: ["platformAccountId", "objectId", "country", "hour"],
     dimensions: ["date", "hour", "objectId", "country"],
@@ -197,11 +218,22 @@ const REPORT_SCHEMAS: Record<ReportType, ReportSchema> = {
 };
 
 const getReportSchema = (platform: ReportPlatform, type: ReportType): ReportSchema => {
-  if (platform === "mintegral") {
+  if (platform === "mintegral" || platform === "kwai") {
     return {
       ...REPORT_SCHEMAS[type],
-      filters: ["platformAccountId", "objectId", "country", "hour"],
-      dimensions: ["date", "hour", "objectId", "country"],
+      filters: ["platformAccountId", "objectId", "country", "groupId", "hour"],
+      dimensions: ["date", "hour", "objectId", "country", "groupId"],
+      metrics: ["spend", "impressions", "clicks", "ctr", "cpm", "cpc"],
+      defaultDimensions: ["date", "hour"],
+      defaultMetrics: ["spend", "impressions", "clicks", "ctr", "cpm", "cpc"],
+      defaultSort: "hour",
+    };
+  }
+  if (platform === "google_ads") {
+    return {
+      ...REPORT_SCHEMAS[type],
+      filters: ["platformAccountId", "objectId", "groupId", "hour"],
+      dimensions: ["date", "hour", "objectId", "groupId"],
       metrics: ["spend", "impressions", "clicks", "ctr", "cpm", "cpc"],
       defaultDimensions: ["date", "hour"],
       defaultMetrics: ["spend", "impressions", "clicks", "ctr", "cpm", "cpc"],
@@ -209,6 +241,13 @@ const getReportSchema = (platform: ReportPlatform, type: ReportType): ReportSche
     };
   }
   return REPORT_SCHEMAS[type];
+};
+
+const platformReportTypeOptions = (value: ReportPlatform) => {
+  if (value === "mintegral") return MINTEGRAL_REPORT_TYPE_OPTIONS;
+  if (value === "kwai") return KWAI_REPORT_TYPE_OPTIONS;
+  if (value === "google_ads") return GOOGLE_ADS_REPORT_TYPE_OPTIONS;
+  return REPORT_TYPE_OPTIONS;
 };
 
 const HOUR_OPTIONS: AdsConsole.SelectOption[] = Array.from({ length: 24 }).map((_, hour) => ({
@@ -626,11 +665,12 @@ const OverallHourReportPage: React.FC = () => {
     const current = form.getFieldsValue();
     let pruned: Record<string, unknown>;
 
-    if (platform === "mintegral") {
+    if (platform !== "facebook") {
       pruned = {
         dateRange: current.dateRange,
         platformAccountId: current.platformAccountId,
         country: current.country,
+        groupId: current.groupId,
         hour: current.hour,
       };
     } else {
@@ -695,7 +735,7 @@ const OverallHourReportPage: React.FC = () => {
   };
 
   const handlePlatformChange = (nextPlatform: ReportPlatform) => {
-    const nextType: ReportType = nextPlatform === "mintegral" ? "campaign" : "account";
+    const nextType = platformReportTypeOptions(nextPlatform)[0].value;
     const nextSchema = getReportSchema(nextPlatform, nextType);
     setPlatform(nextPlatform);
     setReportType(nextType);
@@ -738,10 +778,7 @@ const OverallHourReportPage: React.FC = () => {
     hour: HOUR_OPTIONS,
   };
 
-  const reportTypeTabItems = (platform === "mintegral"
-    ? MINTEGRAL_REPORT_TYPE_OPTIONS
-    : REPORT_TYPE_OPTIONS
-  ).map((item) => ({
+  const reportTypeTabItems = platformReportTypeOptions(platform).map((item) => ({
     label: item.label,
     value: item.value,
   }));
@@ -775,6 +812,8 @@ const OverallHourReportPage: React.FC = () => {
                 options={[
                   { label: "Facebook", value: "facebook" },
                   { label: "Mintegral", value: "mintegral" },
+                  { label: "Kwai", value: "kwai" },
+                  { label: "Google Ads", value: "google_ads" },
                 ]}
                 onChange={(value) => handlePlatformChange(value as ReportPlatform)}
               />
@@ -843,8 +882,8 @@ const OverallHourReportPage: React.FC = () => {
                           : FILTER_OPTIONS[key].placeholder
                       }
                       options={filterOptionsMap[key]}
-                      mode={platform === "mintegral" && key === "country" ? "tags" : undefined}
-                      maxCount={platform === "mintegral" && key === "country" ? 1 : undefined}
+                      mode={platform !== "facebook" && key === "country" ? "tags" : undefined}
+                      maxCount={platform !== "facebook" && key === "country" ? 1 : undefined}
                     />
                   </Form.Item>
                 </Col>
@@ -939,7 +978,7 @@ const OverallHourReportPage: React.FC = () => {
             const sortOrder =
               sortValue === "ascend" ? "asc" : sortValue === "descend" ? "desc" : "desc";
             const requestPlatform = params.platform || "facebook";
-            const isMintegral = requestPlatform === "mintegral";
+            const isNonFacebook = requestPlatform !== "facebook";
 
             const res = await getOverallHourReportPage({
               platform: requestPlatform,
@@ -948,15 +987,15 @@ const OverallHourReportPage: React.FC = () => {
               size: params.pageSize,
               startDate: params.startDate,
               endDate: params.endDate,
-              platformAccountId: isMintegral
+              platformAccountId: isNonFacebook
                 ? normalizeSelectValue(params.platformAccountId)
                 : undefined,
               objectId: normalizeSelectValue(params.objectId),
-              country: isMintegral ? normalizeSelectValue(params.country) : undefined,
-              accountId: isMintegral ? undefined : normalizeSelectValue(params.accountId),
-              campaignId: isMintegral ? undefined : normalizeSelectValue(params.campaignId),
-              groupId: isMintegral ? undefined : normalizeSelectValue(params.groupId),
-              agencyId: isMintegral ? undefined : normalizeSelectValue(params.agencyId),
+              country: isNonFacebook ? normalizeSelectValue(params.country) : undefined,
+              accountId: isNonFacebook ? undefined : normalizeSelectValue(params.accountId),
+              campaignId: isNonFacebook ? undefined : normalizeSelectValue(params.campaignId),
+              groupId: normalizeSelectValue(params.groupId),
+              agencyId: isNonFacebook ? undefined : normalizeSelectValue(params.agencyId),
               hour: params.hour ? Number(params.hour) : undefined,
               dims: requestDimensions.map((d) => DIMENSION_OPTIONS[d].backend),
               metrics: requestMetrics,

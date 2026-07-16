@@ -7,6 +7,7 @@ import React from 'react';
 import { flushSync } from 'react-dom';
 import {
   adsLoginDataToCurrentUser,
+  getAdsConsolePermissionRoutes,
   loginAdsConsole,
 } from '@/services/ads-console/auth';
 import { setAdsAuthToken } from '@/services/ads-console/authStorage';
@@ -230,14 +231,23 @@ const LoginPage: React.FC = () => {
     {
       manual: true,
       formatResult: (res: any) => res,
-      onSuccess: (res: AdsConsole.Result<AdsConsole.LoginData>) => {
+      onSuccess: async (res: AdsConsole.Result<AdsConsole.LoginData>) => {
         if (!res?.success || !res.data?.token) {
           message.error(res?.errorMessage || '投放管理登录失败');
           return;
         }
 
         setAdsAuthToken(res.data.token);
-        const currentUser = adsLoginDataToCurrentUser(res.data);
+        let adsMenus: AdsConsole.RouteMenuItem[] | undefined;
+        try {
+          const routesRes = await getAdsConsolePermissionRoutes();
+          if (routesRes?.success && Array.isArray(routesRes.data)) {
+            adsMenus = routesRes.data;
+          }
+        } catch (_error) {
+          adsMenus = undefined;
+        }
+        const currentUser = adsLoginDataToCurrentUser(res.data, adsMenus);
         message.success('登录成功');
         flushSync(() => {
           setInitialState((s) => ({
