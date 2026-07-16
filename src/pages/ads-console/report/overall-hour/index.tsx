@@ -379,11 +379,18 @@ const OverallHourReportPage: React.FC = () => {
 
   useEffect(() => {
     const loadCommonOptions = async () => {
-      if (platform === "mintegral") {
-        setGroupOptions([]);
+      const groupRes = await getGroupOptions();
+      setGroupOptions(
+        (groupRes?.data || []).map((item) => ({
+          label: item.label,
+          value: String(item.value),
+        }))
+      );
+
+      if (platform !== "facebook") {
         setAgencyOptions([]);
         const accountRes = await getPlatformAccountPage({
-          platform: "mintegral",
+          platform,
           status: 1,
           current: 1,
           size: 1000,
@@ -397,16 +404,7 @@ const OverallHourReportPage: React.FC = () => {
         return;
       }
       setPlatformAccountOptions([]);
-      const [groupRes, agencyRes] = await Promise.all([
-        getGroupOptions(),
-        getAgencyOptions(),
-      ]);
-      setGroupOptions(
-        (groupRes?.data || []).map((item) => ({
-          label: item.label,
-          value: String(item.value),
-        }))
-      );
+      const agencyRes = await getAgencyOptions();
       setAgencyOptions(
         (agencyRes?.data || []).map((item) => ({
           label: String(item.label ?? item.value),
@@ -421,9 +419,9 @@ const OverallHourReportPage: React.FC = () => {
   useEffect(() => {
     const loadTypeOptions = async () => {
       let rawIdOptions: AdsConsole.SelectOption[] = [];
-      if (platform === "mintegral") {
+      if (platform !== "facebook") {
         const objectRes = await getPlatformObjectOptions({
-          platform: "mintegral",
+          platform,
           platformAccountId: normalizeSelectValue(selectedPlatformAccountId),
           objectType: reportType,
         });

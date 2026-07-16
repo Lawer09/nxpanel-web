@@ -567,11 +567,18 @@ const ReportPage: React.FC = () => {
 
   useEffect(() => {
     const loadCommonOptions = async () => {
+      const groupRes = await getGroupOptions();
+      setGroupOptions(
+        (groupRes?.data || []).map((item) => ({
+          label: item.label,
+          value: String(item.value),
+        }))
+      );
+
       if (platform !== "facebook") {
-        setGroupOptions([]);
         setAgencyOptions([]);
         const accountRes = await getPlatformAccountPage({
-          platform: "mintegral",
+          platform,
           status: 1,
           current: 1,
           size: 1000,
@@ -585,16 +592,7 @@ const ReportPage: React.FC = () => {
         return;
       }
       setPlatformAccountOptions([]);
-      const [groupRes, agencyRes] = await Promise.all([
-        getGroupOptions(),
-        getAgencyOptions(),
-      ]);
-      setGroupOptions(
-        (groupRes?.data || []).map((item) => ({
-          label: item.label,
-          value: String(item.value),
-        }))
-      );
+      const agencyRes = await getAgencyOptions();
       setAgencyOptions(
         (agencyRes?.data || []).map((item) => ({
           label: String(item.label ?? item.value),
@@ -609,9 +607,9 @@ const ReportPage: React.FC = () => {
   useEffect(() => {
     const loadTypeOptions = async () => {
       let rawIdOptions: AdsConsole.SelectOption[] = [];
-      if (platform === "mintegral") {
+      if (platform !== "facebook") {
         const objectRes = await getPlatformObjectOptions({
-          platform: "mintegral",
+          platform,
           platformAccountId: normalizeSelectValue(selectedPlatformAccountId),
           objectType: reportType,
         });
