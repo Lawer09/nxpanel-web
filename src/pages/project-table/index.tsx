@@ -23,6 +23,7 @@ import ProjectTableForm from './components/ProjectTableForm';
 import ProjectTableDetailDrawer from './components/ProjectTableDetailDrawer';
 import ProjectBatchImportModal from './components/ProjectBatchImportModal';
 import ProjectSyncModal from './components/ProjectSyncModal';
+import ProjectVersionRecords from './components/ProjectVersionRecords';
 import { PROJECT_TABLE_FIELDS } from './fields';
 import { PROJECT_APP_PLATFORM_OPTIONS, PROJECT_AD_STATUS_OPTIONS } from '@/pages/project/constants';
 import { buildProjectTrendSearch, PROJECT_TREND_DASHBOARD_PATH } from '@/pages/report/project-trend/utils';
@@ -359,6 +360,11 @@ const ProjectTablePage: React.FC = () => {
         rowSelection={{
           selectedRowKeys: selectedRows.map((row) => row.id),
           onChange: (_, rows) => setSelectedRows(rows),
+        }}
+        expandable={{
+          expandedRowRender: (record) => (
+            <ProjectVersionRecords projectId={record.id} projectCode={record.projectCode} />
+          ),
         }}
         tableAlertRender={({ selectedRowKeys, onCleanSelected }) => (
           <Space>

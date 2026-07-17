@@ -170,6 +170,35 @@ export async function deleteUserApp(data: Types.ProjectResourceIdRequest) {
   });
 }
 
+// Version Records
+export async function getProjectVersionRecords(params?: Types.ProjectVersionRecordFetchRequest) {
+  return request<API.ApiResponse<API.PageResult<Types.ProjectVersionRecord>>>('/v3/projects/version-records', {
+    method: 'GET',
+    params,
+  });
+}
+
+export async function createProjectVersionRecord(data: Types.ProjectVersionRecordStoreRequest) {
+  return request<API.ApiResponse<any>>('/v3/projects/version-records/create', {
+    method: 'POST',
+    data,
+  });
+}
+
+export async function updateProjectVersionRecord(data: Types.ProjectVersionRecordUpdateRequest) {
+  return request<API.ApiResponse<any>>('/v3/projects/version-records/update', {
+    method: 'POST',
+    data,
+  });
+}
+
+export async function deleteProjectVersionRecord(data: Types.ProjectVersionRecordDeleteRequest) {
+  return request<API.ApiResponse<any>>('/v3/projects/version-records/delete', {
+    method: 'POST',
+    data,
+  });
+}
+
 // Aggregation
 export async function aggregateSync(data: Types.AggregateRequest) {
   return request<API.ApiResponse<any>>('/v3/projects/aggregate', {

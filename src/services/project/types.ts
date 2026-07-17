@@ -42,6 +42,18 @@ export interface ProjectUserAppMapping {
 
 type NullableString = string | null;
 
+export interface ProjectVersionRecord {
+  id: number;
+  projectId: number;
+  projectCode: string;
+  version: string;
+  content: string;
+  releaseTime: string;
+  remark: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface ProjectItem {
   id: number;
   projectCode: string;
@@ -90,6 +102,16 @@ export interface ProjectFetchRequest {
   packageName?: string;
   developerGmail?: string;
   ownerId?: number;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ProjectVersionRecordFetchRequest {
+  projectId?: number;
+  projectCode?: string;
+  keyword?: string;
+  releaseTimeFrom?: string;
+  releaseTimeTo?: string;
   page?: number;
   pageSize?: number;
 }
@@ -325,6 +347,27 @@ export interface ProjectUserAppUpdateRequest {
 export interface ProjectResourceIdRequest {
   id: number;
   projectId: number;
+}
+
+export interface ProjectVersionRecordStoreRequest {
+  projectId: number;
+  version: string;
+  content: string;
+  releaseTime: string;
+  remark?: NullableString;
+}
+
+export interface ProjectVersionRecordUpdateRequest {
+  id: number;
+  projectId?: number;
+  version?: string;
+  content?: string;
+  releaseTime?: string;
+  remark?: NullableString;
+}
+
+export interface ProjectVersionRecordDeleteRequest {
+  id: number;
 }
 
 export interface AggregateRequest {
