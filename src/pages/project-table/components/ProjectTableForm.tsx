@@ -5,7 +5,7 @@ import {
   ProFormText,
   ProFormTextArea,
 } from '@ant-design/pro-components';
-import { App, Col, Form, Row, Tabs } from 'antd';
+import { App, AutoComplete, Col, Form, Input, Row, Tabs } from 'antd';
 import { createProject, updateProject } from '@/services/project/api';
 import type { ProjectItem } from '@/services/project/types';
 import {
@@ -37,6 +37,23 @@ const renderField = (field: ProjectFieldConfig, isEdit: boolean) => {
 
   if (field.multiline) {
     return <ProFormTextArea {...commonProps} fieldProps={{ rows: 4 }} />;
+  }
+
+  if (field.name === 'adStatus') {
+    return (
+      <Form.Item {...commonProps}>
+        <AutoComplete
+          allowClear
+          options={field.options}
+          placeholder="选择或输入投放状态"
+          filterOption={(inputValue, option) =>
+            `${option?.value ?? ''}`.toLowerCase().includes(inputValue.toLowerCase())
+          }
+        >
+          <Input />
+        </AutoComplete>
+      </Form.Item>
+    );
   }
 
   if (field.options) {

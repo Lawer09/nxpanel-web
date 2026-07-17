@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { PageContainer, type ProColumns, ProTable, type ActionType } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { App, Button, Form, Modal, Select, Space, Tag, Typography } from 'antd';
+import { App, AutoComplete, Button, Form, Input, Modal, Select, Space, Tag, Typography } from 'antd';
 import {
   CheckCircleOutlined,
   InboxOutlined,
@@ -226,10 +226,18 @@ const ProjectTablePage: React.FC = () => {
       title: '投放状态',
       dataIndex: 'adStatus',
       width: 120,
-      valueType: 'select',
-      fieldProps: {
-        options: PROJECT_AD_STATUS_OPTIONS,
-      },
+      renderFormItem: () => (
+        <AutoComplete
+          allowClear
+          options={PROJECT_AD_STATUS_OPTIONS}
+          placeholder="选择或输入投放状态"
+          filterOption={(inputValue, option) =>
+            `${option?.value ?? ''}`.toLowerCase().includes(inputValue.toLowerCase())
+          }
+        >
+          <Input />
+        </AutoComplete>
+      ),
       ellipsis: true,
     },
     {
@@ -522,11 +530,16 @@ const ProjectTablePage: React.FC = () => {
               </Form.Item>
             ) : (
               <Form.Item name="adStatus" label="投放状态">
-                <Select
+                <AutoComplete
                   allowClear
-                  placeholder="请选择投放状态；清空后提交将清空投放状态"
                   options={PROJECT_AD_STATUS_OPTIONS}
-                />
+                  placeholder="请选择或输入投放状态；清空后提交将清空投放状态"
+                  filterOption={(inputValue, option) =>
+                    `${option?.value ?? ''}`.toLowerCase().includes(inputValue.toLowerCase())
+                  }
+                >
+                  <Input />
+                </AutoComplete>
               </Form.Item>
             )}
           </Form>

@@ -44,9 +44,12 @@ import {
 const { Text } = Typography;
 
 const getAdStatusColor = (adStatus?: string | null) => {
-  if (adStatus === '在投') return 'green';
-  if (adStatus === '暂停') return 'orange';
-  if (adStatus === '未上线') return 'default';
+  const normalized = adStatus?.trim();
+  if (['在投', '放量中'].includes(normalized || '')) return 'green';
+  if (['待投放', '测试中', '审核中', '控量中'].includes(normalized || '')) return 'processing';
+  if (['暂停', '停投'].includes(normalized || '')) return 'orange';
+  if (['已下架', '被拒'].includes(normalized || '')) return 'red';
+  if (normalized === '未上线') return 'default';
   return 'blue';
 };
 
