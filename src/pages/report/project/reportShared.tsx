@@ -343,6 +343,12 @@ type TopRevenueCountryItem = {
   ratio: unknown;
 };
 
+type AdSpendPlatformCompositionItem = {
+  platform: string;
+  adSpendCost: unknown;
+  ratio: unknown;
+};
+
 const parseTopRevenueCountries = (value: unknown): TopRevenueCountryItem[] => {
   if (!Array.isArray(value)) return [];
   return value
@@ -358,6 +364,23 @@ const parseTopRevenueCountries = (value: unknown): TopRevenueCountryItem[] => {
       };
     })
     .filter((item): item is TopRevenueCountryItem => Boolean(item));
+};
+
+const parseAdSpendPlatformComposition = (value: unknown): AdSpendPlatformCompositionItem[] => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const record = item as Record<string, unknown>;
+      const platform = typeof record.platform === 'string' ? record.platform.trim() : '';
+      if (!platform) return null;
+      return {
+        platform,
+        adSpendCost: record.adSpendCost,
+        ratio: record.ratio,
+      };
+    })
+    .filter((item): item is AdSpendPlatformCompositionItem => Boolean(item));
 };
 
 const fmtRatioDecimalPercent = (value: unknown) => {
@@ -485,6 +508,35 @@ const renderRevenueWithMeta = (adRevenue: unknown, record?: Record<string, unkno
   const topRevenueCountries = renderTopRevenueCountries(record);
 
   return renderMetricWithDayOverDay(revenueText, record, 'adRevenueDayOverDay', topRevenueCountries);
+};
+
+const renderAdSpendValue = (adSpendCost: unknown, record?: Record<string, unknown>) => {
+  const spendText = fmtCurrency(adSpendCost);
+  if (spendText === '--') return spendText;
+
+  const composition = parseAdSpendPlatformComposition(record?.adSpendPlatformComposition);
+  if (!composition.length) return spendText;
+
+  return (
+    <Tooltip
+      title={
+        <Space direction="vertical" size={4}>
+          {composition.map((item) => (
+            <div
+              key={`${item.platform}-${String(item.adSpendCost)}-${String(item.ratio)}`}
+              style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, minWidth: 240 }}
+            >
+              <span>{item.platform}</span>
+              <span>{fmtCurrency(item.adSpendCost)}</span>
+              <span>{fmtRatioDecimalPercent(item.ratio)}</span>
+            </div>
+          ))}
+        </Space>
+      }
+    >
+      <span>{spendText}</span>
+    </Tooltip>
+  );
 };
 
 const renderTotalCostBreakdown = (record?: Record<string, unknown>) => {
@@ -666,10 +718,10 @@ export const PROJECT_REPORT_METRIC_OPTIONS = [
       dataIndex: 'adSpendCost',
       width: 130,
       render: (value: unknown, record: API.ProjectReportItem) =>
-        renderMetricWithDayOverDay(fmtCurrency(value), record, 'adSpendCostDayOverDay'),
+        renderMetricWithDayOverDay(renderAdSpendValue(value, record), record, 'adSpendCostDayOverDay'),
     },
     formatter: (value: number, record?: Record<string, unknown>) =>
-      renderMetricWithDayOverDay(fmtCurrency(value), record, 'adSpendCostDayOverDay'),
+      renderMetricWithDayOverDay(renderAdSpendValue(value, record), record, 'adSpendCostDayOverDay'),
   },
   {
     label: '投放 CPI',
