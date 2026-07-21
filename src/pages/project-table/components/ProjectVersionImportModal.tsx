@@ -16,8 +16,8 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { createProjectVersionRecord, getProjects } from '@/services/project/api';
-import type { ProjectItem } from '@/services/project/types';
+import { batchCreateProjectVersionRecords, getProjects } from '@/services/project/api';
+import type { ProjectItem, ProjectVersionRecordBatchCreateResult } from '@/services/project/types';
 
 interface ProjectVersionImportModalProps {
   open: boolean;
@@ -171,6 +171,7 @@ const ProjectVersionImportModal: React.FC<ProjectVersionImportModalProps> = ({ o
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [resultRows, setResultRows] = useState<VersionImportResultRow[]>([]);
+  const [batchResult, setBatchResult] = useState<ProjectVersionRecordBatchCreateResult | null>(null);
 
   const projectMap = useMemo(() => buildProjectMap(projects), [projects]);
   const parsedRows = useMemo(() => parseRows(rawText, projectMap), [projectMap, rawText]);
@@ -182,6 +183,7 @@ const ProjectVersionImportModal: React.FC<ProjectVersionImportModalProps> = ({ o
     setRawText('');
     setSubmitting(false);
     setResultRows([]);
+    setBatchResult(null);
   };
 
   const closeWithoutRefresh = () => {
@@ -336,41 +338,48 @@ const ProjectVersionImportModal: React.FC<ProjectVersionImportModalProps> = ({ o
       }));
 
     try {
-      for (const row of validRows) {
-        try {
-          await createProjectVersionRecord({
-            projectId: row.projectId!,
-            version: row.version!,
-            versionName: null,
-            content: row.content!,
-            releaseTime: row.releaseTime!,
-            remark: row.ownerName ? `负责人：${row.ownerName}` : null,
-          });
-          nextResults.push({
-            key: row.key,
-            rowIndex: row.rowIndex,
-            projectCode: row.projectCode,
-            version: row.version,
-            status: 'success',
-            message: '创建成功',
-          });
-        } catch (error) {
-          nextResults.push({
-            key: row.key,
-            rowIndex: row.rowIndex,
-            projectCode: row.projectCode,
-            version: row.version,
-            status: 'failed',
-            message: error instanceof Error ? error.message : '创建失败',
-          });
-        }
+      const items = validRows.map((row) => ({
+        projectId: row.projectId!,
+        version: row.version!,
+        versionName: null,
+        content: row.content!,
+        releaseTime: row.releaseTime!,
+        remark: row.ownerName ? `负责人：${row.ownerName}` : null,
+      }));
+      const res = await batchCreateProjectVersionRecords({ items });
+      if (res.code !== 0 || !res.data) {
+        throw new Error(res.msg || '批量创建失败');
       }
 
+      validRows.forEach((row) => {
+        nextResults.push({
+          key: row.key,
+          rowIndex: row.rowIndex,
+          projectCode: row.projectCode,
+          version: row.version,
+          status: 'success',
+          message: '批量创建成功',
+        });
+      });
+
+      setBatchResult(res.data);
       setResultRows(nextResults.sort((a, b) => a.rowIndex - b.rowIndex));
       setCurrentStep('result');
-      const successCount = nextResults.filter((row) => row.status === 'success').length;
-      const failedCount = nextResults.filter((row) => row.status === 'failed').length;
-      message.success(`版本导入完成：成功 ${successCount}，失败 ${failedCount}，跳过 ${skippedCount}`);
+      message.success(`版本导入完成：创建 ${res.data.created}，提交 ${res.data.total}，跳过 ${skippedCount}`);
+    } catch (error) {
+      const failedResults = validRows.map<VersionImportResultRow>((row) => ({
+        key: row.key,
+        rowIndex: row.rowIndex,
+        projectCode: row.projectCode,
+        version: row.version,
+        status: 'failed',
+        message: error instanceof Error ? error.message : '批量创建失败',
+      }));
+
+      setBatchResult(null);
+      setResultRows([...nextResults, ...failedResults].sort((a, b) => a.rowIndex - b.rowIndex));
+      setCurrentStep('result');
+      message.error(error instanceof Error ? error.message : '版本导入失败');
     } finally {
       setSubmitting(false);
     }
@@ -451,7 +460,11 @@ const ProjectVersionImportModal: React.FC<ProjectVersionImportModalProps> = ({ o
         <Result
           status={failedCount > 0 ? 'warning' : 'success'}
           title="版本导入完成"
-          subTitle={`共识别 ${resultRows.length} 条，成功 ${successCount} 条，失败 ${failedCount} 条，跳过 ${resultSkippedCount} 条`}
+          subTitle={
+            batchResult
+              ? `共识别 ${resultRows.length} 条，批量接口创建 ${batchResult.created} 条，提交 ${batchResult.total} 条，跳过 ${resultSkippedCount} 条`
+              : `共识别 ${resultRows.length} 条，成功 ${successCount} 条，失败 ${failedCount} 条，跳过 ${resultSkippedCount} 条`
+          }
           extra={[
             <Button key="done" type="primary" onClick={successCount > 0 ? closeWithRefresh : closeWithoutRefresh}>
               完成

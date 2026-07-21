@@ -35,6 +35,7 @@
 | POST | `/projects/user-apps/delete` | 删除用户App绑定 | `ProjectUserAppMapController::destroy` |
 | GET | `/projects/version-records` | 项目版本记录列表 | `ProjectVersionRecordController::index` |
 | POST | `/projects/version-records/create` | 新增项目版本记录 | `ProjectVersionRecordController::store` |
+| POST | `/projects/version-records/batch-create` | 批量新增项目版本记录 | `ProjectVersionRecordController::batchCreate` |
 | POST | `/projects/version-records/update` | 编辑项目版本记录 | `ProjectVersionRecordController::update` |
 | POST | `/projects/version-records/delete` | 删除项目版本记录 | `ProjectVersionRecordController::destroy` |
 
@@ -789,7 +790,34 @@
 | releaseTime | string | 否 | 上线时间 |
 | remark | string/null | 否 | 备注 |
 
-### 8.6.4 删除版本记录
+### 8.6.4 批量新增版本记录
+
+- **方法/路径**：`POST /v3/projects/version-records/batch-create`
+- **说明**：批量新增项目版本记录，前端版本导入使用该接口。
+
+#### 请求参数（body JSON）
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| items | array | 是 | 版本记录数组 |
+| items[].projectId | int | 是 | 项目 ID |
+| items[].version | string | 是 | 版本号，例如 `1.0.1`，不传 `v` 前缀 |
+| items[].versionName | string/null | 否 | 版本名称，空值可传 `null` |
+| items[].content | string | 是 | 版本说明 |
+| items[].releaseTime | string | 是 | 上线时间 |
+| items[].remark | string/null | 否 | 备注 |
+
+#### 返回示例
+
+```json
+{
+  "created": 2,
+  "total": 2,
+  "items": []
+}
+```
+
+### 8.6.5 删除版本记录
 
 - **方法/路径**：`POST /v3/projects/version-records/delete`
 
@@ -799,14 +827,14 @@
 | --- | --- | --- | --- |
 | id | int | 是 | 版本记录 ID |
 
-### 8.6.5 前端交互说明
+### 8.6.6 前端交互说明
 
 - 项目管理页版本记录弹窗中的 `小版本 / 大版本` 仅用于前端生成版本号和预览，不作为接口字段提交。
 - 新增默认按当前最新版本生成小版本，即 `patch + 1`；切换大版本时默认生成 `major + 1.0.0`。
 - 用户可直接修改任意版本号输入框，最终只提交合成后的 `version` 字符串。
 - 项目管理页支持版本记录 TSV 粘贴导入，列顺序固定为：版本号、负责人、内容、项目 App、上线时间。
 - 版本导入会从 `项目 App` 字段中提取项目代号，例如 `A034 - PrimeTunnel VPN` 提取为 `A034`，再通过项目列表查询得到 `projectId`。
-- 版本导入不新增后端批量接口，前端会逐条调用 `/v3/projects/version-records/create` 创建记录。
+- 版本导入使用 `/v3/projects/version-records/batch-create` 一次提交有效行，跳过行不进入 `items`。
 - 版本导入中的负责人当前写入 `remark`，格式为 `负责人：李广`；`versionName` 无来源时传 `null`。
 - 版本导入只新增版本记录，不做同项目同版本号的更新或覆盖。
 

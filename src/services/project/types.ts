@@ -359,6 +359,23 @@ export interface ProjectVersionRecordStoreRequest {
   remark?: NullableString;
 }
 
+export interface ProjectVersionRecordBatchCreateRequest {
+  items: ProjectVersionRecordStoreRequest[];
+}
+
+export interface ProjectVersionRecordBatchCreateResultItem {
+  projectId?: number;
+  projectCode?: string;
+  version?: string;
+  id?: number;
+}
+
+export interface ProjectVersionRecordBatchCreateResult {
+  created: number;
+  total: number;
+  items: ProjectVersionRecordBatchCreateResultItem[];
+}
+
 export interface ProjectVersionRecordUpdateRequest {
   id: number;
   projectId?: number;

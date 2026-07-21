@@ -185,6 +185,16 @@ export async function createProjectVersionRecord(data: Types.ProjectVersionRecor
   });
 }
 
+export async function batchCreateProjectVersionRecords(data: Types.ProjectVersionRecordBatchCreateRequest) {
+  return request<API.ApiResponse<Types.ProjectVersionRecordBatchCreateResult>>(
+    '/v3/projects/version-records/batch-create',
+    {
+      method: 'POST',
+      data,
+    },
+  );
+}
+
 export async function updateProjectVersionRecord(data: Types.ProjectVersionRecordUpdateRequest) {
   return request<API.ApiResponse<any>>('/v3/projects/version-records/update', {
     method: 'POST',
