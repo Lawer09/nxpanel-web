@@ -137,6 +137,11 @@ const optionalNumber = (value?: string) => {
   return /^\d+$/.test(text) ? Number(text) : text;
 };
 
+const paginationNumber = (value: unknown, fallback = 0) => {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : fallback;
+};
+
 const normalizeAccountInitialValues = (record?: AdsConsole.AdPlatformAccount): PlatformAccountFormValues => {
   if (!record) {
     return {
@@ -814,14 +819,17 @@ const PlatformPage: React.FC = () => {
                 columns={accountColumns}
                 request={async (params) => {
                   const res = await getPlatformAccountPage({
-                    ...params,
+                    current: params.current,
+                    size: params.pageSize,
                     platform: params.platform || undefined,
+                    name: params.name,
                     groupId: params.groupId || undefined,
                     groupResolveMode: params.groupResolveMode || undefined,
+                    status: params.status,
                   });
                   return {
                     data: res.data?.records || [],
-                    total: res.data?.total || 0,
+                    total: paginationNumber(res.data?.total),
                     success: !!res.success,
                   };
                 }}
@@ -830,6 +838,7 @@ const PlatformPage: React.FC = () => {
                     新增账户
                   </Button>,
                 ]}
+                pagination={{ pageSize: 20, showSizeChanger: true }}
                 scroll={{ x: 1280 }}
               />
             ),
@@ -843,13 +852,23 @@ const PlatformPage: React.FC = () => {
                 actionRef={objectActionRef}
                 columns={objectColumns}
                 request={async (params) => {
-                  const res = await getPlatformObjectPage(params);
+                  const res = await getPlatformObjectPage({
+                    current: params.current,
+                    size: params.pageSize,
+                    platform: params.platform || undefined,
+                    platformAccountId: params.platformAccountId,
+                    accountId: params.accountId,
+                    objectType: params.objectType,
+                    objectId: params.objectId,
+                    name: params.name,
+                  });
                   return {
                     data: res.data?.records || [],
-                    total: res.data?.total || 0,
+                    total: paginationNumber(res.data?.total),
                     success: !!res.success,
                   };
                 }}
+                pagination={{ pageSize: 20, showSizeChanger: true }}
                 scroll={{ x: 1300 }}
               />
             ),
@@ -863,13 +882,24 @@ const PlatformPage: React.FC = () => {
                 actionRef={bindingActionRef}
                 columns={bindingColumns}
                 request={async (params) => {
-                  const res = await getCampaignGroupBindingPage(params);
+                  const res = await getCampaignGroupBindingPage({
+                    current: params.current,
+                    size: params.pageSize,
+                    platform: params.platform || undefined,
+                    platformAccountId: params.platformAccountId,
+                    accountId: params.accountId,
+                    campaignId: params.campaignId,
+                    campaignName: params.campaignName,
+                    groupId: params.groupId,
+                    status: params.status,
+                  });
                   return {
                     data: res.data?.records || [],
-                    total: res.data?.total || 0,
+                    total: paginationNumber(res.data?.total),
                     success: !!res.success,
                   };
                 }}
+                pagination={{ pageSize: 20, showSizeChanger: true }}
                 scroll={{ x: 1250 }}
               />
             ),
@@ -883,13 +913,22 @@ const PlatformPage: React.FC = () => {
                 actionRef={historyActionRef}
                 columns={historyColumns}
                 request={async (params) => {
-                  const res = await getPlatformSyncHistoryPage(params);
+                  const res = await getPlatformSyncHistoryPage({
+                    current: params.current,
+                    size: params.pageSize,
+                    platform: params.platform || undefined,
+                    platformAccountId: params.platformAccountId,
+                    objectType: params.objectType,
+                    objectId: params.objectId,
+                    syncStatus: params.syncStatus,
+                  });
                   return {
                     data: res.data?.records || [],
-                    total: res.data?.total || 0,
+                    total: paginationNumber(res.data?.total),
                     success: !!res.success,
                   };
                 }}
+                pagination={{ pageSize: 20, showSizeChanger: true }}
                 scroll={{ x: 1000 }}
               />
             ),

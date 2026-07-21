@@ -47,6 +47,7 @@ export interface ProjectVersionRecord {
   projectId: number;
   projectCode: string;
   version: string;
+  versionName?: string | null;
   content: string;
   releaseTime: string;
   remark: string | null;
@@ -352,6 +353,7 @@ export interface ProjectResourceIdRequest {
 export interface ProjectVersionRecordStoreRequest {
   projectId: number;
   version: string;
+  versionName?: NullableString;
   content: string;
   releaseTime: string;
   remark?: NullableString;
@@ -361,6 +363,7 @@ export interface ProjectVersionRecordUpdateRequest {
   id: number;
   projectId?: number;
   version?: string;
+  versionName?: NullableString;
   content?: string;
   releaseTime?: string;
   remark?: NullableString;

@@ -33,6 +33,10 @@
 | POST | `/projects/user-apps/create` | 新增用户App绑定 | `ProjectUserAppMapController::store` |
 | POST | `/projects/user-apps/update` | 修改用户App绑定 | `ProjectUserAppMapController::update` |
 | POST | `/projects/user-apps/delete` | 删除用户App绑定 | `ProjectUserAppMapController::destroy` |
+| GET | `/projects/version-records` | 项目版本记录列表 | `ProjectVersionRecordController::index` |
+| POST | `/projects/version-records/create` | 新增项目版本记录 | `ProjectVersionRecordController::store` |
+| POST | `/projects/version-records/update` | 编辑项目版本记录 | `ProjectVersionRecordController::update` |
+| POST | `/projects/version-records/delete` | 删除项目版本记录 | `ProjectVersionRecordController::destroy` |
 
 所有路径前缀均为 `/v3/`。
 
@@ -715,6 +719,96 @@
 | --- | --- | --- | --- |
 | id | int | 是 | 绑定记录 ID |
 | projectId | int | 是 | 项目 ID |
+
+---
+
+## 8.6 项目版本记录
+
+项目管理页展开行中的版本记录，用于维护单个项目的版本发布信息。该功能不同于系统版本管理页。
+
+### 8.6.1 查询版本记录
+
+- **方法/路径**：`GET /v3/projects/version-records`
+- **说明**：按项目查询版本记录，前端用于项目管理展开行列表和新增版本时获取当前最新版本。
+
+#### 请求参数（query）
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| projectId | int | 否 | 项目 ID |
+| projectCode | string | 否 | 项目代号 |
+| keyword | string | 否 | 关键字 |
+| releaseTimeFrom | string | 否 | 上线时间开始 |
+| releaseTimeTo | string | 否 | 上线时间结束 |
+| page | int | 否 | 页码 |
+| pageSize | int | 否 | 每页数量 |
+
+#### 返回字段
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| id | int | 版本记录 ID |
+| projectId | int | 项目 ID |
+| projectCode | string | 项目代号 |
+| version | string | 版本号，例如 `1.0.1`，不带 `v` 前缀 |
+| versionName | string/null | 版本名称 |
+| content | string | 版本说明 |
+| releaseTime | string | 上线时间 |
+| remark | string/null | 备注 |
+| createdAt | string | 创建时间 |
+| updatedAt | string | 更新时间 |
+
+### 8.6.2 新增版本记录
+
+- **方法/路径**：`POST /v3/projects/version-records/create`
+
+#### 请求参数（body JSON）
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| projectId | int | 是 | 项目 ID |
+| version | string | 是 | 版本号，例如 `1.0.1`，不传 `v` 前缀 |
+| versionName | string/null | 否 | 版本名称，空值可传 `null` |
+| content | string | 是 | 版本说明 |
+| releaseTime | string | 是 | 上线时间 |
+| remark | string/null | 否 | 备注 |
+
+### 8.6.3 编辑版本记录
+
+- **方法/路径**：`POST /v3/projects/version-records/update`
+
+#### 请求参数（body JSON）
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| id | int | 是 | 版本记录 ID |
+| projectId | int | 否 | 项目 ID |
+| version | string | 否 | 版本号，例如 `1.0.1`，不传 `v` 前缀 |
+| versionName | string/null | 否 | 版本名称，空值可传 `null` |
+| content | string | 否 | 版本说明 |
+| releaseTime | string | 否 | 上线时间 |
+| remark | string/null | 否 | 备注 |
+
+### 8.6.4 删除版本记录
+
+- **方法/路径**：`POST /v3/projects/version-records/delete`
+
+#### 请求参数（body JSON）
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| id | int | 是 | 版本记录 ID |
+
+### 8.6.5 前端交互说明
+
+- 项目管理页版本记录弹窗中的 `小版本 / 大版本` 仅用于前端生成版本号和预览，不作为接口字段提交。
+- 新增默认按当前最新版本生成小版本，即 `patch + 1`；切换大版本时默认生成 `major + 1.0.0`。
+- 用户可直接修改任意版本号输入框，最终只提交合成后的 `version` 字符串。
+- 项目管理页支持版本记录 TSV 粘贴导入，列顺序固定为：版本号、负责人、内容、项目 App、上线时间。
+- 版本导入会从 `项目 App` 字段中提取项目代号，例如 `A034 - PrimeTunnel VPN` 提取为 `A034`，再通过项目列表查询得到 `projectId`。
+- 版本导入不新增后端批量接口，前端会逐条调用 `/v3/projects/version-records/create` 创建记录。
+- 版本导入中的负责人当前写入 `remark`，格式为 `负责人：李广`；`versionName` 无来源时传 `null`。
+- 版本导入只新增版本记录，不做同项目同版本号的更新或覆盖。
 
 ---
 

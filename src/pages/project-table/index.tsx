@@ -23,6 +23,7 @@ import ProjectTableForm from './components/ProjectTableForm';
 import ProjectTableDetailDrawer from './components/ProjectTableDetailDrawer';
 import ProjectBatchImportModal from './components/ProjectBatchImportModal';
 import ProjectSyncModal from './components/ProjectSyncModal';
+import ProjectVersionImportModal from './components/ProjectVersionImportModal';
 import ProjectVersionRecords from './components/ProjectVersionRecords';
 import { PROJECT_TABLE_FIELDS } from './fields';
 import { PROJECT_APP_PLATFORM_OPTIONS, PROJECT_AD_STATUS_OPTIONS } from '@/pages/project/constants';
@@ -69,6 +70,7 @@ const ProjectTablePage: React.FC = () => {
   const [departmentOptions, setDepartmentOptions] = useState<Array<{ label: string; value: string }>>([]);
   const [departmentOptionsLoaded, setDepartmentOptionsLoaded] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [versionImportOpen, setVersionImportOpen] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
 
   const reloadTable = () => {
@@ -401,6 +403,9 @@ const ProjectTablePage: React.FC = () => {
           <Button key="import" icon={<UploadOutlined />} onClick={() => setImportOpen(true)}>
             导入数据
           </Button>,
+          <Button key="version-import" icon={<UploadOutlined />} onClick={() => setVersionImportOpen(true)}>
+            版本导入
+          </Button>,
           <Button
             key="new"
             type="primary"
@@ -474,6 +479,15 @@ const ProjectTablePage: React.FC = () => {
       />
 
       <ProjectSyncModal open={syncOpen} onClose={() => setSyncOpen(false)} />
+
+      <ProjectVersionImportModal
+        open={versionImportOpen}
+        onClose={() => setVersionImportOpen(false)}
+        onSuccess={() => {
+          setVersionImportOpen(false);
+          reloadTable();
+        }}
+      />
 
       <Modal
         title={
