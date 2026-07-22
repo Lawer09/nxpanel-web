@@ -16,6 +16,7 @@
   validatePlatformAccount,
 } from '@/services/ads-console/platform';
 import { getGroupOptions } from '@/services/ads-console/orgOptions';
+import { MoreOutlined } from '@ant-design/icons';
 import {
   ModalForm,
   type ProColumns,
@@ -28,7 +29,7 @@ import {
   ProTable,
   type ActionType,
 } from '@ant-design/pro-components';
-import { App, Button, Input, Modal, Popconfirm, Space, Switch, Tabs, Tag, Tooltip, Typography } from 'antd';
+import { App, Button, Dropdown, Input, Modal, Popconfirm, Space, Tabs, Tag, Tooltip, Typography, type MenuProps } from 'antd';
 import dayjs from 'dayjs';
 import React, { useEffect, useRef, useState } from 'react';
 
@@ -63,6 +64,38 @@ const GROUP_RESOLVE_MODE_VALUE_ENUM = {
   CAMPAIGN_BINDING: { text: 'Campaign 绑定' },
   MIXED_PRIORITY: { text: '混合优先级' },
 };
+
+const EMPTY_PLACEHOLDER = <Typography.Text type="secondary">-</Typography.Text>;
+
+const displayText = (value?: string | number | null) => {
+  if (value === undefined || value === null || value === '') return undefined;
+  return String(value);
+};
+
+const renderEllipsisText = (value?: string | number | null, width = 160, secondary = false) => {
+  const text = displayText(value);
+  if (!text) return EMPTY_PLACEHOLDER;
+  return (
+    <Tooltip title={text}>
+      <Typography.Text
+        type={secondary ? 'secondary' : undefined}
+        ellipsis
+        style={{ display: 'inline-block', maxWidth: width, verticalAlign: 'bottom' }}
+      >
+        {text}
+      </Typography.Text>
+    </Tooltip>
+  );
+};
+
+const renderMetaLine = (label: string, value?: string | number | null, width = 160) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, lineHeight: 1.5 }}>
+    <Typography.Text type="secondary" style={{ flex: 'none', fontSize: 12 }}>
+      {label}
+    </Typography.Text>
+    <span style={{ minWidth: 0, flex: 1 }}>{renderEllipsisText(value, width, true)}</span>
+  </div>
+);
 
 type SyncFormValues = {
   dateRange?: [string, string];
@@ -314,7 +347,7 @@ const parseKwaiAuthText = (text?: string) => {
 };
 
 const PlatformPage: React.FC = () => {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const accountActionRef = useRef<ActionType>(undefined);
   const objectActionRef = useRef<ActionType>(undefined);
   const bindingActionRef = useRef<ActionType>(undefined);
@@ -491,6 +524,63 @@ const PlatformPage: React.FC = () => {
     }
   };
 
+  const confirmDiscoverAccounts = (record: AdsConsole.AdPlatformAccount) => {
+    modal.confirm({
+      title: '更新关联账号',
+      content: '将按该 Google Ads 账号的关联关系更新或新增账号，不会拉取报表。',
+      okText: '更新',
+      cancelText: '取消',
+      onOk: () => handleDiscoverAccounts(record),
+    });
+  };
+
+  const confirmDeleteAccount = (record: AdsConsole.AdPlatformAccount) => {
+    modal.confirm({
+      title: '确定删除该平台账户？',
+      okText: '删除',
+      okButtonProps: { danger: true },
+      cancelText: '取消',
+      onOk: () => handleDelete(record.id),
+    });
+  };
+
+  const buildAccountActionItems = (record: AdsConsole.AdPlatformAccount): MenuProps['items'] => [
+    {
+      key: 'validate',
+      label: '校验',
+      onClick: () => handleValidate(record.id),
+    },
+    ...(record.platform === 'google_ads'
+      ? [
+          {
+            key: 'discover',
+            label: '更新关联账号',
+            onClick: () => confirmDiscoverAccounts(record),
+          },
+        ]
+      : []),
+    ...(record.platform === 'mintegral'
+      ? [
+          {
+            key: 'create',
+            label: '创建对象',
+            onClick: () => {
+              setCreateRecord(record);
+              setCreateOpen(true);
+            },
+          },
+        ]
+      : []),
+    {
+      type: 'divider',
+    },
+    {
+      key: 'delete',
+      label: <Typography.Text type="danger">删除</Typography.Text>,
+      onClick: () => confirmDeleteAccount(record),
+    },
+  ];
+
   const handleSync = async (values: SyncFormValues) => {
     if (!syncRecord?.id || !values.dateRange?.[0] || !values.dateRange?.[1]) {
       message.error('请选择同步日期');
@@ -560,29 +650,25 @@ const PlatformPage: React.FC = () => {
       dataIndex: 'platform',
       valueType: 'select',
       valueEnum: PLATFORM_VALUE_ENUM,
-      width: 120,
+      hideInTable: true,
     },
     {
-      title: '名称',
+      title: '账户信息',
       dataIndex: 'name',
-      width: 180,
+      width: 260,
+      render: (_, record) => (
+        <Space direction="vertical" size={2} style={{ maxWidth: 250 }}>
+          <Space size={6} style={{ maxWidth: 250 }}>
+            <Tag>{PLATFORM_VALUE_ENUM[record.platform as keyof typeof PLATFORM_VALUE_ENUM]?.text || record.platform}</Tag>
+            {renderEllipsisText(record.name, 160)}
+          </Space>
+          {renderMetaLine('账户ID', record.accountId, 190)}
+          {renderMetaLine('账户名', record.accountName, 190)}
+        </Space>
+      ),
     },
     {
-      title: '平台侧账户ID',
-      dataIndex: 'accountId',
-      hideInSearch: true,
-      width: 170,
-      renderText: (value) => value || '-',
-    },
-    {
-      title: '平台侧账户名',
-      dataIndex: 'accountName',
-      hideInSearch: true,
-      width: 180,
-      renderText: (value) => value || '-',
-    },
-    {
-      title: '项目组',
+      title: '归属',
       dataIndex: 'groupId',
       valueType: 'select',
       fieldProps: {
@@ -590,71 +676,73 @@ const PlatformPage: React.FC = () => {
         showSearch: true,
         optionFilterProp: 'label',
       },
-      width: 160,
-      render: (_, record) => record.groupName || '-',
+      width: 210,
+      render: (_, record) => (
+        <Space direction="vertical" size={2} style={{ maxWidth: 200 }}>
+          {renderMetaLine('项目组', record.groupName, 145)}
+          {renderMetaLine(
+            '模式',
+            GROUP_RESOLVE_MODE_VALUE_ENUM[record.groupResolveMode as keyof typeof GROUP_RESOLVE_MODE_VALUE_ENUM]?.text || '账号绑定',
+            145,
+          )}
+        </Space>
+      ),
     },
     {
       title: '归属模式',
       dataIndex: 'groupResolveMode',
       valueType: 'select',
       valueEnum: GROUP_RESOLVE_MODE_VALUE_ENUM,
-      width: 150,
-      renderText: (value) => GROUP_RESOLVE_MODE_VALUE_ENUM[value as keyof typeof GROUP_RESOLVE_MODE_VALUE_ENUM]?.text || '账号绑定',
+      hideInTable: true,
     },
     {
-      title: '余额',
-      dataIndex: 'balance',
-      hideInSearch: true,
-      width: 120,
-      renderText: (value) => value ?? '-',
-    },
-    {
-      title: '币种',
-      dataIndex: 'currency',
-      hideInSearch: true,
-      width: 90,
-      renderText: (value) => value || '-',
-    },
-    {
-      title: 'Access Key',
+      title: '凭证',
       dataIndex: 'accessKey',
       hideInSearch: true,
-      width: 180,
+      width: 230,
+      render: (_, record) => (
+        <Space direction="vertical" size={2} style={{ maxWidth: 220 }}>
+          {renderMetaLine('AK', record.accessKey, 175)}
+          {renderMetaLine('Key', record.apiKey, 175)}
+        </Space>
+      ),
     },
     {
-      title: 'API Key',
-      dataIndex: 'apiKey',
-      hideInSearch: true,
-      width: 180,
-    },
-    {
-      title: '状态',
+      title: '状态/余额',
       dataIndex: 'status',
       valueType: 'select',
       valueEnum: {
         0: { text: '停用', status: 'Error' },
         1: { text: '启用', status: 'Success' },
       },
-      render: (_, record) => <Switch checked={record.status !== 0} disabled />,
-      width: 90,
+      width: 150,
+      render: (_, record) => (
+        <Space direction="vertical" size={2}>
+          <Tag color={record.status === 0 ? 'error' : 'success'}>{record.status === 0 ? '停用' : '启用'}</Tag>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {record.balance ?? '-'} {record.currency || ''}
+          </Typography.Text>
+        </Space>
+      ),
     },
     {
-      title: '同步状态',
+      title: '同步',
       dataIndex: 'lastSyncStatus',
       hideInSearch: true,
-      width: 180,
+      width: 190,
       render: (_, record) => {
         if (record.lastSyncStatus == null) return <span style={{ color: '#bfbfbf' }}>未同步</span>;
         const cfg = SYNC_STATUS_MAP[record.lastSyncStatus];
         const tag = <Tag color={cfg?.color}>{cfg?.text || record.lastSyncStatus}</Tag>;
         return (
-          <Space size={6}>
+          <Space direction="vertical" size={2} style={{ maxWidth: 180 }}>
             {record.lastSyncMsg ? <Tooltip title={record.lastSyncMsg}>{tag}</Tooltip> : tag}
             {record.lastSyncTime && (
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                 {dayjs(record.lastSyncTime).format('YYYY-MM-DD HH:mm')}
               </Typography.Text>
             )}
+            {record.lastSyncMsg && renderEllipsisText(record.lastSyncMsg, 170, true)}
           </Space>
         );
       },
@@ -662,14 +750,12 @@ const PlatformPage: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 400,
+      width: 150,
+      fixed: 'right',
       render: (_, record) => (
-        <Space size={8}>
+        <Space size={4} wrap={false}>
           <Button type="link" size="small" onClick={() => openEdit(record)}>
             编辑
-          </Button>
-          <Button type="link" size="small" onClick={() => handleValidate(record.id)}>
-            校验
           </Button>
           <Button
             type="link"
@@ -681,54 +767,68 @@ const PlatformPage: React.FC = () => {
           >
             同步
           </Button>
-          {record.platform === 'google_ads' && (
-            <Popconfirm
-              title="更新关联账号"
-              description="将按该 Google Ads 账号的关联关系更新或新增账号，不会拉取报表。"
-              onConfirm={() => handleDiscoverAccounts(record)}
-            >
-              <Button type="link" size="small">
-                更新关联账号
-              </Button>
-            </Popconfirm>
-          )}
-          {record.platform === 'mintegral' && (
-            <Button
-              type="link"
-              size="small"
-              onClick={() => {
-                setCreateRecord(record);
-                setCreateOpen(true);
-              }}
-            >
-              创建
-            </Button>
-          )}
-          <Popconfirm title="确定删除该平台账户？" onConfirm={() => handleDelete(record.id)}>
-            <Button type="link" danger size="small">
-              删除
-            </Button>
-          </Popconfirm>
+          <Dropdown menu={{ items: buildAccountActionItems(record) }} trigger={['click']}>
+            <Button type="link" size="small" icon={<MoreOutlined />} />
+          </Dropdown>
         </Space>
       ),
     },
   ];
 
   const objectColumns: ProColumns<AdsConsole.AdPlatformObject>[] = [
-    { title: '平台', dataIndex: 'platform', valueType: 'select', valueEnum: PLATFORM_VALUE_ENUM, width: 120 },
-    { title: '平台账户ID', dataIndex: 'platformAccountId', width: 140 },
-    { title: '账户ID', dataIndex: 'accountId', width: 160 },
-    { title: '对象类型', dataIndex: 'objectType', width: 140 },
-    { title: '对象ID', dataIndex: 'objectId', width: 180 },
-    { title: '父对象类型', dataIndex: 'parentObjectType', hideInSearch: true, width: 120 },
-    { title: '父对象ID', dataIndex: 'parentObjectId', hideInSearch: true, width: 180 },
-    { title: '名称', dataIndex: 'name', width: 220 },
-    { title: '状态', dataIndex: 'status', width: 120 },
+    { title: '平台', dataIndex: 'platform', valueType: 'select', valueEnum: PLATFORM_VALUE_ENUM, hideInTable: true },
+    {
+      title: '账户',
+      dataIndex: 'platformAccountId',
+      width: 240,
+      render: (_, record) => (
+        <Space direction="vertical" size={2} style={{ maxWidth: 230 }}>
+          <Tag>{PLATFORM_VALUE_ENUM[record.platform as keyof typeof PLATFORM_VALUE_ENUM]?.text || record.platform}</Tag>
+          {renderMetaLine('平台账户', record.platformAccountId, 170)}
+          {renderMetaLine('账户ID', record.accountId, 170)}
+        </Space>
+      ),
+    },
+    { title: '账户ID', dataIndex: 'accountId', hideInTable: true },
+    { title: '对象类型', dataIndex: 'objectType', hideInTable: true },
+    {
+      title: '对象',
+      dataIndex: 'objectId',
+      width: 300,
+      render: (_, record) => (
+        <Space direction="vertical" size={2} style={{ maxWidth: 290 }}>
+          <Space size={6}>
+            <Tag>{record.objectType}</Tag>
+            {renderEllipsisText(record.objectId, 210)}
+          </Space>
+          {renderMetaLine('名称', record.name, 240)}
+        </Space>
+      ),
+    },
+    { title: '名称', dataIndex: 'name', hideInTable: true },
+    {
+      title: '父对象',
+      dataIndex: 'parentObjectId',
+      hideInSearch: true,
+      width: 240,
+      render: (_, record) => (
+        <Space direction="vertical" size={2} style={{ maxWidth: 230 }}>
+          {renderMetaLine('类型', record.parentObjectType, 170)}
+          {renderMetaLine('ID', record.parentObjectId, 190)}
+        </Space>
+      ),
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      width: 130,
+      render: (_, record) => renderEllipsisText(record.status, 105),
+    },
     {
       title: '同步时间',
       dataIndex: 'lastSyncTime',
       hideInSearch: true,
-      width: 160,
+      width: 150,
       render: (_, record) => record.lastSyncTime ? dayjs(record.lastSyncTime).format('YYYY-MM-DD HH:mm:ss') : '-',
     },
     {
@@ -751,11 +851,32 @@ const PlatformPage: React.FC = () => {
   ];
 
   const bindingColumns: ProColumns<AdsConsole.AdPlatformCampaignGroupBinding>[] = [
-    { title: '平台', dataIndex: 'platform', valueType: 'select', valueEnum: PLATFORM_VALUE_ENUM, width: 120 },
-    { title: '平台账户ID', dataIndex: 'platformAccountId', width: 140 },
-    { title: '账户ID', dataIndex: 'accountId', width: 160 },
-    { title: 'Campaign ID', dataIndex: 'campaignId', width: 180 },
-    { title: 'Campaign 名称', dataIndex: 'campaignName', width: 220 },
+    { title: '平台', dataIndex: 'platform', valueType: 'select', valueEnum: PLATFORM_VALUE_ENUM, hideInTable: true },
+    {
+      title: '账户',
+      dataIndex: 'platformAccountId',
+      width: 240,
+      render: (_, record) => (
+        <Space direction="vertical" size={2} style={{ maxWidth: 230 }}>
+          <Tag>{PLATFORM_VALUE_ENUM[record.platform as keyof typeof PLATFORM_VALUE_ENUM]?.text || record.platform}</Tag>
+          {renderMetaLine('平台账户', record.platformAccountId, 170)}
+          {renderMetaLine('账户ID', record.accountId, 170)}
+        </Space>
+      ),
+    },
+    { title: '账户ID', dataIndex: 'accountId', hideInTable: true },
+    {
+      title: 'Campaign',
+      dataIndex: 'campaignId',
+      width: 310,
+      render: (_, record) => (
+        <Space direction="vertical" size={2} style={{ maxWidth: 300 }}>
+          {renderMetaLine('ID', record.campaignId, 250)}
+          {renderMetaLine('名称', record.campaignName, 250)}
+        </Space>
+      ),
+    },
+    { title: 'Campaign 名称', dataIndex: 'campaignName', hideInTable: true },
     {
       title: '项目组',
       dataIndex: 'groupId',
@@ -766,24 +887,25 @@ const PlatformPage: React.FC = () => {
         optionFilterProp: 'label',
       },
       width: 160,
-      render: (_, record) => record.groupName || '-',
+      render: (_, record) => renderEllipsisText(record.groupName, 135),
     },
     {
-      title: '状态',
+      title: '状态/时间',
       dataIndex: 'status',
       valueType: 'select',
       valueEnum: {
         0: { text: '停用', status: 'Error' },
         1: { text: '启用', status: 'Success' },
       },
-      width: 100,
-    },
-    {
-      title: '更新时间',
-      dataIndex: 'updateTime',
-      hideInSearch: true,
       width: 170,
-      render: (_, record) => record.updateTime ? dayjs(record.updateTime).format('YYYY-MM-DD HH:mm:ss') : '-',
+      render: (_, record) => (
+        <Space direction="vertical" size={2}>
+          <Tag color={record.status === 0 ? 'error' : 'success'}>{record.status === 0 ? '停用' : '启用'}</Tag>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {record.updateTime ? dayjs(record.updateTime).format('YYYY-MM-DD HH:mm') : '-'}
+          </Typography.Text>
+        </Space>
+      ),
     },
     {
       title: '操作',
@@ -800,11 +922,24 @@ const PlatformPage: React.FC = () => {
   ];
 
   const historyColumns: ProColumns<AdsConsole.AdPlatformSyncHistory>[] = [
-    { title: '平台', dataIndex: 'platform', valueType: 'select', valueEnum: PLATFORM_VALUE_ENUM, width: 120 },
-    { title: '对象类型', dataIndex: 'objectType', width: 140 },
-    { title: '对象ID', dataIndex: 'objectId', width: 180 },
+    { title: '平台', dataIndex: 'platform', valueType: 'select', valueEnum: PLATFORM_VALUE_ENUM, hideInTable: true },
+    { title: '对象类型', dataIndex: 'objectType', hideInTable: true },
     {
-      title: '状态',
+      title: '对象',
+      dataIndex: 'objectId',
+      width: 300,
+      render: (_, record) => (
+        <Space direction="vertical" size={2} style={{ maxWidth: 290 }}>
+          <Space size={6}>
+            <Tag>{PLATFORM_VALUE_ENUM[record.platform as keyof typeof PLATFORM_VALUE_ENUM]?.text || record.platform}</Tag>
+            <Tag>{record.objectType}</Tag>
+          </Space>
+          {renderMetaLine('对象ID', record.objectId, 230)}
+        </Space>
+      ),
+    },
+    {
+      title: '状态/时间',
       dataIndex: 'syncStatus',
       valueType: 'select',
       valueEnum: {
@@ -812,20 +947,25 @@ const PlatformPage: React.FC = () => {
         1: { text: '成功', status: 'Success' },
         2: { text: '失败', status: 'Error' },
       },
-      width: 110,
-    },
-    {
-      title: '同步时间',
-      dataIndex: 'syncTime',
-      hideInSearch: true,
       width: 170,
-      render: (_, record) => dayjs(record.syncTime).format('YYYY-MM-DD HH:mm:ss'),
+      render: (_, record) => {
+        const cfg = SYNC_STATUS_MAP[record.syncStatus];
+        return (
+          <Space direction="vertical" size={2}>
+            <Tag color={cfg?.color}>{cfg?.text || record.syncStatus}</Tag>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {record.syncTime ? dayjs(record.syncTime).format('YYYY-MM-DD HH:mm') : '-'}
+            </Typography.Text>
+          </Space>
+        );
+      },
     },
     {
       title: '消息',
       dataIndex: 'syncMsg',
       hideInSearch: true,
-      render: (_, record) => record.syncMsg ? <Typography.Text ellipsis>{record.syncMsg}</Typography.Text> : '-',
+      width: 360,
+      render: (_, record) => renderEllipsisText(record.syncMsg, 330),
     },
   ];
 
@@ -863,7 +1003,7 @@ const PlatformPage: React.FC = () => {
                   </Button>,
                 ]}
                 pagination={{ pageSize: 20, showSizeChanger: true }}
-                scroll={{ x: 1280 }}
+                scroll={{ x: 1220 }}
               />
             ),
           },
@@ -893,7 +1033,7 @@ const PlatformPage: React.FC = () => {
                   };
                 }}
                 pagination={{ pageSize: 20, showSizeChanger: true }}
-                scroll={{ x: 1300 }}
+                scroll={{ x: 1180 }}
               />
             ),
           },
@@ -924,7 +1064,7 @@ const PlatformPage: React.FC = () => {
                   };
                 }}
                 pagination={{ pageSize: 20, showSizeChanger: true }}
-                scroll={{ x: 1250 }}
+                scroll={{ x: 1000 }}
               />
             ),
           },
@@ -953,7 +1093,7 @@ const PlatformPage: React.FC = () => {
                   };
                 }}
                 pagination={{ pageSize: 20, showSizeChanger: true }}
-                scroll={{ x: 1000 }}
+                scroll={{ x: 860 }}
               />
             ),
           },
