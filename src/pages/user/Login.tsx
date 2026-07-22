@@ -5,13 +5,18 @@ import { Checkbox, Divider, Flex, message, Tabs, Typography } from 'antd';
 import type { CSSProperties } from 'react';
 import React from 'react';
 import { flushSync } from 'react-dom';
+import { loginAdsConsole } from '@/services/ads-console/auth';
 import {
-  adsLoginDataToCurrentUser,
-  getAdsConsolePermissionRoutes,
-  loginAdsConsole,
-} from '@/services/ads-console/auth';
-import { setAdsAuthToken } from '@/services/ads-console/authStorage';
-import { login } from '@/services/auth/api';
+  clearAdsLoginData,
+  setAdsLoginData,
+} from '@/services/ads-console/authStorage';
+import { buildAdsCurrentUserFromLoginData } from '@/services/ads-console/session';
+import {
+  getAuthApiMessage,
+  isAuthApiSuccess,
+  login,
+} from '@/services/auth/api';
+import { cacheOperationLoginData } from '@/services/auth/session';
 import { loginDevAdmin } from '@/services/dev-admin/api';
 import { buildDevAdminCurrentUser } from '@/services/dev-admin/session';
 import {
@@ -96,7 +101,7 @@ const LoginPage: React.FC = () => {
 
   const getErrorMessage = (error: any) => {
     const data = error?.data ?? error?.response?.data;
-    const backendMessage = data?.message || data?.errorMessage;
+    const backendMessage = data?.msg || data?.message || data?.errorMessage;
     if (typeof backendMessage === 'string' && backendMessage.trim()) {
       return backendMessage;
     }
@@ -131,33 +136,37 @@ const LoginPage: React.FC = () => {
         res: any,
         params: [{ email: string; password: string }],
       ) => {
-        if (res.status === 'success' && res.data) {
-          const { token, auth_data, is_admin, secure_path, user_type } =
-            res.data;
+        if (isAuthApiSuccess<API.AuthResponse>(res)) {
+          const { is_admin, user_type } = res.data;
           const menus = Array.isArray(res.data.menus)
             ? res.data.menus
             : undefined;
           const email = params[0]?.email;
+          const adsLoginData = res.data.ad_spend_platform_login;
+          const hasAdSpendPlatformLogin = !!adsLoginData?.token;
 
-          localStorage.setItem('auth_token', auth_data);
-          localStorage.setItem('user_token', token);
-          if (secure_path) {
-            localStorage.setItem('secure_path', secure_path);
+          cacheOperationLoginData(res.data, email);
+          if (adsLoginData?.token) {
+            setAdsLoginData(adsLoginData);
           } else {
-            localStorage.removeItem('secure_path');
+            clearAdsLoginData();
           }
-          localStorage.setItem(
-            'user_info',
-            JSON.stringify({
-              is_admin,
-              token,
-              email,
-              user_type,
-              menus,
-            }),
-          );
 
-          message.success(res.message || '登录成功');
+          message.success(getAuthApiMessage(res, '登录成功'));
+
+          const redirect = getRedirect();
+          if (redirect?.startsWith('/ads-console') && adsLoginData?.token) {
+            const currentUser =
+              await buildAdsCurrentUserFromLoginData(adsLoginData);
+            flushSync(() => {
+              setInitialState((s) => ({
+                ...s,
+                currentUser,
+              }));
+            });
+            history.replace(redirect);
+            return;
+          }
 
           const fetchedUser = await initialState?.fetchUserInfo?.();
           const nextUser =
@@ -169,17 +178,21 @@ const LoginPage: React.FC = () => {
               is_admin,
               user_type,
               menus,
+              hasAdSpendPlatformLogin,
               loginMode: 'operation',
             } as API.CurrentUser);
 
           flushSync(() => {
             setInitialState((s) => ({
               ...s,
-              currentUser: { ...nextUser, loginMode: 'operation' },
+              currentUser: {
+                ...nextUser,
+                hasAdSpendPlatformLogin,
+                loginMode: 'operation',
+              },
             }));
           });
 
-          const redirect = getRedirect();
           const operationRedirect = isOperationRedirect(redirect) ? redirect : '/';
           const redirectPathname = getPathnameFromPath(redirect);
           const definedRedirect =
@@ -193,7 +206,9 @@ const LoginPage: React.FC = () => {
             : operationRedirect;
           history.replace(targetPath);
         } else {
-          message.error(res.message || '登录失败，请检查邮箱和密码');
+          message.error(
+            getAuthApiMessage(res, '登录失败，请检查邮箱和密码'),
+          );
         }
       },
       onError: (error: any) => {
@@ -237,17 +252,7 @@ const LoginPage: React.FC = () => {
           return;
         }
 
-        setAdsAuthToken(res.data.token);
-        let adsMenus: AdsConsole.RouteMenuItem[] | undefined;
-        try {
-          const routesRes = await getAdsConsolePermissionRoutes();
-          if (routesRes?.success && Array.isArray(routesRes.data)) {
-            adsMenus = routesRes.data;
-          }
-        } catch (_error) {
-          adsMenus = undefined;
-        }
-        const currentUser = adsLoginDataToCurrentUser(res.data, adsMenus);
+        const currentUser = await buildAdsCurrentUserFromLoginData(res.data);
         message.success('登录成功');
         flushSync(() => {
           setInitialState((s) => ({

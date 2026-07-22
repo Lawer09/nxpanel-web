@@ -26,15 +26,15 @@ declare namespace AdsConsole {
 
   type LoginData = {
     token: string;
-    userId: number;
+    userId: string | number;
     username: string;
     realName: string;
-    avatar?: string;
+    avatar?: string | null;
     permissions: string[];
     roles: string[];
     version?: string;
-    teamId?: number;
-    teamName?: string;
+    teamId?: string | number | null;
+    teamName?: string | null;
     agencyNames?: string[];
     groupNames?: string[];
   };
@@ -54,15 +54,15 @@ declare namespace AdsConsole {
   };
 
   type CurrentUser = API.CurrentUser & {
-    id?: number;
-    userId?: number;
+    id?: string | number;
+    userId?: string | number;
     username?: string;
     realName?: string;
     roles?: string[];
     permissions?: string[];
     isSuperAdmin?: boolean;
-    teamId?: number;
-    teamName?: string;
+    teamId?: string | number | null;
+    teamName?: string | null;
     agencyNames?: string[];
     groupNames?: string[];
     adsMenus?: RouteMenuItem[];

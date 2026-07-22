@@ -10,7 +10,8 @@ import { createStyles } from 'antd-style';
 import React from 'react';
 import { flushSync } from 'react-dom';
 import { logoutAdsConsole } from '@/services/ads-console/auth';
-import { clearAdsAuthToken } from '@/services/ads-console/authStorage';
+import { clearAdsLoginData } from '@/services/ads-console/authStorage';
+import { clearOperationSession } from '@/services/auth/session';
 import { logoutDevAdmin } from '@/services/dev-admin/api';
 import HeaderDropdown from '../HeaderDropdown';
 
@@ -51,10 +52,8 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
    * 退出登录，并且将当前的 url 保存
    */
   const operationLoginOut = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_token');
-    localStorage.removeItem('user_info');
-    localStorage.removeItem('secure_path');
+    clearOperationSession();
+    clearAdsLoginData();
     const { search, pathname } = window.location;
     const urlParams = new URL(window.location.href).searchParams;
     const searchParams = new URLSearchParams({
@@ -87,7 +86,7 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
     } catch {
       // Ads console logout may fail when the token has already expired.
     } finally {
-      clearAdsAuthToken();
+      clearAdsLoginData();
       history.replace('/user/login?mode=ads');
     }
   };

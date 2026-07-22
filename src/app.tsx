@@ -10,11 +10,13 @@ import {
   AvatarDropdown,
   AvatarName,
   Footer,
+  PlatformSwitchEntry,
   Question,
   SelectLang,
   SystemConfigEntry,
 } from '@/components';
 import VersionNoticeModal from '@/components/VersionNoticeModal';
+import { getCachedOperationUser } from '@/services/auth/session';
 import {
   buildDevAdminCurrentUser,
   getDevAdminSession,
@@ -25,7 +27,7 @@ import {
   getAdsConsoleUserInfo,
 } from '@/services/ads-console/auth';
 import {
-  clearAdsAuthToken,
+  clearAdsLoginData,
   getAdsAuthToken,
 } from '@/services/ads-console/authStorage';
 import {
@@ -296,34 +298,8 @@ export async function getInitialState(): Promise<{
   loading?: boolean;
   fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
 }> {
-  const getCachedUser = (): API.CurrentUser | undefined => {
-    if (typeof window === 'undefined') return undefined;
-    const userInfoStr = localStorage.getItem('user_info');
-    if (!userInfoStr) return undefined;
-    try {
-      const info = JSON.parse(userInfoStr) as {
-        email?: string;
-        is_admin?: boolean;
-        user_type?: string;
-        menus?: string[];
-      };
-      if (typeof info !== 'object' || !info) return undefined;
-      return {
-        email: info.email,
-        name: info.email,
-        access: info.is_admin ? ('admin' as const) : ('user' as const),
-        is_admin: info.is_admin,
-        user_type: info.user_type,
-        menus: Array.isArray(info.menus) ? info.menus : undefined,
-        loginMode: 'operation',
-      };
-    } catch (_error) {
-      return undefined;
-    }
-  };
-
   const fetchUserInfo = async () => {
-    return getCachedUser();
+    return getCachedOperationUser();
   };
 
   const fetchAdsUserInfo = async () => {
@@ -345,7 +321,7 @@ export async function getInitialState(): Promise<{
         return adsLoginDataToCurrentUser(res.data, adsMenus);
       }
     } catch (_error) {
-      clearAdsAuthToken();
+      clearAdsLoginData();
     }
     return undefined;
   };
@@ -391,11 +367,18 @@ export const layout: RunTimeLayoutConfig = ({
         <Question key="doc" />,
         <SelectLang key="SelectLang" />,
       ];
-      if (isManagementMode || isAdsMode) {
+      if (isManagementMode) {
         return commonActions;
+      }
+      if (isAdsMode) {
+        return [
+          ...commonActions,
+          <PlatformSwitchEntry key="PlatformSwitchEntry" />,
+        ];
       }
       return [
         ...commonActions,
+        <PlatformSwitchEntry key="PlatformSwitchEntry" />,
         <AutomationRulesEntry key="AutomationRulesEntry" />,
         <SystemConfigEntry key="SystemConfigEntry" />,
       ];

@@ -32,9 +32,9 @@ export async function login(
   return request<{
     status: 'success' | 'fail';
     message: string;
-    data: { token: string; auth_data: string; is_admin: boolean; secure_path?: string } | null;
+    data: API.AuthResponse | null;
     error: null;
-  }>('/api/v1/passport/auth/login', {
+  }>('/api/v3/passport/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,

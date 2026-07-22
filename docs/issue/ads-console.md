@@ -38,3 +38,30 @@ https://console.adsmakeup.com/api/*
 
 - `src/requestErrorConfig.ts`
 - `config/proxy.ts`
+
+## 投放平台切换不应刷新运营登录
+
+### 出现场景
+
+运营后台右上角点击“投放平台”切换入口时，前端曾调用运营侧 `refreshLogin` 刷新登录信息；当刷新结果中没有 `ad_spend_platform_login` 时，切换过程会清理运营会话并跳转登录页。
+
+### 问题原因
+
+平台切换应使用运营登录响应中已经下发的投放登录信息。切换时再次调用刷新接口会引入额外请求和状态漂移，且 `ad_spend_platform_login` 缺失时不应把当前运营登录态一并清掉。
+
+### 解决方式
+
+运营登录成功后将 `ad_spend_platform_login` 是否存在写入 `hasAdSpendPlatformLogin`，用于控制“投放平台”切换按钮展示。切换到投放平台时只读取本地缓存的投放登录数据；缺失时跳转投放登录页，不调用 `refreshLogin`，也不清理运营会话。
+
+当本地存在投放登录数据但服务端已判定 token 过期时，切换入口先通过投放侧 `auth/info` 做一次校验；若返回 401 或业务 `errorCode=401`，则清理投放与运营会话，并跳转运营登录页，要求重新登录管理平台后由运营登录响应重新下发 `ad_spend_platform_login`。
+
+### 影响范围
+
+运营后台与投放后台之间的右上角平台切换入口。
+
+### 相关文件
+
+- `src/components/PlatformSwitchEntry.tsx`
+- `src/pages/user/Login.tsx`
+- `src/services/auth/session.ts`
+- `src/services/common/typings.d.ts`

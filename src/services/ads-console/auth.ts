@@ -46,12 +46,12 @@ export function adsLoginDataToCurrentUser(
   menus?: AdsConsole.RouteMenuItem[],
 ): AdsConsole.CurrentUser {
   return {
-    id: data.userId ? Number(data.userId) : undefined,
+    id: data.userId,
     userId: data.userId,
     username: data.username,
     realName: data.realName,
     name: data.realName || data.username,
-    avatar: data.avatar,
+    avatar: data.avatar || undefined,
     roles: data.roles || [],
     permissions: data.permissions || [],
     isSuperAdmin:

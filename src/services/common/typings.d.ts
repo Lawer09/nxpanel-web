@@ -23,6 +23,7 @@ declare namespace API {
     secure_path?: string;
     user_type?: string;
     menus?: string[];
+    ad_spend_platform_login?: AdsConsole.LoginData | null;
   }
 
   interface CurrentUser {
@@ -34,5 +35,6 @@ declare namespace API {
     user_type?: string;
     menus?: string[];
     loginMode?: 'operation' | 'management' | 'ads';
+    hasAdSpendPlatformLogin?: boolean;
   }
 }

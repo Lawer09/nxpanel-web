@@ -4,9 +4,10 @@ import {
   formatDevAdminErrorMessage,
 } from '@/services/dev-admin/request';
 import {
-  clearAdsAuthToken,
+  clearAdsLoginData,
   getAdsAuthToken,
 } from '@/services/ads-console/authStorage';
+import { clearOperationSession } from '@/services/auth/session';
 
 const ADS_CONSOLE_BASE_URL = 'https://console.adsmakeup.com';
 const ADS_CONSOLE_API_PREFIX = '/ads-api';
@@ -20,6 +21,8 @@ const isAdsConsoleConfig = (config?: { baseURL?: string; url?: string }) =>
   isAdsConsoleUrl(config?.url) ||
   (typeof config?.baseURL === 'string' &&
     config.baseURL.startsWith(ADS_CONSOLE_BASE_URL));
+const shouldSkipAdsAuthRedirect = (config?: { skipAdsAuthRedirect?: boolean }) =>
+  config?.skipAdsAuthRedirect === true;
 
 const isV4RequestError = (error: any) => {
   if (isV4Url(error?.response?.url)) {
@@ -61,22 +64,21 @@ const errorConfig = {
       error.timestamp = error.timestamp || payload.timestamp;
     }
 
-    if (
+    const isAdsAuthError =
       response?.status === 401 &&
       (isAdsConsoleUrl(error?.response?.url) ||
         isAdsConsoleUrl(error?.request?.url) ||
-        isAdsConsoleConfig(error?.config))
-    ) {
-      clearAdsAuthToken();
+        isAdsConsoleConfig(error?.config));
+
+    if (isAdsAuthError && !shouldSkipAdsAuthRedirect(error?.config)) {
+      clearAdsLoginData();
       history.push('/user/login?mode=ads');
       return;
     }
 
-    if (response?.status === 401) {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_token');
-      localStorage.removeItem('user_info');
-      localStorage.removeItem('secure_path');
+    if (response?.status === 401 && !isAdsAuthError) {
+      clearOperationSession();
+      clearAdsLoginData();
       history.push('/user/login');
       return;
     }
@@ -150,10 +152,11 @@ const errorConfig = {
     (response: any) => {
       if (
         isAdsConsoleConfig(response?.config) &&
+        !shouldSkipAdsAuthRedirect(response?.config) &&
         response?.data?.success === false &&
         response?.data?.errorCode === 401
       ) {
-        clearAdsAuthToken();
+        clearAdsLoginData();
         history.replace('/user/login?mode=ads');
       }
       return response;
