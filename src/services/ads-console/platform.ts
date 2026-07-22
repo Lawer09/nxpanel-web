@@ -47,6 +47,15 @@ export async function validatePlatformAccount(id: string) {
   });
 }
 
+export async function discoverPlatformAccounts(id: string) {
+  return request<AdsConsole.Result<AdsConsole.AdPlatformAccount[]>>(
+    `${PLATFORM_API_PREFIX}/account/${id}/discover-accounts`,
+    {
+      method: 'POST',
+    },
+  );
+}
+
 export async function syncPlatformAccount(
   id: string,
   body: {

@@ -3,6 +3,7 @@
   bindCampaignGroup,
   createMintegralObject,
   deletePlatformAccount,
+  discoverPlatformAccounts,
   getCampaignGroupBindingPage,
   getPlatformAccountPage,
   getPlatformObjectPage,
@@ -478,6 +479,18 @@ const PlatformPage: React.FC = () => {
     }
   };
 
+  const handleDiscoverAccounts = async (record: AdsConsole.AdPlatformAccount) => {
+    const res = await discoverPlatformAccounts(record.id);
+    if (res?.success) {
+      message.success(`关联账号更新完成：${res.data?.length || 0} 个`);
+      accountActionRef.current?.reload();
+      objectActionRef.current?.reload();
+      historyActionRef.current?.reload();
+    } else {
+      message.error(res?.errorMessage || '关联账号更新失败');
+    }
+  };
+
   const handleSync = async (values: SyncFormValues) => {
     if (!syncRecord?.id || !values.dateRange?.[0] || !values.dateRange?.[1]) {
       message.error('请选择同步日期');
@@ -649,7 +662,7 @@ const PlatformPage: React.FC = () => {
     {
       title: '操作',
       valueType: 'option',
-      width: 320,
+      width: 400,
       render: (_, record) => (
         <Space size={8}>
           <Button type="link" size="small" onClick={() => openEdit(record)}>
@@ -668,6 +681,17 @@ const PlatformPage: React.FC = () => {
           >
             同步
           </Button>
+          {record.platform === 'google_ads' && (
+            <Popconfirm
+              title="更新关联账号"
+              description="将按该 Google Ads 账号的关联关系更新或新增账号，不会拉取报表。"
+              onConfirm={() => handleDiscoverAccounts(record)}
+            >
+              <Button type="link" size="small">
+                更新关联账号
+              </Button>
+            </Popconfirm>
+          )}
           {record.platform === 'mintegral' && (
             <Button
               type="link"
