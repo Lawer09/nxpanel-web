@@ -960,3 +960,8 @@
 | yandexAdIds | string/null | Yandex 广告 ID 配置，支持多行文本 |
 | yandexAppAdsTxt | string/null | Yandex app-ads.txt 内容 |
 | storePageUrl | string/null | 商店页链接 |
+
+### 10.1 前端表单约定
+
+- `domainInfoStatus`、`facebookInfoStatus`、`admobAccountStatus` 在项目管理表单中默认提供 `完善 / 未完善` 两个候选项，同时仍允许输入自定义字符串，接口按原字符串提交。
+- 当 `appPlatform` 归一化后为 `ANDROID` 时，项目管理表单要求填写 `storePageUrl`；其它平台或空平台不强制填写。

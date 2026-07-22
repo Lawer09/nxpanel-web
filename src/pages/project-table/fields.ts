@@ -42,6 +42,7 @@ export interface ProjectFieldConfig {
   required?: boolean;
   disabledOnEdit?: boolean;
   options?: { label: string; value: string }[];
+  allowCustomInput?: boolean;
   width?: number;
 }
 
@@ -50,6 +51,8 @@ export interface ProjectFieldGroup {
   label: string;
   fields: ProjectFieldConfig[];
 }
+
+export const PROJECT_INFO_STATUS_OPTIONS = ['完善', '未完善'].map((value) => ({ label: value, value }));
 
 export const PROJECT_FIELD_GROUPS: ProjectFieldGroup[] = [
   {
@@ -60,7 +63,7 @@ export const PROJECT_FIELD_GROUPS: ProjectFieldGroup[] = [
       { name: 'projectName', label: '项目名称', required: true, width: 180 },
       { name: 'ownerName', label: '负责人', width: 120 },
       { name: 'department', label: '所属部门', width: 140 },
-      { name: 'adStatus', label: '投放状态', options: PROJECT_AD_STATUS_OPTIONS, width: 120 },
+      { name: 'adStatus', label: '投放状态', options: PROJECT_AD_STATUS_OPTIONS, allowCustomInput: true, width: 120 },
       { name: 'adspowerEnv', label: 'Adspower 环境', width: 160 },
     ],
   },
@@ -79,7 +82,13 @@ export const PROJECT_FIELD_GROUPS: ProjectFieldGroup[] = [
     key: 'domain',
     label: '域名信息',
     fields: [
-      { name: 'domainInfoStatus', label: '域名信息状态', width: 150 },
+      {
+        name: 'domainInfoStatus',
+        label: '域名信息状态',
+        options: PROJECT_INFO_STATUS_OPTIONS,
+        allowCustomInput: true,
+        width: 150,
+      },
       { name: 'admobPubId', label: 'Admob pub id', width: 160 },
       { name: 'domainUrl', label: '域名 URL', width: 220 },
       { name: 'privacyPolicyUrl', label: '隐私协议 URL', width: 240 },
@@ -90,7 +99,13 @@ export const PROJECT_FIELD_GROUPS: ProjectFieldGroup[] = [
     key: 'facebook',
     label: 'Facebook',
     fields: [
-      { name: 'facebookInfoStatus', label: 'FB 信息状态', width: 140 },
+      {
+        name: 'facebookInfoStatus',
+        label: 'FB 信息状态',
+        options: PROJECT_INFO_STATUS_OPTIONS,
+        allowCustomInput: true,
+        width: 140,
+      },
       { name: 'facebookAppId', label: 'Facebook 应用 ID', width: 180 },
       { name: 'facebookAppToken', label: 'Facebook 应用 Token', width: 220 },
       { name: 'facebookKeyHash', label: 'Facebook 秘钥散列', width: 220 },
@@ -101,7 +116,13 @@ export const PROJECT_FIELD_GROUPS: ProjectFieldGroup[] = [
     key: 'admob',
     label: 'Admob',
     fields: [
-      { name: 'admobAccountStatus', label: 'Admob 账号状态', width: 150 },
+      {
+        name: 'admobAccountStatus',
+        label: 'Admob 账号状态',
+        options: PROJECT_INFO_STATUS_OPTIONS,
+        allowCustomInput: true,
+        width: 150,
+      },
       { name: 'admobAppId', label: 'Admob 应用 ID', width: 180 },
       { name: 'admobAdIds', label: 'Admob 广告 ID 配置', multiline: true, width: 240 },
       { name: 'admobAppAdsTxt', label: 'Admob app-ads.txt 内容', multiline: true, width: 260 },

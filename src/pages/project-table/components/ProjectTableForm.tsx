@@ -5,6 +5,7 @@ import {
   ProFormText,
   ProFormTextArea,
 } from '@ant-design/pro-components';
+import type { FormInstance, Rule } from 'antd/es/form';
 import { App, AutoComplete, Col, Form, Input, Row, Tabs } from 'antd';
 import { createProject, updateProject } from '@/services/project/api';
 import type { ProjectItem } from '@/services/project/types';
@@ -27,31 +28,50 @@ const STATUS_OPTIONS = [
   { label: '已归档', value: 'archived' },
 ];
 
-const renderField = (field: ProjectFieldConfig, isEdit: boolean) => {
-  const rules = field.required ? [{ required: true, message: `请输入${field.label}` }] : undefined;
+const isAndroidPlatform = (value: unknown) => `${value ?? ''}`.trim().toUpperCase() === 'ANDROID';
+
+const renderField = (field: ProjectFieldConfig, isEdit: boolean, form: FormInstance) => {
+  const rules: Rule[] = field.required ? [{ required: true, message: `请输入${field.label}` }] : [];
+  if (field.name === 'storePageUrl') {
+    rules.push({
+      validator: async (_, value) => {
+        if (!isAndroidPlatform(form.getFieldValue('appPlatform'))) return;
+        if (typeof value === 'string' && value.trim()) return;
+        return Promise.reject(new Error('请输入商店页链接'));
+      },
+    });
+  }
   const commonProps = {
     name: field.name,
     label: field.label,
-    rules,
+    rules: rules.length ? rules : undefined,
   };
 
   if (field.multiline) {
     return <ProFormTextArea {...commonProps} fieldProps={{ rows: 4 }} />;
   }
 
-  if (field.name === 'adStatus') {
+  if (field.allowCustomInput) {
     return (
       <Form.Item {...commonProps}>
         <AutoComplete
           allowClear
           options={field.options}
-          placeholder="选择或输入投放状态"
+          placeholder={`选择或输入${field.label}`}
           filterOption={(inputValue, option) =>
             `${option?.value ?? ''}`.toLowerCase().includes(inputValue.toLowerCase())
           }
         >
           <Input />
         </AutoComplete>
+      </Form.Item>
+    );
+  }
+
+  if (field.name === 'storePageUrl') {
+    return (
+      <Form.Item {...commonProps} dependencies={['appPlatform']}>
+        <Input />
       </Form.Item>
     );
   }
@@ -120,6 +140,11 @@ const ProjectTableForm: React.FC<ProjectTableFormProps> = ({
           return false;
         }
       }}
+      onValuesChange={(changedValues) => {
+        if (Object.prototype.hasOwnProperty.call(changedValues, 'appPlatform')) {
+          void form.validateFields(['storePageUrl']).catch(() => undefined);
+        }
+      }}
     >
       <Tabs
         items={PROJECT_FIELD_GROUPS.map((group) => ({
@@ -139,7 +164,7 @@ const ProjectTableForm: React.FC<ProjectTableFormProps> = ({
               ) : null}
               {group.fields.map((field) => (
                 <Col span={field.multiline ? 24 : 8} key={field.name}>
-                  {renderField(field, isEdit)}
+                  {renderField(field, isEdit, form)}
                 </Col>
               ))}
             </Row>
