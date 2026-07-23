@@ -512,6 +512,7 @@ declare namespace AdsConsole {
     accountCount?: number;
     targetEvent?: string;
     targetCountry?: string;
+    revenueEventType?: string;
   };
 
   type AdsProjectAccount = {

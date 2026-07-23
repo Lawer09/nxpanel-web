@@ -23,6 +23,7 @@ export async function addProject(body: {
   remark?: string;
   targetEvent?: string | null;
   targetCountry?: string | null;
+  revenueEventType?: string | null;
   accountIds?: string[];
   userIds?: string[];
 }) {
@@ -40,6 +41,7 @@ export async function updateProject(body: {
   remark?: string;
   targetEvent?: string | null;
   targetCountry?: string | null;
+  revenueEventType?: string | null;
   accountIds?: string[] | null;
   userIds?: string[] | null;
 }) {

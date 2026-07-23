@@ -157,6 +157,7 @@ export async function getTargetEventOptions(params: {
   startDate?: string;
   endDate?: string;
   maxCostPerAction?: number;
+  requireActionValue?: boolean;
 }) {
   return request<AdsConsole.Result<AdsConsole.SelectOption[]>>(
     '/ads-api/fb/options/events',

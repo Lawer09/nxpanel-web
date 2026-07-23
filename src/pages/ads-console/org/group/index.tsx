@@ -67,6 +67,9 @@ const ProjectManagePage: React.FC = () => {
   // 目标事件/国家选项（编辑弹窗和目标设置弹窗共用）
   const [targetEventOptions, setTargetEventOptions] = useState<AdsConsole.SelectOption[]>([]);
   const [targetEventLoading, setTargetEventLoading] = useState(false);
+  const [revenueEventOptions, setRevenueEventOptions] = useState<AdsConsole.SelectOption[]>([]);
+  const [revenueEventLoading, setRevenueEventLoading] = useState(false);
+  const [revenueEventSearch, setRevenueEventSearch] = useState('');
   const [targetCountryOptions, setTargetCountryOptions] = useState<AdsConsole.SelectOption[]>([]);
   const [targetCountryLoading, setTargetCountryLoading] = useState(false);
 
@@ -117,6 +120,14 @@ const ProjectManagePage: React.FC = () => {
     });
   }, []);
 
+  const withManualOption = (options: AdsConsole.SelectOption[], searchText: string) => {
+    const value = searchText.trim();
+    if (!value || options.some((item) => String(item.value) === value)) {
+      return options;
+    }
+    return [{label: `${value} (手动输入)`, value}, ...options];
+  };
+
   // 加载项目组的目标事件选项（最近一周账户事件 + 预定义）
   const loadGroupEventOptions = async (groupId: string) => {
     setTargetEventLoading(true);
@@ -135,6 +146,23 @@ const ProjectManagePage: React.FC = () => {
       ]);
     } finally {
       setTargetEventLoading(false);
+    }
+  };
+
+  // 加载项目组的收入/ROAS事件选项（最近一周 action_values/conversion_values 有值事件）
+  const loadGroupRevenueEventOptions = async (groupId: string) => {
+    setRevenueEventLoading(true);
+    try {
+      const res = await getTargetEventOptions({
+        objectId: groupId,
+        objectType: "group",
+        startDate: dayjs().subtract(6, 'day').format('YYYY-MM-DD'),
+        endDate: dayjs().format('YYYY-MM-DD'),
+        requireActionValue: true,
+      });
+      setRevenueEventOptions(res?.data ?? []);
+    } finally {
+      setRevenueEventLoading(false);
     }
   };
 
@@ -168,11 +196,16 @@ const ProjectManagePage: React.FC = () => {
     setTargetCountryOptions(
       record.targetCountry ? [{label: record.targetCountry, value: record.targetCountry}] : [],
     );
+    setRevenueEventOptions(
+      record.revenueEventType ? [{label: record.revenueEventType, value: record.revenueEventType}] : [],
+    );
+    setRevenueEventSearch('');
     setTargetModalRecord(record);
     setTargetModalKey((k) => k + 1);
     setTargetModalOpen(true);
     loadGroupEventOptions(record.id);
     loadGroupCountryOptions(record.id);
+    loadGroupRevenueEventOptions(record.id);
   };
 
   // 加载用户下拉选项
@@ -249,6 +282,7 @@ const ProjectManagePage: React.FC = () => {
       remark: record.remark,
       targetEvent: record.targetEvent,
       targetCountry: record.targetCountry,
+      revenueEventType: record.revenueEventType,
     });
     if (res?.success) {
       message.success("状态更新成功");
@@ -270,11 +304,18 @@ const ProjectManagePage: React.FC = () => {
       setTargetCountryOptions(
         record.targetCountry ? [{label: record.targetCountry, value: record.targetCountry}] : [],
       );
+      setRevenueEventOptions(
+        record.revenueEventType ? [{label: record.revenueEventType, value: record.revenueEventType}] : [],
+      );
+      setRevenueEventSearch('');
       loadGroupEventOptions(record.id);
       loadGroupCountryOptions(record.id);
+      loadGroupRevenueEventOptions(record.id);
     } else {
       setTargetEventOptions(PREDEFINED_EVENT_OPTIONS.map((o) => ({...o, label: `${o.label} (预设)`})));
       setTargetCountryOptions(PREDEFINED_COUNTRY_OPTIONS);
+      setRevenueEventOptions([]);
+      setRevenueEventSearch('');
     }
   };
 
@@ -470,6 +511,36 @@ const ProjectManagePage: React.FC = () => {
       },
     },
     {
+      title: "收入/ROAS事件",
+      dataIndex: "revenueEventType",
+      width: 190,
+      ellipsis: true,
+      hideInSearch: true,
+      render: (_, record) => {
+        if (!record.revenueEventType) {
+          return (
+            <a
+              style={{color: "#8c8c8c", borderBottom: "1px dashed #d9d9d9"}}
+              onClick={() => openTargetModal(record)}
+            >
+              默认 purchase_roas
+            </a>
+          );
+        }
+        return (
+          <Tooltip title="点击修改">
+            <Tag
+              color="gold"
+              style={{cursor: "pointer", fontFamily: "monospace"}}
+              onClick={() => openTargetModal(record)}
+            >
+              {record.revenueEventType}
+            </Tag>
+          </Tooltip>
+        );
+      },
+    },
+    {
       title: "绑定账户",
       dataIndex: "accountCount",
       width: 90,
@@ -602,11 +673,17 @@ const ProjectManagePage: React.FC = () => {
             setTargetModalRecord(null);
             setTargetEventOptions([]);
             setTargetCountryOptions([]);
+            setRevenueEventOptions([]);
+            setRevenueEventSearch('');
           }
         }}
         initialValues={
           targetModalRecord
-            ? {targetEvent: targetModalRecord.targetEvent, targetCountry: targetModalRecord.targetCountry}
+            ? {
+              targetEvent: targetModalRecord.targetEvent,
+              targetCountry: targetModalRecord.targetCountry,
+              revenueEventType: targetModalRecord.revenueEventType,
+            }
             : {}
         }
         onFinish={async (values) => {
@@ -619,6 +696,7 @@ const ProjectManagePage: React.FC = () => {
             remark: targetModalRecord.remark,
             targetEvent: values.targetEvent ?? null,
             targetCountry: values.targetCountry ?? null,
+            revenueEventType: values.revenueEventType ?? null,
           });
           if (res?.success) {
             message.success("设置成功");
@@ -654,6 +732,36 @@ const ProjectManagePage: React.FC = () => {
           placeholder="请选择或直接输入目标事件（选填）"
           options={targetEventOptions}
           fieldProps={{showSearch: true, allowClear: true, loading: targetEventLoading}}
+        />
+        <ProFormSelect
+          name="revenueEventType"
+          label={
+            <Space size={4}>
+              <span>收入/ROAS事件</span>
+              {revenueEventLoading
+                ? <Spin size="small"/>
+                : (
+                  <Tooltip title="重新拉取账户最近一周有收入值的事件">
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<SyncOutlined/>}
+                      onClick={() => targetModalRecord && loadGroupRevenueEventOptions(targetModalRecord.id)}
+                    />
+                  </Tooltip>
+                )
+              }
+            </Space>
+          }
+          placeholder="为空使用 purchase_roas；B001 使用 conversion_values:ad_impression_mobile_app"
+          options={withManualOption(revenueEventOptions, revenueEventSearch)}
+          fieldProps={{
+            showSearch: true,
+            allowClear: true,
+            loading: revenueEventLoading,
+            optionFilterProp: "label",
+            onSearch: setRevenueEventSearch,
+          }}
         />
         <ProFormSelect
           name="targetCountry"
@@ -692,6 +800,8 @@ const ProjectManagePage: React.FC = () => {
             setEditRecord(null);
             setTargetEventOptions([]);
             setTargetCountryOptions([]);
+            setRevenueEventOptions([]);
+            setRevenueEventSearch('');
           }
         }}
         initialValues={editRecord ? {...editRecord, teamId: editRecord.teamId ? String(editRecord.teamId) : undefined} : {status: 1}}
@@ -703,6 +813,7 @@ const ProjectManagePage: React.FC = () => {
             remark?: string;
             targetEvent?: string;
             targetCountry?: string;
+            revenueEventType?: string;
           };
           const res = editRecord ? await updateProject({id: editRecord.id, ...payload}) : await addProject(payload);
           if (res?.success) {
@@ -761,6 +872,37 @@ const ProjectManagePage: React.FC = () => {
           placeholder="请选择或直接输入目标事件（选填）"
           options={targetEventOptions}
           fieldProps={{showSearch: true, allowClear: true, loading: targetEventLoading}}
+        />
+        <ProFormSelect
+          name="revenueEventType"
+          label={
+            <Space size={4}>
+              <span>收入/ROAS事件</span>
+              {editRecord && (
+                revenueEventLoading
+                  ? <Spin size="small"/>
+                  : (
+                    <Tooltip title="重新拉取账户最近一周有收入值的事件">
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<SyncOutlined/>}
+                        onClick={() => editRecord && loadGroupRevenueEventOptions(editRecord.id)}
+                      />
+                    </Tooltip>
+                  )
+              )}
+            </Space>
+          }
+          placeholder="为空使用 purchase_roas；B001 使用 conversion_values:ad_impression_mobile_app"
+          options={withManualOption(revenueEventOptions, revenueEventSearch)}
+          fieldProps={{
+            showSearch: true,
+            allowClear: true,
+            loading: revenueEventLoading,
+            optionFilterProp: "label",
+            onSearch: setRevenueEventSearch,
+          }}
         />
         <ProFormSelect
           name="targetCountry"
