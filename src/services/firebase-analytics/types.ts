@@ -489,6 +489,8 @@ export interface ApiRankItem {
 export type FirebaseAppConnectionReportOrderBy =
   | 'appId'
   | 'date'
+  | 'platform'
+  | 'appVersion'
   | 'avgPingMs'
   | 'clientConnectCount'
   | 'successCount'
@@ -501,6 +503,7 @@ export type FirebaseAppConnectionReportOrderBy =
 export interface FirebaseAppConnectionReportQueryParams {
   dateFrom?: string;
   dateTo?: string;
+  groupBy?: Array<'date' | 'appId' | 'platform' | 'appVersion'>;
   filters?: {
     appIds?: string[];
     platforms?: string[];
@@ -513,8 +516,10 @@ export interface FirebaseAppConnectionReportQueryParams {
 }
 
 export interface FirebaseAppConnectionReportItem {
-  appId: string;
+  appId?: string;
   date?: string | null;
+  platform?: string;
+  appVersion?: string;
   avgPingMs?: number | null;
   clientConnectCount: number;
   successCount: number;
