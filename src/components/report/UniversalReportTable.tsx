@@ -1720,14 +1720,14 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
                   {visibleOrderedColumns.map((col, idx) => {
                     if (summaryLabelColumnKey && col.key === summaryLabelColumnKey) {
                       return (
-                        <Table.Summary.Cell index={idx} key={`curr-${col.key}`}>
+                        <Table.Summary.Cell index={idx} key={`curr-${col.key}`} align={(col.column as any).align}>
                           当前页合计
                         </Table.Summary.Cell>
                       );
                     }
                     if (col.kind !== 'metric') {
                       return (
-                        <Table.Summary.Cell index={idx} key={`curr-${col.key}`}>
+                        <Table.Summary.Cell index={idx} key={`curr-${col.key}`} align={(col.column as any).align}>
                           -
                         </Table.Summary.Cell>
                       );
@@ -1736,7 +1736,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
                     const raw = currentTotals[col.value] ?? 0;
                     const content = renderSummaryValue(raw, metric?.formatter, currentTotals);
                     return (
-                      <Table.Summary.Cell index={idx} key={`curr-${col.key}`}>
+                      <Table.Summary.Cell index={idx} key={`curr-${col.key}`} align={(col.column as any).align}>
                         {content}
                       </Table.Summary.Cell>
                     );
@@ -1748,14 +1748,14 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
                   {visibleOrderedColumns.map((col, idx) => {
                     if (summaryLabelColumnKey && col.key === summaryLabelColumnKey) {
                       return (
-                        <Table.Summary.Cell index={idx} key={`grand-${col.key}`}>
+                        <Table.Summary.Cell index={idx} key={`grand-${col.key}`} align={(col.column as any).align}>
                           总数据合计
                         </Table.Summary.Cell>
                       );
                     }
                     if (col.kind !== 'metric') {
                       return (
-                        <Table.Summary.Cell index={idx} key={`grand-${col.key}`}>
+                        <Table.Summary.Cell index={idx} key={`grand-${col.key}`} align={(col.column as any).align}>
                           -
                         </Table.Summary.Cell>
                       );
@@ -1764,7 +1764,7 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
                     const raw = grandTotals[col.value] ?? 0;
                     const content = renderSummaryValue(raw, metric?.formatter, grandTotals);
                     return (
-                      <Table.Summary.Cell index={idx} key={`grand-${col.key}`}>
+                      <Table.Summary.Cell index={idx} key={`grand-${col.key}`} align={(col.column as any).align}>
                         {content}
                       </Table.Summary.Cell>
                     );
