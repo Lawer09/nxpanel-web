@@ -7,7 +7,8 @@ import { history, useSearchParams } from '@umijs/max';
 import React, { useEffect, useMemo, useState } from 'react';
 import { getProjectCodes, getProjects } from '@/services/project/api';
 import type { ProjectItem } from '@/services/project/types';
-import { queryProjectHourlyReport, queryProjectReport } from '@/services/report/api';
+import { queryProjectHourlyReport, queryProjectReport, queryProjectRetention } from '@/services/report/api';
+import ProjectRetentionCard from './components/ProjectRetentionCard';
 import TrendChartCard from './components/TrendChartCard';
 import TrendDashboardHeader from './components/TrendDashboardHeader';
 import TrendKpiGrid from './components/TrendKpiGrid';
@@ -18,6 +19,7 @@ import {
   COUNTRY_METRIC_OPTIONS,
   DASHBOARD_THEME,
   LINE_SERIES_COLORS,
+  PROJECT_RETENTION_DAYS,
 } from './constants';
 import {
   buildProjectDailyTrendQuery,
@@ -31,6 +33,7 @@ import {
   formatCurrency,
   formatInteger,
   getDefaultProjectTrendHourlyDateRange,
+  getDefaultProjectRetentionDateRange,
   formatTrafficCostWithRatio,
   formatRoiPercent,
   getDefaultProjectTrendHourlyDateTimeRange,
@@ -100,6 +103,10 @@ const ProjectTrendDashboardPage: React.FC = () => {
   const [summary, setSummary] = useState<Record<string, unknown>>({});
   const [countryRows, setCountryRows] = useState<Array<Record<string, unknown>>>([]);
   const [countryMetric, setCountryMetric] = useState<CountryMetric>('adRevenue');
+  const [retentionRange, setRetentionRange] = useState<[string, string]>(getDefaultProjectRetentionDateRange);
+  const [retentionRows, setRetentionRows] = useState<API.ProjectRetentionCohortItem[]>([]);
+  const [retentionDays, setRetentionDays] = useState<number[]>(PROJECT_RETENTION_DAYS);
+  const [retentionLoading, setRetentionLoading] = useState(false);
 
   useEffect(() => {
     setDraftQuery(initialQuery);
@@ -211,6 +218,48 @@ const ProjectTrendDashboardPage: React.FC = () => {
       alive = false;
     };
   }, [appliedQuery, message]);
+
+  useEffect(() => {
+    if (!appliedQuery.projectCode) {
+      setRetentionRows([]);
+      return;
+    }
+    let alive = true;
+
+    const run = async () => {
+      setRetentionLoading(true);
+      try {
+        const retentionRes = await queryProjectRetention({
+          projectCode: appliedQuery.projectCode,
+          dateFrom: retentionRange[0],
+          dateTo: retentionRange[1],
+        });
+
+        if (!alive) return;
+
+        if (retentionRes.code !== 0) {
+          message.error(retentionRes.msg || '获取项目留存数据失败');
+          setRetentionRows([]);
+          return;
+        }
+
+        setRetentionRows(retentionRes.data?.data ?? []);
+        setRetentionDays(retentionRes.data?.retentionDays?.length ? retentionRes.data.retentionDays : PROJECT_RETENTION_DAYS);
+      } catch (error: any) {
+        if (alive) {
+          message.error(error?.message || '获取项目留存数据失败');
+          setRetentionRows([]);
+        }
+      } finally {
+        if (alive) setRetentionLoading(false);
+      }
+    };
+
+    void run();
+    return () => {
+      alive = false;
+    };
+  }, [appliedQuery.projectCode, retentionRange, message]);
 
   useEffect(() => {
     if (!appliedQuery.projectCode) return;
@@ -523,6 +572,14 @@ const ProjectTrendDashboardPage: React.FC = () => {
           <Spin spinning={loading}>
             <Space direction="vertical" size={20} style={{ width: '100%' }}>
               <TrendKpiGrid items={kpiItems} />
+
+              <ProjectRetentionCard
+                data={retentionRows}
+                loading={retentionLoading}
+                range={retentionRange}
+                retentionDays={retentionDays}
+                onRangeChange={setRetentionRange}
+              />
 
               <TrendChartCard title="收益趋势" hasData={revenueTrendData.length > 0} emptyText="暂无收益趋势数据">
                 {revenueTrendData.length ? (

@@ -369,6 +369,32 @@ declare namespace API {
     data: ProjectHourlyAdMatchRateItem[];
   }
 
+  interface ProjectRetentionQuery {
+    projectCode: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }
+
+  interface ProjectRetentionDayData {
+    count: number;
+    rate: number;
+  }
+
+  interface ProjectRetentionCohortItem {
+    date: string;
+    projectCode: string;
+    activeUsers: number;
+    retention: Record<string, ProjectRetentionDayData | null>;
+  }
+
+  interface ProjectRetentionResult {
+    projectCode: string;
+    dateFrom: string;
+    dateTo: string;
+    retentionDays: number[];
+    data: ProjectRetentionCohortItem[];
+  }
+
   type ProjectReportItem = Record<string, any>;
 
   type UserReportRow = Record<string, any>;

@@ -4,6 +4,7 @@ export const PROJECT_TREND_DASHBOARD_PATH = '/report/project-trend';
 
 export const DEFAULT_PROJECT_TREND_RANGE_DAYS = 7;
 export const DEFAULT_PROJECT_TREND_HOURLY_RANGE_DAYS = 1;
+export const DEFAULT_PROJECT_RETENTION_RANGE_DAYS = 15;
 
 export const toSafeNumber = (value: unknown): number | null => {
   if (value === null || value === undefined || value === '') return null;
@@ -136,6 +137,12 @@ export const getDefaultProjectTrendHourlyDateRange = (): [string, string] => {
 export const getDefaultProjectTrendHourlyDateTimeRange = (): [Dayjs, Dayjs] => {
   const today = dayjs();
   return [today.startOf('day'), today.endOf('day')];
+};
+
+export const getDefaultProjectRetentionDateRange = (): [string, string] => {
+  const end = dayjs();
+  const start = end.subtract(DEFAULT_PROJECT_RETENTION_RANGE_DAYS - 1, 'day');
+  return [start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')];
 };
 
 export const formatProjectTrendHourLabel = (reportDate?: string, hour?: number | null) => {

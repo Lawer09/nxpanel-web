@@ -11,6 +11,8 @@ export const GRANULARITY_OPTIONS: Array<{ label: string; value: TrendGranularity
   { label: '小时', value: 'hour' },
 ];
 
+export const PROJECT_RETENTION_DAYS = [1, 3, 7, 14, 30];
+
 export const DASHBOARD_THEME = {
   colors10: ['#0f766e', '#ea580c', '#2563eb', '#7c3aed', '#dc2626', '#16a34a', '#0891b2', '#b45309'],
 };
