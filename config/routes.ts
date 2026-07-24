@@ -441,9 +441,9 @@ export default [
         component: './firebase-analytics/NodeStatus',
       },
       {
-        path: '/firebase-analytics/node-report',
-        name: 'node-report',
-        component: './firebase-analytics/NodeReport',
+        path: '/firebase-analytics/app-connection-report',
+        name: 'app-connection-report',
+        component: './firebase-analytics/AppConnectionReport',
       },
       {
         path: '/firebase-analytics/node-status/detail',

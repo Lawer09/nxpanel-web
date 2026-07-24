@@ -8,29 +8,33 @@ import {
   ProTable,
 } from '@ant-design/pro-components';
 import { App, Button, Card, Space, Typography } from 'antd';
-import { ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { ReloadOutlined, SearchOutlined, SyncOutlined } from '@ant-design/icons';
 import type { SortOrder } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
-import { getFilterOptions, queryNodeDailyReport } from '@/services/firebase-analytics/api';
+import {
+  getFilterOptions,
+  queryAppConnectionReport,
+  syncAppConnectionReport,
+} from '@/services/firebase-analytics/api';
 import type {
   FilterOption,
   FilterOptionsResponse,
-  FirebaseNodeDailyReportItem,
-  FirebaseNodeDailyReportOrderBy,
-  FirebaseNodeDailyReportQueryParams,
+  FirebaseAppConnectionReportItem,
+  FirebaseAppConnectionReportOrderBy,
+  FirebaseAppConnectionReportQueryParams,
 } from '@/services/firebase-analytics/types';
 import { formatNumber, formatRate, toRequestOrder } from '@/utils/firebase-analytics';
 
 const DEFAULT_PAGE_SIZE = 100;
 
-type NodeReportFilterValues = {
+type AppConnectionReportFilterValues = {
   dateRange?: [dayjs.Dayjs, dayjs.Dayjs];
   appId?: string;
   platform?: string;
   appVersion?: string;
 };
 
-type NodeReportTableItem = FirebaseNodeDailyReportItem & {
+type AppConnectionReportTableItem = FirebaseAppConnectionReportItem & {
   isSummary?: boolean;
 };
 
@@ -39,7 +43,7 @@ const getDefaultDateRange = (): [dayjs.Dayjs, dayjs.Dayjs] => [
   dayjs().endOf('day'),
 ];
 
-const getDefaultFilters = (): NodeReportFilterValues => ({
+const getDefaultFilters = (): AppConnectionReportFilterValues => ({
   dateRange: getDefaultDateRange(),
 });
 
@@ -64,13 +68,13 @@ const renderRate = (value: unknown) => {
 
 const resolveSorter = (
   sort: Record<string, SortOrder>,
-): Pick<FirebaseNodeDailyReportQueryParams, 'orderBy' | 'orderDirection'> => {
+): Pick<FirebaseAppConnectionReportQueryParams, 'orderBy' | 'orderDirection'> => {
   const sorter = Object.entries(sort).find(([, order]) => Boolean(order));
   if (!sorter) return {};
 
   const [orderBy, order] = sorter;
   return {
-    orderBy: orderBy as FirebaseNodeDailyReportOrderBy,
+    orderBy: orderBy as FirebaseAppConnectionReportOrderBy,
     orderDirection: toRequestOrder(order),
   };
 };
@@ -78,9 +82,9 @@ const resolveSorter = (
 const buildRequestParams = (
   params: Record<string, any>,
   sort: Record<string, SortOrder>,
-): FirebaseNodeDailyReportQueryParams => {
+): FirebaseAppConnectionReportQueryParams => {
   const [start, end] = (params.dateRange as [dayjs.Dayjs, dayjs.Dayjs] | undefined) || getDefaultDateRange();
-  const filters: FirebaseNodeDailyReportQueryParams['filters'] = {};
+  const filters: FirebaseAppConnectionReportQueryParams['filters'] = {};
 
   if (params.appId) filters.appIds = [String(params.appId)];
   if (params.platform) filters.platforms = [String(params.platform)];
@@ -96,23 +100,22 @@ const buildRequestParams = (
   };
 };
 
-const shouldShowSummary = (summary: FirebaseNodeDailyReportItem | undefined, total: number) => {
-  if (!summary) return false;
-  return (
-    total > 0 ||
-    toNumber(summary.clientConnectCount) > 0 ||
-    toNumber(summary.activeUserCount) > 0 ||
-    summary.avgPingMs !== undefined && summary.avgPingMs !== null
-  );
+const buildSyncPayload = (values: AppConnectionReportFilterValues) => {
+  const [start, end] = values.dateRange || getDefaultDateRange();
+  return {
+    dateFrom: start.format('YYYY-MM-DD'),
+    dateTo: end.format('YYYY-MM-DD'),
+  };
 };
 
-const NodeReportPage: React.FC = () => {
-  const { message } = App.useApp();
+const AppConnectionReportPage: React.FC = () => {
+  const { message, modal } = App.useApp();
   const actionRef = useRef<ActionType | undefined>(undefined);
-  const [form] = ProForm.useForm<NodeReportFilterValues>();
-  const [queryState, setQueryState] = useState<NodeReportFilterValues>(() => getDefaultFilters());
+  const [form] = ProForm.useForm<AppConnectionReportFilterValues>();
+  const [queryState, setQueryState] = useState<AppConnectionReportFilterValues>(() => getDefaultFilters());
   const [options, setOptions] = useState<Partial<FilterOptionsResponse>>({});
   const [optionsLoading, setOptionsLoading] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -142,7 +145,46 @@ const NodeReportPage: React.FC = () => {
     };
   }, [message]);
 
-  const columns = useMemo<ProColumns<NodeReportTableItem>[]>(
+  const handleSync = async () => {
+    let values: AppConnectionReportFilterValues;
+    try {
+      values = await form.validateFields();
+    } catch {
+      return;
+    }
+
+    const payload = buildSyncPayload(values);
+    const days = dayjs(payload.dateTo).diff(dayjs(payload.dateFrom), 'day') + 1;
+
+    modal.confirm({
+      title: '同步应用连接数据',
+      content:
+        days > 31
+          ? `将重新聚合 ${payload.dateFrom} 至 ${payload.dateTo} 的应用连接数据，时间范围超过 31 天，可能耗时较长。`
+          : `将重新聚合 ${payload.dateFrom} 至 ${payload.dateTo} 的应用连接数据。`,
+      okText: '开始同步',
+      cancelText: '取消',
+      onOk: async () => {
+        setSyncLoading(true);
+        try {
+          const res = await syncAppConnectionReport(payload);
+          if (res.data?.success) {
+            message.success('应用连接数据同步完成');
+            setQueryState(values);
+            actionRef.current?.reload();
+          } else {
+            message.warning(res.data?.message || '应用连接数据同步未完成');
+          }
+        } catch (error: any) {
+          message.error(error?.message || '同步应用连接数据失败');
+        } finally {
+          setSyncLoading(false);
+        }
+      },
+    });
+  };
+
+  const columns = useMemo<ProColumns<AppConnectionReportTableItem>[]>(
     () => [
       {
         title: '应用',
@@ -239,7 +281,7 @@ const NodeReportPage: React.FC = () => {
   return (
     <PageContainer>
       <Card style={{ marginBottom: 16 }} styles={{ body: { padding: 16 } }}>
-        <ProForm<NodeReportFilterValues>
+        <ProForm<AppConnectionReportFilterValues>
           form={form}
           layout="inline"
           submitter={false}
@@ -306,11 +348,18 @@ const NodeReportPage: React.FC = () => {
             >
               重置
             </Button>
+            <Button
+              icon={<SyncOutlined />}
+              loading={syncLoading}
+              onClick={handleSync}
+            >
+              同步数据
+            </Button>
           </Space>
         </ProForm>
       </Card>
 
-      <ProTable<NodeReportTableItem>
+      <ProTable<AppConnectionReportTableItem>
         actionRef={actionRef}
         rowKey={(record) => (record.isSummary ? '__summary__' : `${record.appId || '-'}|${record.date || '-'}`)}
         columns={columns}
@@ -325,12 +374,10 @@ const NodeReportPage: React.FC = () => {
         }}
         request={async (params, sort) => {
           try {
-            const res = await queryNodeDailyReport(buildRequestParams(params, sort));
+            const res = await queryAppConnectionReport(buildRequestParams(params, sort));
             const report = res.data;
             const rows = report?.data || [];
-            const summaryRows = shouldShowSummary(report?.summary, report?.total || 0)
-              ? [{ ...report.summary, isSummary: true }]
-              : [];
+            const summaryRows = report?.summary ? [{ ...report.summary, isSummary: true }] : [];
 
             return {
               data: [...summaryRows, ...rows],
@@ -338,7 +385,7 @@ const NodeReportPage: React.FC = () => {
               success: true,
             };
           } catch (error: any) {
-            message.error(error?.message || '获取节点报表失败');
+            message.error(error?.message || '获取应用连接报表失败');
             return {
               data: [],
               total: 0,
@@ -352,7 +399,7 @@ const NodeReportPage: React.FC = () => {
           setting: true,
           fullScreen: true,
         }}
-        rowClassName={(record) => (record.isSummary ? 'firebase-node-report-summary-row' : '')}
+        rowClassName={(record) => (record.isSummary ? 'firebase-app-connection-report-summary-row' : '')}
         onRow={(record) => ({
           style: record.isSummary ? { background: '#f8fafc', fontWeight: 600 } : undefined,
         })}
@@ -365,4 +412,4 @@ const NodeReportPage: React.FC = () => {
   );
 };
 
-export default NodeReportPage;
+export default AppConnectionReportPage;

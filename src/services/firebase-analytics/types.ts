@@ -486,7 +486,7 @@ export interface ApiRankItem {
   device_count: number;
 }
 
-export type FirebaseNodeDailyReportOrderBy =
+export type FirebaseAppConnectionReportOrderBy =
   | 'appId'
   | 'date'
   | 'avgPingMs'
@@ -498,7 +498,7 @@ export type FirebaseNodeDailyReportOrderBy =
   | 'cancelRate'
   | 'activeUserCount';
 
-export interface FirebaseNodeDailyReportQueryParams {
+export interface FirebaseAppConnectionReportQueryParams {
   dateFrom?: string;
   dateTo?: string;
   filters?: {
@@ -508,11 +508,11 @@ export interface FirebaseNodeDailyReportQueryParams {
   };
   page?: number;
   pageSize?: number;
-  orderBy?: FirebaseNodeDailyReportOrderBy;
+  orderBy?: FirebaseAppConnectionReportOrderBy;
   orderDirection?: 'asc' | 'desc';
 }
 
-export interface FirebaseNodeDailyReportItem {
+export interface FirebaseAppConnectionReportItem {
   appId: string;
   date?: string | null;
   avgPingMs?: number | null;
@@ -526,12 +526,20 @@ export interface FirebaseNodeDailyReportItem {
   activeUserCount: number;
 }
 
-export interface FirebaseNodeDailyReportResponse {
-  data: FirebaseNodeDailyReportItem[];
-  summary: FirebaseNodeDailyReportItem;
+export interface FirebaseAppConnectionReportResponse {
+  data: FirebaseAppConnectionReportItem[];
+  summary: FirebaseAppConnectionReportItem;
   total: number;
   page: number;
   pageSize: number;
   dateFrom: string;
   dateTo: string;
+}
+
+export interface FirebaseAppConnectionSyncResponse {
+  success: boolean;
+  exitCode: number;
+  dateFrom: string;
+  dateTo: string;
+  message: string;
 }

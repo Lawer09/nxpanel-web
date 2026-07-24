@@ -35,8 +35,9 @@ import type {
   NodeConnectionResultsResponse,
   ProbeResultItem,
   ProbeResultsResponse,
-  FirebaseNodeDailyReportQueryParams,
-  FirebaseNodeDailyReportResponse,
+  FirebaseAppConnectionReportQueryParams,
+  FirebaseAppConnectionReportResponse,
+  FirebaseAppConnectionSyncResponse,
 } from './types';
 
 export type { FirebaseAnalyticsFilter };
@@ -395,10 +396,21 @@ export async function syncReport(params: { dateFrom: string; dateTo: string }) {
   });
 }
 
-/** 节点日报 POST /v3/firebase-analytics/report/node-daily/query */
-export async function queryNodeDailyReport(params: FirebaseNodeDailyReportQueryParams) {
-  return request<{ data: FirebaseNodeDailyReportResponse }>(
-    '/v3/firebase-analytics/report/node-daily/query',
+/** 应用连接报表 POST /v3/firebase-analytics/report/app-connection/query */
+export async function queryAppConnectionReport(params: FirebaseAppConnectionReportQueryParams) {
+  return request<{ data: FirebaseAppConnectionReportResponse }>(
+    '/v3/firebase-analytics/report/app-connection/query',
+    {
+      method: 'POST',
+      data: params,
+    },
+  );
+}
+
+/** 同步应用连接报表 POST /v3/firebase-analytics/report/app-connection/sync */
+export async function syncAppConnectionReport(params: { dateFrom: string; dateTo: string }) {
+  return request<{ data: FirebaseAppConnectionSyncResponse }>(
+    '/v3/firebase-analytics/report/app-connection/sync',
     {
       method: 'POST',
       data: params,
