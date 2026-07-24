@@ -441,6 +441,11 @@ export default [
         component: './firebase-analytics/NodeStatus',
       },
       {
+        path: '/firebase-analytics/node-report',
+        name: 'node-report',
+        component: './firebase-analytics/NodeReport',
+      },
+      {
         path: '/firebase-analytics/node-status/detail',
         hideInMenu: true,
         component: './firebase-analytics/NodeStatusDetail',

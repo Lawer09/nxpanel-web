@@ -125,6 +125,7 @@ export default {
   'menu.firebase-analytics': 'Firebase',
   'menu.firebase-analytics.dashboard': 'Dashboard',
   'menu.firebase-analytics.node-status': '节点状态',
+  'menu.firebase-analytics.node-report': '节点报表',
   'menu.firebase-analytics.app-open': 'App 打开分析',
   'menu.firebase-analytics.vpn-session': 'VPN 连接分析',
   'menu.firebase-analytics.vpn-probe': '节点测速分析',

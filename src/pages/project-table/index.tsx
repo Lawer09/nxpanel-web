@@ -15,6 +15,7 @@ import {
   batchUpdateProjectDepartment,
   getProjectDepartments,
   getProjects,
+  updateProject,
   updateProjectStatus,
 } from '@/services/project/api';
 import type { ProjectFetchRequest, ProjectItem } from '@/services/project/types';
@@ -56,6 +57,94 @@ const normalizeBatchValue = (value?: string | null) => {
   return value.trim() === '' ? null : value;
 };
 
+interface AdStatusModalEditorProps {
+  record: ProjectItem;
+  onSaved: (record: ProjectItem, adStatus: string | null) => void;
+}
+
+const AdStatusModalEditor: React.FC<AdStatusModalEditorProps> = ({
+  record,
+  onSaved,
+}) => {
+  const { message } = App.useApp();
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(record.adStatus ?? '');
+  const [saving, setSaving] = useState(false);
+
+  React.useEffect(() => {
+    if (!open) {
+      setValue(record.adStatus ?? '');
+    }
+  }, [open, record.adStatus]);
+
+  const save = async () => {
+    const normalized = normalizeBatchValue(value);
+    const current = record.adStatus ?? null;
+    if (normalized === current) {
+      setOpen(false);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await updateProject({ id: record.id, adStatus: normalized });
+      message.success('投放状态已更新');
+      onSaved(record, normalized);
+      setOpen(false);
+    } catch (_error) {
+      setValue(record.adStatus ?? '');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <a
+        onClick={() => setOpen(true)}
+        style={{ textDecoration: 'underline', textUnderlineOffset: 3 }}
+      >
+        {record.adStatus || '设置'}
+      </a>
+      <Modal
+        title="修改投放状态"
+        open={open}
+        confirmLoading={saving}
+        okText="保存"
+        cancelText="取消"
+        destroyOnHidden
+        onOk={() => void save()}
+        onCancel={() => {
+          if (saving) return;
+          setOpen(false);
+          setValue(record.adStatus ?? '');
+        }}
+      >
+        <Form layout="vertical">
+          <Form.Item label="投放状态">
+            <AutoComplete
+              allowClear
+              value={value}
+              options={PROJECT_AD_STATUS_OPTIONS}
+              placeholder="选择或输入投放状态；清空后保存将清空投放状态"
+              onChange={(nextValue) => setValue(nextValue)}
+              filterOption={(inputValue, option) =>
+                `${option?.value ?? ''}`.toLowerCase().includes(inputValue.toLowerCase())
+              }
+            >
+              <Input
+                onPressEnter={() => {
+                  void save();
+                }}
+              />
+            </AutoComplete>
+          </Form.Item>
+        </Form>
+      </Modal>
+    </>
+  );
+};
+
 const ProjectTablePage: React.FC = () => {
   const { message } = App.useApp();
   const actionRef = useRef<ActionType>(null);
@@ -64,6 +153,7 @@ const ProjectTablePage: React.FC = () => {
   const [editingProject, setEditingProject] = useState<ProjectItem>();
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailProject, setDetailProject] = useState<ProjectItem | null>(null);
+  const [detailActiveTab, setDetailActiveTab] = useState('detail');
   const [selectedRows, setSelectedRows] = useState<ProjectItem[]>([]);
   const [batchModalType, setBatchModalType] = useState<BatchFieldType | null>(null);
   const [batchLoading, setBatchLoading] = useState(false);
@@ -97,8 +187,9 @@ const ProjectTablePage: React.FC = () => {
     setFormOpen(true);
   };
 
-  const openDetail = (record: ProjectItem) => {
+  const openDetail = (record: ProjectItem, activeTab = 'detail') => {
     setDetailProject(record);
+    setDetailActiveTab(activeTab);
     setDetailOpen(true);
   };
 
@@ -110,6 +201,23 @@ const ProjectTablePage: React.FC = () => {
       from: 'project-table',
     });
     history.push(`${PROJECT_TREND_DASHBOARD_PATH}?${search}`);
+  };
+
+  const renderResourceCount = (
+    record: ProjectItem,
+    field: 'trafficAccounts' | 'adAccounts' | 'userApps',
+    activeTab: string,
+  ) => (
+    <a onClick={() => openDetail(record, activeTab)}>
+      {countEnabled(record[field])}
+    </a>
+  );
+
+  const handleAdStatusSaved = (record: ProjectItem, adStatus: string | null) => {
+    if (detailProject?.id === record.id) {
+      setDetailProject({ ...detailProject, adStatus });
+    }
+    reloadTable();
   };
 
   const openBatchModal = (type: BatchFieldType) => {
@@ -180,16 +288,16 @@ const ProjectTablePage: React.FC = () => {
 
   const columns: ProColumns<ProjectItem>[] = [
     {
-      title: '项目 ID',
+      title: 'ID',
       dataIndex: 'id',
-      width: 90,
+      width: 60,
       search: false,
       fixed: 'left',
     },
     {
-      title: '项目代号',
+      title: '代号',
       dataIndex: 'projectCode',
-      width: 140,
+      width: 90,
       search: false,
       fixed: 'left',
       ellipsis: true,
@@ -197,12 +305,36 @@ const ProjectTablePage: React.FC = () => {
         record.projectCode ? <a onClick={() => jumpToProjectTrend(record)}>{record.projectCode}</a> : '-',
     },
     {
-      title: '项目名称',
+      title: '名称',
       dataIndex: 'projectName',
-      width: 180,
+      width: 90,
       search: false,
       fixed: 'left',
       ellipsis: true,
+    },
+    {
+      title: '流量账号',
+      dataIndex: 'trafficAccounts',
+      width: 80,
+      search: false,
+      fixed: 'left',
+      render: (_, record) => renderResourceCount(record, 'trafficAccounts', 'traffic'),
+    },
+    {
+      title: '广告账号',
+      dataIndex: 'adAccounts',
+      width: 80,
+      search: false,
+      fixed: 'left',
+      render: (_, record) => renderResourceCount(record, 'adAccounts', 'ad'),
+    },
+    {
+      title: '用户 App',
+      dataIndex: 'userApps',
+      width: 80,
+      search: false,
+      fixed: 'left',
+      render: (_, record) => renderResourceCount(record, 'userApps', 'app'),
     },
     {
       title: '关键字',
@@ -215,7 +347,7 @@ const ProjectTablePage: React.FC = () => {
     {
       title: '状态',
       dataIndex: 'status',
-      width: 110,
+      width: 60,
       valueType: 'select',
       valueEnum: {
         active: { text: '启用' },
@@ -227,7 +359,7 @@ const ProjectTablePage: React.FC = () => {
     {
       title: '投放状态',
       dataIndex: 'adStatus',
-      width: 120,
+      width: 90,
       renderFormItem: () => (
         <AutoComplete
           allowClear
@@ -241,24 +373,27 @@ const ProjectTablePage: React.FC = () => {
         </AutoComplete>
       ),
       ellipsis: true,
+      render: (_, record) => (
+        <AdStatusModalEditor record={record} onSaved={handleAdStatusSaved} />
+      ),
     },
     {
       title: '应用平台',
       dataIndex: 'appPlatform',
-      width: 140,
+      width: 80,
       search: false,
       ellipsis: true,
     },
     {
       title: '项目包名',
       dataIndex: 'packageName',
-      width: 220,
+      width: 180,
       ellipsis: true,
     },
     {
       title: '开发者 Gmail',
       dataIndex: 'developerGmail',
-      width: 180,
+      width: 120,
       ellipsis: true,
     },
     {
@@ -275,7 +410,7 @@ const ProjectTablePage: React.FC = () => {
     ).map<ProColumns<ProjectItem>>((field) => ({
       title: field.label,
       dataIndex: field.name,
-      width: field.width ?? 160,
+      width: field.width ?? 120,
       search: false,
       ellipsis: true,
       render: (_, record) => {
@@ -286,31 +421,10 @@ const ProjectTablePage: React.FC = () => {
     {
       title: '备注',
       dataIndex: 'remark',
-      width: 220,
+      width: 180,
       search: false,
       ellipsis: true,
       render: (_, record) => (record.remark ? <Text ellipsis>{record.remark}</Text> : '-'),
-    },
-    {
-      title: '流量账号',
-      dataIndex: 'trafficAccounts',
-      width: 110,
-      search: false,
-      render: (_, record) => countEnabled(record.trafficAccounts),
-    },
-    {
-      title: '广告账号',
-      dataIndex: 'adAccounts',
-      width: 110,
-      search: false,
-      render: (_, record) => countEnabled(record.adAccounts),
-    },
-    {
-      title: '用户 App',
-      dataIndex: 'userApps',
-      width: 110,
-      search: false,
-      render: (_, record) => countEnabled(record.userApps),
     },
     {
       title: '创建时间',
@@ -461,9 +575,11 @@ const ProjectTablePage: React.FC = () => {
       <ProjectTableDetailDrawer
         open={detailOpen}
         project={detailProject}
+        activeTab={detailActiveTab}
         onClose={() => {
           setDetailOpen(false);
           setDetailProject(null);
+          setDetailActiveTab('detail');
         }}
         onProjectChange={setDetailProject}
         onRefresh={reloadTable}

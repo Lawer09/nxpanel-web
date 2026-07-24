@@ -35,6 +35,8 @@ import type {
   NodeConnectionResultsResponse,
   ProbeResultItem,
   ProbeResultsResponse,
+  FirebaseNodeDailyReportQueryParams,
+  FirebaseNodeDailyReportResponse,
 } from './types';
 
 export type { FirebaseAnalyticsFilter };
@@ -391,4 +393,15 @@ export async function syncReport(params: { dateFrom: string; dateTo: string }) {
     method: 'POST',
     data: params,
   });
+}
+
+/** 节点日报 POST /v3/firebase-analytics/report/node-daily/query */
+export async function queryNodeDailyReport(params: FirebaseNodeDailyReportQueryParams) {
+  return request<{ data: FirebaseNodeDailyReportResponse }>(
+    '/v3/firebase-analytics/report/node-daily/query',
+    {
+      method: 'POST',
+      data: params,
+    },
+  );
 }

@@ -126,6 +126,7 @@ export default {
   'menu.firebase-analytics': 'Firebase',
   'menu.firebase-analytics.dashboard': 'Dashboard',
   'menu.firebase-analytics.node-status': 'Node Status',
+  'menu.firebase-analytics.node-report': 'Node Report',
   'menu.firebase-analytics.app-open': 'App Open Analysis',
   'menu.firebase-analytics.vpn-session': 'VPN Session Analysis',
   'menu.firebase-analytics.vpn-probe': 'VPN Probe Analysis',

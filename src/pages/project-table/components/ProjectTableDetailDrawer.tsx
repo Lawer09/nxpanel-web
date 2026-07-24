@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button, Descriptions, Drawer, Modal, Space, Tabs, Tag, Typography, App } from 'antd';
 import {
   CheckCircleOutlined,
@@ -26,6 +26,7 @@ import ProjectTableForm from './ProjectTableForm';
 interface ProjectTableDetailDrawerProps {
   open: boolean;
   project: ProjectItem | null;
+  activeTab?: string;
   onClose: () => void;
   onProjectChange: (project: ProjectItem) => void;
   onRefresh: () => void;
@@ -57,15 +58,23 @@ const renderValue = (value: unknown, multiline?: boolean) => {
 const ProjectTableDetailDrawer: React.FC<ProjectTableDetailDrawerProps> = ({
   open,
   project,
+  activeTab = 'detail',
   onClose,
   onProjectChange,
   onRefresh,
 }) => {
   const { message } = App.useApp();
   const [formOpen, setFormOpen] = useState(false);
+  const [currentTab, setCurrentTab] = useState(activeTab);
   const trafficRef = useRef<TrafficRef>(null);
   const adRef = useRef<AdRef>(null);
   const appRef = useRef<AppRef>(null);
+
+  useEffect(() => {
+    if (open) {
+      setCurrentTab(activeTab);
+    }
+  }, [activeTab, open]);
 
   const handleStatusChange = (status: ProjectItem['status']) => {
     if (!project) return;
@@ -134,6 +143,8 @@ const ProjectTableDetailDrawer: React.FC<ProjectTableDetailDrawerProps> = ({
         {project ? (
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
             <Tabs
+              activeKey={currentTab}
+              onChange={setCurrentTab}
               items={[
                 {
                   key: 'detail',

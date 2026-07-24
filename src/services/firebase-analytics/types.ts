@@ -485,3 +485,53 @@ export interface ApiRankItem {
   avg_duration: number;
   device_count: number;
 }
+
+export type FirebaseNodeDailyReportOrderBy =
+  | 'appId'
+  | 'date'
+  | 'avgPingMs'
+  | 'clientConnectCount'
+  | 'successCount'
+  | 'successRate'
+  | 'failCount'
+  | 'failRate'
+  | 'cancelRate'
+  | 'activeUserCount';
+
+export interface FirebaseNodeDailyReportQueryParams {
+  dateFrom?: string;
+  dateTo?: string;
+  filters?: {
+    appIds?: string[];
+    platforms?: string[];
+    appVersions?: string[];
+  };
+  page?: number;
+  pageSize?: number;
+  orderBy?: FirebaseNodeDailyReportOrderBy;
+  orderDirection?: 'asc' | 'desc';
+}
+
+export interface FirebaseNodeDailyReportItem {
+  appId: string;
+  date?: string | null;
+  avgPingMs?: number | null;
+  clientConnectCount: number;
+  successCount: number;
+  successRate: number;
+  failCount: number;
+  failRate: number;
+  cancelCount?: number;
+  cancelRate: number;
+  activeUserCount: number;
+}
+
+export interface FirebaseNodeDailyReportResponse {
+  data: FirebaseNodeDailyReportItem[];
+  summary: FirebaseNodeDailyReportItem;
+  total: number;
+  page: number;
+  pageSize: number;
+  dateFrom: string;
+  dateTo: string;
+}
