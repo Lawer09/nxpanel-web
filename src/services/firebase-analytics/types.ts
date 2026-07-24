@@ -51,6 +51,12 @@ export interface DashboardSummaryResponse {
 export interface FilterOption {
   label: string;
   value: string;
+  projectCode?: string | null;
+  projectName?: string | null;
+  ownerName?: string | null;
+  department?: string | null;
+  adStatus?: string | null;
+  remark?: string | null;
 }
 
 export interface FilterOptionsResponse {
@@ -520,6 +526,12 @@ export interface FirebaseAppConnectionReportItem {
   date?: string | null;
   platform?: string;
   appVersion?: string;
+  projectCode?: string | null;
+  projectName?: string | null;
+  projectOwnerName?: string | null;
+  projectDepartment?: string | null;
+  projectAdStatus?: string | null;
+  projectRemark?: string | null;
   avgPingMs?: number | null;
   clientConnectCount: number;
   successCount: number;

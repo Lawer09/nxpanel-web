@@ -83,6 +83,29 @@ const renderText = (value: unknown) => {
   return text ? String(text) : '--';
 };
 
+const renderApp = (_value: unknown, record: FirebaseAppConnectionReportItem) => {
+  const appId = typeof record.appId === 'string' ? record.appId.trim() : '';
+  if (!appId) return '--';
+
+  const projectCode = record.projectCode?.trim();
+  const ownerName = record.projectOwnerName?.trim();
+  const meta = [
+    projectCode ? `代号：${projectCode}` : undefined,
+    ownerName ? `负责人：${ownerName}` : undefined,
+  ].filter(Boolean);
+
+  return (
+    <Space direction="vertical" size={0}>
+      <span>{appId}</span>
+      {meta.length ? (
+        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+          {meta.join(' / ')}
+        </Typography.Text>
+      ) : null}
+    </Space>
+  );
+};
+
 const renderCount = (value: unknown) => formatNumber(toNumber(value));
 
 const renderPing = (value: unknown) => {
@@ -151,7 +174,7 @@ const APP_CONNECTION_DIMENSION_OPTIONS = [
   {
     label: '应用',
     value: 'appId',
-    column: { title: '应用', dataIndex: 'appId', width: 160, render: renderText },
+    column: { title: '应用', dataIndex: 'appId', width: 280, render: renderApp },
   },
   {
     label: '平台',

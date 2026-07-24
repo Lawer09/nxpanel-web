@@ -32,6 +32,7 @@ import { buildProjectTrendSearch, PROJECT_TREND_DASHBOARD_PATH } from '@/pages/r
 
 const { Text } = Typography;
 type BatchFieldType = 'adStatus' | 'appPlatform' | 'department';
+type EditableProjectTextField = 'ownerName' | 'department';
 
 const renderStatus = (status?: string) => {
   switch (status) {
@@ -145,6 +146,125 @@ const AdStatusModalEditor: React.FC<AdStatusModalEditorProps> = ({
   );
 };
 
+interface ProjectTextFieldModalEditorProps {
+  record: ProjectItem;
+  field: EditableProjectTextField;
+  label: string;
+  options?: Array<{ label: string; value: string }>;
+  onOpen?: () => void;
+  onSaved: (
+    record: ProjectItem,
+    field: EditableProjectTextField,
+    value: string | null,
+  ) => void;
+}
+
+const ProjectTextFieldModalEditor: React.FC<ProjectTextFieldModalEditorProps> = ({
+  record,
+  field,
+  label,
+  options,
+  onOpen,
+  onSaved,
+}) => {
+  const { message } = App.useApp();
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(record[field] ?? '');
+  const [saving, setSaving] = useState(false);
+
+  React.useEffect(() => {
+    if (!open) {
+      setValue(record[field] ?? '');
+    }
+  }, [field, open, record]);
+
+  const openModal = () => {
+    onOpen?.();
+    setOpen(true);
+  };
+
+  const save = async () => {
+    const normalized = normalizeBatchValue(value);
+    const current = record[field] ?? null;
+    if (normalized === current) {
+      setOpen(false);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload: Pick<ProjectItem, 'id'> &
+        Partial<Record<EditableProjectTextField, string | null>> = {
+        id: record.id,
+        [field]: normalized,
+      };
+      await updateProject(payload);
+      message.success(`${label}已更新`);
+      onSaved(record, field, normalized);
+      setOpen(false);
+    } catch (_error) {
+      setValue(record[field] ?? '');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const editor = options ? (
+    <AutoComplete
+      allowClear
+      value={value}
+      options={options}
+      placeholder={`选择或输入${label}；清空后保存将清空${label}`}
+      onChange={(nextValue) => setValue(nextValue)}
+      filterOption={(inputValue, option) =>
+        `${option?.value ?? ''}`.toLowerCase().includes(inputValue.toLowerCase())
+      }
+    >
+      <Input
+        onPressEnter={() => {
+          void save();
+        }}
+      />
+    </AutoComplete>
+  ) : (
+    <Input
+      allowClear
+      value={value}
+      placeholder={`请输入${label}；清空后保存将清空${label}`}
+      onChange={(event) => setValue(event.target.value)}
+      onPressEnter={() => {
+        void save();
+      }}
+    />
+  );
+
+  return (
+    <>
+      <a onClick={openModal} style={{ textDecoration: 'none' }}>
+        {record[field] || '设置'}
+      </a>
+      <Modal
+        title={`修改${label}`}
+        open={open}
+        confirmLoading={saving}
+        okText="保存"
+        cancelText="取消"
+        destroyOnHidden
+        onOk={() => void save()}
+        onCancel={() => {
+          if (saving) return;
+          setOpen(false);
+          setValue(record[field] ?? '');
+        }}
+      >
+        <Form layout="vertical">
+          <Form.Item label={label}>{editor}</Form.Item>
+        </Form>
+      </Modal>
+    </>
+  );
+};
+
 const ProjectTablePage: React.FC = () => {
   const { message } = App.useApp();
   const actionRef = useRef<ActionType>(null);
@@ -220,16 +340,32 @@ const ProjectTablePage: React.FC = () => {
     reloadTable();
   };
 
+  const ensureDepartmentOptions = () => {
+    if (departmentOptionsLoaded) return;
+    void (async () => {
+      const res = await getProjectDepartments();
+      const rows = Array.isArray(res.data) ? res.data : [];
+      setDepartmentOptions(rows.filter(Boolean).map((item) => ({ label: item, value: item })));
+      setDepartmentOptionsLoaded(true);
+    })();
+  };
+
+  const handleTextFieldSaved = (
+    record: ProjectItem,
+    field: EditableProjectTextField,
+    value: string | null,
+  ) => {
+    if (detailProject?.id === record.id) {
+      setDetailProject({ ...detailProject, [field]: value });
+    }
+    reloadTable();
+  };
+
   const openBatchModal = (type: BatchFieldType) => {
     batchForm.resetFields();
     setBatchModalType(type);
     if (type === 'department' && !departmentOptionsLoaded) {
-      void (async () => {
-        const res = await getProjectDepartments();
-        const rows = Array.isArray(res.data) ? res.data : [];
-        setDepartmentOptions(rows.filter(Boolean).map((item) => ({ label: item, value: item })));
-        setDepartmentOptionsLoaded(true);
-      })();
+      ensureDepartmentOptions();
     }
   };
 
@@ -414,6 +550,18 @@ const ProjectTablePage: React.FC = () => {
       search: false,
       ellipsis: true,
       render: (_, record) => {
+        if (field.name === 'ownerName' || field.name === 'department') {
+          return (
+            <ProjectTextFieldModalEditor
+              record={record}
+              field={field.name}
+              label={field.label}
+              options={field.name === 'department' ? departmentOptions : undefined}
+              onOpen={field.name === 'department' ? ensureDepartmentOptions : undefined}
+              onSaved={handleTextFieldSaved}
+            />
+          );
+        }
         const value = record[field.name];
         return value ? <Text ellipsis>{String(value)}</Text> : '-';
       },

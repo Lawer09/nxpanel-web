@@ -59,6 +59,11 @@ export default [
         component: './report/project-hourly',
       },
       {
+        path: '/report/app-connection-report',
+        name: 'app-connection-report',
+        component: './firebase-analytics/AppConnectionReport',
+      },
+      {
         path: '/report/project-trend',
         hideInMenu: true,
         component: './report/project-trend',
@@ -442,8 +447,8 @@ export default [
       },
       {
         path: '/firebase-analytics/app-connection-report',
-        name: 'app-connection-report',
-        component: './firebase-analytics/AppConnectionReport',
+        redirect: '/report/app-connection-report',
+        hideInMenu: true,
       },
       {
         path: '/firebase-analytics/node-status/detail',
