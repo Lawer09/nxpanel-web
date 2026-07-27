@@ -3,7 +3,7 @@ import type { Settings as LayoutSettings } from '@ant-design/pro-components';
 import { SettingDrawer } from '@ant-design/pro-components';
 import type { RequestConfig, RunTimeLayoutConfig } from '@umijs/max';
 import { history, Link } from '@umijs/max';
-import { Space, Typography } from 'antd';
+import { App as AntdApp, Form, Input, Modal, Space, Typography } from 'antd';
 import React, { useEffect, useState } from 'react';
 import {
   AutomationRulesEntry,
@@ -22,6 +22,7 @@ import {
 } from '@/services/auth/session';
 import {
   getUserProfile,
+  updateUserProfile,
 } from '@/services/auth/api';
 import {
   buildDevAdminCurrentUser,
@@ -197,6 +198,104 @@ const filterDefinedMenu = (menuData: any[], allowedPaths: Set<string>): any[] =>
 let lastCheckTime = 0;
 let checking = false;
 
+type InitialState = {
+  settings?: Partial<LayoutSettings>;
+  currentUser?: API.CurrentUser;
+  loading?: boolean;
+  fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
+};
+
+const shouldRequireNickname = (currentUser?: API.CurrentUser) =>
+  !!currentUser &&
+  (currentUser.loginMode === 'operation' || !currentUser.loginMode) &&
+  !!currentUser.email &&
+  !currentUser.nickname?.trim();
+
+const NicknameRequiredModal: React.FC<{
+  currentUser?: API.CurrentUser;
+  setInitialState: (state: any) => Promise<void>;
+}> = ({ currentUser, setInitialState }) => {
+  const { message } = AntdApp.useApp();
+  const [form] = Form.useForm<{ nickname: string }>();
+  const [saving, setSaving] = useState(false);
+  const open = shouldRequireNickname(currentUser);
+
+  useEffect(() => {
+    if (open) {
+      form.setFieldsValue({ nickname: undefined });
+    }
+  }, [form, open]);
+
+  const handleSave = async () => {
+    if (!currentUser?.email) return;
+
+    const values = await form.validateFields();
+    const nickname = values.nickname.trim();
+
+    setSaving(true);
+    try {
+      const res = await updateUserProfile({
+        email: currentUser.email,
+        nickname,
+      });
+      if (res.code !== 0) {
+        message.error(res.msg || '昵称保存失败');
+        return;
+      }
+
+      updateCachedOperationUserInfo({
+        email: res.data.email,
+        nickname: res.data.nickname ?? null,
+      });
+      setInitialState((state: InitialState | undefined) => ({
+        ...state,
+        currentUser: state?.currentUser
+          ? {
+              ...state.currentUser,
+              email: res.data.email,
+              nickname: res.data.nickname ?? null,
+              name: res.data.displayName || res.data.email,
+            }
+          : state?.currentUser,
+      }));
+      message.success('昵称已保存');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal
+      title="请输入昵称"
+      open={open}
+      okText="保存"
+      cancelButtonProps={{ style: { display: 'none' } }}
+      closable={false}
+      maskClosable={false}
+      confirmLoading={saving}
+      onOk={handleSave}
+    >
+      <Form form={form} layout="vertical" preserve={false}>
+        <Form.Item
+          name="nickname"
+          label="昵称"
+          rules={[
+            { required: true, message: '请输入昵称' },
+            {
+              validator: async (_, value) => {
+                if (typeof value === 'string' && value.trim()) return;
+                throw new Error('请输入昵称');
+              },
+            },
+          ]}
+        >
+          <Input placeholder="请输入昵称" maxLength={50} showCount />
+        </Form.Item>
+      </Form>
+    </Modal>
+  );
+};
+
 const HeaderVersionTitle: React.FC = () => {
   const [latestVersion, setLatestVersion] = useState<string>();
 
@@ -299,12 +398,7 @@ const getBaseURL = (): string => {
 /**
  * @see https://umijs.org/docs/api/runtime-config#getinitialstate
  * */
-export async function getInitialState(): Promise<{
-  settings?: Partial<LayoutSettings>;
-  currentUser?: API.CurrentUser;
-  loading?: boolean;
-  fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
-}> {
+export async function getInitialState(): Promise<InitialState> {
   const fetchUserInfo = async () => {
     const cachedUser = getCachedOperationUser();
     if (!cachedUser) return undefined;
@@ -579,6 +673,10 @@ export const layout: RunTimeLayoutConfig = ({
       return (
         <>
           {children}
+          <NicknameRequiredModal
+            currentUser={initialState?.currentUser}
+            setInitialState={setInitialState}
+          />
           <VersionNoticeModal />
           {isDev && (
             <SettingDrawer
