@@ -161,6 +161,7 @@ const UserManagePage: React.FC = () => {
     banned?: boolean;
     idSearch?: string;
     emailSearch?: string;
+    nicknameSearch?: string;
     inviteStatus?: 'has' | 'none';
     inviteUserId?: string;
     inviteUserEmail?: string;
@@ -257,6 +258,14 @@ const UserManagePage: React.FC = () => {
       ),
     },
     {
+      title: '昵称',
+      dataIndex: 'nickname',
+      width: 140,
+      search: false,
+      ellipsis: true,
+      render: (_, record) => record.nickname || '-',
+    },
+    {
       title: '套餐',
       dataIndex: ['plan', 'name'],
       width: 240,
@@ -302,6 +311,11 @@ const UserManagePage: React.FC = () => {
     {
       title: '搜索邮箱',
       dataIndex: 'email_search',
+      hideInTable: true,
+    },
+    {
+      title: '搜索昵称',
+      dataIndex: 'nickname_search',
       hideInTable: true,
     },
     {
@@ -701,6 +715,7 @@ const UserManagePage: React.FC = () => {
           {resultSummary.banned === false ? <Tag color="default">未封禁</Tag> : null}
           {resultSummary.idSearch ? <Tag>用户 ID：{resultSummary.idSearch}</Tag> : null}
           {resultSummary.emailSearch ? <Tag>邮箱：{resultSummary.emailSearch}</Tag> : null}
+          {resultSummary.nicknameSearch ? <Tag>昵称：{resultSummary.nicknameSearch}</Tag> : null}
           {resultSummary.inviteStatus === 'has' ? <Tag>有邀请者</Tag> : null}
           {resultSummary.inviteStatus === 'none' ? <Tag>无邀请者</Tag> : null}
           {resultSummary.inviteUserId ? <Tag>邀请人 ID：{resultSummary.inviteUserId}</Tag> : null}
@@ -770,6 +785,9 @@ const UserManagePage: React.FC = () => {
           if (params.email_search) {
             filter.push({ id: 'email', value: `like:${params.email_search}` });
           }
+          if (params.nickname_search) {
+            filter.push({ id: 'nickname', value: `like:${params.nickname_search}` });
+          }
           if (params.invite_filter === 'has') {
             filter.push({ id: 'invite_user_id', value: 'notnull:1' });
           } else if (params.invite_filter === 'none') {
@@ -838,6 +856,7 @@ const UserManagePage: React.FC = () => {
                     params.banned === '1',
             idSearch: params.id_search,
             emailSearch: params.email_search,
+            nicknameSearch: params.nickname_search,
             inviteStatus:
               params.invite_filter === 'has' || params.invite_filter === 'none'
                 ? params.invite_filter

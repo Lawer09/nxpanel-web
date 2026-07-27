@@ -18,6 +18,7 @@ import {
   updateProject,
   updateProjectStatus,
 } from '@/services/project/api';
+import { fetchAdminUserOptions } from '@/services/user/api';
 import type { ProjectFetchRequest, ProjectItem } from '@/services/project/types';
 import { formatUTC8 } from '@/utils/format';
 import ProjectTableForm from './components/ProjectTableForm';
@@ -32,7 +33,13 @@ import { buildProjectTrendSearch, PROJECT_TREND_DASHBOARD_PATH } from '@/pages/r
 
 const { Text } = Typography;
 type BatchFieldType = 'adStatus' | 'appPlatform' | 'department';
-type EditableProjectTextField = 'ownerName' | 'department';
+type EditableProjectTextField = 'department';
+type OwnerSelectOption = {
+  label: string;
+  value: number;
+  displayName: string;
+  email: string;
+};
 
 const renderStatus = (status?: string) => {
   switch (status) {
@@ -56,6 +63,18 @@ const countEnabled = (items?: { enabled: number }[]) => {
 const normalizeBatchValue = (value?: string | null) => {
   if (value === undefined || value === null) return null;
   return value.trim() === '' ? null : value;
+};
+
+const buildOwnerOptionLabel = (item: API.AdminUserOption) => {
+  const nickname = item.nickname?.trim();
+  return nickname ? `${nickname}（${item.email}）` : item.email;
+};
+
+const getAdminOptionRows = (res: any): API.AdminUserOption[] => {
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.data)) return res.data;
+  if (Array.isArray(res?.data?.data)) return res.data.data;
+  return [];
 };
 
 interface AdStatusModalEditorProps {
@@ -158,6 +177,96 @@ interface ProjectTextFieldModalEditorProps {
     value: string | null,
   ) => void;
 }
+
+interface ProjectOwnerModalEditorProps {
+  record: ProjectItem;
+  options: OwnerSelectOption[];
+  loading: boolean;
+  onOpen: () => void;
+  onSaved: (record: ProjectItem, ownerId: number | null, ownerName: string | null) => void;
+}
+
+const ProjectOwnerModalEditor: React.FC<ProjectOwnerModalEditorProps> = ({
+  record,
+  options,
+  loading,
+  onOpen,
+  onSaved,
+}) => {
+  const { message } = App.useApp();
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState<number | null>(record.ownerId ?? null);
+  const [saving, setSaving] = useState(false);
+
+  React.useEffect(() => {
+    if (!open) {
+      setValue(record.ownerId ?? null);
+    }
+  }, [open, record.ownerId]);
+
+  const openModal = () => {
+    onOpen();
+    setOpen(true);
+  };
+
+  const save = async () => {
+    const normalized = value ?? null;
+    const current = record.ownerId ?? null;
+    if (normalized === current) {
+      setOpen(false);
+      return;
+    }
+
+    const selected = normalized ? options.find((option) => option.value === normalized) : undefined;
+    setSaving(true);
+    try {
+      await updateProject({ id: record.id, ownerId: normalized });
+      message.success('负责人已更新');
+      onSaved(record, normalized, selected?.displayName ?? null);
+      setOpen(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <a onClick={openModal} style={{ textDecoration: 'none' }}>
+        {record.ownerName || '设置'}
+      </a>
+      <Modal
+        title="修改负责人"
+        open={open}
+        confirmLoading={saving}
+        okText="保存"
+        cancelText="取消"
+        destroyOnHidden
+        onOk={() => void save()}
+        onCancel={() => {
+          if (saving) return;
+          setOpen(false);
+          setValue(record.ownerId ?? null);
+        }}
+      >
+        <Form layout="vertical">
+          <Form.Item label="负责人">
+            <Select
+              allowClear
+              showSearch
+              value={value ?? undefined}
+              loading={loading}
+              options={options}
+              optionFilterProp="label"
+              placeholder="请选择负责人；清空后保存将清空负责人"
+              onFocus={onOpen}
+              onChange={(nextValue) => setValue(nextValue ?? null)}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </>
+  );
+};
 
 const ProjectTextFieldModalEditor: React.FC<ProjectTextFieldModalEditorProps> = ({
   record,
@@ -279,6 +388,9 @@ const ProjectTablePage: React.FC = () => {
   const [batchLoading, setBatchLoading] = useState(false);
   const [departmentOptions, setDepartmentOptions] = useState<Array<{ label: string; value: string }>>([]);
   const [departmentOptionsLoaded, setDepartmentOptionsLoaded] = useState(false);
+  const [ownerOptions, setOwnerOptions] = useState<OwnerSelectOption[]>([]);
+  const [ownerOptionsLoaded, setOwnerOptionsLoaded] = useState(false);
+  const [ownerOptionsLoading, setOwnerOptionsLoading] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [versionImportOpen, setVersionImportOpen] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
@@ -350,6 +462,30 @@ const ProjectTablePage: React.FC = () => {
     })();
   };
 
+  const ensureOwnerOptions = () => {
+    if (ownerOptionsLoaded || ownerOptionsLoading) return;
+    setOwnerOptionsLoading(true);
+    void (async () => {
+      try {
+        const res = await fetchAdminUserOptions();
+        const rows = getAdminOptionRows(res);
+        setOwnerOptions(
+          rows.map((item) => ({
+            label: buildOwnerOptionLabel(item),
+            value: item.id,
+            displayName: item.displayName || item.nickname || item.email,
+            email: item.email,
+          })),
+        );
+        setOwnerOptionsLoaded(true);
+      } catch (_error) {
+        message.error('获取负责人列表失败');
+      } finally {
+        setOwnerOptionsLoading(false);
+      }
+    })();
+  };
+
   const handleTextFieldSaved = (
     record: ProjectItem,
     field: EditableProjectTextField,
@@ -357,6 +493,17 @@ const ProjectTablePage: React.FC = () => {
   ) => {
     if (detailProject?.id === record.id) {
       setDetailProject({ ...detailProject, [field]: value });
+    }
+    reloadTable();
+  };
+
+  const handleOwnerSaved = (
+    record: ProjectItem,
+    ownerId: number | null,
+    ownerName: string | null,
+  ) => {
+    if (detailProject?.id === record.id) {
+      setDetailProject({ ...detailProject, ownerId, ownerName });
     }
     reloadTable();
   };
@@ -533,10 +680,20 @@ const ProjectTablePage: React.FC = () => {
       ellipsis: true,
     },
     {
-      title: '负责人 ID',
+      title: '负责人',
       dataIndex: 'ownerId',
       hideInTable: true,
-      valueType: 'digit',
+      renderFormItem: () => (
+        <Select
+          allowClear
+          showSearch
+          loading={ownerOptionsLoading}
+          options={ownerOptions}
+          optionFilterProp="label"
+          placeholder="请选择负责人"
+          onFocus={ensureOwnerOptions}
+        />
+      ),
     },
     ...PROJECT_TABLE_FIELDS.filter(
       (field) =>
@@ -550,7 +707,18 @@ const ProjectTablePage: React.FC = () => {
       search: false,
       ellipsis: true,
       render: (_, record) => {
-        if (field.name === 'ownerName' || field.name === 'department') {
+        if (field.name === 'ownerName') {
+          return (
+            <ProjectOwnerModalEditor
+              record={record}
+              options={ownerOptions}
+              loading={ownerOptionsLoading}
+              onOpen={ensureOwnerOptions}
+              onSaved={handleOwnerSaved}
+            />
+          );
+        }
+        if (field.name === 'department') {
           return (
             <ProjectTextFieldModalEditor
               record={record}
@@ -690,7 +858,7 @@ const ProjectTablePage: React.FC = () => {
             adStatus,
             packageName,
             developerGmail,
-            ownerId,
+            ownerId: ownerId ? Number(ownerId) : undefined,
           });
           const pageData = res.data;
           return {

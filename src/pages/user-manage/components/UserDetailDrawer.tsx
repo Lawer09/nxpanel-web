@@ -89,6 +89,7 @@ const UserDetailDrawer: React.FC<UserDetailDrawerProps> = ({ open, user, onClose
             column={3}
             items={[
               { key: 'id', label: '用户 ID', children: user.id },
+              { key: 'nickname', label: '昵称', children: user.nickname || '-' },
               {
                 key: 'status',
                 label: '状态',

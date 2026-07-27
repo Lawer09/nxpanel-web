@@ -67,6 +67,7 @@ const GenerateUserModal: React.FC<GenerateUserModalProps> = ({
         const payload: API.UserGenerateParams = {
           email_suffix: values.email_suffix,
           password: values.password || undefined,
+          nickname: values.generate_mode === 'single' ? values.nickname?.trim() || undefined : undefined,
           plan_id: values.plan_id || undefined,
           expired_at: values.expired_at
             ? dayjs(values.expired_at).unix()
@@ -138,6 +139,13 @@ const GenerateUserModal: React.FC<GenerateUserModalProps> = ({
               rules={[{ required: true, message: '请输入邮箱前缀' }]}
             />
           )
+        }
+      </ProFormDependency>
+      <ProFormDependency name={['generate_mode']}>
+        {({ generate_mode }) =>
+          generate_mode === 'single' ? (
+            <ProFormText name="nickname" label="昵称" placeholder="可选" />
+          ) : null
         }
       </ProFormDependency>
       <ProFormText.Password

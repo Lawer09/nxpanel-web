@@ -40,6 +40,22 @@ export default [
     component: './dashboard',
   },
   {
+    path: '/account',
+    name: 'account',
+    hideInMenu: true,
+    routes: [
+      {
+        path: '/account',
+        redirect: '/account/center',
+      },
+      {
+        path: '/account/center',
+        name: 'center',
+        component: './account/center',
+      },
+    ],
+  },
+  {
     path: '/report',
     name: 'report',
     icon: 'barChart',

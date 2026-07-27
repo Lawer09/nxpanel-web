@@ -99,6 +99,7 @@ const UserFormModal: React.FC<UserFormModalProps> = ({
         };
 
         if (values.email !== current?.email) payload.email = values.email;
+        if (values.nickname !== current?.nickname) payload.nickname = values.nickname?.trim() || null;
         if (values.password) payload.password = values.password;
         if (values.transfer_enable_gb != null)
           payload.transfer_enable = Math.round(values.transfer_enable_gb * 1073741824);
@@ -163,6 +164,15 @@ const UserFormModal: React.FC<UserFormModalProps> = ({
           colProps={{ span: 12 }}
           rules={[{ required: true, type: 'email', message: '请输入合法邮箱' }]}
         />
+        <ProFormText
+          name="nickname"
+          label="昵称"
+          colProps={{ span: 12 }}
+          placeholder="可选"
+        />
+      </ProFormGroup>
+
+      <ProFormGroup>
         <ProFormText.Password
           name="password"
           label="密码"

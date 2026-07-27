@@ -7,6 +7,7 @@ import {
 } from '@ant-design/pro-components';
 import type { FormInstance, Rule } from 'antd/es/form';
 import { App, AutoComplete, Card, Col, Form, Input, Row, Select, Space, Tabs, Typography } from 'antd';
+import { useRequest } from '@umijs/max';
 import {
   createAdAccount,
   createProject,
@@ -16,6 +17,7 @@ import {
 } from '@/services/project/api';
 import { getAdAccounts as fetchAdPlatformAccounts, getAdRevenueApps } from '@/services/ad/api';
 import { getTrafficAccounts as fetchTrafficPlatformAccounts } from '@/services/traffic-platform/api';
+import { fetchAdminUserOptions } from '@/services/user/api';
 import type { ProjectItem } from '@/services/project/types';
 import {
   normalizeProjectFormValues,
@@ -64,7 +66,18 @@ const extractPageRows = <T,>(res: any): T[] => {
 
 const isAndroidPlatform = (value: unknown) => `${value ?? ''}`.trim().toUpperCase() === 'ANDROID';
 
-const renderField = (field: ProjectFieldConfig, isEdit: boolean, form: FormInstance) => {
+const buildAdminOptionLabel = (item: API.AdminUserOption) => {
+  const nickname = item.nickname?.trim();
+  return nickname ? `${nickname}（${item.email}）` : item.email;
+};
+
+const renderField = (
+  field: ProjectFieldConfig,
+  isEdit: boolean,
+  form: FormInstance,
+  ownerOptions: SelectOption[],
+  ownerOptionsLoading: boolean,
+) => {
   const rules: Rule[] = field.required ? [{ required: true, message: `请输入${field.label}` }] : [];
   if (field.name === 'storePageUrl') {
     rules.push({
@@ -80,6 +93,20 @@ const renderField = (field: ProjectFieldConfig, isEdit: boolean, form: FormInsta
     label: field.label,
     rules: rules.length ? rules : undefined,
   };
+
+  if (field.name === 'ownerName') {
+    return (
+      <ProFormSelect
+        name="ownerId"
+        label={field.label}
+        options={ownerOptions}
+        showSearch
+        placeholder="选择负责人"
+        allowClear
+        fieldProps={{ optionFilterProp: 'label', loading: ownerOptionsLoading }}
+      />
+    );
+  }
 
   if (field.multiline) {
     return <ProFormTextArea {...commonProps} fieldProps={{ rows: 4 }} />;
@@ -138,6 +165,10 @@ const ProjectTableForm: React.FC<ProjectTableFormProps> = ({
   const { message } = App.useApp();
   const [form] = Form.useForm();
   const isEdit = !!initialValues;
+  const { data: adminOptionsRes, loading: adminOptionsLoading } = useRequest(
+    fetchAdminUserOptions,
+    { cacheKey: 'admin-user-options' },
+  );
   const [trafficAccountOptions, setTrafficAccountOptions] = useState<SelectOption[]>([]);
   const [trafficAccountRows, setTrafficAccountRows] = useState<any[]>([]);
   const [adAccountOptions, setAdAccountOptions] = useState<SelectOption[]>([]);
@@ -146,6 +177,17 @@ const ProjectTableForm: React.FC<ProjectTableFormProps> = ({
   const [selectedTrafficPlatform, setSelectedTrafficPlatform] = useState<string>();
   const [selectedAdPlatform, setSelectedAdPlatform] = useState<string>();
   const [selectedAdAccountId, setSelectedAdAccountId] = useState<number>();
+  const adminOptionRows: API.AdminUserOption[] = Array.isArray(adminOptionsRes)
+    ? adminOptionsRes
+    : Array.isArray((adminOptionsRes as any)?.data)
+      ? (adminOptionsRes as any).data
+      : Array.isArray((adminOptionsRes as any)?.data?.data)
+        ? (adminOptionsRes as any).data.data
+        : [];
+  const ownerOptions = adminOptionRows.map((item) => ({
+    label: buildAdminOptionLabel(item),
+    value: item.id,
+  }));
 
   useEffect(() => {
     if (!open) return;
@@ -222,7 +264,7 @@ const ProjectTableForm: React.FC<ProjectTableFormProps> = ({
   const renderCreateAssociationTab = () => (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Typography.Text type="secondary">
-        以下关联均为可选项。项目创建成功后，系统会使用新项目 ID 自动新增对应关联。
+        流量账号和广告账号为可选项，用户 App 必填。项目创建成功后，系统会使用新项目 ID 自动新增对应关联。
       </Typography.Text>
       <Card size="small" title="流量账号关联">
         <Row gutter={16}>
@@ -305,7 +347,12 @@ const ProjectTableForm: React.FC<ProjectTableFormProps> = ({
       <Card size="small" title="用户 App 关联">
         <Row gutter={16}>
           <Col span={12}>
-            <ProFormText name={['userApp', 'appId']} label="App ID" placeholder="例如 com.example.app" />
+            <ProFormText
+              name={['userApp', 'appId']}
+              label="App ID"
+              placeholder="例如 com.example.app"
+              rules={[{ required: true, message: '请输入 App ID' }]}
+            />
           </Col>
           <Col span={12}>
             <ProFormText name={['userApp', 'appLink']} label="App Link" />
@@ -341,11 +388,15 @@ const ProjectTableForm: React.FC<ProjectTableFormProps> = ({
           ...projectValues
         } = values;
         const payload = normalizeProjectFormValues(projectValues);
+        if (Object.prototype.hasOwnProperty.call(payload, 'ownerId')) {
+          delete (payload as Record<string, unknown>).ownerName;
+        }
         try {
           if (isEdit) {
-            await updateProject({ ...payload, id: initialValues.id });
+            const res = await updateProject({ ...payload, id: initialValues.id });
+            const updatedProject = getCreatedProject(res);
             message.success('编辑成功');
-            onSuccess({ ...initialValues, ...payload });
+            onSuccess(updatedProject ? { ...initialValues, ...updatedProject } : { ...initialValues, ...payload });
           } else {
             const res = await createProject(payload as any);
             const createdProject = getCreatedProject(res);
@@ -452,7 +503,7 @@ const ProjectTableForm: React.FC<ProjectTableFormProps> = ({
                 ) : null}
                 {group.fields.map((field) => (
                   <Col span={field.multiline ? 24 : 8} key={field.name}>
-                    {renderField(field, isEdit, form)}
+                    {renderField(field, isEdit, form, ownerOptions, adminOptionsLoading)}
                   </Col>
                 ))}
               </Row>

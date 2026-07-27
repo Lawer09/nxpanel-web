@@ -60,6 +60,7 @@ export interface ProjectItem {
   id: number;
   projectCode: string;
   projectName: string;
+  ownerId?: number | null;
   ownerName: string | null;
   department: string | null;
   status: 'active' | 'inactive' | 'archived';
@@ -121,7 +122,7 @@ export interface ProjectVersionRecordFetchRequest {
 export interface ProjectStoreRequest {
   projectCode: string;
   projectName: string;
-  ownerId?: number;
+  ownerId?: number | null;
   ownerName?: NullableString;
   department?: NullableString;
   status?: string;
@@ -157,7 +158,7 @@ export interface ProjectStoreRequest {
 export interface ProjectUpdateRequest {
   id: number;
   projectName?: NullableString;
-  ownerId?: number;
+  ownerId?: number | null;
   ownerName?: NullableString;
   department?: NullableString;
   status?: string;

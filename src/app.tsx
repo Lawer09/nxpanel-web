@@ -16,7 +16,13 @@ import {
   SystemConfigEntry,
 } from '@/components';
 import VersionNoticeModal from '@/components/VersionNoticeModal';
-import { getCachedOperationUser } from '@/services/auth/session';
+import {
+  getCachedOperationUser,
+  updateCachedOperationUserInfo,
+} from '@/services/auth/session';
+import {
+  getUserProfile,
+} from '@/services/auth/api';
 import {
   buildDevAdminCurrentUser,
   getDevAdminSession,
@@ -48,6 +54,7 @@ const RUNTIME_VERSION_KEY = 'nxpanel_runtime_version';
 const VERSION_CHECK_INTERVAL = 60_000;
 const devHomePath = '/nodes/overview';
 const adsHomePath = '/ads-console/dashboard';
+const accountProfilePath = '/account/center';
 const authFreePaths = [
   loginPath,
   '/user/register',
@@ -299,7 +306,26 @@ export async function getInitialState(): Promise<{
   fetchUserInfo?: () => Promise<API.CurrentUser | undefined>;
 }> {
   const fetchUserInfo = async () => {
-    return getCachedOperationUser();
+    const cachedUser = getCachedOperationUser();
+    if (!cachedUser) return undefined;
+
+    try {
+      const res = await getUserProfile({ skipErrorHandler: true });
+      if (res.code !== 0 || !res.data) return cachedUser;
+      updateCachedOperationUserInfo({
+        email: res.data.email,
+        nickname: res.data.nickname ?? null,
+      });
+
+      return {
+        ...cachedUser,
+        email: res.data.email,
+        nickname: res.data.nickname ?? null,
+        name: res.data.displayName || res.data.email,
+      };
+    } catch (_error) {
+      return cachedUser;
+    }
   };
 
   const fetchAdsUserInfo = async () => {
@@ -490,6 +516,7 @@ export const layout: RunTimeLayoutConfig = ({
       if (
         isDefinedMenuUser(currentUser) &&
         !isAuthFreePath &&
+        location.pathname !== accountProfilePath &&
         !isAllowedDefinedMenuPath(location.pathname, currentUser)
       ) {
         history.replace(

@@ -47,6 +47,7 @@ declare namespace API {
   interface UserItem {
     id: number;
     email: string;
+    nickname?: string | null;
     ip?: string | null;
     token?: string;
     uuid?: string;
@@ -97,6 +98,7 @@ declare namespace API {
   interface UserUpdateParams {
     id: number;
     email?: string;
+    nickname?: string | null;
     password?: string;
     transfer_enable?: number | null;
     expired_at?: number | null;
@@ -123,6 +125,7 @@ declare namespace API {
   interface UserGenerateParams {
     email_suffix: string;
     email_prefix?: string;
+    nickname?: string;
     generate_count?: number;
     password?: string;
     plan_id?: number;
@@ -130,6 +133,13 @@ declare namespace API {
     download_csv?: boolean;
     user_type?: 'global' | 'define' | string;
     menus?: string[];
+  }
+
+  interface AdminUserOption {
+    id: number;
+    email: string;
+    nickname?: string | null;
+    displayName: string;
   }
 
   interface UserSendMailParams {

@@ -20,6 +20,8 @@ declare namespace API {
     token: string;
     auth_data: string; // "Bearer xxxxxxx"
     is_admin: boolean;
+    email?: string;
+    nickname?: string | null;
     secure_path?: string;
     user_type?: string;
     menus?: string[];
@@ -28,6 +30,7 @@ declare namespace API {
 
   interface CurrentUser {
     email?: string;
+    nickname?: string | null;
     name?: string;
     avatar?: string;
     access?: 'admin' | 'user';
@@ -36,5 +39,21 @@ declare namespace API {
     menus?: string[];
     loginMode?: 'operation' | 'management' | 'ads';
     hasAdSpendPlatformLogin?: boolean;
+  }
+
+  interface UserProfile {
+    id: number;
+    email: string;
+    nickname?: string | null;
+    displayName: string;
+    isAdmin?: boolean;
+    createdAt?: number | string;
+    updatedAt?: number | string;
+  }
+
+  interface UserProfileUpdateParams {
+    email: string;
+    nickname?: string | null;
+    password?: string;
   }
 }

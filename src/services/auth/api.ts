@@ -82,6 +82,25 @@ export async function refreshLogin(
   });
 }
 
+export async function getUserProfile(options?: { [key: string]: any }) {
+  return request<API.ApiResponse<API.UserProfile>>('/api/v3/user/profile', {
+    method: 'GET',
+    ...(options || {}),
+  });
+}
+
+export async function updateUserProfile(
+  body: API.UserProfileUpdateParams,
+  options?: { [key: string]: any },
+) {
+  return request<API.ApiResponse<API.UserProfile>>('/api/v3/user/profile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  });
+}
+
 export async function getCurrentUser(options?: { [key: string]: any }) {
   return request<{
     status: 'success' | 'fail';

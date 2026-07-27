@@ -1,6 +1,5 @@
 import {
   LogoutOutlined,
-  SettingOutlined,
   UserOutlined,
 } from '@ant-design/icons';
 import { history, useModel } from '@umijs/max';
@@ -45,7 +44,6 @@ const useStyles = createStyles(({ token }) => {
 });
 
 export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
-  menu,
   children,
 }) => {
   /**
@@ -115,7 +113,9 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
       })();
       return;
     }
-    history.push(`/account/${key}`);
+    if (key === 'profile') {
+      history.push('/account/center');
+    }
   };
 
   const loading = (
@@ -140,18 +140,14 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
     return loading;
   }
 
+  const showProfile = currentUser.loginMode === 'operation' || !currentUser.loginMode;
   const menuItems = [
-    ...(menu
+    ...(showProfile
       ? [
           {
-            key: 'center',
+            key: 'profile',
             icon: <UserOutlined />,
             label: '个人中心',
-          },
-          {
-            key: 'settings',
-            icon: <SettingOutlined />,
-            label: '个人设置',
           },
           {
             type: 'divider' as const,

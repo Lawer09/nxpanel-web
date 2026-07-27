@@ -25,6 +25,13 @@ export async function getUserInfoById(
   });
 }
 
+export async function fetchAdminUserOptions(options?: { [key: string]: any }) {
+  return request<API.ApiResponse<{ data: API.AdminUserOption[] }>>('/v3/user/admin-options', {
+    method: 'GET',
+    ...(options || {}),
+  });
+}
+
 export async function updateUser(
   body: API.UserUpdateParams,
   options?: { [key: string]: any },

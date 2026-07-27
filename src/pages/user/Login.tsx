@@ -141,7 +141,8 @@ const LoginPage: React.FC = () => {
           const menus = Array.isArray(res.data.menus)
             ? res.data.menus
             : undefined;
-          const email = params[0]?.email;
+          const email = res.data.email || params[0]?.email;
+          const nickname = res.data.nickname?.trim();
           const adsLoginData = res.data.ad_spend_platform_login;
           const hasAdSpendPlatformLogin = !!adsLoginData?.token;
 
@@ -173,7 +174,8 @@ const LoginPage: React.FC = () => {
             fetchedUser ??
             ({
               email,
-              name: email,
+              nickname: res.data.nickname ?? null,
+              name: nickname || email,
               access: is_admin ? 'admin' : 'user',
               is_admin,
               user_type,
