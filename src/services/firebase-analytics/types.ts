@@ -514,6 +514,7 @@ export interface FirebaseAppConnectionReportQueryParams {
     appIds?: string[];
     platforms?: string[];
     appVersions?: string[];
+    projectCodes?: string[];
   };
   page?: number;
   pageSize?: number;

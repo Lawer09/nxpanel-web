@@ -1,6 +1,6 @@
 import React, { useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { ActionType, ProTable, ProColumns, ModalForm, ProFormText, ProFormSelect, ProFormTextArea } from '@ant-design/pro-components';
-import { Space, Popconfirm, Tag, App } from 'antd';
+import { Space, Popconfirm, Tag, App, Form } from 'antd';
 import { getUserApps, createUserApp, updateUserApp, deleteUserApp } from '@/services/project/api';
 import type { ProjectUserApp } from '@/services/project/types';
 import { formatUTC8 } from '@/utils/format';
@@ -19,16 +19,26 @@ const UserApps = forwardRef<ResourceActionRef, UserAppsProps>(({ projectId }, re
   const actionRef = useRef<ActionType>(null);
   const [formVisible, setFormVisible] = useState(false);
   const [currentRow, setCurrentRow] = useState<ProjectUserApp | undefined>(undefined);
+  const [form] = Form.useForm();
 
   useImperativeHandle(ref, () => ({
     openAdd: () => {
       setCurrentRow(undefined);
+      form.resetFields();
+      form.setFieldsValue({ enabled: 1 });
       setFormVisible(true);
     },
     reload: () => {
       actionRef.current?.reload();
     }
   }));
+
+  const openEdit = (record: ProjectUserApp) => {
+    setCurrentRow(record);
+    form.resetFields();
+    form.setFieldsValue(record);
+    setFormVisible(true);
+  };
 
   const columns: ProColumns<ProjectUserApp>[] = [
     { title: 'App ID', dataIndex: 'appId' },
@@ -49,7 +59,7 @@ const UserApps = forwardRef<ResourceActionRef, UserAppsProps>(({ projectId }, re
       valueType: 'option',
       render: (_, record) => (
         <Space>
-          <a onClick={() => { setCurrentRow(record); setFormVisible(true); }}>编辑</a>
+          <a onClick={() => openEdit(record)}>编辑</a>
           <Popconfirm
             title="确认删除该关联？"
             onConfirm={async () => {
@@ -87,6 +97,7 @@ const UserApps = forwardRef<ResourceActionRef, UserAppsProps>(({ projectId }, re
           title={currentRow ? '编辑 App 绑定' : '新增 App 绑定'}
           open={formVisible}
           onOpenChange={setFormVisible}
+          form={form}
           initialValues={currentRow || { enabled: 1 }}
           modalProps={{ destroyOnHidden: true }}
           onFinish={async (values) => {

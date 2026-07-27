@@ -21,7 +21,9 @@ type TrendDashboardHeaderProps = {
   adStatus?: string | null;
   adStatusColor: string;
   projectOptions: Array<{ label: string; value: string }>;
+  appVersionOptions: Array<{ label: string; value: string }>;
   onProjectCodeChange: (value: string) => void;
+  onAppVersionsChange: (value?: string[]) => void;
   onDateRangeChange: (value: [string, string]) => void;
   onGranularityChange: (value: TrendGranularity) => void;
   onHourDateTimeRangeChange: (value: {
@@ -41,7 +43,9 @@ const TrendDashboardHeader: React.FC<TrendDashboardHeaderProps> = ({
   adStatus,
   adStatusColor,
   projectOptions,
+  appVersionOptions,
   onProjectCodeChange,
+  onAppVersionsChange,
   onDateRangeChange,
   onGranularityChange,
   onHourDateTimeRangeChange,
@@ -88,6 +92,22 @@ const TrendDashboardHeader: React.FC<TrendDashboardHeaderProps> = ({
             options={projectOptions}
             optionFilterProp="label"
             onChange={onProjectCodeChange}
+          />
+          <Select
+            mode="multiple"
+            allowClear
+            showSearch
+            maxTagCount="responsive"
+            placeholder="版本（默认全部）"
+            style={{ width: 220 }}
+            value={query.appVersions}
+            options={appVersionOptions}
+            optionFilterProp="label"
+            onChange={(value) => {
+              const normalized = (value || []).map((item) => `${item}`.trim()).filter(Boolean);
+              const deduped = Array.from(new Set(normalized));
+              onAppVersionsChange(deduped.length ? deduped : undefined);
+            }}
           />
           <RangePicker
             value={

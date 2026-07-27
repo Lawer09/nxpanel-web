@@ -190,6 +190,7 @@
 | adPlatformAccountId | int | 广告变现平台账号 ID |
 | platformCode | string | 广告平台编码 |
 | externalAppId | string/null | 广告平台应用 ID |
+| appName | string/null | 广告平台应用名称，前端广告账号关联列表 App 列优先展示该字段 |
 | externalAdUnitId | string/null | 广告位 ID |
 | bindType | string | 绑定类型：`account` / `app` / `ad_unit` |
 | enabled | int | 是否启用（1=启用） |
@@ -256,6 +257,12 @@
 ### 3.2 返回字段
 
 同 1.3 data[] 字段说明，新增后的完整记录。
+
+### 3.2.1 前端创建约定
+
+- 项目管理页新建项目弹窗支持在创建时同时填写流量账号、广告账号、用户 App 三类关联信息。
+- 关联信息不提交到 `/v3/projects/create`，前端会先创建项目并读取返回的项目 ID，再分别调用已有的 `/projects/traffic-accounts/create`、`/projects/ad-accounts/create`、`/projects/user-apps/create` 建立关联。
+- 若项目创建成功但部分关联创建失败，前端不回滚项目，仅提示失败的关联类型，用户可在项目详情关联页中补充。
 
 ### 3.3 错误
 

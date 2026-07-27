@@ -16,6 +16,7 @@ export interface ProjectAdAccount {
   adPlatformAccountId: number;
   platformCode: string;
   externalAppId: string | null;
+  appName?: string | null;
   externalAdUnitId: string | null;
   bindType: string;
   enabled: number;

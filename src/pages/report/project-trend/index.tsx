@@ -7,7 +7,11 @@ import { history, useSearchParams } from '@umijs/max';
 import React, { useEffect, useMemo, useState } from 'react';
 import { getProjectCodes, getProjects } from '@/services/project/api';
 import type { ProjectItem } from '@/services/project/types';
+import { queryAppConnectionReport } from '@/services/firebase-analytics/api';
+import type { FirebaseAppConnectionReportItem } from '@/services/firebase-analytics/types';
 import { queryProjectHourlyReport, queryProjectReport, queryProjectRetention } from '@/services/report/api';
+import AppConnectionReportSection from './components/AppConnectionReportSection';
+import AppConnectionStatusSummary from './components/AppConnectionStatusSummary';
 import ProjectRetentionCard from './components/ProjectRetentionCard';
 import TrendChartCard from './components/TrendChartCard';
 import TrendDashboardHeader from './components/TrendDashboardHeader';
@@ -46,6 +50,17 @@ import {
 
 const { Text } = Typography;
 
+const normalizeStringList = (values?: string[] | null) => {
+  if (!Array.isArray(values) || !values.length) return undefined;
+  const normalized = values.map((item) => `${item}`.trim()).filter(Boolean);
+  return normalized.length ? Array.from(new Set(normalized)) : undefined;
+};
+
+const parseSearchList = (value?: string | null) => {
+  if (!value) return undefined;
+  return normalizeStringList(value.split(','));
+};
+
 const getAdStatusColor = (adStatus?: string | null) => {
   const normalized = adStatus?.trim();
   if (['在投', '放量中'].includes(normalized || '')) return 'green';
@@ -56,9 +71,37 @@ const getAdStatusColor = (adStatus?: string | null) => {
   return 'blue';
 };
 
+const CompactMetricLine: React.FC<{ label: string; value: React.ReactNode; color?: string }> = ({
+  label,
+  value,
+  color = 'rgba(0, 0, 0, 0.88)',
+}) => (
+  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, minWidth: 0 }}>
+    <Text type="secondary" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+      {label}
+    </Text>
+    <span
+      style={{
+        color,
+        fontSize: 16,
+        fontWeight: 700,
+        lineHeight: 1.2,
+        minWidth: 0,
+        overflow: 'hidden',
+        textAlign: 'right',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {value}
+    </span>
+  </div>
+);
+
 const buildInitialTrendQuery = (searchParams: URLSearchParams): TrendQueryState => {
   const projectCode = searchParams.get('projectCode')?.trim() || '';
   const granularity = normalizeProjectTrendGranularity(searchParams.get('granularity'));
+  const appVersions = parseSearchList(searchParams.get('appVersions'));
   const hasInitialDate =
     Boolean(searchParams.get('dateFrom') && dayjs(searchParams.get('dateFrom')).isValid()) ||
     Boolean(searchParams.get('dateTo') && dayjs(searchParams.get('dateTo')).isValid());
@@ -74,6 +117,7 @@ const buildInitialTrendQuery = (searchParams: URLSearchParams): TrendQueryState 
       projectCode,
       dateRange: [dateFrom, dateTo],
       granularity,
+      appVersions,
       hourFrom,
       hourTo,
     };
@@ -83,6 +127,7 @@ const buildInitialTrendQuery = (searchParams: URLSearchParams): TrendQueryState 
     projectCode,
     dateRange: [dateFrom, dateTo],
     granularity,
+    appVersions,
     hourFrom: undefined,
     hourTo: undefined,
   };
@@ -97,6 +142,7 @@ const ProjectTrendDashboardPage: React.FC = () => {
   const [draftQuery, setDraftQuery] = useState<TrendQueryState>(initialQuery);
   const [appliedQuery, setAppliedQuery] = useState<TrendQueryState>(initialQuery);
   const [projectOptions, setProjectOptions] = useState<Array<{ label: string; value: string }>>([]);
+  const [appVersionOptions, setAppVersionOptions] = useState<Array<{ label: string; value: string }>>([]);
   const [projectMeta, setProjectMeta] = useState<ProjectItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [trendRows, setTrendRows] = useState<ParsedProjectRow[]>([]);
@@ -107,6 +153,10 @@ const ProjectTrendDashboardPage: React.FC = () => {
   const [retentionRows, setRetentionRows] = useState<API.ProjectRetentionCohortItem[]>([]);
   const [retentionDays, setRetentionDays] = useState<number[]>(PROJECT_RETENTION_DAYS);
   const [retentionLoading, setRetentionLoading] = useState(false);
+  const [connectionSummary, setConnectionSummary] = useState<FirebaseAppConnectionReportItem | null>(null);
+  const [connectionLoading, setConnectionLoading] = useState(false);
+  const [showAdRevenueDiffTrend, setShowAdRevenueDiffTrend] = useState(false);
+  const connectionStatusDate = dayjs().format('YYYY-MM-DD');
 
   useEffect(() => {
     setDraftQuery(initialQuery);
@@ -135,6 +185,50 @@ const ProjectTrendDashboardPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    let alive = true;
+
+    const run = async () => {
+      if (!draftQuery.projectCode) {
+        setAppVersionOptions([]);
+        return;
+      }
+
+      try {
+        const res = await queryAppConnectionReport({
+          dateFrom: draftQuery.dateRange[0],
+          dateTo: draftQuery.dateRange[1],
+          groupBy: ['appVersion'],
+          filters: {
+            projectCodes: [draftQuery.projectCode],
+          },
+          page: 1,
+          pageSize: 200,
+          orderBy: 'appVersion',
+          orderDirection: 'asc',
+        });
+        if (!alive) return;
+
+        const versions = Array.isArray(res.data?.data) ? res.data.data : [];
+        const nextOptions = versions
+          .map((item) => ({
+            label: `${item.appVersion || ''}`,
+            value: `${item.appVersion || ''}`,
+          }))
+          .filter((item) => item.value.trim())
+          .filter((item, index, list) => list.findIndex((candidate) => candidate.value === item.value) === index);
+        setAppVersionOptions(nextOptions);
+      } catch {
+        if (alive) setAppVersionOptions([]);
+      }
+    };
+
+    void run();
+    return () => {
+      alive = false;
+    };
+  }, [draftQuery.dateRange, draftQuery.projectCode]);
+
+  useEffect(() => {
     if (!appliedQuery.projectCode) {
       setProjectMeta(null);
       return;
@@ -158,6 +252,7 @@ const ProjectTrendDashboardPage: React.FC = () => {
         dateFrom: appliedQuery.dateRange[0],
         dateTo: appliedQuery.dateRange[1],
         granularity: appliedQuery.granularity,
+        appVersions: normalizeStringList(appliedQuery.appVersions),
         hourFrom: appliedQuery.granularity === 'hour' ? appliedQuery.hourFrom : undefined,
         hourTo: appliedQuery.granularity === 'hour' ? appliedQuery.hourTo : undefined,
         from:
@@ -218,6 +313,46 @@ const ProjectTrendDashboardPage: React.FC = () => {
       alive = false;
     };
   }, [appliedQuery, message]);
+
+  useEffect(() => {
+    if (!appliedQuery.projectCode) {
+      setConnectionSummary(null);
+      return;
+    }
+
+    let alive = true;
+    const run = async () => {
+      setConnectionLoading(true);
+      try {
+        const res = await queryAppConnectionReport({
+          dateFrom: connectionStatusDate,
+          dateTo: connectionStatusDate,
+          groupBy: ['date'],
+          filters: {
+            projectCodes: [appliedQuery.projectCode],
+            appVersions: normalizeStringList(appliedQuery.appVersions),
+          },
+          page: 1,
+          pageSize: 1,
+        });
+
+        if (!alive) return;
+        setConnectionSummary(res.data?.summary ?? null);
+      } catch (error: any) {
+        if (alive) {
+          message.error(error?.message || '获取今日应用连接状态失败');
+          setConnectionSummary(null);
+        }
+      } finally {
+        if (alive) setConnectionLoading(false);
+      }
+    };
+
+    void run();
+    return () => {
+      alive = false;
+    };
+  }, [appliedQuery.appVersions, appliedQuery.projectCode, connectionStatusDate, message]);
 
   useEffect(() => {
     if (!appliedQuery.projectCode) {
@@ -373,45 +508,73 @@ const ProjectTrendDashboardPage: React.FC = () => {
     const adRevenueBaseValue = summary.adRevenue ?? trendRows.reduce((sum, item) => sum + item.adRevenue, 0);
     const adRevenueNowValue = summary.adRevenueNow ?? aggregatedAdRevenueNow;
     const adRevenueDiffValue = summary.adRevenueDiff ?? aggregatedAdRevenueDiff;
-    const adRevenueHelperText = `${formatCurrency(adRevenueNowValue)}（${formatCurrency(adRevenueDiffValue)}）`;
     const adRevenueBaseNumber = toSafeNumber(adRevenueBaseValue);
     const adRevenueNowNumber = toSafeNumber(adRevenueNowValue);
     const adRevenueRatioText =
       adRevenueBaseNumber && adRevenueNowNumber !== null
         ? `${((adRevenueNowNumber / adRevenueBaseNumber) * 100).toFixed(1)}%`
         : '--';
+    const profitNumber = toSafeNumber(summary.profit);
 
     return [
       {
         key: 'adRevenue',
         title: '广告收入',
-        value: formatCurrency(adRevenueBaseValue),
+        value: '',
         customValue: (
-          <span style={{ position: 'relative', display: 'inline-block', paddingRight: 34 }}>
-            <span>{formatCurrency(adRevenueBaseValue)}</span>
-            <Text
-              type="secondary"
-              style={{ position: 'absolute', right: 0, top: -10, fontSize: 12, lineHeight: 1 }}
-            >
-              {adRevenueRatioText}
-            </Text>
-          </span>
-        ),
-        extra: (
-          <Tooltip title="最新收入（广告收益差值）">
-            <Text type="secondary" style={{ fontSize: 12, display: 'inline-block', marginTop: 8 }}>
-              {adRevenueHelperText}
-            </Text>
-          </Tooltip>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', fontSize: 12 }}>
+            <CompactMetricLine label="广告收入" value={formatCurrency(adRevenueBaseValue)} color="#111827" />
+            <CompactMetricLine label="最新收入" value={formatCurrency(adRevenueNowValue)} color="#7c3aed" />
+            <CompactMetricLine label="收益差值" value={formatCurrency(adRevenueDiffValue)} color="#6b7280" />
+            <Tooltip title="最新收入 / 广告收入">
+              <div>
+                <CompactMetricLine label="收入占比" value={adRevenueRatioText} color="#0f766e" />
+              </div>
+            </Tooltip>
+          </div>
         ),
       },
-      { key: 'totalCost', title: '总成本', value: formatCurrency(summary.totalCost) },
-      { key: 'profit', title: '利润', value: formatCurrency(summary.profit) },
-      { key: 'roi', title: 'ROI', value: formatRoiPercent(summary.roi) },
-      { key: 'newUsers', title: '新增用户', value: formatInteger(summary.newUsers) },
-      { key: 'dauUsers', title: '最新 / 平均 DAU', value: `${formatInteger(latestDau)} / ${formatInteger(avgDau)}` },
+      {
+        key: 'costProfitRoi',
+        title: '成本 / 利润 / ROI',
+        value: '',
+        customValue: (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', fontSize: 12 }}>
+            <CompactMetricLine label="总成本" value={formatCurrency(summary.totalCost)} color="#ea580c" />
+            <CompactMetricLine
+              label="利润"
+              value={formatCurrency(summary.profit)}
+              color={profitNumber !== null && profitNumber < 0 ? '#dc2626' : '#2563eb'}
+            />
+            <CompactMetricLine label="ROI" value={formatRoiPercent(summary.roi)} color="#0f766e" />
+          </div>
+        ),
+      },
+      {
+        key: 'userOverview',
+        title: '用户概览',
+        value: '',
+        customValue: (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', fontSize: 12 }}>
+            <CompactMetricLine label="新增用户" value={formatInteger(summary.newUsers)} color="#111827" />
+            <CompactMetricLine label="最新 DAU" value={formatInteger(latestDau)} color="#2563eb" />
+            <CompactMetricLine label="平均 DAU" value={formatInteger(avgDau)} color="#16a34a" />
+          </div>
+        ),
+      },
+      {
+        key: 'appConnectionStatus',
+        title: '今日应用连接状态',
+        value: '',
+        customValue: (
+          <AppConnectionStatusSummary
+            loading={connectionLoading}
+            summary={connectionSummary}
+          />
+        ),
+      },
     ];
-  }, [summary, trendRows]);
+  }, [connectionLoading, connectionSummary, summary, trendRows]);
 
   const revenueTrendData = useMemo(
     () =>
@@ -556,7 +719,9 @@ const ProjectTrendDashboardPage: React.FC = () => {
           adStatus={projectMeta?.adStatus}
           adStatusColor={getAdStatusColor(projectMeta?.adStatus)}
           projectOptions={projectOptions}
-          onProjectCodeChange={(value) => setDraftQuery((prev) => ({ ...prev, projectCode: value }))}
+          appVersionOptions={appVersionOptions}
+          onProjectCodeChange={(value) => setDraftQuery((prev) => ({ ...prev, projectCode: value, appVersions: undefined }))}
+          onAppVersionsChange={(value) => setDraftQuery((prev) => ({ ...prev, appVersions: value }))}
           onDateRangeChange={handleDailyDateRangeChange}
           onGranularityChange={handleGranularityChange}
           onHourDateTimeRangeChange={handleHourlyDateTimeRangeChange}
@@ -581,7 +746,18 @@ const ProjectTrendDashboardPage: React.FC = () => {
                 onRangeChange={setRetentionRange}
               />
 
-              <TrendChartCard title="收益趋势" hasData={revenueTrendData.length > 0} emptyText="暂无收益趋势数据">
+              <TrendChartCard
+                title="收益趋势"
+                hasData={revenueTrendData.length > 0}
+                emptyText="暂无收益趋势数据"
+                extra={
+                  appliedQuery.granularity === 'day' ? (
+                    <Button size="small" onClick={() => setShowAdRevenueDiffTrend((prev) => !prev)}>
+                      {showAdRevenueDiffTrend ? '收起广告收益差值趋势' : '展开广告收益差值趋势'}
+                    </Button>
+                  ) : null
+                }
+              >
                 {revenueTrendData.length ? (
                   <Line
                     {...lineConfigBase}
@@ -593,28 +769,39 @@ const ProjectTrendDashboardPage: React.FC = () => {
               </TrendChartCard>
 
               {appliedQuery.granularity === 'day' ? (
-                <TrendChartCard
-                  title="广告收益对比趋势"
-                  hasData={adRevenueComparisonTrendData.length > 0}
-                  emptyText="暂无广告收益对比数据"
-                >
-                  {adRevenueComparisonTrendData.length ? (
-                    <Area
-                      data={adRevenueComparisonTrendData}
-                      xField="date"
-                      yField="value"
-                      seriesField="series"
-                      colorField="series"
-                      scale={{ color: { range: AD_REVENUE_COMPARE_COLOR_RANGE } }}
-                      stack
-                      height={300}
-                      theme={DASHBOARD_THEME}
-                      legend={{ position: 'top-right' }}
-                      axis={{ y: { labelFormatter: (value: number) => formatCurrency(value) } }}
-                      tooltip={{ items: [{ field: 'value', valueFormatter: (value: number) => formatCurrency(value) }] }}
-                    />
+                <>
+                  {showAdRevenueDiffTrend ? (
+                    <TrendChartCard
+                      title="广告收益差值趋势"
+                      hasData={adRevenueComparisonTrendData.length > 0}
+                      emptyText="暂无广告收益差值数据"
+                    >
+                      {adRevenueComparisonTrendData.length ? (
+                        <Area
+                          data={adRevenueComparisonTrendData}
+                          xField="date"
+                          yField="value"
+                          seriesField="series"
+                          colorField="series"
+                          scale={{ color: { range: AD_REVENUE_COMPARE_COLOR_RANGE } }}
+                          stack
+                          height={300}
+                          theme={DASHBOARD_THEME}
+                          legend={{ position: 'top-right' }}
+                          axis={{ y: { labelFormatter: (value: number) => formatCurrency(value) } }}
+                          tooltip={{ items: [{ field: 'value', valueFormatter: (value: number) => formatCurrency(value) }] }}
+                        />
+                      ) : null}
+                    </TrendChartCard>
                   ) : null}
-                </TrendChartCard>
+
+                  <AppConnectionReportSection
+                    key={`${appliedQuery.projectCode}-${appliedQuery.dateRange[0]}-${appliedQuery.dateRange[1]}-${(appliedQuery.appVersions || []).join('.')}`}
+                    projectCode={appliedQuery.projectCode}
+                    dateRange={appliedQuery.dateRange}
+                    appVersions={appliedQuery.appVersions}
+                  />
+                </>
               ) : null}
 
               <Row gutter={[16, 16]}>

@@ -1,6 +1,6 @@
-import React, { useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import React, { useRef, useState, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { ActionType, ProTable, ProColumns, ModalForm, ProFormText, ProFormSelect, ProFormTextArea } from '@ant-design/pro-components';
-import { Space, Popconfirm, Tag, App, Select, Form } from 'antd';
+import { Space, Popconfirm, Tag, App, Select, Form, Typography } from 'antd';
 import { getTrafficAccounts as getProjectTrafficAccounts, createTrafficAccount, updateTrafficAccount, deleteTrafficAccount } from '@/services/project/api';
 import { getTrafficAccounts as fetchTrafficPlatformAccounts } from '@/services/traffic-platform/api';
 import type { ProjectTrafficAccount } from '@/services/project/types';
@@ -20,6 +20,7 @@ const TrafficAccounts = forwardRef<ResourceActionRef, TrafficAccountsProps>(({ p
   const [formVisible, setFormVisible] = useState(false);
   const [currentRow, setCurrentRow] = useState<ProjectTrafficAccount | undefined>(undefined);
   const [accountOptions, setAccountOptions] = useState<{ label: string; value: number }[]>([]);
+  const [accountRows, setAccountRows] = useState<API.TrafficAccountItem[]>([]);
   const [selectedPlatform, setSelectedPlatform] = useState<string | undefined>();
   const [form] = Form.useForm();
 
@@ -27,6 +28,8 @@ const TrafficAccounts = forwardRef<ResourceActionRef, TrafficAccountsProps>(({ p
     openAdd: () => {
       setCurrentRow(undefined);
       setSelectedPlatform(undefined);
+      form.resetFields();
+      form.setFieldsValue({ enabled: 1 });
       setFormVisible(true);
     },
     reload: () => {
@@ -34,10 +37,30 @@ const TrafficAccounts = forwardRef<ResourceActionRef, TrafficAccountsProps>(({ p
     }
   }));
 
+  const renderAccountLabel = (record?: Partial<ProjectTrafficAccount>) => {
+    if (!record?.trafficPlatformAccountId) return '-';
+    const account = accountRows.find((item) => item.id === record.trafficPlatformAccountId);
+    if (account) {
+      return `[${account.id}] ${account.accountName} (${account.platformCode})`;
+    }
+    return `[${record.trafficPlatformAccountId}] ${record.platformCode || '-'}`;
+  };
+
+  const openEdit = (record: ProjectTrafficAccount) => {
+    setCurrentRow(record);
+    form.resetFields();
+    form.setFieldsValue(record);
+    setFormVisible(true);
+  };
+
   const columns: ProColumns<ProjectTrafficAccount>[] = [
     { title: '平台代码', dataIndex: 'platformCode' },
     { title: '绑定类型', dataIndex: 'bindType' },
-    { title: '平台账号ID', dataIndex: 'trafficPlatformAccountId' },
+    {
+      title: '流量账号',
+      dataIndex: 'trafficPlatformAccountId',
+      render: (_, record) => renderAccountLabel(record),
+    },
     { title: '外部UID', dataIndex: 'externalUid', hideInSearch: true },
     { title: '外部用户名', dataIndex: 'externalUsername', hideInSearch: true },
     {
@@ -54,7 +77,7 @@ const TrafficAccounts = forwardRef<ResourceActionRef, TrafficAccountsProps>(({ p
       valueType: 'option',
       render: (_, record) => (
         <Space>
-          <a onClick={() => { setCurrentRow(record); setFormVisible(true); }}>编辑</a>
+          <a onClick={() => openEdit(record)}>编辑</a>
           <Popconfirm
             title="确认删除该关联？"
             onConfirm={async () => {
@@ -74,22 +97,28 @@ const TrafficAccounts = forwardRef<ResourceActionRef, TrafficAccountsProps>(({ p
     try {
       const res = await fetchTrafficPlatformAccounts({ keyword: search, page: 1, pageSize: 200 });
       const list = res.data?.data || [];
+      setAccountRows(list);
       setAccountOptions(list.map((item) => ({
         label: `[${item.id}] ${item.accountName} (${item.platformCode})`,
         value: item.id,
       })));
-      (window as any).__trafficAccountOptions = list;
     } catch (e) {
       // ignore
     }
   };
 
   const handleAccountChange = (value: number) => {
-    const account = (window as any).__trafficAccountOptions?.find((a: any) => a.id === value);
+    const account = accountRows.find((a) => a.id === value);
     const platform = account?.platformCode;
     setSelectedPlatform(platform);
     form.setFieldsValue({ platformCode: platform, bindType: 'account', externalUid: undefined, externalUsername: undefined });
   };
+
+  useEffect(() => {
+    if (formVisible && currentRow && accountRows.length === 0) {
+      void loadAccounts();
+    }
+  }, [accountRows.length, currentRow, formVisible]);
 
   return (
     <>
@@ -174,7 +203,9 @@ const TrafficAccounts = forwardRef<ResourceActionRef, TrafficAccountsProps>(({ p
           ) : (
             <div>
               <ProFormText name="platformCode" label="平台代码" disabled />
-              <ProFormText name="trafficPlatformAccountId" label="平台账号ID" disabled />
+              <Form.Item label="流量账号">
+                <Typography.Text>{renderAccountLabel(currentRow)}</Typography.Text>
+              </Form.Item>
               <ProFormText name="bindType" label="绑定类型" disabled />
               <ProFormText name="externalUid" label="外部UID" disabled />
               <ProFormText name="externalUsername" label="外部用户名" disabled />

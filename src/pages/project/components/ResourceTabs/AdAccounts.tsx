@@ -1,6 +1,6 @@
-import React, { useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import React, { useRef, useState, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { ActionType, ProTable, ProColumns, ModalForm, ProFormText, ProFormSelect, ProFormTextArea } from '@ant-design/pro-components';
-import { Space, Popconfirm, Tag, App, Select, Form } from 'antd';
+import { Space, Popconfirm, Tag, App, Select, Form, Typography } from 'antd';
 import { getAdAccounts as getProjectAdAccounts, createAdAccount, updateAdAccount, deleteAdAccount } from '@/services/project/api';
 import { getAdAccounts as fetchAdPlatformAccounts, getAdRevenueApps } from '@/services/ad/api';
 import type { ProjectAdAccount } from '@/services/project/types';
@@ -20,7 +20,9 @@ const AdAccounts = forwardRef<ResourceActionRef, AdAccountsProps>(({ projectId }
   const [formVisible, setFormVisible] = useState(false);
   const [currentRow, setCurrentRow] = useState<ProjectAdAccount | undefined>(undefined);
   const [adAccountOptions, setAdAccountOptions] = useState<{ label: string; value: number }[]>([]);
+  const [adAccountRows, setAdAccountRows] = useState<API.AdAccount[]>([]);
   const [appOptions, setAppOptions] = useState<{ label: string; value: string }[]>([]);
+  const [appRows, setAppRows] = useState<API.AdRevenueAppItem[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<number | undefined>();
   const [selectedPlatform, setSelectedPlatform] = useState<string | undefined>();
   const [selectedAppId, setSelectedAppId] = useState<string | undefined>();
@@ -33,6 +35,9 @@ const AdAccounts = forwardRef<ResourceActionRef, AdAccountsProps>(({ projectId }
       setSelectedPlatform(undefined);
       setSelectedAppId(undefined);
       setAppOptions([]);
+      setAppRows([]);
+      form.resetFields();
+      form.setFieldsValue({ enabled: 1 });
       setFormVisible(true);
     },
     reload: () => {
@@ -40,12 +45,50 @@ const AdAccounts = forwardRef<ResourceActionRef, AdAccountsProps>(({ projectId }
     }
   }));
 
+  const renderAdAccountLabel = (record?: Partial<ProjectAdAccount>) => {
+    if (!record?.adPlatformAccountId) return '-';
+    const account = adAccountRows.find((item) => item.id === record.adPlatformAccountId);
+    if (account) {
+      return `[${account.id}] ${account.accountLabel ? `${account.accountLabel} - ` : ''}${account.accountName} (${account.sourcePlatform})`;
+    }
+    return `[${record.adPlatformAccountId}] ${record.platformCode || '-'}`;
+  };
+
+  const renderAppLabel = (record?: Partial<ProjectAdAccount>) => {
+    if (!record?.externalAppId) return '-';
+    if (record.appName) {
+      return `${record.appName} (${record.externalAppId})`;
+    }
+    const app = appRows.find((item) => item.providerAppId === record.externalAppId);
+    if (app) {
+      return `${app.providerAppName} (${app.providerAppId})`;
+    }
+    return record.externalAppId;
+  };
+
+  const openEdit = (record: ProjectAdAccount) => {
+    setCurrentRow(record);
+    form.resetFields();
+    form.setFieldsValue(record);
+    setSelectedAccountId(undefined);
+    setSelectedAppId(record.externalAppId || undefined);
+    setFormVisible(true);
+  };
+
   const columns: ProColumns<ProjectAdAccount>[] = [
     { title: '平台代码', dataIndex: 'platformCode' },
     { title: '绑定类型', dataIndex: 'bindType' },
-    { title: '广告账号ID', dataIndex: 'adPlatformAccountId' },
-    { title: '外部AppID', dataIndex: 'externalAppId', hideInSearch: true },
-    { title: '外部广告位ID', dataIndex: 'externalAdUnitId', hideInSearch: true },
+    {
+      title: '广告账号',
+      dataIndex: 'adPlatformAccountId',
+      render: (_, record) => renderAdAccountLabel(record),
+    },
+    {
+      title: 'App',
+      dataIndex: 'externalAppId',
+      hideInSearch: true,
+      render: (_, record) => renderAppLabel(record),
+    },
     {
       title: '状态',
       dataIndex: 'enabled',
@@ -60,7 +103,7 @@ const AdAccounts = forwardRef<ResourceActionRef, AdAccountsProps>(({ projectId }
       valueType: 'option',
       render: (_, record) => (
         <Space>
-          <a onClick={() => { setCurrentRow(record); setFormVisible(true); }}>编辑</a>
+          <a onClick={() => openEdit(record)}>编辑</a>
           <Popconfirm
             title="确认删除该关联？"
             onConfirm={async () => {
@@ -80,12 +123,11 @@ const AdAccounts = forwardRef<ResourceActionRef, AdAccountsProps>(({ projectId }
     try {
       const res = await fetchAdPlatformAccounts({ keyword: search, page: 1, pageSize: 200 });
       const list = res.data?.data || [];
+      setAdAccountRows(list);
       setAdAccountOptions(list.map((item) => ({
         label: `[${item.id}] ${item.accountLabel ? `${item.accountLabel} - ` : ''}${item.accountName} (${item.sourcePlatform})`,
         value: item.id,
       })));
-      // cache for platform lookup
-      (window as any).__adAccountOptions = list;
     } catch (e) {
       // ignore
     }
@@ -95,7 +137,7 @@ const AdAccounts = forwardRef<ResourceActionRef, AdAccountsProps>(({ projectId }
     setSelectedAccountId(value);
     setSelectedAppId(undefined);
     setAppOptions([]);
-    const account = (window as any).__adAccountOptions?.find((a: any) => a.id === value);
+    const account = adAccountRows.find((a) => a.id === value);
     const platform = account?.sourcePlatform;
     setSelectedPlatform(platform);
     form.setFieldsValue({ externalAppId: undefined, bindType: 'account', platformCode: platform });
@@ -106,6 +148,7 @@ const AdAccounts = forwardRef<ResourceActionRef, AdAccountsProps>(({ projectId }
     try {
       const res = await getAdRevenueApps({ accountId, page: 1, pageSize: 200 });
       const list = res.data?.data || [];
+      setAppRows(list);
       setAppOptions(list.map((item) => ({
         label: `${item.providerAppName} (${item.providerAppId})`,
         value: item.providerAppId,
@@ -114,6 +157,16 @@ const AdAccounts = forwardRef<ResourceActionRef, AdAccountsProps>(({ projectId }
       setAppOptions([]);
     }
   };
+
+  useEffect(() => {
+    if (!formVisible || !currentRow) return;
+    if (adAccountRows.length === 0) {
+      void loadAdAccounts();
+    }
+    if (currentRow.adPlatformAccountId) {
+      void loadApps(currentRow.adPlatformAccountId);
+    }
+  }, [adAccountRows.length, currentRow, formVisible]);
 
   const handleAppChange = (value: string | undefined) => {
     setSelectedAppId(value);
@@ -229,14 +282,16 @@ const AdAccounts = forwardRef<ResourceActionRef, AdAccountsProps>(({ projectId }
                   ]}
                 />
               </Form.Item>
-              <ProFormText name="externalAdUnitId" label="外部广告位ID" hidden />
             </div>
           ) : (
             <div>
               <ProFormText name="platformCode" label="平台代码" disabled />
-              <ProFormText name="adPlatformAccountId" label="广告账号ID" disabled />
-              <ProFormText name="externalAppId" label="外部AppID" disabled />
-              <ProFormText name="externalAdUnitId" label="外部广告位ID" hidden />
+              <Form.Item label="广告账号">
+                <Typography.Text>{renderAdAccountLabel(currentRow)}</Typography.Text>
+              </Form.Item>
+              <Form.Item label="App">
+                <Typography.Text>{renderAppLabel(currentRow)}</Typography.Text>
+              </Form.Item>
             </div>
           )}
           <ProFormSelect

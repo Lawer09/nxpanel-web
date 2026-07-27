@@ -73,6 +73,7 @@ export const buildProjectTrendSearch = (params: {
   dateTo?: string;
   adStatus?: string;
   granularity?: 'day' | 'hour';
+  appVersions?: string[];
   hourFrom?: number;
   hourTo?: number;
   from?: 'report-project' | 'project-table';
@@ -83,6 +84,10 @@ export const buildProjectTrendSearch = (params: {
   if (params.dateTo) search.set('dateTo', params.dateTo);
   if (params.adStatus) search.set('adStatus', params.adStatus);
   if (params.granularity) search.set('granularity', params.granularity);
+  if (params.appVersions?.length) {
+    const normalizedVersions = Array.from(new Set(params.appVersions.map((item) => item.trim()).filter(Boolean)));
+    if (normalizedVersions.length) search.set('appVersions', normalizedVersions.join(','));
+  }
   if (typeof params.hourFrom === 'number') search.set('hourFrom', String(params.hourFrom));
   if (typeof params.hourTo === 'number') search.set('hourTo', String(params.hourTo));
   if (params.from) search.set('from', params.from);

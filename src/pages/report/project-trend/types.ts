@@ -7,6 +7,7 @@ export type TrendQueryState = {
   projectCode: string;
   dateRange: [string, string];
   granularity: TrendGranularity;
+  appVersions?: string[];
   hourFrom?: number;
   hourTo?: number;
 };

@@ -16,7 +16,11 @@ const TrendKpiGrid: React.FC<TrendKpiGridProps> = ({ items }) => (
     }}
   >
     {items.map((item) => (
-      <Card key={item.key} style={CARD_STYLE} styles={{ body: { padding: 18 } }}>
+      <Card
+        key={item.key}
+        style={{ ...CARD_STYLE, height: '100%' }}
+        styles={{ body: { minHeight: 166, padding: 18 } }}
+      >
         {item.customValue ? (
           <div>
             <div style={{ marginBottom: 8, color: 'rgba(0, 0, 0, 0.45)', fontSize: 14 }}>{item.title}</div>
