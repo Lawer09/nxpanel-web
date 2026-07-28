@@ -352,6 +352,12 @@ type AdSpendPlatformCompositionItem = {
   ratio: unknown;
 };
 
+const AD_SPEND_PLATFORM_COLORS: Record<string, string> = {
+  facebook: '#2563eb',
+  mintegral: '#f59e0b',
+  google_ads: '#06b6d4',
+};
+
 const parseTopRevenueCountries = (value: unknown): TopRevenueCountryItem[] => {
   if (!Array.isArray(value)) return [];
   return value
@@ -542,6 +548,84 @@ const renderAdSpendValue = (adSpendCost: unknown, record?: Record<string, unknow
   );
 };
 
+const renderAdSpendPlatformCompositionBar = (record?: Record<string, unknown>) => {
+  const composition = parseAdSpendPlatformComposition(record?.adSpendPlatformComposition);
+  if (!composition.length) return null;
+
+  const ratioTotal = composition.reduce((sum, item) => sum + (toSafeNumber(item.ratio) ?? 0), 0);
+  const remainingRatio = Math.max(0, 1 - ratioTotal);
+
+  return (
+    <Tooltip
+      title={
+        <Space direction="vertical" size={4}>
+          {composition.map((item) => (
+            <div
+              key={`${item.platform}-${String(item.adSpendCost)}-${String(item.ratio)}`}
+              style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, minWidth: 240 }}
+            >
+              <span>{item.platform}</span>
+              <span>{fmtCurrency(item.adSpendCost)}</span>
+              <span>{fmtRatioDecimalPercent(item.ratio)}</span>
+            </div>
+          ))}
+          {remainingRatio > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, minWidth: 240 }}>
+              <span>其他</span>
+              <span>{fmtRatioDecimalPercent(remainingRatio)}</span>
+            </div>
+          ) : null}
+        </Space>
+      }
+    >
+      <div style={{ width: '100%', minWidth: 120 }}>
+        <div
+          style={{
+            width: '100%',
+            height: 8,
+            borderRadius: 999,
+            background: '#e5e7eb',
+            overflow: 'hidden',
+            display: 'flex',
+          }}
+        >
+          {composition.map((item) => {
+            const ratio = Math.max(0, Math.min(100, (toSafeNumber(item.ratio) ?? 0) * 100));
+            if (ratio <= 0) return null;
+            const platformKey = item.platform.trim().toLowerCase();
+            return (
+              <div
+                key={`${item.platform}-${String(item.ratio)}`}
+                style={{
+                  width: `${ratio}%`,
+                  height: '100%',
+                  background: AD_SPEND_PLATFORM_COLORS[platformKey] ?? '#9ca3af',
+                }}
+              />
+            );
+          })}
+          {remainingRatio > 0 ? (
+            <div
+              style={{
+                width: `${Math.max(0, Math.min(100, remainingRatio * 100))}%`,
+                height: '100%',
+                background: '#d1d5db',
+              }}
+            />
+          ) : null}
+        </div>
+      </div>
+    </Tooltip>
+  );
+};
+
+const renderAdSpendWithMeta = (adSpendCost: unknown, record?: Record<string, unknown>) => {
+  const spendText = renderAdSpendValue(adSpendCost, record);
+  const compositionBar = renderAdSpendPlatformCompositionBar(record);
+
+  return renderMetricWithDayOverDay(spendText, record, 'adSpendCostDayOverDay', compositionBar);
+};
+
 const renderTotalCostBreakdown = (record?: Record<string, unknown>) => {
   const adSpendCost = Math.max(0, toSafeNumber(record?.adSpendCost) ?? 0);
   const trafficCost = Math.max(0, toSafeNumber(record?.trafficCost) ?? 0);
@@ -720,11 +804,9 @@ export const PROJECT_REPORT_METRIC_OPTIONS = [
       tooltip: '投放支出环比 = (当前投放支出 - 昨日投放支出) / 昨日投放支出',
       dataIndex: 'adSpendCost',
       width: 130,
-      render: (value: unknown, record: API.ProjectReportItem) =>
-        renderMetricWithDayOverDay(renderAdSpendValue(value, record), record, 'adSpendCostDayOverDay'),
+      render: (value: unknown, record: API.ProjectReportItem) => renderAdSpendWithMeta(value, record),
     },
-    formatter: (value: number, record?: Record<string, unknown>) =>
-      renderMetricWithDayOverDay(renderAdSpendValue(value, record), record, 'adSpendCostDayOverDay'),
+    formatter: (value: number, record?: Record<string, unknown>) => renderAdSpendWithMeta(value, record),
   },
   {
     label: '投放 CPI',
