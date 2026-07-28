@@ -77,6 +77,17 @@ const getAdminOptionRows = (res: any): API.AdminUserOption[] => {
   return [];
 };
 
+const getProjectOwnerIds = (record: ProjectItem): number[] => {
+  const ownerIds = Array.isArray(record.ownerIds) ? record.ownerIds : [];
+  if (ownerIds.length) {
+    return ownerIds.map((ownerId) => Number(ownerId)).filter((ownerId) => ownerId > 0);
+  }
+  return record.ownerId ? [record.ownerId] : [];
+};
+
+const isSameOwnerIds = (left: number[], right: number[]) =>
+  left.length === right.length && left.every((ownerId, index) => ownerId === right[index]);
+
 interface AdStatusModalEditorProps {
   record: ProjectItem;
   onSaved: (record: ProjectItem, adStatus: string | null) => void;
@@ -183,7 +194,7 @@ interface ProjectOwnerModalEditorProps {
   options: OwnerSelectOption[];
   loading: boolean;
   onOpen: () => void;
-  onSaved: (record: ProjectItem, ownerId: number | null, ownerName: string | null) => void;
+  onSaved: (record: ProjectItem, ownerIds: number[], ownerName: string | null) => void;
 }
 
 const ProjectOwnerModalEditor: React.FC<ProjectOwnerModalEditorProps> = ({
@@ -195,14 +206,14 @@ const ProjectOwnerModalEditor: React.FC<ProjectOwnerModalEditorProps> = ({
 }) => {
   const { message } = App.useApp();
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState<number | null>(record.ownerId ?? null);
+  const [value, setValue] = useState<number[]>(getProjectOwnerIds(record));
   const [saving, setSaving] = useState(false);
 
   React.useEffect(() => {
     if (!open) {
-      setValue(record.ownerId ?? null);
+      setValue(getProjectOwnerIds(record));
     }
-  }, [open, record.ownerId]);
+  }, [open, record]);
 
   const openModal = () => {
     onOpen();
@@ -210,19 +221,21 @@ const ProjectOwnerModalEditor: React.FC<ProjectOwnerModalEditorProps> = ({
   };
 
   const save = async () => {
-    const normalized = value ?? null;
-    const current = record.ownerId ?? null;
-    if (normalized === current) {
+    const normalized = value.map((ownerId) => Number(ownerId)).filter((ownerId) => ownerId > 0);
+    const current = getProjectOwnerIds(record);
+    if (isSameOwnerIds(normalized, current)) {
       setOpen(false);
       return;
     }
 
-    const selected = normalized ? options.find((option) => option.value === normalized) : undefined;
+    const selectedNames = normalized
+      .map((ownerId) => options.find((option) => option.value === ownerId)?.displayName)
+      .filter(Boolean);
     setSaving(true);
     try {
-      await updateProject({ id: record.id, ownerId: normalized });
+      await updateProject({ id: record.id, ownerIds: normalized });
       message.success('负责人已更新');
-      onSaved(record, normalized, selected?.displayName ?? null);
+      onSaved(record, normalized, selectedNames.length ? selectedNames.join('、') : null);
       setOpen(false);
     } finally {
       setSaving(false);
@@ -245,21 +258,23 @@ const ProjectOwnerModalEditor: React.FC<ProjectOwnerModalEditorProps> = ({
         onCancel={() => {
           if (saving) return;
           setOpen(false);
-          setValue(record.ownerId ?? null);
+          setValue(getProjectOwnerIds(record));
         }}
       >
         <Form layout="vertical">
           <Form.Item label="负责人">
             <Select
+              mode="multiple"
               allowClear
               showSearch
-              value={value ?? undefined}
+              value={value}
               loading={loading}
               options={options}
+              maxTagCount="responsive"
               optionFilterProp="label"
               placeholder="请选择负责人；清空后保存将清空负责人"
               onFocus={onOpen}
-              onChange={(nextValue) => setValue(nextValue ?? null)}
+              onChange={(nextValue) => setValue(nextValue)}
             />
           </Form.Item>
         </Form>
@@ -499,11 +514,11 @@ const ProjectTablePage: React.FC = () => {
 
   const handleOwnerSaved = (
     record: ProjectItem,
-    ownerId: number | null,
+    ownerIds: number[],
     ownerName: string | null,
   ) => {
     if (detailProject?.id === record.id) {
-      setDetailProject({ ...detailProject, ownerId, ownerName });
+      setDetailProject({ ...detailProject, ownerId: ownerIds[0] ?? null, ownerIds, ownerName });
     }
     reloadTable();
   };
@@ -681,14 +696,16 @@ const ProjectTablePage: React.FC = () => {
     },
     {
       title: '负责人',
-      dataIndex: 'ownerId',
+      dataIndex: 'ownerIds',
       hideInTable: true,
       renderFormItem: () => (
         <Select
+          mode="multiple"
           allowClear
           showSearch
           loading={ownerOptionsLoading}
           options={ownerOptions}
+          maxTagCount="responsive"
           optionFilterProp="label"
           placeholder="请选择负责人"
           onFocus={ensureOwnerOptions}
@@ -849,7 +866,10 @@ const ProjectTablePage: React.FC = () => {
           </Button>,
         ]}
         request={async (params) => {
-          const { current, pageSize, keyword, status, adStatus, packageName, developerGmail, ownerId } = params;
+          const { current, pageSize, keyword, status, adStatus, packageName, developerGmail, ownerIds } = params;
+          const normalizedOwnerIds = Array.isArray(ownerIds)
+            ? ownerIds.map((ownerId) => Number(ownerId)).filter((ownerId) => ownerId > 0)
+            : [];
           const res = await getProjects({
             page: current,
             pageSize,
@@ -858,7 +878,7 @@ const ProjectTablePage: React.FC = () => {
             adStatus,
             packageName,
             developerGmail,
-            ownerId: ownerId ? Number(ownerId) : undefined,
+            ownerIds: normalizedOwnerIds.length ? normalizedOwnerIds : undefined,
           });
           const pageData = res.data;
           return {

@@ -71,6 +71,15 @@ const buildAdminOptionLabel = (item: API.AdminUserOption) => {
   return nickname ? `${nickname}（${item.email}）` : item.email;
 };
 
+const getInitialOwnerIds = (project?: ProjectItem): number[] => {
+  if (!project) return [];
+  const ownerIds = Array.isArray(project.ownerIds) ? project.ownerIds : [];
+  if (ownerIds.length) {
+    return ownerIds.map((ownerId) => Number(ownerId)).filter((ownerId) => ownerId > 0);
+  }
+  return project.ownerId ? [project.ownerId] : [];
+};
+
 const renderField = (
   field: ProjectFieldConfig,
   isEdit: boolean,
@@ -97,13 +106,14 @@ const renderField = (
   if (field.name === 'ownerName') {
     return (
       <ProFormSelect
-        name="ownerId"
+        name="ownerIds"
         label={field.label}
+        mode="multiple"
         options={ownerOptions}
         showSearch
         placeholder="选择负责人"
         allowClear
-        fieldProps={{ optionFilterProp: 'label', loading: ownerOptionsLoading }}
+        fieldProps={{ optionFilterProp: 'label', loading: ownerOptionsLoading, maxTagCount: 'responsive' }}
       />
     );
   }
@@ -192,7 +202,10 @@ const ProjectTableForm: React.FC<ProjectTableFormProps> = ({
   useEffect(() => {
     if (!open) return;
     if (initialValues) {
-      form.setFieldsValue(initialValues);
+      form.setFieldsValue({
+        ...initialValues,
+        ownerIds: getInitialOwnerIds(initialValues),
+      });
       return;
     }
     form.resetFields();
@@ -388,8 +401,9 @@ const ProjectTableForm: React.FC<ProjectTableFormProps> = ({
           ...projectValues
         } = values;
         const payload = normalizeProjectFormValues(projectValues);
-        if (Object.prototype.hasOwnProperty.call(payload, 'ownerId')) {
+        if (Object.prototype.hasOwnProperty.call(payload, 'ownerIds')) {
           delete (payload as Record<string, unknown>).ownerName;
+          delete (payload as Record<string, unknown>).ownerId;
         }
         try {
           if (isEdit) {

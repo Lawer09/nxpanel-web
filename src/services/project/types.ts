@@ -61,6 +61,7 @@ export interface ProjectItem {
   projectCode: string;
   projectName: string;
   ownerId?: number | null;
+  ownerIds?: number[];
   ownerName: string | null;
   department: string | null;
   status: 'active' | 'inactive' | 'archived';
@@ -105,6 +106,7 @@ export interface ProjectFetchRequest {
   packageName?: string;
   developerGmail?: string;
   ownerId?: number;
+  ownerIds?: number[];
   page?: number;
   pageSize?: number;
 }
@@ -123,6 +125,7 @@ export interface ProjectStoreRequest {
   projectCode: string;
   projectName: string;
   ownerId?: number | null;
+  ownerIds?: number[];
   ownerName?: NullableString;
   department?: NullableString;
   status?: string;
@@ -159,6 +162,7 @@ export interface ProjectUpdateRequest {
   id: number;
   projectName?: NullableString;
   ownerId?: number | null;
+  ownerIds?: number[];
   ownerName?: NullableString;
   department?: NullableString;
   status?: string;
