@@ -323,6 +323,30 @@ declare namespace API {
     orderDirection?: 'asc' | 'desc';
   }
 
+  interface DashboardIncomeSummaryRequest {
+    appId?: string;
+  }
+
+  interface DashboardIncomeSummaryPeriod {
+    dateFrom: string;
+    dateTo: string;
+    income: string | number | null;
+    revenue: string | number | null;
+    expense: string | number | null;
+    adRevenue: string | number | null;
+    adSpendCost: string | number | null;
+    trafficCost: string | number | null;
+    totalCost: string | number | null;
+    profit: string | number | null;
+    roi: string | number | null;
+    updatedAt?: string | null;
+  }
+
+  interface DashboardIncomeSummaryResult {
+    today: DashboardIncomeSummaryPeriod;
+    month: DashboardIncomeSummaryPeriod;
+  }
+
   interface ProjectHourlyReportQuery {
     dateFrom?: string;
     dateTo?: string;

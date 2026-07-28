@@ -322,6 +322,28 @@ Dashboard 收益卡片的数据可观测性与调试定位效率。
 
 - `src/pages/dashboard/index.tsx`
 
+## Dashboard 收益查询重复触发
+
+### 出现场景
+
+Dashboard 顶部“今日收益 / 本月收益”卡片加载时，`/report/project/query` 会在未选择包名的情况下重复触发；当日期范围重合时，网络面板会看到多次完全相同的本月查询。
+
+### 问题原因
+
+收益查询 effect 依赖了完整的 `appIdProjectCodeMap`。页面首屏先用空项目列表计算一次 Map，随后 `getProjects` 返回后 Map 引用变化，即使当前没有选择 `appId`、收益查询实际不需要项目映射，也会再次触发同一组收益请求。
+
+### 解决方式
+
+将收益查询依赖收敛到当前选中 `appId` 对应的项目编码 key；未选择 `appId` 时，项目列表加载完成不再触发收益重查。选择了 `appId` 但项目列表仍在加载时，等待映射完成后再查询。同时在今日和本月 payload 完全一致时复用同一次请求结果。
+
+### 影响范围
+
+Dashboard 顶部收益卡片的项目日报聚合查询。
+
+### 相关文件
+
+- `src/pages/dashboard/index.tsx`
+
 ## 自动化规则 project_aggregate 模块字段约束
 
 ### 出现场景

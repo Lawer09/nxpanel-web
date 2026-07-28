@@ -136,6 +136,16 @@ export async function queryProjectReport(data: API.ProjectReportQuery) {
   );
 }
 
+export async function getDashboardIncomeSummary(data: API.DashboardIncomeSummaryRequest) {
+  return request<API.ApiResponse<API.DashboardIncomeSummaryResult>>(
+    '/v3/dashboard/income-summary',
+    {
+      method: 'POST',
+      data,
+    },
+  );
+}
+
 export async function queryProjectHourlyReport(data: API.ProjectHourlyReportQuery) {
   return request<API.ApiResponse<API.ReportPageResult<API.ProjectReportItem>>>(
     '/v3/report/project/hourly/query',
