@@ -419,6 +419,38 @@ declare namespace API {
     data: ProjectRetentionCohortItem[];
   }
 
+  interface ProjectAdValueDailyCompositionQuery {
+    projectCode: string;
+    dateFrom: string;
+    dateTo: string;
+  }
+
+  interface ProjectAdValueDailyCompositionSummary {
+    totalValueMicrosUsd?: number | null;
+    totalValueUsd?: string | number | null;
+    newUserValueMicrosUsd?: number | null;
+    newUserValueUsd?: string | number | null;
+    newUserRatio?: string | number | null;
+    retainedUserValueMicrosUsd?: number | null;
+    retainedUserValueUsd?: string | number | null;
+    retainedUserRatio?: string | number | null;
+    unknownValueMicrosUsd?: number | null;
+    unknownValueUsd?: string | number | null;
+    unknownRatio?: string | number | null;
+  }
+
+  interface ProjectAdValueDailyCompositionItem extends ProjectAdValueDailyCompositionSummary {
+    date: string;
+  }
+
+  interface ProjectAdValueDailyCompositionResult {
+    projectCode: string;
+    dateFrom: string;
+    dateTo: string;
+    data: ProjectAdValueDailyCompositionItem[];
+    summary: ProjectAdValueDailyCompositionSummary;
+  }
+
   type ProjectReportItem = Record<string, any>;
 
   type UserReportRow = Record<string, any>;

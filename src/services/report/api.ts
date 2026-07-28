@@ -176,6 +176,16 @@ export async function queryProjectRetention(data: API.ProjectRetentionQuery) {
   );
 }
 
+export async function queryProjectAdValueDailyComposition(data: API.ProjectAdValueDailyCompositionQuery) {
+  return request<API.ApiResponse<API.ProjectAdValueDailyCompositionResult>>(
+    '/v3/report/project/ad-value/daily-composition',
+    {
+      method: 'POST',
+      data,
+    },
+  );
+}
+
 export async function exportProjectReport(data: API.ProjectReportQuery) {
   const result = await request<Blob>('/v3/report/project/export', {
     method: 'POST',

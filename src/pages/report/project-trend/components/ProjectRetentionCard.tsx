@@ -1,6 +1,7 @@
-import { Card, DatePicker, Table, Tag, Tooltip, Typography } from 'antd';
+import { DownOutlined, UpOutlined } from '@ant-design/icons';
+import { Button, Card, DatePicker, Space, Table, Tag, Tooltip, Typography } from 'antd';
 import dayjs from 'dayjs';
-import React from 'react';
+import React, { useState } from 'react';
 import { STANDARD_DATE_PRESET_ITEMS, toRangePickerPresets } from '@/components/report/reportDatePreset';
 import { CARD_STYLE, PROJECT_RETENTION_DAYS } from '../constants';
 import { formatInteger } from '../utils';
@@ -35,62 +36,75 @@ const ProjectRetentionCard: React.FC<ProjectRetentionCardProps> = ({
   onRangeChange,
 }) => {
   const days = retentionDays?.length ? retentionDays : PROJECT_RETENTION_DAYS;
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
     <Card
       title="项目留存分析"
-      loading={loading}
+      loading={loading && !collapsed}
       style={CARD_STYLE}
-      styles={{ body: { padding: 20 } }}
+      styles={{ body: { padding: collapsed ? 0 : 20 } }}
       extra={
-        <RangePicker
-          value={[dayjs(range[0]), dayjs(range[1])]}
-          presets={DATE_PRESETS}
-          allowClear={false}
-          onChange={(dates) => {
-            const [start, end] = dates ?? [];
-            if (!start || !end) return;
-            onRangeChange([start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')]);
-          }}
-        />
+        <Space size={8} wrap>
+          <RangePicker
+            value={[dayjs(range[0]), dayjs(range[1])]}
+            presets={DATE_PRESETS}
+            allowClear={false}
+            onChange={(dates) => {
+              const [start, end] = dates ?? [];
+              if (!start || !end) return;
+              onRangeChange([start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD')]);
+            }}
+          />
+          <Button
+            size="small"
+            type="text"
+            icon={collapsed ? <DownOutlined /> : <UpOutlined />}
+            onClick={() => setCollapsed((prev) => !prev)}
+          >
+            {collapsed ? '展开' : '收起'}
+          </Button>
+        </Space>
       }
     >
-      <Table<API.ProjectRetentionCohortItem>
-        size="small"
-        rowKey="date"
-        dataSource={data}
-        pagination={false}
-        scroll={{ x: 900 }}
-        bordered
-        columns={[
-          { title: '日期', dataIndex: 'date', width: 120, fixed: 'left' },
-          {
-            title: '活跃用户',
-            dataIndex: 'activeUsers',
-            width: 120,
-            align: 'right',
-            render: (value) => formatInteger(value),
-          },
-          ...days.map((day) => ({
-            title: `Day+${day}`,
-            key: `day${day}`,
-            width: 120,
-            align: 'right' as const,
-            render: (_: unknown, record: API.ProjectRetentionCohortItem) => {
-              const retention = getRetentionValue(record, day);
-              if (!retention) return <Text type="secondary">-</Text>;
-
-              return (
-                <Tooltip title={`${formatInteger(retention.count)} 人`}>
-                  <Tag color={getRetentionCellColor(retention.rate)} style={{ marginInlineEnd: 0 }}>
-                    {retention.rate.toFixed(1)}%
-                  </Tag>
-                </Tooltip>
-              );
+      {!collapsed ? (
+        <Table<API.ProjectRetentionCohortItem>
+          size="small"
+          rowKey="date"
+          dataSource={data}
+          pagination={false}
+          scroll={{ x: 900 }}
+          bordered
+          columns={[
+            { title: '日期', dataIndex: 'date', width: 120, fixed: 'left' },
+            {
+              title: '活跃用户',
+              dataIndex: 'activeUsers',
+              width: 120,
+              align: 'right',
+              render: (value) => formatInteger(value),
             },
-          })),
-        ]}
-      />
+            ...days.map((day) => ({
+              title: `Day+${day}`,
+              key: `day${day}`,
+              width: 120,
+              align: 'right' as const,
+              render: (_: unknown, record: API.ProjectRetentionCohortItem) => {
+                const retention = getRetentionValue(record, day);
+                if (!retention) return <Text type="secondary">-</Text>;
+
+                return (
+                  <Tooltip title={`${formatInteger(retention.count)} 人`}>
+                    <Tag color={getRetentionCellColor(retention.rate)} style={{ marginInlineEnd: 0 }}>
+                      {retention.rate.toFixed(1)}%
+                    </Tag>
+                  </Tooltip>
+                );
+              },
+            })),
+          ]}
+        />
+      ) : null}
     </Card>
   );
 };

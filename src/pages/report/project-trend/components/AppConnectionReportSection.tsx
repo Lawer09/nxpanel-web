@@ -1,5 +1,6 @@
 import { ProTable, type ProColumns } from '@ant-design/pro-components';
-import { App, Card, Table, Typography } from 'antd';
+import { DownOutlined, UpOutlined } from '@ant-design/icons';
+import { App, Button, Card, Space, Table, Typography } from 'antd';
 import type { SortOrder } from 'antd/es/table/interface';
 import React, { useEffect, useMemo, useState } from 'react';
 import { queryAppConnectionReport } from '@/services/firebase-analytics/api';
@@ -99,6 +100,7 @@ const AppConnectionReportSection: React.FC<AppConnectionReportSectionProps> = ({
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [sorter, setSorter] = useState<SorterState | undefined>();
+  const [collapsed, setCollapsed] = useState(false);
 
   const normalizedVersions = useMemo(() => normalizeStringList(appVersions), [appVersions]);
   const versionFilterKey = normalizedVersions?.join('|') || '';
@@ -258,72 +260,84 @@ const AppConnectionReportSection: React.FC<AppConnectionReportSectionProps> = ({
     <Card
       title="应用连接明细"
       style={CARD_STYLE}
-      styles={{ body: { padding: 20 } }}
+      styles={{ body: { padding: collapsed ? 0 : 20 } }}
       extra={
-        <Text type="secondary">
-          {dateRange[0]} 至 {dateRange[1]}
-          {normalizedVersions?.length ? ` / 版本：${normalizedVersions.join('、')}` : ''}
-        </Text>
+        <Space size={8} wrap>
+          <Text type="secondary">
+            {dateRange[0]} 至 {dateRange[1]}
+            {normalizedVersions?.length ? ` / 版本：${normalizedVersions.join('、')}` : ''}
+          </Text>
+          <Button
+            size="small"
+            type="text"
+            icon={collapsed ? <DownOutlined /> : <UpOutlined />}
+            onClick={() => setCollapsed((prev) => !prev)}
+          >
+            {collapsed ? '展开' : '收起'}
+          </Button>
+        </Space>
       }
     >
-      <ProTable<FirebaseAppConnectionReportItem>
-        rowKey={buildRowKey}
-        columns={columns}
-        dataSource={rows}
-        loading={loading}
-        search={false}
-        options={{ reload: false, density: false, fullScreen: false, setting: false }}
-        toolBarRender={() => []}
-        pagination={{
-          current: page,
-          pageSize,
-          total,
-          showSizeChanger: true,
-        }}
-        scroll={{ x: 'max-content' }}
-        onChange={(pagination, _filters, nextSorter) => {
-          const nextPageSize = Number(pagination.pageSize ?? pageSize);
-          if (nextPageSize !== pageSize) {
-            setPageSize(nextPageSize);
-            setPage(1);
-          } else {
-            setPage(Number(pagination.current ?? 1));
+      {!collapsed ? (
+        <ProTable<FirebaseAppConnectionReportItem>
+          rowKey={buildRowKey}
+          columns={columns}
+          dataSource={rows}
+          loading={loading}
+          search={false}
+          options={{ reload: false, density: false, fullScreen: false, setting: false }}
+          toolBarRender={() => []}
+          pagination={{
+            current: page,
+            pageSize,
+            total,
+            showSizeChanger: true,
+          }}
+          scroll={{ x: 'max-content' }}
+          onChange={(pagination, _filters, nextSorter) => {
+            const nextPageSize = Number(pagination.pageSize ?? pageSize);
+            if (nextPageSize !== pageSize) {
+              setPageSize(nextPageSize);
+              setPage(1);
+            } else {
+              setPage(Number(pagination.current ?? 1));
+            }
+
+            const normalizedSorter = normalizeSorter(nextSorter);
+            setSorter(normalizedSorter);
+          }}
+          summary={() =>
+            summary ? (
+              <Table.Summary>
+                <Table.Summary.Row>
+                  {columnSummaryMeta.map((column, index) => {
+                    if (index === 0) {
+                      return (
+                        <Table.Summary.Cell key={column.key} index={index} align="left">
+                          总数据合计
+                        </Table.Summary.Cell>
+                      );
+                    }
+                    if (column.kind === 'dimension') {
+                      return (
+                        <Table.Summary.Cell key={column.key} index={index} align="left">
+                          -
+                        </Table.Summary.Cell>
+                      );
+                    }
+
+                    return (
+                      <Table.Summary.Cell key={column.key} index={index} align={column.align}>
+                        {column.formatter?.(summary[column.key as keyof FirebaseAppConnectionReportItem], summary)}
+                      </Table.Summary.Cell>
+                    );
+                  })}
+                </Table.Summary.Row>
+              </Table.Summary>
+            ) : undefined
           }
-
-          const normalizedSorter = normalizeSorter(nextSorter);
-          setSorter(normalizedSorter);
-        }}
-        summary={() =>
-          summary ? (
-            <Table.Summary>
-              <Table.Summary.Row>
-                {columnSummaryMeta.map((column, index) => {
-                  if (index === 0) {
-                    return (
-                      <Table.Summary.Cell key={column.key} index={index} align="left">
-                        总数据合计
-                      </Table.Summary.Cell>
-                    );
-                  }
-                  if (column.kind === 'dimension') {
-                    return (
-                      <Table.Summary.Cell key={column.key} index={index} align="left">
-                        -
-                      </Table.Summary.Cell>
-                    );
-                  }
-
-                  return (
-                    <Table.Summary.Cell key={column.key} index={index} align={column.align}>
-                      {column.formatter?.(summary[column.key as keyof FirebaseAppConnectionReportItem], summary)}
-                    </Table.Summary.Cell>
-                  );
-                })}
-              </Table.Summary.Row>
-            </Table.Summary>
-          ) : undefined
-        }
-      />
+        />
+      ) : null}
     </Card>
   );
 };

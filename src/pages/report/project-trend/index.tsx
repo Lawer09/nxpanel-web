@@ -9,7 +9,12 @@ import { getProjectCodes, getProjects } from '@/services/project/api';
 import type { ProjectItem } from '@/services/project/types';
 import { queryAppConnectionReport } from '@/services/firebase-analytics/api';
 import type { FirebaseAppConnectionReportItem } from '@/services/firebase-analytics/types';
-import { queryProjectHourlyReport, queryProjectReport, queryProjectRetention } from '@/services/report/api';
+import {
+  queryProjectAdValueDailyComposition,
+  queryProjectHourlyReport,
+  queryProjectReport,
+  queryProjectRetention,
+} from '@/services/report/api';
 import AppConnectionReportSection from './components/AppConnectionReportSection';
 import AppConnectionStatusSummary from './components/AppConnectionStatusSummary';
 import ProjectRetentionCard from './components/ProjectRetentionCard';
@@ -98,6 +103,12 @@ const CompactMetricLine: React.FC<{ label: string; value: React.ReactNode; color
   </div>
 );
 
+const formatRatioPercent = (value: unknown) => {
+  const next = toSafeNumber(value);
+  if (next === null) return '--';
+  return `${(next * 100).toFixed(2)}%`;
+};
+
 const buildInitialTrendQuery = (searchParams: URLSearchParams): TrendQueryState => {
   const projectCode = searchParams.get('projectCode')?.trim() || '';
   const granularity = normalizeProjectTrendGranularity(searchParams.get('granularity'));
@@ -153,6 +164,10 @@ const ProjectTrendDashboardPage: React.FC = () => {
   const [retentionRows, setRetentionRows] = useState<API.ProjectRetentionCohortItem[]>([]);
   const [retentionDays, setRetentionDays] = useState<number[]>(PROJECT_RETENTION_DAYS);
   const [retentionLoading, setRetentionLoading] = useState(false);
+  const [adValueCompositionRows, setAdValueCompositionRows] = useState<API.ProjectAdValueDailyCompositionItem[]>([]);
+  const [adValueCompositionSummary, setAdValueCompositionSummary] =
+    useState<API.ProjectAdValueDailyCompositionSummary | null>(null);
+  const [adValueCompositionLoading, setAdValueCompositionLoading] = useState(false);
   const [connectionSummary, setConnectionSummary] = useState<FirebaseAppConnectionReportItem | null>(null);
   const [connectionLoading, setConnectionLoading] = useState(false);
   const [showAdRevenueDiffTrend, setShowAdRevenueDiffTrend] = useState(false);
@@ -313,6 +328,52 @@ const ProjectTrendDashboardPage: React.FC = () => {
       alive = false;
     };
   }, [appliedQuery, message]);
+
+  useEffect(() => {
+    if (!appliedQuery.projectCode || appliedQuery.granularity !== 'day') {
+      setAdValueCompositionRows([]);
+      setAdValueCompositionSummary(null);
+      setAdValueCompositionLoading(false);
+      return;
+    }
+
+    let alive = true;
+    const run = async () => {
+      setAdValueCompositionLoading(true);
+      try {
+        const res = await queryProjectAdValueDailyComposition({
+          projectCode: appliedQuery.projectCode,
+          dateFrom: appliedQuery.dateRange[0],
+          dateTo: appliedQuery.dateRange[1],
+        });
+
+        if (!alive) return;
+
+        if (res.code !== 0) {
+          message.error(res.msg || '获取广告价值构成失败');
+          setAdValueCompositionRows([]);
+          setAdValueCompositionSummary(null);
+          return;
+        }
+
+        setAdValueCompositionRows(res.data?.data ?? []);
+        setAdValueCompositionSummary(res.data?.summary ?? null);
+      } catch (error: any) {
+        if (alive) {
+          message.error(error?.message || '获取广告价值构成失败');
+          setAdValueCompositionRows([]);
+          setAdValueCompositionSummary(null);
+        }
+      } finally {
+        if (alive) setAdValueCompositionLoading(false);
+      }
+    };
+
+    void run();
+    return () => {
+      alive = false;
+    };
+  }, [appliedQuery.dateRange, appliedQuery.granularity, appliedQuery.projectCode, message]);
 
   useEffect(() => {
     if (!appliedQuery.projectCode) {
@@ -515,6 +576,7 @@ const ProjectTrendDashboardPage: React.FC = () => {
         ? `${((adRevenueNowNumber / adRevenueBaseNumber) * 100).toFixed(1)}%`
         : '--';
     const profitNumber = toSafeNumber(summary.profit);
+    const unknownAdValue = toSafeNumber(adValueCompositionSummary?.unknownValueUsd) ?? 0;
 
     return [
       {
@@ -523,14 +585,82 @@ const ProjectTrendDashboardPage: React.FC = () => {
         value: '',
         customValue: (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', fontSize: 12 }}>
-            <CompactMetricLine label="广告收入" value={formatCurrency(adRevenueBaseValue)} color="#111827" />
-            <CompactMetricLine label="最新收入" value={formatCurrency(adRevenueNowValue)} color="#7c3aed" />
-            <CompactMetricLine label="收益差值" value={formatCurrency(adRevenueDiffValue)} color="#6b7280" />
+            <CompactMetricLine
+              label="广告收入"
+              value={
+                <>
+                  <span>{formatCurrency(adRevenueBaseValue)}</span>
+                  {appliedQuery.granularity === 'day' ? (
+                    <Text type="secondary" style={{ fontSize: 12, marginLeft: 4 }}>
+                      最新 {formatCurrency(adRevenueNowValue)}
+                    </Text>
+                  ) : null}
+                </>
+              }
+              color="#111827"
+            />
             <Tooltip title="最新收入 / 广告收入">
               <div>
-                <CompactMetricLine label="收入占比" value={adRevenueRatioText} color="#0f766e" />
+                <CompactMetricLine
+                  label="收益差值"
+                  value={
+                    <>
+                      <span>{formatCurrency(adRevenueDiffValue)}</span>
+                      {appliedQuery.granularity === 'day' ? (
+                        <Text type="secondary" style={{ fontSize: 12, marginLeft: 4 }}>
+                          {adRevenueRatioText}
+                        </Text>
+                      ) : null}
+                    </>
+                  }
+                  color="#6b7280"
+                />
               </div>
             </Tooltip>
+            {appliedQuery.granularity === 'day' ? (
+              <Spin spinning={adValueCompositionLoading} size="small">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <CompactMetricLine
+                    label="广告价值"
+                    value={
+                      <>
+                        <span>{formatCurrency(adValueCompositionSummary?.totalValueUsd)}</span>
+                        {unknownAdValue > 0 ? (
+                          <Text type="secondary" style={{ fontSize: 12, marginLeft: 4 }}>
+                            未知 {formatCurrency(adValueCompositionSummary?.unknownValueUsd)}
+                          </Text>
+                        ) : null}
+                      </>
+                    }
+                    color="#0f766e"
+                  />
+                  <CompactMetricLine
+                    label="本日/留存"
+                    value={
+                      <>
+                        <span>{formatCurrency(adValueCompositionSummary?.newUserValueUsd)}</span>
+                        <Text type="secondary" style={{ fontSize: 12, marginLeft: 4 }}>
+                          {formatRatioPercent(adValueCompositionSummary?.newUserRatio)}
+                        </Text>
+                        <Text type="secondary" style={{ fontSize: 12, marginInline: 4 }}>
+                          /
+                        </Text>
+                        <span style={{ color: '#ea580c' }}>{formatCurrency(adValueCompositionSummary?.retainedUserValueUsd)}</span>
+                        <Text type="secondary" style={{ fontSize: 12, marginLeft: 4 }}>
+                          {formatRatioPercent(adValueCompositionSummary?.retainedUserRatio)}
+                        </Text>
+                      </>
+                    }
+                    color="#2563eb"
+                  />
+                </div>
+              </Spin>
+            ) : (
+              <>
+                <CompactMetricLine label="最新收入" value={formatCurrency(adRevenueNowValue)} color="#7c3aed" />
+                <CompactMetricLine label="收入占比" value={adRevenueRatioText} color="#0f766e" />
+              </>
+            )}
           </div>
         ),
       },
@@ -574,7 +704,15 @@ const ProjectTrendDashboardPage: React.FC = () => {
         ),
       },
     ];
-  }, [connectionLoading, connectionSummary, summary, trendRows]);
+  }, [
+    adValueCompositionLoading,
+    adValueCompositionSummary,
+    appliedQuery.granularity,
+    connectionLoading,
+    connectionSummary,
+    summary,
+    trendRows,
+  ]);
 
   const revenueTrendData = useMemo(
     () =>
@@ -584,6 +722,28 @@ const ProjectTrendDashboardPage: React.FC = () => {
         { key: 'profit', label: '利润' },
       ]),
     [trendRows],
+  );
+
+  const adValueCompositionTrendData = useMemo(
+    () =>
+      adValueCompositionRows.flatMap((item) => [
+        {
+          date: item.date,
+          value: toSafeNumber(item.totalValueUsd) ?? 0,
+          series: '广告总价值',
+        },
+        {
+          date: item.date,
+          value: toSafeNumber(item.newUserValueUsd) ?? 0,
+          series: '本日用户价值',
+        },
+        {
+          date: item.date,
+          value: toSafeNumber(item.retainedUserValueUsd) ?? 0,
+          series: '留存用户价值',
+        },
+      ]),
+    [adValueCompositionRows],
   );
 
   const adRevenueComparisonTrendData = useMemo(
@@ -750,6 +910,7 @@ const ProjectTrendDashboardPage: React.FC = () => {
                 title="收益趋势"
                 hasData={revenueTrendData.length > 0}
                 emptyText="暂无收益趋势数据"
+                collapsible
                 extra={
                   appliedQuery.granularity === 'day' ? (
                     <Button size="small" onClick={() => setShowAdRevenueDiffTrend((prev) => !prev)}>
@@ -770,6 +931,22 @@ const ProjectTrendDashboardPage: React.FC = () => {
 
               {appliedQuery.granularity === 'day' ? (
                 <>
+                  <Spin spinning={adValueCompositionLoading}>
+                    <TrendChartCard
+                      title="广告价值构成趋势"
+                      hasData={adValueCompositionRows.length > 0}
+                      emptyText="暂无广告价值构成数据"
+                      collapsible
+                    >
+                      <Line
+                        {...lineConfigBase}
+                        data={adValueCompositionTrendData}
+                        axis={{ y: { labelFormatter: (value: number) => formatCurrency(value) } }}
+                        tooltip={{ items: [{ field: 'value', valueFormatter: (value: number) => formatCurrency(value) }] }}
+                      />
+                    </TrendChartCard>
+                  </Spin>
+
                   {showAdRevenueDiffTrend ? (
                     <TrendChartCard
                       title="广告收益差值趋势"
