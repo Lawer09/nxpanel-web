@@ -910,6 +910,7 @@ declare namespace AdsConsole {
     groupId?: string;
     groupName?: string;
     groupResolveMode?: 'ACCOUNT_DIRECT' | 'CAMPAIGN_NAME_PREFIX' | 'CAMPAIGN_BINDING' | 'MIXED_PRIORITY';
+    mainAccount?: number;
     currency?: string;
     balance?: number;
     accessKey?: string;

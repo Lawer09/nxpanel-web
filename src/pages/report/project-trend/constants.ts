@@ -22,7 +22,7 @@ export const LINE_SERIES_COLORS: Record<string, string> = {
   最新广告收益: '#7c3aed',
   广告收益差值: '#dc2626',
   广告总价值: '#0f766e',
-  本日用户价值: '#2563eb',
+  新增用户价值: '#2563eb',
   留存用户价值: '#ea580c',
   总成本: '#ea580c',
   利润: '#2563eb',

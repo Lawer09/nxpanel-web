@@ -13,6 +13,7 @@ export async function getPlatformAccountPage(params: {
   name?: string;
   groupId?: string;
   groupResolveMode?: GroupResolveMode;
+  mainAccount?: number;
   status?: number;
 }) {
   return request<AdsConsole.Result<AdsConsole.PageResult<AdsConsole.AdPlatformAccount>>>(`${PLATFORM_API_PREFIX}/account/page`, {
@@ -44,6 +45,13 @@ export async function deletePlatformAccount(id: string) {
 export async function validatePlatformAccount(id: string) {
   return request<AdsConsole.Result<null>>(`${PLATFORM_API_PREFIX}/account/${id}/validate`, {
     method: 'POST',
+  });
+}
+
+export async function updatePlatformAccountMainAccount(id: string, mainAccount: number) {
+  return request<AdsConsole.Result<null>>(`${PLATFORM_API_PREFIX}/account/${id}/main-account`, {
+    method: 'PUT',
+    data: { mainAccount },
   });
 }
 

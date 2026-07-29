@@ -576,7 +576,6 @@ const ProjectTrendDashboardPage: React.FC = () => {
         ? `${((adRevenueNowNumber / adRevenueBaseNumber) * 100).toFixed(1)}%`
         : '--';
     const profitNumber = toSafeNumber(summary.profit);
-    const unknownAdValue = toSafeNumber(adValueCompositionSummary?.unknownValueUsd) ?? 0;
 
     return [
       {
@@ -619,41 +618,25 @@ const ProjectTrendDashboardPage: React.FC = () => {
             </Tooltip>
             {appliedQuery.granularity === 'day' ? (
               <Spin spinning={adValueCompositionLoading} size="small">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <CompactMetricLine
-                    label="广告价值"
-                    value={
-                      <>
-                        <span>{formatCurrency(adValueCompositionSummary?.totalValueUsd)}</span>
-                        {unknownAdValue > 0 ? (
-                          <Text type="secondary" style={{ fontSize: 12, marginLeft: 4 }}>
-                            未知 {formatCurrency(adValueCompositionSummary?.unknownValueUsd)}
-                          </Text>
-                        ) : null}
-                      </>
-                    }
-                    color="#0f766e"
-                  />
-                  <CompactMetricLine
-                    label="本日/留存"
-                    value={
-                      <>
-                        <span>{formatCurrency(adValueCompositionSummary?.newUserValueUsd)}</span>
-                        <Text type="secondary" style={{ fontSize: 12, marginLeft: 4 }}>
-                          {formatRatioPercent(adValueCompositionSummary?.newUserRatio)}
-                        </Text>
-                        <Text type="secondary" style={{ fontSize: 12, marginInline: 4 }}>
-                          /
-                        </Text>
-                        <span style={{ color: '#ea580c' }}>{formatCurrency(adValueCompositionSummary?.retainedUserValueUsd)}</span>
-                        <Text type="secondary" style={{ fontSize: 12, marginLeft: 4 }}>
-                          {formatRatioPercent(adValueCompositionSummary?.retainedUserRatio)}
-                        </Text>
-                      </>
-                    }
-                    color="#2563eb"
-                  />
-                </div>
+                <CompactMetricLine
+                  label="来源用户组成"
+                  value={
+                    <>
+                      <Text style={{ color: '#2563eb', fontSize: 12 }}>新增</Text>
+                      <span style={{ color: '#2563eb', marginLeft: 4 }}>
+                        {formatRatioPercent(adValueCompositionSummary?.newUserRatio)}
+                      </span>
+                      <Text type="secondary" style={{ fontSize: 12, marginInline: 4 }}>
+                        /
+                      </Text>
+                      <Text style={{ color: '#ea580c', fontSize: 12 }}>留存</Text>
+                      <span style={{ color: '#ea580c', marginLeft: 4 }}>
+                        {formatRatioPercent(adValueCompositionSummary?.retainedUserRatio)}
+                      </span>
+                    </>
+                  }
+                  color="#2563eb"
+                />
               </Spin>
             ) : (
               <>
@@ -735,7 +718,7 @@ const ProjectTrendDashboardPage: React.FC = () => {
         {
           date: item.date,
           value: toSafeNumber(item.newUserValueUsd) ?? 0,
-          series: '本日用户价值',
+          series: '新增用户价值',
         },
         {
           date: item.date,
@@ -933,9 +916,9 @@ const ProjectTrendDashboardPage: React.FC = () => {
                 <>
                   <Spin spinning={adValueCompositionLoading}>
                     <TrendChartCard
-                      title="广告价值构成趋势"
+                      title="广告收益用户组成"
                       hasData={adValueCompositionRows.length > 0}
-                      emptyText="暂无广告价值构成数据"
+                      emptyText="暂无数据"
                       collapsible
                     >
                       <Line

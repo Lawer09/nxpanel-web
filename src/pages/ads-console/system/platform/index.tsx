@@ -13,6 +13,7 @@
   syncPlatformAccount,
   unbindCampaignGroup,
   updatePlatformAccount,
+  updatePlatformAccountMainAccount,
   validatePlatformAccount,
 } from '@/services/ads-console/platform';
 import { getGroupOptions } from '@/services/ads-console/orgOptions';
@@ -24,6 +25,7 @@ import {
   ProFormDateRangePicker,
   ProFormDependency,
   ProFormSelect,
+  ProFormSwitch,
   ProFormText,
   ProFormTextArea,
   ProTable,
@@ -50,6 +52,8 @@ const PLATFORM_VALUE_ENUM = {
   kwai: { text: 'Kwai' },
   google_ads: { text: 'Google Ads' },
 };
+
+const ACCOUNT_DISCOVERY_PLATFORMS = new Set(['kwai', 'google_ads']);
 
 const GROUP_RESOLVE_MODE_OPTIONS = [
   { label: '账号绑定项目组', value: 'ACCOUNT_DIRECT' },
@@ -108,7 +112,8 @@ type CreateFormValues = {
   payload?: string;
 };
 
-type PlatformAccountFormValues = Partial<AdsConsole.AdPlatformAccount> & {
+type PlatformAccountFormValues = Omit<Partial<AdsConsole.AdPlatformAccount>, 'mainAccount'> & {
+  mainAccount?: boolean;
   kwaiRefreshToken?: string;
   kwaiAccountId?: string;
   kwaiAgentId?: string;
@@ -180,6 +185,7 @@ const normalizeAccountInitialValues = (record?: AdsConsole.AdPlatformAccount): P
   if (!record) {
     return {
       platform: 'mintegral',
+      mainAccount: false,
       status: 1,
       groupResolveMode: 'ACCOUNT_DIRECT',
       googleApiVersion: 'v24',
@@ -189,6 +195,7 @@ const normalizeAccountInitialValues = (record?: AdsConsole.AdPlatformAccount): P
   const rawConfig = parseRawConfig(record.rawConfig);
   return {
     ...record,
+    mainAccount: record.mainAccount === 1,
     groupResolveMode: record.groupResolveMode || 'ACCOUNT_DIRECT',
     kwaiRefreshToken: configText(rawConfig, 'refreshToken'),
     kwaiAccountId: configText(rawConfig, 'accountId'),
@@ -439,6 +446,7 @@ const PlatformPage: React.FC = () => {
       id: editRecord?.id,
       platform,
       name: values.name,
+      mainAccount: ACCOUNT_DISCOVERY_PLATFORMS.has(platform) && values.mainAccount ? 1 : 0,
       accessKey: values.accessKey,
       apiKey: values.apiKey,
       groupId: values.groupId,
@@ -512,6 +520,17 @@ const PlatformPage: React.FC = () => {
     }
   };
 
+  const handleMainAccountChange = async (record: AdsConsole.AdPlatformAccount, mainAccount: number) => {
+    const res = await updatePlatformAccountMainAccount(record.id, mainAccount);
+    if (res?.success) {
+      message.success(mainAccount === 1 ? '已设置为主账号' : '已取消主账号');
+      accountActionRef.current?.reload();
+      historyActionRef.current?.reload();
+    } else {
+      message.error(res?.errorMessage || '主账号设置失败');
+    }
+  };
+
   const handleDiscoverAccounts = async (record: AdsConsole.AdPlatformAccount) => {
     const res = await discoverPlatformAccounts(record.id);
     if (res?.success) {
@@ -524,10 +543,23 @@ const PlatformPage: React.FC = () => {
     }
   };
 
+  const confirmMainAccountChange = (record: AdsConsole.AdPlatformAccount, mainAccount: number) => {
+    modal.confirm({
+      title: mainAccount === 1 ? '设为主账号' : '取消主账号',
+      content:
+        mainAccount === 1
+          ? '设置后自动任务会使用该账号更新关联账号。'
+          : '取消后自动任务不会再使用该账号更新关联账号。',
+      okText: mainAccount === 1 ? '设置' : '取消主账号',
+      cancelText: '关闭',
+      onOk: () => handleMainAccountChange(record, mainAccount),
+    });
+  };
+
   const confirmDiscoverAccounts = (record: AdsConsole.AdPlatformAccount) => {
     modal.confirm({
       title: '更新关联账号',
-      content: '将按该 Google Ads 账号的关联关系更新或新增账号，不会拉取报表。',
+      content: '将按该主账号的关联关系更新或新增账号，不会拉取报表。',
       okText: '更新',
       cancelText: '取消',
       onOk: () => handleDiscoverAccounts(record),
@@ -544,42 +576,55 @@ const PlatformPage: React.FC = () => {
     });
   };
 
-  const buildAccountActionItems = (record: AdsConsole.AdPlatformAccount): MenuProps['items'] => [
-    {
-      key: 'validate',
-      label: '校验',
-      onClick: () => handleValidate(record.id),
-    },
-    ...(record.platform === 'google_ads'
-      ? [
-          {
-            key: 'discover',
-            label: '更新关联账号',
-            onClick: () => confirmDiscoverAccounts(record),
-          },
-        ]
-      : []),
-    ...(record.platform === 'mintegral'
-      ? [
-          {
-            key: 'create',
-            label: '创建对象',
-            onClick: () => {
-              setCreateRecord(record);
-              setCreateOpen(true);
+  const buildAccountActionItems = (record: AdsConsole.AdPlatformAccount): MenuProps['items'] => {
+    const supportsDiscovery = ACCOUNT_DISCOVERY_PLATFORMS.has(record.platform);
+    const isMainAccount = record.mainAccount === 1;
+    return [
+      {
+        key: 'validate',
+        label: '校验',
+        onClick: () => handleValidate(record.id),
+      },
+      ...(supportsDiscovery
+        ? [
+            {
+              key: 'main-account',
+              label: isMainAccount ? '取消主账号' : '设为主账号',
+              onClick: () => confirmMainAccountChange(record, isMainAccount ? 0 : 1),
             },
-          },
-        ]
-      : []),
-    {
-      type: 'divider',
-    },
-    {
-      key: 'delete',
-      label: <Typography.Text type="danger">删除</Typography.Text>,
-      onClick: () => confirmDeleteAccount(record),
-    },
-  ];
+          ]
+        : []),
+      ...(supportsDiscovery && isMainAccount
+        ? [
+            {
+              key: 'discover',
+              label: '更新关联账号',
+              onClick: () => confirmDiscoverAccounts(record),
+            },
+          ]
+        : []),
+      ...(record.platform === 'mintegral'
+        ? [
+            {
+              key: 'create',
+              label: '创建对象',
+              onClick: () => {
+                setCreateRecord(record);
+                setCreateOpen(true);
+              },
+            },
+          ]
+        : []),
+      {
+        type: 'divider',
+      },
+      {
+        key: 'delete',
+        label: <Typography.Text type="danger">删除</Typography.Text>,
+        onClick: () => confirmDeleteAccount(record),
+      },
+    ];
+  };
 
   const handleSync = async (values: SyncFormValues) => {
     if (!syncRecord?.id || !values.dateRange?.[0] || !values.dateRange?.[1]) {
@@ -694,6 +739,21 @@ const PlatformPage: React.FC = () => {
       valueType: 'select',
       valueEnum: GROUP_RESOLVE_MODE_VALUE_ENUM,
       hideInTable: true,
+    },
+    {
+      title: '主账号',
+      dataIndex: 'mainAccount',
+      valueType: 'select',
+      valueEnum: {
+        0: { text: '否' },
+        1: { text: '是' },
+      },
+      width: 90,
+      render: (_, record) => (
+        <Tag color={record.mainAccount === 1 ? 'blue' : 'default'}>
+          {record.mainAccount === 1 ? '是' : '否'}
+        </Tag>
+      ),
     },
     {
       title: '凭证',
@@ -989,6 +1049,7 @@ const PlatformPage: React.FC = () => {
                     name: params.name,
                     groupId: params.groupId || undefined,
                     groupResolveMode: params.groupResolveMode || undefined,
+                    mainAccount: params.mainAccount,
                     status: params.status,
                   });
                   return {
@@ -1125,6 +1186,15 @@ const PlatformPage: React.FC = () => {
           tooltip="系统内展示名称，建议包含平台和账户用途。"
           rules={[{ required: true }]}
         />
+        <ProFormDependency name={['platform']}>
+          {({ platform }) => ACCOUNT_DISCOVERY_PLATFORMS.has(String(platform || '')) ? (
+            <ProFormSwitch
+              name="mainAccount"
+              label="主账号"
+              tooltip="主账号用于自动或手动更新关联账号；普通子账号不会执行关联账号查询。"
+            />
+          ) : null}
+        </ProFormDependency>
         <ProFormSelect
           name="groupId"
           label="项目组"
