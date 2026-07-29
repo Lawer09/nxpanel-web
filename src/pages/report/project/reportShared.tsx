@@ -1,5 +1,5 @@
 import type { SortOrder } from 'antd/es/table/interface';
-import { Space, Tag, Tooltip } from 'antd';
+import { Modal, Space, Tag, Tooltip } from 'antd';
 import React from 'react';
 
 export const COMMON_COUNTRY_OPTIONS = [
@@ -358,6 +358,79 @@ const AD_SPEND_PLATFORM_COLORS: Record<string, string> = {
   google_ads: '#06b6d4',
 };
 
+const RATIO_BAR_COLOR_STORAGE_KEY = 'project-report-ratio-bar-colors';
+const RATIO_BAR_COLOR_CHANGE_EVENT = 'project-report-ratio-bar-colors-change';
+
+type RatioBarColorMap = Record<string, string>;
+
+type RatioBarSegment = {
+  key: string;
+  label: string;
+  ratio: number;
+  defaultColor: string;
+};
+
+const REVENUE_COUNTRY_COLOR_SEGMENTS: RatioBarSegment[] = [
+  {
+    key: 'revenue-country:US',
+    label: 'US',
+    ratio: 1,
+    defaultColor: '#2563eb',
+  },
+  {
+    key: 'revenue-country:RANK_1',
+    label: '第一国家',
+    ratio: 1,
+    defaultColor: '#14b8a6',
+  },
+  {
+    key: 'revenue-country:RANK_2',
+    label: '第二国家',
+    ratio: 1,
+    defaultColor: '#f59e0b',
+  },
+  {
+    key: 'revenue-country:RANK_3',
+    label: '第三国家',
+    ratio: 1,
+    defaultColor: '#8b5cf6',
+  },
+  {
+    key: 'revenue-country:OTHER',
+    label: '其他国家',
+    ratio: 1,
+    defaultColor: '#d1d5db',
+  },
+];
+
+const isHexColor = (value: unknown): value is string =>
+  typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
+
+const readRatioBarColorMap = (): RatioBarColorMap => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.localStorage.getItem(RATIO_BAR_COLOR_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+
+    return Object.entries(parsed).reduce<RatioBarColorMap>((result, [key, value]) => {
+      if (isHexColor(value)) {
+        result[key] = value;
+      }
+      return result;
+    }, {});
+  } catch (_error) {
+    return {};
+  }
+};
+
+const writeRatioBarColorMap = (colors: RatioBarColorMap) => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(RATIO_BAR_COLOR_STORAGE_KEY, JSON.stringify(colors));
+  window.dispatchEvent(new CustomEvent(RATIO_BAR_COLOR_CHANGE_EVENT));
+};
+
 const parseTopRevenueCountries = (value: unknown): TopRevenueCountryItem[] => {
   if (!Array.isArray(value)) return [];
   return value
@@ -438,6 +511,128 @@ const renderMetricWithDayOverDay = (
   );
 };
 
+const ConfigurableRatioBar: React.FC<{
+  title: string;
+  segments: RatioBarSegment[];
+  editableSegments?: RatioBarSegment[];
+  tooltipTitle: React.ReactNode;
+}> = ({ title, segments, editableSegments, tooltipTitle }) => {
+  const [open, setOpen] = React.useState(false);
+  const [colors, setColors] = React.useState<RatioBarColorMap>(() => readRatioBarColorMap());
+  const [draftColors, setDraftColors] = React.useState<RatioBarColorMap>({});
+  const visibleSegments = segments.filter((segment) => segment.ratio > 0);
+  const colorEditSegments = editableSegments?.length ? editableSegments : visibleSegments;
+
+  React.useEffect(() => {
+    const syncColors = () => setColors(readRatioBarColorMap());
+    window.addEventListener('storage', syncColors);
+    window.addEventListener(RATIO_BAR_COLOR_CHANGE_EVENT, syncColors);
+    return () => {
+      window.removeEventListener('storage', syncColors);
+      window.removeEventListener(RATIO_BAR_COLOR_CHANGE_EVENT, syncColors);
+    };
+  }, []);
+
+  if (!visibleSegments.length) return null;
+
+  const getColor = (segment: RatioBarSegment, colorMap: RatioBarColorMap) =>
+    colorMap[segment.key] || segment.defaultColor;
+
+  const openColorModal: React.MouseEventHandler<HTMLDivElement> = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDraftColors(colors);
+    setOpen(true);
+  };
+
+  return (
+    <>
+      <Tooltip title={tooltipTitle}>
+        <div style={{ width: '100%', minWidth: 120, cursor: 'pointer' }} onClick={openColorModal}>
+          <div
+            style={{
+              width: '100%',
+              height: 8,
+              borderRadius: 999,
+              background: '#e5e7eb',
+              overflow: 'hidden',
+              display: 'flex',
+            }}
+          >
+            {visibleSegments.map((segment) => (
+              <div
+                key={segment.key}
+                style={{
+                  width: `${Math.max(0, Math.min(100, segment.ratio * 100))}%`,
+                  height: '100%',
+                  background: getColor(segment, colors),
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      </Tooltip>
+      <Modal
+        title={title}
+        open={open}
+        width={420}
+        okText="保存"
+        cancelText="取消"
+        destroyOnHidden
+        onOk={() => {
+          writeRatioBarColorMap(draftColors);
+          setColors(draftColors);
+          setOpen(false);
+        }}
+        onCancel={() => setOpen(false)}
+      >
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          {colorEditSegments.map((segment) => {
+            const currentColor = getColor(segment, draftColors);
+            const isCustom = Boolean(draftColors[segment.key]);
+            return (
+              <div
+                key={segment.key}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr auto auto',
+                  alignItems: 'center',
+                  gap: 12,
+                }}
+              >
+                <span>{segment.label}</span>
+                <input
+                  type="color"
+                  value={currentColor}
+                  aria-label={`${segment.label}颜色`}
+                  onChange={(event) =>
+                    setDraftColors((prev) => ({
+                      ...prev,
+                      [segment.key]: event.target.value,
+                    }))
+                  }
+                />
+                <a
+                  onClick={() =>
+                    setDraftColors((prev) => {
+                      const next = { ...prev };
+                      delete next[segment.key];
+                      return next;
+                    })
+                  }
+                  style={{ visibility: isCustom ? 'visible' : 'hidden' }}
+                >
+                  默认
+                </a>
+              </div>
+            );
+          })}
+        </Space>
+      </Modal>
+    </>
+  );
+};
+
 const renderTopRevenueCountries = (record?: Record<string, unknown>) => {
   const countries = parseTopRevenueCountries(record?.topRevenueCountries);
   if (!countries.length) return null;
@@ -445,11 +640,39 @@ const renderTopRevenueCountries = (record?: Record<string, unknown>) => {
   const topCountries = countries.slice(0, 3);
   const topRatioTotal = topCountries.reduce((sum, item) => sum + (toSafeNumber(item.ratio) ?? 0), 0);
   const remainingRatio = Math.max(0, 1 - topRatioTotal);
-  const nonUsSegmentColors = ['#14b8a6', '#f59e0b', '#8b5cf6'];
+  const segments = topCountries
+    .map((item, index) => {
+      const ratio = Math.max(0, Math.min(1, toSafeNumber(item.ratio) ?? 0));
+      if (ratio <= 0) return null;
+      const nonUsIndex = topCountries.slice(0, index).filter((countryItem) => countryItem.country !== 'US').length;
+      const slotKey = item.country === 'US' ? 'US' : `RANK_${nonUsIndex + 1}`;
+      const slot = REVENUE_COUNTRY_COLOR_SEGMENTS.find((segment) => segment.key === `revenue-country:${slotKey}`);
+      return {
+        key: `revenue-country:${slotKey}`,
+        label: item.country,
+        ratio,
+        defaultColor: slot?.defaultColor ?? '#9ca3af',
+      };
+    })
+    .filter((item): item is RatioBarSegment => Boolean(item));
+
+  if (remainingRatio > 0) {
+    segments.push({
+      key: 'revenue-country:OTHER',
+      label: '其他',
+      ratio: remainingRatio,
+      defaultColor:
+        REVENUE_COUNTRY_COLOR_SEGMENTS.find((segment) => segment.key === 'revenue-country:OTHER')?.defaultColor ??
+        '#d1d5db',
+    });
+  }
 
   return (
-    <Tooltip
-      title={
+    <ConfigurableRatioBar
+      title="国家收益占比颜色"
+      segments={segments}
+      editableSegments={REVENUE_COUNTRY_COLOR_SEGMENTS}
+      tooltipTitle={
         <Space direction="vertical" size={4}>
           {countries.map((item) => (
             <div
@@ -468,47 +691,7 @@ const renderTopRevenueCountries = (record?: Record<string, unknown>) => {
           ) : null}
         </Space>
       }
-    >
-      <div style={{ width: '100%', minWidth: 120 }}>
-        <div
-          style={{
-            width: '100%',
-            height: 8,
-            borderRadius: 999,
-            background: '#e5e7eb',
-            overflow: 'hidden',
-            display: 'flex',
-          }}
-        >
-          {topCountries.map((item, index) => {
-            const ratio = Math.max(0, Math.min(100, (toSafeNumber(item.ratio) ?? 0) * 100));
-            if (ratio <= 0) return null;
-            const nonUsIndex = topCountries.slice(0, index).filter((countryItem) => countryItem.country !== 'US').length;
-            const color =
-              item.country === 'US' ? '#2563eb' : nonUsSegmentColors[nonUsIndex % nonUsSegmentColors.length];
-            return (
-              <div
-                key={`${item.country}-${String(item.ratio)}`}
-                style={{
-                  width: `${ratio}%`,
-                  height: '100%',
-                  background: color,
-                }}
-              />
-            );
-          })}
-          {remainingRatio > 0 ? (
-            <div
-              style={{
-                width: `${Math.max(0, Math.min(100, remainingRatio * 100))}%`,
-                height: '100%',
-                background: '#d1d5db',
-              }}
-            />
-          ) : null}
-        </div>
-      </div>
-    </Tooltip>
+    />
   );
 };
 
@@ -554,10 +737,34 @@ const renderAdSpendPlatformCompositionBar = (record?: Record<string, unknown>) =
 
   const ratioTotal = composition.reduce((sum, item) => sum + (toSafeNumber(item.ratio) ?? 0), 0);
   const remainingRatio = Math.max(0, 1 - ratioTotal);
+  const segments = composition
+    .map((item) => {
+      const ratio = Math.max(0, Math.min(1, toSafeNumber(item.ratio) ?? 0));
+      if (ratio <= 0) return null;
+      const platformKey = item.platform.trim().toLowerCase();
+      return {
+        key: `ad-spend-platform:${platformKey}`,
+        label: item.platform,
+        ratio,
+        defaultColor: AD_SPEND_PLATFORM_COLORS[platformKey] ?? '#9ca3af',
+      };
+    })
+    .filter((item): item is RatioBarSegment => Boolean(item));
+
+  if (remainingRatio > 0) {
+    segments.push({
+      key: 'ad-spend-platform:OTHER',
+      label: '其他',
+      ratio: remainingRatio,
+      defaultColor: '#d1d5db',
+    });
+  }
 
   return (
-    <Tooltip
-      title={
+    <ConfigurableRatioBar
+      title="投放支出平台占比颜色"
+      segments={segments}
+      tooltipTitle={
         <Space direction="vertical" size={4}>
           {composition.map((item) => (
             <div
@@ -577,45 +784,7 @@ const renderAdSpendPlatformCompositionBar = (record?: Record<string, unknown>) =
           ) : null}
         </Space>
       }
-    >
-      <div style={{ width: '100%', minWidth: 120 }}>
-        <div
-          style={{
-            width: '100%',
-            height: 8,
-            borderRadius: 999,
-            background: '#e5e7eb',
-            overflow: 'hidden',
-            display: 'flex',
-          }}
-        >
-          {composition.map((item) => {
-            const ratio = Math.max(0, Math.min(100, (toSafeNumber(item.ratio) ?? 0) * 100));
-            if (ratio <= 0) return null;
-            const platformKey = item.platform.trim().toLowerCase();
-            return (
-              <div
-                key={`${item.platform}-${String(item.ratio)}`}
-                style={{
-                  width: `${ratio}%`,
-                  height: '100%',
-                  background: AD_SPEND_PLATFORM_COLORS[platformKey] ?? '#9ca3af',
-                }}
-              />
-            );
-          })}
-          {remainingRatio > 0 ? (
-            <div
-              style={{
-                width: `${Math.max(0, Math.min(100, remainingRatio * 100))}%`,
-                height: '100%',
-                background: '#d1d5db',
-              }}
-            />
-          ) : null}
-        </div>
-      </div>
-    </Tooltip>
+    />
   );
 };
 
@@ -635,10 +804,26 @@ const renderTotalCostBreakdown = (record?: Record<string, unknown>) => {
 
   const adSpendPercent = (adSpendCost / totalCost) * 100;
   const trafficPercent = (trafficCost / totalCost) * 100;
+  const segments: RatioBarSegment[] = [
+    {
+      key: 'total-cost:ad-spend',
+      label: '投放支出',
+      ratio: adSpendPercent / 100,
+      defaultColor: '#c08497',
+    },
+    {
+      key: 'total-cost:traffic',
+      label: '流量支出',
+      ratio: trafficPercent / 100,
+      defaultColor: '#7dd3c7',
+    },
+  ];
 
   return (
-    <Tooltip
-      title={
+    <ConfigurableRatioBar
+      title="总支出构成颜色"
+      segments={segments}
+      tooltipTitle={
         <Space direction="vertical" size={4}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, minWidth: 180 }}>
             <span>投放支出</span>
@@ -650,39 +835,7 @@ const renderTotalCostBreakdown = (record?: Record<string, unknown>) => {
           </div>
         </Space>
       }
-    >
-      <div style={{ width: '100%', minWidth: 120 }}>
-        <div
-          style={{
-            width: '100%',
-            height: 8,
-            borderRadius: 999,
-            background: '#e5e7eb',
-            overflow: 'hidden',
-            display: 'flex',
-          }}
-        >
-          {adSpendPercent > 0 ? (
-            <div
-              style={{
-                width: `${Math.max(0, Math.min(100, adSpendPercent))}%`,
-                height: '100%',
-                background: '#c08497',
-              }}
-            />
-          ) : null}
-          {trafficPercent > 0 ? (
-            <div
-              style={{
-                width: `${Math.max(0, Math.min(100, trafficPercent))}%`,
-                height: '100%',
-                background: '#7dd3c7',
-              }}
-            />
-          ) : null}
-        </div>
-      </div>
-    </Tooltip>
+    />
   );
 };
 

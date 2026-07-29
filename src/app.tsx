@@ -24,6 +24,7 @@ import {
   getUserProfile,
   updateUserProfile,
 } from '@/services/auth/api';
+import { syncUserPreferencesFromCloud } from '@/services/user-preferences/sync';
 import {
   buildDevAdminCurrentUser,
   getDevAdminSession,
@@ -402,6 +403,7 @@ export async function getInitialState(): Promise<InitialState> {
         email: res.data.email,
         nickname: res.data.nickname ?? null,
       });
+      await syncUserPreferencesFromCloud();
 
       return {
         ...cachedUser,

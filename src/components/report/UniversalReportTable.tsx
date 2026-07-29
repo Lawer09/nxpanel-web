@@ -10,6 +10,10 @@ import { Button, Card, message, Space, Table, Tag, Tooltip, Typography } from 'a
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { SortOrder } from 'antd/es/table/interface';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  schedulePreferenceCloudSave,
+  USER_PREFERENCES_CLOUD_APPLIED_EVENT,
+} from '@/services/user-preferences/sync';
 import ViewManager from './ViewManager';
 
 type AnyRecord = Record<string, any>;
@@ -691,6 +695,7 @@ function writeLocalState<Q extends AnyRecord>(
       columnsStateMap,
     }),
   );
+  schedulePreferenceCloudSave(storageKey);
 }
 
 function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: UniversalReportTableProps<T, Q>) {
@@ -873,6 +878,74 @@ function UniversalReportTable<T extends AnyRecord, Q extends AnyRecord>(props: U
       columnsStateMap,
     );
   }, [storageKey, query, dimensions, visibleFilterDimensions, metrics, pageSize, savedViews, columnsStateMap]);
+
+  useEffect(() => {
+    const handleCloudApplied = (event: Event) => {
+      const detail = (event as CustomEvent<{ keys?: string[] }>).detail;
+      if (!detail?.keys?.includes(storageKey)) return;
+
+      const nextPersisted = readLocalState(
+        storageKey,
+        defaultQuery,
+        defaultDimensions,
+        defaultPageSize,
+      );
+      const nextVisibleFilterDimensions = normalizeDimensions(
+        nextPersisted.visibleFilterDimensions?.length
+          ? nextPersisted.visibleFilterDimensions
+          : fallbackVisibleFilterDimensions,
+      );
+      const nextDimensions = sanitizeDimensions(
+        nextPersisted.dimensions.length
+          ? nextPersisted.dimensions
+          : defaultDimensions,
+        defaultDimensions,
+      );
+      const nextMetrics = nextPersisted.metrics.length
+        ? normalizeMetrics(nextPersisted.metrics)
+        : normalizeMetrics(defaultMetrics);
+      const nextQuery = clearQueryByVisibleFilters(
+        nextPersisted.query,
+        nextVisibleFilterDimensions.length
+          ? nextVisibleFilterDimensions
+          : fallbackVisibleFilterDimensions,
+      );
+
+      setQuery(nextQuery);
+      setAppliedQuery(nextQuery);
+      setDimensions(nextDimensions.length ? nextDimensions : defaultDimensions);
+      setAppliedDimensions(nextDimensions.length ? nextDimensions : defaultDimensions);
+      setVisibleFilterDimensions(
+        nextVisibleFilterDimensions.length
+          ? nextVisibleFilterDimensions
+          : fallbackVisibleFilterDimensions,
+      );
+      setMetrics(nextMetrics.length ? nextMetrics : normalizeMetrics(defaultMetrics));
+      setSavedViews(Array.isArray(nextPersisted.savedViews) ? nextPersisted.savedViews : []);
+      setColumnsStateMap(nextPersisted.columnsStateMap ?? {});
+      setSelectedViewId(undefined);
+      setSorter(undefined);
+      setCurrent(1);
+      setPageSize(nextPersisted.pageSize);
+      setReloadToken((value) => value + 1);
+    };
+
+    window.addEventListener(USER_PREFERENCES_CLOUD_APPLIED_EVENT, handleCloudApplied);
+    return () => {
+      window.removeEventListener(USER_PREFERENCES_CLOUD_APPLIED_EVENT, handleCloudApplied);
+    };
+  }, [
+    clearQueryByVisibleFilters,
+    defaultDimensions,
+    defaultMetrics,
+    defaultPageSize,
+    defaultQuery,
+    fallbackVisibleFilterDimensions,
+    normalizeDimensions,
+    normalizeMetrics,
+    sanitizeDimensions,
+    storageKey,
+  ]);
 
   useEffect(() => {
     onAppliedStateChange?.({
