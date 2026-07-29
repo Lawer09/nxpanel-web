@@ -352,6 +352,17 @@ type AdSpendPlatformCompositionItem = {
   ratio: unknown;
 };
 
+type AdRevenueUserComposition = Pick<
+  API.ProjectAdRevenueUserComposition,
+  | 'totalValueMicrosUsd'
+  | 'newUserValueUsd'
+  | 'newUserRatio'
+  | 'retainedUserValueUsd'
+  | 'retainedUserRatio'
+  | 'unknownValueUsd'
+  | 'unknownRatio'
+>;
+
 const AD_SPEND_PLATFORM_COLORS: Record<string, string> = {
   facebook: '#2563eb',
   mintegral: '#f59e0b',
@@ -463,6 +474,33 @@ const parseAdSpendPlatformComposition = (value: unknown): AdSpendPlatformComposi
       };
     })
     .filter((item): item is AdSpendPlatformCompositionItem => Boolean(item));
+};
+
+const toNullableMetricValue = (value: unknown): string | number | null | undefined => {
+  if (typeof value === 'string' || typeof value === 'number' || value === null || value === undefined) return value;
+  return undefined;
+};
+
+const parseAdRevenueUserComposition = (value: unknown): AdRevenueUserComposition | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const totalValueMicrosUsd = toSafeNumber(record.totalValueMicrosUsd);
+  if (totalValueMicrosUsd === null || totalValueMicrosUsd <= 0) return null;
+
+  const newUserRatio = toSafeNumber(record.newUserRatio);
+  const retainedUserRatio = toSafeNumber(record.retainedUserRatio);
+  const unknownRatio = toSafeNumber(record.unknownRatio);
+  if (newUserRatio === null && retainedUserRatio === null && unknownRatio === null) return null;
+
+  return {
+    totalValueMicrosUsd,
+    newUserValueUsd: toNullableMetricValue(record.newUserValueUsd),
+    newUserRatio,
+    retainedUserValueUsd: toNullableMetricValue(record.retainedUserValueUsd),
+    retainedUserRatio,
+    unknownValueUsd: toNullableMetricValue(record.unknownValueUsd),
+    unknownRatio,
+  };
 };
 
 const fmtRatioDecimalPercent = (value: unknown) => {
@@ -698,8 +736,62 @@ const renderTopRevenueCountries = (record?: Record<string, unknown>) => {
 const renderRevenueWithMeta = (adRevenue: unknown, record?: Record<string, unknown>) => {
   const revenueText = renderRevenueValue(adRevenue, record);
   const topRevenueCountries = renderTopRevenueCountries(record);
+  const userComposition = parseAdRevenueUserComposition(record?.ad_revenue_user_compos);
+  const revenueWithMeta = renderMetricWithDayOverDay(revenueText, record, 'adRevenueDayOverDay', topRevenueCountries);
 
-  return renderMetricWithDayOverDay(revenueText, record, 'adRevenueDayOverDay', topRevenueCountries);
+  if (!userComposition) return revenueWithMeta;
+
+  const compositionText = (
+    <Tooltip
+      title={
+        <Space direction="vertical" size={4}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, minWidth: 260 }}>
+            <span>新增用户</span>
+            <span>{fmtCurrency(userComposition.newUserValueUsd)}</span>
+            <span>{fmtRatioDecimalPercent(userComposition.newUserRatio)}</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, minWidth: 260 }}>
+            <span>留存用户</span>
+            <span>{fmtCurrency(userComposition.retainedUserValueUsd)}</span>
+            <span>{fmtRatioDecimalPercent(userComposition.retainedUserRatio)}</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, minWidth: 260 }}>
+            <span>未知用户</span>
+            <span>{fmtCurrency(userComposition.unknownValueUsd)}</span>
+            <span>{fmtRatioDecimalPercent(userComposition.unknownRatio)}</span>
+          </div>
+        </Space>
+      }
+    >
+      <span
+        style={{
+          color: '#6b7280',
+          fontSize: 11,
+          lineHeight: 1.2,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        新 {fmtRatioDecimalPercent(userComposition.newUserRatio)} / 留{' '}
+        {fmtRatioDecimalPercent(userComposition.retainedUserRatio)} / 未知{' '}
+        {fmtRatioDecimalPercent(userComposition.unknownRatio)}
+      </span>
+    </Tooltip>
+  );
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+        width: '100%',
+      }}
+    >
+      <div style={{ minWidth: 0, flex: 1 }}>{revenueWithMeta}</div>
+      {compositionText}
+    </div>
+  );
 };
 
 const renderAdSpendValue = (adSpendCost: unknown, record?: Record<string, unknown>) => {
@@ -882,7 +974,7 @@ export const PROJECT_REPORT_METRIC_OPTIONS = [
       title: '广告收入',
       tooltip: '广告收入（悬浮数值查看广告收入差值）',
       dataIndex: 'adRevenue',
-      width: 190,
+      width: 280,
       render: (value: unknown, record: API.ProjectReportItem) => renderRevenueWithMeta(value, record),
     },
     formatter: (value: number, record?: Record<string, unknown>) =>

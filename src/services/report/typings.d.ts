@@ -451,6 +451,20 @@ declare namespace API {
     summary: ProjectAdValueDailyCompositionSummary;
   }
 
+  interface ProjectAdRevenueUserComposition {
+    totalValueMicrosUsd?: string | number | null;
+    totalValueUsd?: string | number | null;
+    newUserValueMicrosUsd?: string | number | null;
+    newUserValueUsd?: string | number | null;
+    newUserRatio?: string | number | null;
+    retainedUserValueMicrosUsd?: string | number | null;
+    retainedUserValueUsd?: string | number | null;
+    retainedUserRatio?: string | number | null;
+    unknownValueMicrosUsd?: string | number | null;
+    unknownValueUsd?: string | number | null;
+    unknownRatio?: string | number | null;
+  }
+
   type ProjectReportItem = Record<string, any>;
 
   type UserReportRow = Record<string, any>;
