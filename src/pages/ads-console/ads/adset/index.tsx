@@ -232,6 +232,12 @@ type AdsetInsightPageProps = {
   forcedCampaignIds?: string[];
   hideAccountFilter?: boolean;
   hideOrgFilters?: boolean;
+  filterLayout?: "toolbar" | "search";
+  extraSearchColumns?: ProColumns<any>[];
+  summaryOrgScope?: {
+    groupId?: string;
+  };
+  onSearchReset?: () => void;
   onSelectionChange?: (campaignIds: string[], adsetIds: string[]) => void;
   onSelectedRowsChange?: (rows: InsightRow[]) => void;
   reloadSignal?: number;
@@ -245,6 +251,10 @@ const AdsetInsightPage: React.FC<AdsetInsightPageProps> = ({
   forcedCampaignIds,
   hideAccountFilter,
   hideOrgFilters,
+  filterLayout = "toolbar",
+  extraSearchColumns,
+  summaryOrgScope,
+  onSearchReset,
   onSelectionChange,
   onSelectedRowsChange,
   reloadSignal,
@@ -256,6 +266,7 @@ const AdsetInsightPage: React.FC<AdsetInsightPageProps> = ({
   const { initialState } = useModel('@@initialState');
   const currentUser = initialState?.currentUser as AdsConsole.CurrentUser | undefined;
   const hasPermission = (code: string) => hasAdsConsolePermission(currentUser, code);
+  const useSearchFilterLayout = filterLayout === "search";
   const [searchParams] = useSearchParams();
   const initCampaignId = searchParams.get("campaignId") || undefined;
   const hasForcedAccountScope = forcedAccountIds !== undefined;
@@ -1239,11 +1250,23 @@ const AdsetInsightPage: React.FC<AdsetInsightPageProps> = ({
       <ProTable<InsightRow>
         rowKey={(r) => `${r.id}`}
         actionRef={actionRef}
-        columns={columns}
+        columns={
+          useSearchFilterLayout && extraSearchColumns?.length
+            ? ([...extraSearchColumns, ...columns] as ProColumns<InsightRow>[])
+            : columns
+        }
         options={{ density: false, reload: true, setting: true }}
         sortDirections={["descend", "ascend"]}
-        search={false}
-        params={queryParams}
+        onReset={useSearchFilterLayout ? onSearchReset : undefined}
+        search={
+          useSearchFilterLayout
+            ? {
+                labelWidth: "auto",
+                defaultCollapsed: false,
+              }
+            : false
+        }
+        params={useSearchFilterLayout ? undefined : queryParams}
         rowSelection={{
           selectedRowKeys,
           onChange: (_keys, rows) => {
@@ -1291,8 +1314,20 @@ const AdsetInsightPage: React.FC<AdsetInsightPageProps> = ({
             roasMin,
             roasMax,
           } = params as any;
+          const scopedGroupId = useSearchFilterLayout ? summaryOrgScope?.groupId : groupId;
+          const dateRange = (params as any).dateRange;
+          const queryStartDate =
+            startDate ||
+            (dateRange?.[0]
+              ? dayjs(dateRange[0]).format("YYYY-MM-DD")
+              : dayjs().subtract(6, "day").format("YYYY-MM-DD"));
+          const queryEndDate =
+            endDate ||
+            (dateRange?.[1]
+              ? dayjs(dateRange[1]).format("YYYY-MM-DD")
+              : dayjs().format("YYYY-MM-DD"));
           const selectedDateRangeText =
-            startDate && endDate ? `${startDate} ~ ${endDate}` : "-";
+            queryStartDate && queryEndDate ? `${queryStartDate} ~ ${queryEndDate}` : "-";
           const activeSortKey = Object.keys(sort).find((k) => sort[k] != null);
           const sortFieldMap: Record<string, string> = {
             targetEventCost: "target_event_cost",
@@ -1310,9 +1345,9 @@ const AdsetInsightPage: React.FC<AdsetInsightPageProps> = ({
             campaignId: hasForcedCampaignScope ? undefined : campaignId,
             campaignIds: hasForcedCampaignScope ? forcedCampaignIds : undefined,
             adsetId,
-            groupId,
-            startDate,
-            endDate,
+            groupId: scopedGroupId,
+            startDate: queryStartDate,
+            endDate: queryEndDate,
             sortField,
             sortOrder,
             status,
@@ -1334,6 +1369,7 @@ const AdsetInsightPage: React.FC<AdsetInsightPageProps> = ({
         }}
         summary={() => renderAdsMetricsSummary({ columns, rows: tableData, hasSelectionColumn: true })}
         toolBarRender={() => {
+          if (useSearchFilterLayout) return [];
           const items: React.ReactNode[] = [
             <DatePicker.RangePicker
               key="date"

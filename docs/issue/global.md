@@ -2,6 +2,28 @@
 destroyOnClose 过时， 使用 destroyOnHidden 代替
 bodyStyle 过时，使用 styles.body代替
 
+## 表单必填校验提示重复显示
+
+### 出现场景
+
+在全局昵称补全弹窗中，未输入昵称直接点击保存时，字段下方出现两行相同的“请输入昵称”错误提示。
+
+### 问题原因
+
+同一个 `Form.Item` 同时配置了 `required` 规则和自定义 `validator`，两条规则在空值场景下都会返回相同错误，Ant Design 会把错误数组全部渲染出来。
+
+### 解决方式
+
+空值和纯空格校验优先使用单条 `{ required: true, whitespace: true }` 规则；仅在需要不同错误语义时再追加自定义 `validator`。
+
+### 影响范围
+
+所有使用 Ant Design `Form.Item` 配置必填和自定义校验的表单。
+
+### 相关文件
+
+- `src/app.tsx`
+
 ### ModalForm / ProForm 内不能使用 React Fragment 作为直接子元素
 ModalForm 内部会尝试向第一个子元素传递 `autoFocus` 属性，而 React Fragment 不支持 `autoFocus`，会导致控制台警告：
 ```

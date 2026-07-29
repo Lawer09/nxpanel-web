@@ -6,9 +6,11 @@ import { updateCampaignRemoteBudget } from "@/services/ads-console/campaign";
 import { updateAdsetRemoteBudget } from "@/services/ads-console/adset";
 import { getAccountOptions } from "@/services/ads-console/adsOptions";
 import { getProjectOptions, getTeamOptions, getAgencyOptions } from "@/services/ads-console/orgOptions";
+import type { ProColumns } from "@ant-design/pro-components";
 import { history, useSearchParams } from "@umijs/max";
-import { Card, Form, InputNumber, Modal, Select, Space, Tabs, Typography, message } from "antd";
+import { Card, Form, InputNumber, Modal, Select, Tabs, Typography, message } from "antd";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import "./index.less";
 
 type BudgetSelectableRow = {
   id: string;
@@ -20,6 +22,13 @@ type BudgetSelectableRow = {
   budgetValue?: string;
   currency?: string;
   bidStrategy?: string;
+};
+
+type SummarySearchFields = {
+  summaryTeamId?: string;
+  summaryAgencyId?: string;
+  summaryGroupId?: string;
+  summaryAccountIds?: string[];
 };
 
 const BID_STRATEGY_OPTIONS = [
@@ -165,10 +174,137 @@ const AdsSummaryPage: React.FC = () => {
     if (resolvedAccountIds === undefined) return "__all__";
     return [...resolvedAccountIds].sort().join(",");
   }, [resolvedAccountIds]);
-  const topFilterKey = useMemo(
-    () => `${teamId ?? ""}|${agencyId ?? ""}|${groupId ?? ""}|${[...accountIds].sort().join(",")}|${accountOptionsScopeKey}|${resolvedAccountKey}`,
-    [teamId, agencyId, groupId, accountIds, accountOptionsScopeKey, resolvedAccountKey],
+
+  const summarySearchColumns = useMemo<ProColumns<SummarySearchFields>[]>(
+    () => [
+      {
+        title: "团队",
+        dataIndex: "summaryTeamId",
+        hideInTable: true,
+        order: 110,
+        renderFormItem: () => (
+          <Select
+            allowClear
+            value={teamId}
+            options={teamOptions}
+            onChange={(v) => {
+              setTeamId(v);
+              setGroupId(undefined);
+              setAccountIds([]);
+            }}
+            placeholder="全部团队"
+            showSearch
+            filterOption={(input, option) =>
+              String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+            }
+          />
+        ),
+      },
+      {
+        title: "代理商",
+        dataIndex: "summaryAgencyId",
+        hideInTable: true,
+        order: 109,
+        renderFormItem: () => (
+          <Select
+            allowClear
+            value={agencyId}
+            options={agencyOptions}
+            onChange={(v) => {
+              setAgencyId(v);
+              setGroupId(undefined);
+              setAccountIds([]);
+            }}
+            placeholder="全部代理商"
+            showSearch
+            filterOption={(input, option) =>
+              String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+            }
+          />
+        ),
+      },
+      {
+        title: "项目组",
+        dataIndex: "summaryGroupId",
+        hideInTable: true,
+        order: 108,
+        renderFormItem: () => (
+          <Select
+            allowClear
+            value={groupId}
+            options={groupOptions}
+            onChange={(v) => {
+              setGroupId(v);
+              setAccountIds([]);
+            }}
+            placeholder={teamId ? "该团队下的项目组" : "全部项目组"}
+            showSearch
+            filterOption={(input, option) =>
+              String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+            }
+          />
+        ),
+      },
+      {
+        title: "账户 ID",
+        dataIndex: "summaryAccountIds",
+        hideInTable: true,
+        order: 107,
+        renderFormItem: () => (
+          <Select
+            mode="multiple"
+            allowClear
+            value={accountIds}
+            options={accountOptions}
+            loading={accountOptionsLoading}
+            onChange={(v: string[]) => setAccountIds(v)}
+            placeholder={
+              groupId
+                ? "该项目组下的账户（默认全部）"
+                : agencyId
+                  ? "该代理商下的账户（默认全部）"
+                  : teamId
+                    ? "该团队下的账户（默认全部）"
+                    : "全部账户（默认全部）"
+            }
+            showSearch
+            maxTagCount="responsive"
+            filterOption={(input, option) =>
+              String(option?.label ?? "")
+                .toLowerCase()
+                .includes(input.toLowerCase()) ||
+              String(option?.value ?? "")
+                .toLowerCase()
+                .includes(input.toLowerCase())
+            }
+          />
+        ),
+      },
+    ],
+    [
+      accountIds,
+      accountOptions,
+      accountOptionsLoading,
+      agencyId,
+      agencyOptions,
+      groupId,
+      groupOptions,
+      teamId,
+      teamOptions,
+    ],
   );
+
+  const summaryOrgScope = useMemo(
+    () => ({ teamId, groupId, accountIds, resolvedAccountKey }),
+    [teamId, groupId, accountIds, resolvedAccountKey],
+  );
+
+  const resetSummaryOrgFilters = () => {
+    setTeamId(undefined);
+    setAgencyId(undefined);
+    setGroupId(undefined);
+    setAccountIds([]);
+  };
 
   useEffect(() => {
     const next = new URLSearchParams(window.location.search);
@@ -307,111 +443,7 @@ const AdsSummaryPage: React.FC = () => {
   };
 
   return (
-    <Card>
-      {/* 三级联动筛选栏（团队/项目组/账户变化后自动刷新当前 tab） */}
-      <div
-        style={{
-          marginBottom: 12,
-          padding: "8px 0",
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
-      >
-        <Space>
-          <Typography.Text>团队</Typography.Text>
-          <Select
-            allowClear
-            style={{ minWidth: 180 }}
-            options={teamOptions}
-            value={teamId}
-            onChange={(v) => {
-              setTeamId(v);
-              setGroupId(undefined); // 用户主动切换团队才清空
-              setAccountIds([]);
-            }}
-            placeholder="全部团队"
-            showSearch
-            filterOption={(input, option) =>
-              String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-            }
-          />
-        </Space>
-
-        <Space>
-          <Typography.Text>代理商</Typography.Text>
-          <Select
-            allowClear
-            style={{ minWidth: 180 }}
-            options={agencyOptions}
-            value={agencyId}
-            onChange={(v) => {
-              setAgencyId(v);
-              setGroupId(undefined);
-              setAccountIds([]);
-            }}
-            placeholder="全部代理商"
-            showSearch
-            filterOption={(input, option) =>
-              String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-            }
-          />
-        </Space>
-
-        <Space>
-          <Typography.Text>项目组</Typography.Text>
-          <Select
-            allowClear
-            style={{ minWidth: 180 }}
-            options={groupOptions}
-            value={groupId}
-            onChange={(v) => {
-              setGroupId(v);
-              setAccountIds([]); // 用户主动切换项目组才清空账户
-            }}
-            placeholder={teamId ? "该团队下的项目组" : "全部项目组"}
-            showSearch
-            filterOption={(input, option) =>
-              String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-            }
-          />
-        </Space>
-
-        <Space>
-          <Typography.Text>账户 ID</Typography.Text>
-          <Select
-            mode="multiple"
-            allowClear
-            style={{ minWidth: 360 }}
-            options={accountOptions}
-            value={accountIds}
-            loading={accountOptionsLoading}
-            onChange={(v: string[]) => setAccountIds(v)}
-            placeholder={
-              groupId
-                ? "该项目组下的账户（默认全部）"
-                : agencyId
-                  ? "该代理商下的账户（默认全部）"
-                  : teamId
-                    ? "该团队下的账户（默认全部）"
-                    : "全部账户（默认全部）"
-            }
-            showSearch
-            maxTagCount="responsive"
-            filterOption={(input, option) =>
-              String(option?.label ?? "")
-                .toLowerCase()
-                .includes(input.toLowerCase()) ||
-              String(option?.value ?? "")
-                .toLowerCase()
-                .includes(input.toLowerCase())
-            }
-          />
-        </Space>
-
-      </div>
-
+    <Card className="ads-summary-page">
       <Tabs
         activeKey={activeTab}
         onChange={(key) => {
@@ -425,73 +457,95 @@ const AdsSummaryPage: React.FC = () => {
             key: "campaign",
             label: campaignTabLabel,
             children: (
-              <CampaignPage
-                key={`campaign-${topFilterKey}`}
-                forcedAccountIds={resolvedAccountIds}
-                hideAccountFilter
-                hideOrgFilters
-                reloadSignal={campaignReloadSignal}
-                onSelectionChange={(ids) => {
-                  setSelectedCampaignIds(ids);
-                  setSelectedAdsetIds([]);
-                  setSelectedAdIds([]);
-                }}
-                onSelectedRowsChange={setSelectedCampaignRows}
-                onOpenBudgetConfig={(row) => openBudgetModalWithRow("campaign", row)}
-                onOpenCreateEditor={openCreateEditor}
-              />
+              <>
+                <CampaignPage
+                  key="campaign"
+                  forcedAccountIds={resolvedAccountIds}
+                  hideAccountFilter
+                  hideOrgFilters
+                  filterLayout="search"
+                  extraSearchColumns={summarySearchColumns}
+                  summaryOrgScope={summaryOrgScope}
+                  onSearchReset={resetSummaryOrgFilters}
+                  reloadSignal={campaignReloadSignal}
+                  onSelectionChange={(ids) => {
+                    setSelectedCampaignIds(ids);
+                    setSelectedAdsetIds([]);
+                    setSelectedAdIds([]);
+                  }}
+                  onSelectedRowsChange={setSelectedCampaignRows}
+                  onOpenBudgetConfig={(row) => openBudgetModalWithRow("campaign", row)}
+                  onOpenCreateEditor={openCreateEditor}
+                />
+              </>
             ),
           },
           {
             key: "adset",
             label: adsetTabLabel,
             children: (
-              <AdsetPage
-                key={`adset-${topFilterKey}-${selectedCampaignIds.join(",")}`}
-                forcedAccountIds={resolvedAccountIds}
-                forcedCampaignIds={selectedCampaignIds}
-                hideAccountFilter
-                hideOrgFilters
-                reloadSignal={adsetReloadSignal}
-                onSelectionChange={(_campaignIds, adsetIds) => {
-                  setSelectedAdsetIds(adsetIds);
-                  setSelectedAdIds([]);
-                }}
-                onSelectedRowsChange={setSelectedAdsetRows}
-                onOpenBudgetConfig={(row) => openBudgetModalWithRow("adset", row)}
-                onOpenCreateEditor={openCreateEditor}
-              />
+              <>
+                <AdsetPage
+                  key={`adset-${selectedCampaignIds.join(",")}`}
+                  forcedAccountIds={resolvedAccountIds}
+                  forcedCampaignIds={selectedCampaignIds}
+                  hideAccountFilter
+                  hideOrgFilters
+                  filterLayout="search"
+                  extraSearchColumns={summarySearchColumns}
+                  summaryOrgScope={summaryOrgScope}
+                  onSearchReset={resetSummaryOrgFilters}
+                  reloadSignal={adsetReloadSignal}
+                  onSelectionChange={(_campaignIds, adsetIds) => {
+                    setSelectedAdsetIds(adsetIds);
+                    setSelectedAdIds([]);
+                  }}
+                  onSelectedRowsChange={setSelectedAdsetRows}
+                  onOpenBudgetConfig={(row) => openBudgetModalWithRow("adset", row)}
+                  onOpenCreateEditor={openCreateEditor}
+                />
+              </>
             ),
           },
           {
             key: "ad",
             label: "Ad 广告",
             children: (
-              <AdPage
-                key={`ad-${topFilterKey}-${selectedCampaignIds.join(",")}-${selectedAdsetIds.join(",")}`}
-                forcedAccountIds={resolvedAccountIds}
-                forcedCampaignIds={selectedCampaignIds}
-                forcedAdsetIds={selectedAdsetIds}
-                hideAccountFilter
-                hideHierarchyFilters
-                onSelectionChange={(adIds) => setSelectedAdIds(adIds)}
-                onOpenCreateEditor={openCreateEditor}
-              />
+              <>
+                <AdPage
+                  key={`ad-${selectedCampaignIds.join(",")}-${selectedAdsetIds.join(",")}`}
+                  forcedAccountIds={resolvedAccountIds}
+                  forcedCampaignIds={selectedCampaignIds}
+                  forcedAdsetIds={selectedAdsetIds}
+                  hideAccountFilter
+                  hideHierarchyFilters
+                  filterLayout="search"
+                  extraSearchColumns={summarySearchColumns}
+                  onSearchReset={resetSummaryOrgFilters}
+                  onSelectionChange={(adIds) => setSelectedAdIds(adIds)}
+                  onOpenCreateEditor={openCreateEditor}
+                />
+              </>
             ),
           },
           {
             key: "creative",
             label: "Creative 素材",
             children: (
-              <CreativePage
-                key={`creative-${topFilterKey}-${selectedCampaignIds.join(",")}-${selectedAdsetIds.join(",")}-${selectedAdIds.join(",")}`}
-                forcedAccountIds={resolvedAccountIds}
-                forcedCampaignIds={selectedCampaignIds}
-                forcedAdsetIds={selectedAdsetIds}
-                forcedAdIds={selectedAdIds}
-                hideAccountFilter
-                hideHierarchyFilters
-              />
+              <>
+                <CreativePage
+                  key={`creative-${selectedCampaignIds.join(",")}-${selectedAdsetIds.join(",")}-${selectedAdIds.join(",")}`}
+                  forcedAccountIds={resolvedAccountIds}
+                  forcedCampaignIds={selectedCampaignIds}
+                  forcedAdsetIds={selectedAdsetIds}
+                  forcedAdIds={selectedAdIds}
+                  hideAccountFilter
+                  hideHierarchyFilters
+                  filterLayout="search"
+                  extraSearchColumns={summarySearchColumns}
+                  onSearchReset={resetSummaryOrgFilters}
+                />
+              </>
             ),
           },
         ]}

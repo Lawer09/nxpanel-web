@@ -279,15 +279,7 @@ const NicknameRequiredModal: React.FC<{
         <Form.Item
           name="nickname"
           label="昵称"
-          rules={[
-            { required: true, message: '请输入昵称' },
-            {
-              validator: async (_, value) => {
-                if (typeof value === 'string' && value.trim()) return;
-                throw new Error('请输入昵称');
-              },
-            },
-          ]}
+          rules={[{ required: true, whitespace: true, message: '请输入昵称' }]}
         >
           <Input placeholder="请输入昵称" maxLength={50} showCount />
         </Form.Item>

@@ -236,6 +236,9 @@ type AdInsightPageProps = {
   forcedAdsetIds?: string[];
   hideAccountFilter?: boolean;
   hideHierarchyFilters?: boolean;
+  filterLayout?: "toolbar" | "search";
+  extraSearchColumns?: ProColumns<any>[];
+  onSearchReset?: () => void;
   onSelectionChange?: (adIds: string[]) => void;
   onOpenCreateEditor?: (scope: "ad", row: InsightRow) => void;
 };
@@ -247,6 +250,9 @@ const AdInsightPage: React.FC<AdInsightPageProps> = ({
   forcedAdsetIds,
   hideAccountFilter,
   hideHierarchyFilters,
+  filterLayout = "toolbar",
+  extraSearchColumns,
+  onSearchReset,
   onSelectionChange,
   onOpenCreateEditor,
 }) => {
@@ -255,6 +261,7 @@ const AdInsightPage: React.FC<AdInsightPageProps> = ({
   const { initialState } = useModel('@@initialState');
   const currentUser = initialState?.currentUser as AdsConsole.CurrentUser | undefined;
   const hasPermission = (code: string) => hasAdsConsolePermission(currentUser, code);
+  const useSearchFilterLayout = filterLayout === "search";
   const [searchParams] = useSearchParams();
   const initCampaignId = searchParams.get("campaignId") || undefined;
   const initAdsetId = searchParams.get("adsetId") || undefined;
@@ -1207,11 +1214,23 @@ const AdInsightPage: React.FC<AdInsightPageProps> = ({
       <ProTable<InsightRow>
         rowKey={(r) => `${r.id}`}
         actionRef={actionRef}
-        columns={columns}
+        columns={
+          useSearchFilterLayout && extraSearchColumns?.length
+            ? ([...extraSearchColumns, ...columns] as ProColumns<InsightRow>[])
+            : columns
+        }
         options={{ density: false, reload: true, setting: true }}
         sortDirections={["descend", "ascend"]}
-        search={false}
-        params={queryParams}
+        onReset={useSearchFilterLayout ? onSearchReset : undefined}
+        search={
+          useSearchFilterLayout
+            ? {
+                labelWidth: "auto",
+                defaultCollapsed: false,
+              }
+            : false
+        }
+        params={useSearchFilterLayout ? undefined : queryParams}
         rowSelection={{
           selectedRowKeys,
           onChange: (keys, rows) => {
@@ -1255,8 +1274,19 @@ const AdInsightPage: React.FC<AdInsightPageProps> = ({
             roasMin,
             roasMax,
           } = params as any;
+          const dateRange = (params as any).dateRange;
+          const queryStartDate =
+            startDate ||
+            (dateRange?.[0]
+              ? dayjs(dateRange[0]).format("YYYY-MM-DD")
+              : dayjs().subtract(6, "day").format("YYYY-MM-DD"));
+          const queryEndDate =
+            endDate ||
+            (dateRange?.[1]
+              ? dayjs(dateRange[1]).format("YYYY-MM-DD")
+              : dayjs().format("YYYY-MM-DD"));
           const selectedDateRangeText =
-            startDate && endDate ? `${startDate} ~ ${endDate}` : "-";
+            queryStartDate && queryEndDate ? `${queryStartDate} ~ ${queryEndDate}` : "-";
           const activeSortKey = Object.keys(sort).find((k) => sort[k] != null);
           const sortField = activeSortKey ?? "spend";
           const sortOrder =
@@ -1273,8 +1303,8 @@ const AdInsightPage: React.FC<AdInsightPageProps> = ({
             adsetIds: hasForcedAdsetScope ? forcedAdsetIds : undefined,
             adId,
             status,
-            startDate,
-            endDate,
+            startDate: queryStartDate,
+            endDate: queryEndDate,
             sortField,
             sortOrder,
             roasMin,
@@ -1296,6 +1326,7 @@ const AdInsightPage: React.FC<AdInsightPageProps> = ({
         }}
         summary={() => renderAdsMetricsSummary({ columns, rows: tableData, hasSelectionColumn: true })}
         toolBarRender={() => {
+          if (useSearchFilterLayout) return [];
           const items: React.ReactNode[] = [
             <DatePicker.RangePicker
               key="date"

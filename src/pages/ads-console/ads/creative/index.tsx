@@ -177,6 +177,9 @@ type CreativeManagePageProps = {
   forcedAdIds?: string[];
   hideAccountFilter?: boolean;
   hideHierarchyFilters?: boolean;
+  filterLayout?: 'toolbar' | 'search';
+  extraSearchColumns?: ProColumns<any>[];
+  onSearchReset?: () => void;
 };
 
 const CreativeManagePage: React.FC<CreativeManagePageProps> = ({
@@ -187,9 +190,13 @@ const CreativeManagePage: React.FC<CreativeManagePageProps> = ({
   forcedAdIds,
   hideAccountFilter,
   hideHierarchyFilters,
+  filterLayout = 'toolbar',
+  extraSearchColumns,
+  onSearchReset,
 }) => {
   const actionRef = useRef<ActionType>(undefined);
   const { message } = App.useApp();
+  const useSearchFilterLayout = filterLayout === 'search';
   const hasForcedAccountScope = forcedAccountIds !== undefined;
   const hasForcedCampaignScope = forcedCampaignIds !== undefined;
   const hasForcedAdsetScope = forcedAdsetIds !== undefined;
@@ -841,9 +848,14 @@ const CreativeManagePage: React.FC<CreativeManagePageProps> = ({
       <ProTable<AdsConsole.AdsCreative>
         rowKey="id"
         actionRef={actionRef}
-        columns={columns}
+        columns={
+          useSearchFilterLayout && extraSearchColumns?.length
+            ? ([...extraSearchColumns, ...columns] as ProColumns<AdsConsole.AdsCreative>[])
+            : columns
+        }
         options={{ density: false, reload: true, setting: true }}
         sortDirections={['descend', 'ascend']}
+        onReset={useSearchFilterLayout ? onSearchReset : undefined}
         rowSelection={{
           selectedRowKeys,
           onChange: (keys, rows) => {
@@ -871,10 +883,13 @@ const CreativeManagePage: React.FC<CreativeManagePageProps> = ({
             </AdsConsoleAuthButton>
           </Space>
         )}
-        params={queryParams}
+        params={useSearchFilterLayout ? undefined : queryParams}
         request={async (params, sort) => {
+          const startDate =
+            (params.startDate as string | undefined) || dayjs().subtract(6, 'day').format('YYYY-MM-DD');
+          const endDate = (params.endDate as string | undefined) || dayjs().format('YYYY-MM-DD');
           const selectedDateRangeText =
-            params.startDate && params.endDate ? `${params.startDate} ~ ${params.endDate}` : '-';
+            startDate && endDate ? `${startDate} ~ ${endDate}` : '-';
           const activeSortKey = Object.keys(sort).find((k) => sort[k] != null);
           const sortFieldMap: Record<string, string> = {
             targetEventCost: 'target_event_cost',
@@ -897,8 +912,8 @@ const CreativeManagePage: React.FC<CreativeManagePageProps> = ({
             name: params.name as string,
             status: params.status as string,
             syncStatus: params.syncStatus as number,
-            startDate: params.startDate as string,
-            endDate: params.endDate as string,
+            startDate,
+            endDate,
             sortField,
             sortOrder,
             createdDate: filterByNewToday ? dayjs().format('YYYY-MM-DD') : undefined,
@@ -918,6 +933,31 @@ const CreativeManagePage: React.FC<CreativeManagePageProps> = ({
         }}
         summary={() => renderAdsMetricsSummary({ columns, rows: tableData, hasSelectionColumn: true })}
         toolBarRender={() => {
+          if (useSearchFilterLayout) {
+            return [
+              <Button
+                key="new-today"
+                type={filterByNewToday ? 'primary' : 'default'}
+                onClick={() => setFilterByNewToday((v) => !v)}
+              >
+                今日新增
+                {newTodayCount !== null && (
+                  <Badge
+                    count={newTodayCount}
+                    showZero
+                    style={{
+                      marginLeft: 6,
+                      backgroundColor: filterByNewToday ? '#fff' : (newTodayCount > 0 ? '#1677ff' : '#8c8c8c'),
+                      color: filterByNewToday ? '#1677ff' : '#fff',
+                      boxShadow: 'none',
+                      fontSize: 11,
+                    }}
+                    overflowCount={999}
+                  />
+                )}
+              </Button>,
+            ];
+          }
           const items: React.ReactNode[] = [
             <DatePicker.RangePicker
               key="date"
@@ -1050,7 +1090,14 @@ const CreativeManagePage: React.FC<CreativeManagePageProps> = ({
           );
           return items;
         }}
-        search={false}
+        search={
+          useSearchFilterLayout
+            ? {
+                labelWidth: 'auto',
+                defaultCollapsed: false,
+              }
+            : false
+        }
         pagination={{ defaultPageSize: 20, showSizeChanger: true }}
         scroll={{ x: 1600, y: '45vh' }}
         size="small"

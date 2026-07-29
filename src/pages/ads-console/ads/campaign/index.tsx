@@ -227,6 +227,13 @@ type CampaignInsightPageProps = {
   forcedAccountIds?: string[];
   hideAccountFilter?: boolean;
   hideOrgFilters?: boolean;
+  filterLayout?: "toolbar" | "search";
+  extraSearchColumns?: ProColumns<any>[];
+  summaryOrgScope?: {
+    teamId?: string;
+    groupId?: string;
+  };
+  onSearchReset?: () => void;
   onSelectionChange?: (ids: string[]) => void;
   onSelectedRowsChange?: (rows: InsightRow[]) => void;
   reloadSignal?: number;
@@ -239,6 +246,10 @@ const CampaignInsightPage: React.FC<CampaignInsightPageProps> = ({
   forcedAccountIds,
   hideAccountFilter,
   hideOrgFilters,
+  filterLayout = "toolbar",
+  extraSearchColumns,
+  summaryOrgScope,
+  onSearchReset,
   onSelectionChange,
   onSelectedRowsChange,
   reloadSignal,
@@ -250,6 +261,7 @@ const CampaignInsightPage: React.FC<CampaignInsightPageProps> = ({
   const { initialState } = useModel('@@initialState');
   const currentUser = initialState?.currentUser as AdsConsole.CurrentUser | undefined;
   const hasPermission = (code: string) => hasAdsConsolePermission(currentUser, code);
+  const useSearchFilterLayout = filterLayout === "search";
   const [searchParams] = useSearchParams();
   const initAccountId = forcedAccountId || searchParams.get("accountId") || undefined;
   const hasForcedAccountScope = forcedAccountIds !== undefined;
@@ -1238,9 +1250,14 @@ const CampaignInsightPage: React.FC<CampaignInsightPageProps> = ({
       <ProTable<InsightRow>
         rowKey={(r) => `${r.id}`}
         actionRef={actionRef}
-        columns={columns}
+        columns={
+          useSearchFilterLayout && extraSearchColumns?.length
+            ? ([...extraSearchColumns, ...columns] as ProColumns<InsightRow>[])
+            : columns
+        }
         options={{ density: false, reload: true, setting: true }}
         sortDirections={["descend", "ascend"]}
+        onReset={useSearchFilterLayout ? onSearchReset : undefined}
         rowSelection={{
           selectedRowKeys,
           onChange: (_keys, rows) => {
@@ -1285,8 +1302,21 @@ const CampaignInsightPage: React.FC<CampaignInsightPageProps> = ({
             roasMin,
             roasMax,
           } = params as any;
+          const scopedTeamId = useSearchFilterLayout ? summaryOrgScope?.teamId : teamId;
+          const scopedGroupId = useSearchFilterLayout ? summaryOrgScope?.groupId : groupId;
+          const dateRange = (params as any).dateRange;
+          const queryStartDate =
+            startDate ||
+            (dateRange?.[0]
+              ? dayjs(dateRange[0]).format("YYYY-MM-DD")
+              : dayjs().subtract(6, "day").format("YYYY-MM-DD"));
+          const queryEndDate =
+            endDate ||
+            (dateRange?.[1]
+              ? dayjs(dateRange[1]).format("YYYY-MM-DD")
+              : dayjs().format("YYYY-MM-DD"));
           const selectedDateRangeText =
-            startDate && endDate ? `${startDate} ~ ${endDate}` : "-";
+            queryStartDate && queryEndDate ? `${queryStartDate} ~ ${queryEndDate}` : "-";
           const activeSortKey = Object.keys(sort).find((k) => sort[k] != null);
           const sortFieldMap: Record<string, string> = {
             targetEventCost: "target_event_cost",
@@ -1302,10 +1332,10 @@ const CampaignInsightPage: React.FC<CampaignInsightPageProps> = ({
             selectedAccountIds: hasForcedAccountScope ? forcedAccountIds : undefined,
             name,
             campaignId,
-            groupId,
-            teamId,
-            startDate,
-            endDate,
+            groupId: scopedGroupId,
+            teamId: scopedTeamId,
+            startDate: queryStartDate,
+            endDate: queryEndDate,
             effectiveStatus,
             sortField,
             sortOrder,
@@ -1327,6 +1357,7 @@ const CampaignInsightPage: React.FC<CampaignInsightPageProps> = ({
         }}
         summary={() => renderAdsMetricsSummary({ columns, rows: tableData, hasSelectionColumn: true })}
         toolBarRender={() => {
+          if (useSearchFilterLayout) return [];
           const items: React.ReactNode[] = [
             <DatePicker.RangePicker
               key="date"
@@ -1440,8 +1471,15 @@ const CampaignInsightPage: React.FC<CampaignInsightPageProps> = ({
           ];
           return items;
         }}
-        params={queryParams}
-        search={false}
+        params={useSearchFilterLayout ? undefined : queryParams}
+        search={
+          useSearchFilterLayout
+            ? {
+                labelWidth: "auto",
+                defaultCollapsed: false,
+              }
+            : false
+        }
         pagination={{ defaultPageSize: 20, showSizeChanger: true }}
         scroll={{ x: 1600, y: "45vh" }}
         size={"small"}
